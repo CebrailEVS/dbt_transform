@@ -6,29 +6,11 @@ logs/
 # Environment & secrets
 .env
 .env.*
-profiles.yml
 
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-.python-version
 
-# IDE
+# IDE & OS
 .vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
-.tmp/
-
-# Local development
-.user.yml

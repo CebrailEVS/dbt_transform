@@ -1,3 +1,4 @@
+# dbt_project.yml
 name: dbt_warehouse
 version: '1.0.0'
 profile: dbt_warehouse
