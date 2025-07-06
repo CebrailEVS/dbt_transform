@@ -1,0 +1,50 @@
+# models/staging/_yuman__models.yml
+version: 2
+
+models:
+  - name: stg_yuman__clients
+    description: "Clients transformés et nettoyés depuis l'API Yuman"
+    columns:
+      - name: client_id
+        description: "Identifiant unique du client"
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_yuman__sites
+    description: "Sites transformés et nettoyés depuis l'API Yuman"
+    columns:
+      - name: site_id
+        description: "Identifiant unique du site"
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        description: "Référence vers le client propriétaire"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_yuman__clients')
+              field: client_id
+
+  - name: stg_yuman__materials
+    description: "Matériaux transformés et nettoyés depuis l'API Yuman"
+    columns:
+      - name: material_id
+        description: "Identifiant unique du matériau"
+        tests:
+          - unique
+          - not_null
+      - name: site_id
+        description: "Référence vers le site propriétaire"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_yuman__sites')
+              field: site_id
+      - name: category_id
+        description: "Référence vers la catégorie du matériau"
+        tests:
+          - relationships:
+              to: ref('stg_yuman__materials_categories')
+              field: category_id

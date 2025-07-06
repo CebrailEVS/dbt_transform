@@ -1,0 +1,65 @@
+{{
+    config(
+        materialized='incremental',
+        unique_key='idtask_has_product',
+        partition_by={'field': 'updated_at', 'data_type': 'timestamp'},
+        cluster_by=['idtask', 'idproduct'],
+        description='Table de fait des produits liés aux tâches depuis task_has_product'
+    )
+}}
+
+with source_data as (
+    select *
+    from {{ source('oracle_neshu', 'evs_task_has_product') }}
+),
+
+cleaned_data as (
+    select
+        -- IDs (clés primaires et étrangères)
+        cast(idtask_has_product as int64) as idtask_has_product,
+        cast(idtask as int64) as idtask,
+        cast(idproduct as int64) as idproduct,
+        cast(idproduct_source as int64) as idproduct_source,
+        cast(idproduct_destination as int64) as idproduct_destination,
+        cast(idtax as int64) as idtax,
+        cast(idtask_has_product_associed as int64) as idtask_has_product_associed,
+        cast(iddevice as int64) as iddevice,
+        cast(idcompany_peer as int64) as idcompany,
+        cast(idlocation as int64) as idlocation,
+        
+        -- Colonnes texte et types
+        type_product_source,
+        type_product_destination,
+        code as product_code,
+        name as product_name,
+        cast(priceline_number as int64) as priceline_number,
+        
+        -- Colonnes numériques (quantités, prix, montants)
+        cast(real_quantity as float64) as real_quantity,
+        cast(average_purchase_price as float64) as average_purchase_price,
+        cast(tax_rate as float64) as tax_rate,
+        cast(tax_amount as float64) as tax_amount,
+        cast(global_discount_amount as float64) as global_discount_amount,
+        cast(net_price as float64) as net_price,
+        cast(sale_amount_net_tax as float64) as sale_amount_net_tax,
+        cast(sale_amount_net as float64) as sale_amount_net,
+        cast(sale_unit_price as float64) as sale_unit_price,
+        cast(purchase_unit_price as float64) as purchase_unit_price,
+        cast(sale_amount_brut as float64) as sale_amount_brut,
+        cast(unit_coeff_multi as float64) as unit_coeff_multi,
+        cast(sale_unit_price_tax as float64) as sale_unit_price_tax,
+        cast(unit_coeff_div as float64) as unit_coeff_div,
+        
+        -- Timestamps harmonisés
+        timestamp(creation_date) as created_at,
+        timestamp(modification_date) as updated_at,
+        timestamp(_sdc_extracted_at) as extracted_at,
+        timestamp(_sdc_deleted_at) as deleted_at
+        
+    from source_data
+)
+
+select * from cleaned_data
+{% if is_incremental() %}
+    where updated_at > (select max(updated_at) from {{ this }})
+{% endif %}

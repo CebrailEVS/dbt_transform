@@ -1,0 +1,46 @@
+# models/_yuman_api__sources.yml
+version: 2
+
+sources:
+  - name: yuman_api
+    schema: raw
+    tables:
+      - name: yuman_clients
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du client"
+
+      - name: yuman_sites
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique du site"
+          - name: client_id
+            tests:
+              - not_null
+            description: "Référence vers le client propriétaire"  
+
+      - name: yuman_materials
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique de la machine"
+          - name: site_id
+            tests:
+              - not_null
+            description: "Référence vers le site propriétaire"
+
+      - name: yuman_material_categories
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique de la catégorie machine"

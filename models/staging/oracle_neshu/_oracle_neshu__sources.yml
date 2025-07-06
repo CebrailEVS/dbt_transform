@@ -1,0 +1,22 @@
+# models/_oracle_neshu__sources.yml
+version: 2
+
+sources:
+  - name: oracle_neshu
+    schema: raw
+    tables:
+      - name: evs_company
+        columns:
+          - name: idcompany
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de l'entreprise"
+
+      - name: evs_task_has_product
+        columns:
+          - name: idtask_has_product
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique de la tâche associée au produit"

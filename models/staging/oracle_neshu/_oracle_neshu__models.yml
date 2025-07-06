@@ -1,0 +1,27 @@
+# models/staging/_oracle_neshu__models.yml
+version: 2
+
+models:
+  - name: stg_oracle_neshu__company
+    description: "Clients transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idcompany
+        description: "Identifiant unique de l'entreprise"
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_oracle_neshu__task_has_product
+    description: "Task_has_product transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idtask_has_product
+        description: "Identifiant unique de la tâche associée au produit"
+        tests:
+          - unique
+          - not_null
+      - name: idcompany
+        description: "Référence vers l'entreprise propriétaire"
+        tests:  
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
