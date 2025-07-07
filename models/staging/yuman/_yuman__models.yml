@@ -48,3 +48,12 @@ models:
           - relationships:
               to: ref('stg_yuman__materials_categories')
               field: category_id
+
+  - name: stg_yuman__products
+    description: "Produits transformés et nettoyés depuis l'API Yuman"
+    columns:
+      - name: product_id
+        description: "Identifiant unique du produit"
+        tests:
+          - unique
+          - not_null

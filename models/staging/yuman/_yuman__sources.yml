@@ -49,3 +49,12 @@ sources:
               - unique 
               - not_null
             description: "Identifiant unique de la catégorie machine"
+
+      - name: yuman_products
+        description: "Table des produits Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique du produit/articles"
