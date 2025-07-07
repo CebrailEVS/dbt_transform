@@ -53,3 +53,4 @@ jobs:
           dbt debug --target ${{ steps.target.outputs.target }}
           dbt run --target ${{ steps.target.outputs.target }}
           dbt test --target ${{ steps.target.outputs.target }}
+          dbt docs generate --target ${{ steps.target.outputs.target }}
