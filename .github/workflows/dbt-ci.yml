@@ -28,9 +28,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install dbt-bigquery
 
-      - name: Set up environment variables
-        run: echo "DBT_BIGQUERY_KEYFILE=${{ secrets.DBT_BIGQUERY_KEYFILE }}" > $GITHUB_WORKSPACE/keyfile.json
-        # NOTE : DBT_BIGQUERY_KEYFILE est stocké dans Secrets en base64 ou fichier JSON stringifié (voir doc plus bas)
+      - name: Decode and write service account keyfile
+        run: echo "${{ secrets.DBT_BIGQUERY_KEYFILE }}" | base64 -d > $GITHUB_WORKSPACE/keyfile.json
 
       - name: Export env variables for dbt
         run: |
