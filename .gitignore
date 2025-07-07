@@ -14,3 +14,6 @@ __pycache__/
 # IDE & OS
 .vscode/
 .DS_Store
+
+# Keyfile
+keyfile.b64.txt
