@@ -15,5 +15,5 @@ __pycache__/
 .vscode/
 .DS_Store
 
-# Keyfile
+# Keyfile test
 keyfile.b64.txt
