@@ -4,8 +4,10 @@ version: 2
 sources:
   - name: yuman_api
     schema: raw
+    description: "Données brutes extraites de l'API Yuman"  
     tables:
       - name: yuman_clients
+        description: "Table des clients Yuman"  
         columns:
           - name: id
             tests:
@@ -14,6 +16,7 @@ sources:
             description: "Identifiant unique du client"
 
       - name: yuman_sites
+        description: "Table des sites Yuman"
         columns:
           - name: id
             tests:
@@ -26,6 +29,7 @@ sources:
             description: "Référence vers le client propriétaire"  
 
       - name: yuman_materials
+        description: "Table des machines Yuman"
         columns:
           - name: id
             tests:
@@ -38,6 +42,7 @@ sources:
             description: "Référence vers le site propriétaire"
 
       - name: yuman_material_categories
+        description: "Table des catégories de machines Yuman pour mapper les machines aux catégories"
         columns:
           - name: id
             tests:
