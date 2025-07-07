@@ -1,0 +1,56 @@
+# .github/workflows/dbt-ci.yml
+name: dbt CI/CD
+
+on:
+  push:
+    branches:
+      - master        # branche prod
+      - 'feature/**'  # branches de dev
+  pull_request:
+    branches:
+      - master        # tests à chaque PR vers master
+
+jobs:
+  dbt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-bigquery
+
+      - name: Set up environment variables
+        run: echo "DBT_BIGQUERY_KEYFILE=${{ secrets.DBT_BIGQUERY_KEYFILE }}" > $GITHUB_WORKSPACE/keyfile.json
+        # NOTE : DBT_BIGQUERY_KEYFILE est stocké dans Secrets en base64 ou fichier JSON stringifié (voir doc plus bas)
+
+      - name: Export env variables for dbt
+        run: |
+          echo "DBT_BIGQUERY_PROJECT=${{ secrets.DBT_BIGQUERY_PROJECT }}" >> $GITHUB_ENV
+          echo "DBT_BIGQUERY_KEYFILE=$GITHUB_WORKSPACE/keyfile.json" >> $GITHUB_ENV
+          echo "DBT_BIGQUERY_DATASET_DEV=${{ secrets.DBT_BIGQUERY_DATASET_DEV }}" >> $GITHUB_ENV
+          echo "DBT_BIGQUERY_DATASET_PROD=${{ secrets.DBT_BIGQUERY_DATASET_PROD }}" >> $GITHUB_ENV
+
+      - name: Determine target env
+        id: target
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/master" ]]; then
+            echo "target=prod" >> $GITHUB_OUTPUT
+          else
+            echo "target=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run dbt commands
+        run: |
+          dbt deps
+          dbt debug --target ${{ steps.target.outputs.target }}
+          dbt run --target ${{ steps.target.outputs.target }}
+          dbt test --target ${{ steps.target.outputs.target }}
