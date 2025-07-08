@@ -1,7 +1,7 @@
 {{ 
   config(
     materialized='table',
-    description='Clients nettoyés et enrichis depuis yuman_clients',
+    description='Clients nettoyés et enrichis depuis yuman_clients, avec nom du partenaire rattaché.',
   ) 
 }}
 
@@ -27,7 +27,6 @@ base_clients as (
     where id is not null
 ),
 
--- Option 1: Si embed_fields est un tableau JSON
 json_parsed as (
     select
         client_id,
@@ -73,14 +72,24 @@ pivoted as (
         bc.created_at, bc.last_updated, bc.extracted_at, bc.deleted_at
 ),
 
+-- Ajout du nom du partenaire via self join
+with_partner_name as (
+    select 
+        p.*,
+        partner.client_name as partner_name
+    from pivoted p
+    left join pivoted partner on p.partner_id = partner.client_id
+),
+
 final as (
-    select * from pivoted
-    where client_id is not null  -- Assurer que client_id n'est jamais null
+    select * from with_partner_name
+    where client_id is not null
 )
 
 select 
     client_id,
     partner_id,
+    partner_name,
     client_code,
     client_name,
     client_category,
