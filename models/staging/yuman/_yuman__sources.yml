@@ -58,3 +58,37 @@ sources:
               - unique 
               - not_null
             description: "Identifiant unique du produit/articles"
+
+      - name: yuman_users
+        description: "Table des users Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique de l'utilisateur"
+
+      - name: yuman_workorder_demands
+        description: "Table des demandes d'intervention Yuman"
+        columns:
+          - name: id
+            description: "Identifiant unique de la demande d'intervention"
+            tests:
+              - unique
+              - not_null
+          - name: client_id
+            description: "Identifiant du client"
+          - name: site_id
+            description: "Identifiant du site"
+          - name: contact_id
+            description: "Identifiant du contact"
+          - name: material_id
+            description: "Identifiant du material/machine"
+          - name: workoder_id
+            description: "Identifiant de l'intervention"
+          - name: user_id
+            description: "Identifiant de l'utilisateur"
+          - name: category_id
+            description: "Identifiant de la catégorie de la demande"
+          - name: status
+            description: "Statut de la demande"
