@@ -10,6 +10,14 @@ models:
         tests:
           - unique
           - not_null
+      - name: client_code
+        description: "Code du client"
+      - name: client_name
+        description: "Nom du client"
+      - name: client_category
+        description: "Catégorie du client (Spécifique NESHU : OR / ARGENT / BRONZE)"
+      - name: client_adress
+        description: "Adresse du client"
 
   - name: stg_yuman__sites
     description: "Sites transformés et nettoyés depuis l'API Yuman"
@@ -120,3 +128,84 @@ models:
           - relationships:
               to: ref('stg_yuman__workorder_demands_categories')
               field: demand_category_id
+
+  - name: stg_yuman__workorders
+    description: "Interventions transformées et nettoyées depuis l'API Yuman"
+    columns:
+      - name: workorder_id
+        description: "Identifiant unique de l'intervention"
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        description: "Référence vers le client propriétaire"
+        tests:
+          - relationships:
+              to: ref('stg_yuman__clients')
+              field: client_id
+      - name: site_id
+        description: "Référence vers le site propriétaire"
+        tests:
+          - relationships:
+              to: ref('stg_yuman__sites')
+              field: site_id
+      - name: category_id
+        description: "Référence vers la catégorie de l'intervention"
+        tests:
+          - relationships:
+              to: ref('stg_yuman__workorders_categories')
+              field: category_id
+      - name: workorder_number
+        description: "Numéro de l'intervention"
+      - name: contact_id
+        description: "Référence vers le contact"
+      - name: technician_id
+        description: "Référence vers le technicien assigné"
+      - name: manager_id
+        description: "Référence vers le manager responsable"
+      - name: workorder_type
+        description: "Type de l'intervention YUMAN"
+      - name: workorder_category  
+        description: "Categorie intervention personnalisé EVS"
+      - name: workorder_status
+        description: "Statut de l'intervention"
+      - name: workorder_title
+        description: "Titre de l'intervention"
+      - name: workorder_description
+        description: "Description de l'intervention"
+      - name: workorder_report
+        description: "Rapport d'intervention"
+      - name: workorder_technician_name
+        description: "Nom du technicien assigné"
+      - name: workorder_time_taken
+        description: "Temps passé sur l'intervention"
+      - name: workorder_date_creation
+        description: "Date de création extraite des champs personnalisés"
+      - name: workorder_motif_non_intervention
+        description: "Motif de non intervention extrait des champs personnalisés"
+      - name: workorder_detail_non_intervention
+        description: "Détail du motif de non intervention extrait des champs personnalisés"
+      - name: workorder_raison_mise_en_pause
+        description: "Raison de mise en pause extraite des champs personnalisés"
+      - name: workorder_explication_mise_en_pause
+        description: "Explication de la mise en pause extraite des champs personnalisés"
+      - name: workorder_necessite_intervenir
+        description: "Nécessité d'intervenir extraite des champs personnalisés"
+      - name: workorder_si_non_pourquoi
+        description: "Explication si pas de nécessité d'intervenir extraite des champs personnalisés"
+      - name: date_planned
+        description: "Date de planification de l'intervention"
+      - name: date_started
+        description: "Date de début de l'intervention"
+      - name: date_done
+        description: "Date de fin de l'intervention"
+      - name: created_at
+        description: "Date de création de l'enregistrement"
+        tests:
+          - not_null
+      - name: last_updated
+        description: "Date de dernière mise à jour"
+      - name: extracted_at
+        description: "Date d'extraction depuis la source"
+      - name: deleted_at
+        description: "Date de suppression (soft delete)"

@@ -97,7 +97,7 @@ sources:
             description: "Identifiant de l'intervention"
           - name: user_id
             description: "Identifiant de l'utilisateur"
-          - name: demand_category_id
+          - name: category_id
             description: "Identifiant de la catégorie de la demande"
           - name: status
             description: "Statut de la demande"
@@ -110,3 +110,24 @@ sources:
               - unique 
               - not_null
             description: "Identifiant unique de l'intervention"
+          - name: client_id
+            description: "Identifiant du client"
+          - name: site_id
+            description: "Identifiant du site"
+          - name: contact_id
+            description: "Identifiant du contact"
+          - name: technician_id
+            description: "Identifiant du technicien"
+          - name: manager_id
+            description: "Identifiant du manager"
+          - name: category_id
+            description: "Identifiant de la catégorie de l'intervention"
+
+      - name: yuman_workorder_categories
+        description: "Table des catégories d'intervention Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique de la catégorie de demande"
