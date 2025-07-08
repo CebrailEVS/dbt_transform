@@ -114,9 +114,9 @@ models:
           - relationships:
               to: ref('stg_yuman__users')
               field: user_id
-      - name: category_id
+      - name: demand_category_id
         description: "Référence vers la catégorie de la demande"
         tests:
           - relationships:
-              to: ref('stg_yuman__materials_categories')
-              field: category_id
+              to: ref('stg_yuman__workorder_demands_categories')
+              field: demand_category_id

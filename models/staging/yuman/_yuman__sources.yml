@@ -97,7 +97,16 @@ sources:
             description: "Identifiant de l'intervention"
           - name: user_id
             description: "Identifiant de l'utilisateur"
-          - name: category_id
+          - name: demand_category_id
             description: "Identifiant de la catégorie de la demande"
           - name: status
             description: "Statut de la demande"
+
+      - name: yuman_workorders
+        description: "Table des interventions Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique de l'intervention"
