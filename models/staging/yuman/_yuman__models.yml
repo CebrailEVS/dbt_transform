@@ -67,7 +67,16 @@ models:
           - unique
           - not_null
 
-  - name: stg_yuman__workorder_demdans
+  - name: stg_yuman__workorder_demands_categories
+    description: "Catégories de demandes d'intervention transformées et nettoyées depuis l'API Yuman"
+    columns:
+      - name: demand_category_id
+        description: "Identifiant unique de la catégorie de demande d'intervention"
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_yuman__workorder_demands
     description: "Demande d'intervention transformés et nettoyés depuis l'API Yuman"
     columns:
       - name: demand_id

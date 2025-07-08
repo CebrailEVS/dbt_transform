@@ -68,6 +68,15 @@ sources:
               - not_null
             description: "Identifiant unique de l'utilisateur"
 
+      - name: yuman_workorder_demands_categories
+        description: "Table des catégories de demandes d'intervention Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique de la catégorie de demande"
+
       - name: yuman_workorder_demands
         description: "Table des demandes d'intervention Yuman"
         columns:
