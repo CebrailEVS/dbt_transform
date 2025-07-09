@@ -1,9 +1,4 @@
 # File: transform/profiles.yml
-config:
-  use_colors: True
-flags:
-  send_anonymous_usage_stats: False
-
 dbt_warehouse:
   target: "{{ env_var('DBT_TARGET', 'dev') }}"
   outputs:
