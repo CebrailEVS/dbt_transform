@@ -25,5 +25,7 @@ models:
   dbt_warehouse:
     staging:
       +schema: staging
+    intermediate:
+      +schema: intermediate
     marts:
       +schema: marts

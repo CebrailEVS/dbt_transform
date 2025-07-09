@@ -12,6 +12,34 @@ sources:
               - unique
               - not_null
             description: "Identifiant unique de l'entreprise"
+          - name: company_idcompany
+            description: "Link to IDCOMPANY"
+          - name: idcompany_type
+            description: "Link to COMPANY_TYPE"
+          - name: created_at
+            description: "Date creation de la ligne"
+          - name: updated_at
+            description: "Date de modification de la ligne"
+          - name: extracted_at
+            description: "Date d'extraction depuis la source"
+          - name: deleted_at
+            description: "Date de suppression (soft delete)"
+
+      - name: evs_device
+        columns:
+          - name: iddevice
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du device"
+
+      - name: evs_contact
+        columns:
+          - name: idcontact
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du contact"
 
       - name: evs_task_has_product
         columns:

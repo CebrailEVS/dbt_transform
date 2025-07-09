@@ -10,6 +10,18 @@ models:
         tests:
           - unique
           - not_null
+      - name: company_idcompany
+        description: "Link to IDCOMPANY"
+      - name: idcompany_type
+        description: "Link to COMPANY_TYPE"
+      - name: created_at
+        description: "Date creation de la ligne"
+      - name: updated_at
+        description: "Date de modification de la ligne"
+      - name: extracted_at
+        description: "Date d'extraction depuis la source"
+      - name: deleted_at
+        description: "Date de suppression (soft delete)"
 
   - name: stg_oracle_neshu__task_has_product
     description: "Task_has_product transformés et nettoyés depuis la base Oracle"
