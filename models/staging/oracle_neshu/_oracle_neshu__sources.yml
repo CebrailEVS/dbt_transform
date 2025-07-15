@@ -48,3 +48,11 @@ sources:
               - unique 
               - not_null
             description: "Identifiant unique de la tâche associée au produit"
+
+      - name: evs_task
+        columns:
+          - name: idtask
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique de la tâche"
