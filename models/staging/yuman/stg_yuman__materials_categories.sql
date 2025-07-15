@@ -15,7 +15,7 @@ cleaned_material_categories as (
         id as category_id,
         name as category_name,   
         TIMESTAMP(created_at) as created_at,
-        TIMESTAMP(updated_at) as last_updated,
+        TIMESTAMP(updated_at) as updated_at,
         TIMESTAMP(_sdc_extracted_at) as extracted_at,
         TIMESTAMP(_sdc_deleted_at) as deleted_at
     from source_data

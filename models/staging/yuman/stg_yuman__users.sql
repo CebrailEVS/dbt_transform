@@ -20,7 +20,7 @@ cleaned_users as (
         phone as user_phone,
         manager_as_technician as is_manager_as_technician,
         cast(created_at as timestamp) as created_at,
-        cast(updated_at as timestamp) as last_updated,
+        cast(updated_at as timestamp) as updated_at,
         cast(_sdc_extracted_at as timestamp) as extracted_at,
         cast(_sdc_deleted_at as timestamp) as deleted_at
     from source_data

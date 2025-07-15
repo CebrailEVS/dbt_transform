@@ -21,7 +21,7 @@ cleaned_materials as (
         description as material_description,
         in_service_date as material_in_service_date,      
         timestamp(created_at) as created_at,
-        timestamp(updated_at) as last_updated,
+        timestamp(updated_at) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
     from source_data

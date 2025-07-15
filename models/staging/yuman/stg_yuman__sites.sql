@@ -32,7 +32,7 @@ cleaned as (
         -- Nettoyage du code postal : suppression du ".0", puis cast en texte
         regexp_replace(raw_code_postal, r'\.0$', '') as site_postal_code,
         cast(created_at as timestamp) as created_at,
-        cast(updated_at as timestamp) as last_updated,
+        cast(updated_at as timestamp) as updated_at,
         cast(_sdc_extracted_at as timestamp) as extracted_at,
         cast(_sdc_deleted_at as timestamp) as deleted_at
     from extracted_postal_code

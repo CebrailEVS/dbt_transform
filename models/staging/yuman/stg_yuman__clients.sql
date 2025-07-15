@@ -20,7 +20,7 @@ base_clients as (
         active as is_active,
         SAFE.PARSE_JSON(_embed_fields) as embed_fields,
         TIMESTAMP(created_at) as created_at,
-        TIMESTAMP(updated_at) as last_updated,
+        TIMESTAMP(updated_at) as updated_at,
         TIMESTAMP(_sdc_extracted_at) as extracted_at,
         TIMESTAMP(_sdc_deleted_at) as deleted_at
     from source_data
@@ -32,7 +32,7 @@ json_parsed as (
         client_id,
         client_code,
         client_name,
-        last_updated,
+        updated_at,
         JSON_EXTRACT_SCALAR(item, '$.name') as field_name,
         JSON_EXTRACT_SCALAR(item, '$.value') as field_value
     from base_clients,
@@ -44,7 +44,7 @@ extracted_fields as (
         client_id,
         client_code,
         client_name,
-        last_updated,
+        updated_at,
         field_name,
         field_value
     from json_parsed
@@ -61,7 +61,7 @@ pivoted as (
         bc.client_address,
         bc.is_active,
         bc.created_at,
-        bc.last_updated,
+        bc.updated_at,
         bc.extracted_at,
         bc.deleted_at
     from base_clients bc
@@ -69,7 +69,7 @@ pivoted as (
     group by 
         bc.client_id, bc.client_code, bc.client_name, bc.client_address,
         bc.partner_id, bc.is_active,
-        bc.created_at, bc.last_updated, bc.extracted_at, bc.deleted_at
+        bc.created_at, bc.updated_at, bc.extracted_at, bc.deleted_at
 ),
 
 -- Ajout du nom du partenaire via self join
@@ -96,7 +96,7 @@ select
     client_address,
     is_active,
     created_at,
-    last_updated,
+    updated_at,
     extracted_at,
     deleted_at
 from final

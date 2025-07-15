@@ -22,7 +22,7 @@ cleaned_products as (
         sale_price as product_sale_price,    
         active as is_active,
         TIMESTAMP(created_at) as created_at,
-        TIMESTAMP(updated_at) as last_updated,
+        TIMESTAMP(updated_at) as updated_at,
         TIMESTAMP(_sdc_extracted_at) as extracted_at,
         TIMESTAMP(_sdc_deleted_at) as deleted_at
     from source_data

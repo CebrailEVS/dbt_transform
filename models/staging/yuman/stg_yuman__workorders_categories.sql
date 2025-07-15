@@ -14,7 +14,7 @@ cleaned_categories as (
         id as category_id,
         name as category_name,
         cast(created_at as timestamp) as created_at,
-        cast(updated_at as timestamp) as last_updated,
+        cast(updated_at as timestamp) as updated_at,
         cast(_sdc_extracted_at as timestamp) as extracted_at,
         cast(_sdc_deleted_at as timestamp) as deleted_at
     from source_data
