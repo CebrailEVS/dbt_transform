@@ -11,7 +11,7 @@ logs/
 __pycache__/
 *.py[cod]
 
-# IDE & OS
+# IDE & OS 
 .vscode/
 .DS_Store
 
