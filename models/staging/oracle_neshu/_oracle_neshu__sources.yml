@@ -16,22 +16,24 @@ sources:
             description: "Link to IDCOMPANY"
           - name: idcompany_type
             description: "Link to COMPANY_TYPE"
-          - name: created_at
-            description: "Date creation de la ligne"
-          - name: updated_at
+          - name: code
+            description: "Code client de l'entreprise"
+          - name: name
+            description: "Nom client de l'entreprise"
+          - name: creation_date
+            description: "Date de creation de la ligne"
+          - name: modification_date
             description: "Date de modification de la ligne"
-          - name: extracted_at
-            description: "Date d'extraction depuis la source"
-          - name: deleted_at
-            description: "Date de suppression (soft delete)"
 
-      - name: evs_device
+      - name: evs_company_type
         columns:
-          - name: iddevice
+          - name: idcompany_type
             tests:
               - unique
               - not_null
-            description: "Identifiant unique du device"
+            description: "Identifiant unique du type l'entreprise"
+          - name: code
+            description: "Code type entreprise"
 
       - name: evs_contact
         columns:
@@ -40,14 +42,88 @@ sources:
               - unique
               - not_null
             description: "Identifiant unique du contact"
+          - name: idcompany
+            description: "Link to IDCOMPANY"
+          - name: modification_date
+            description: "Date de modification de la ligne"
 
-      - name: evs_task_has_product
+      - name: evs_contract
         columns:
-          - name: idtask_has_product
+          - name: idcontract
             tests:
-              - unique 
+              - unique
               - not_null
-            description: "Identifiant unique de la tâche associée au produit"
+            description: "Identifiant unique du contrat"
+          - name: idcompany_peer
+            description: "Link to IDCOMPANY for peer"
+          - name: code
+            description: "code du contrat"
+          - name: name
+            description: "nom du contrat"
+          - name: ORIGINAL_START_DATE
+            description: "Date de debut original du contrat"
+          - name: ORIGINAL_END_DATE
+            description: "Date de fin original du contrat"
+          - name: CURRENT_END_DATE
+            description: "Date de fin courant du contrat"
+
+      - name: evs_device
+        columns:
+          - name: iddevice
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du device"
+          - name: device_iddevice
+            description: "Lien vers la machine parents/enfant => si pas d'id alors pas de machine parent"
+          - name: code
+            description: "Code device (Numéro de serie AS/MA)"
+          - name: name
+            description: "Nom device"
+
+      - name: evs_product
+        columns:
+          - name: idproduct
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du produit"
+          - name: code
+            description: "Code produit"
+          - name: name
+            description: "Nom produit"
+          - name: purchase_unit_price
+            description: "Prix d'achat unitaire"
+
+      - name: evs_resources
+        columns:
+          - name: idresources
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de la resources"
+          - name: idcompany
+            description: "Link to COMPANY"
+          - name: idlocation
+            description: "Link to LOCATION"
+          - name: RESOURCES_IDRESOURCES
+            description: "Link to RESOURCES peer"
+          - name: idresources_type
+            description: "Link to RESOURCES_TYPE"
+          - name: code
+            description: "Code resource"
+          - name: name
+            description: "Nom resource"
+
+      - name: evs_resources_type
+        columns:
+          - name: idresources_type
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du type la resources"
+          - name: code
+            description: "Code type resource"
 
       - name: evs_task
         columns:
@@ -56,3 +132,153 @@ sources:
               - unique 
               - not_null
             description: "Identifiant unique de la tâche"
+          - name: task_idtask
+            description: "link to task peer"
+          - name: idtask_type
+            description: "link to TASK_TYPE"
+          - name: idtask_status
+            description: "link to TASK_STATUS"
+          - name: real_start_date
+            description: "date demarrage de la tache"
+          - name: real_end_date
+            description: "date de fin de la tache"
+
+      - name: evs_task_type
+        columns:
+          - name: idtask_type
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique du type de tâche"
+
+      - name: evs_task_has_product
+        columns:
+          - name: idtask_has_product
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique de la tâche associée au produit"
+          - name: idtask
+            description: "link to task"
+          - name: IDPRODUCT_SOURCE
+            description: "ID de la source (IDDEVICE/IDCOMPANY etc)"
+          - name: IDPRODUCT_DESTINATION
+            description: "ID de la destination (IDDEVICE/IDCOMPANY etc)"
+          - name: TYPE_PRODUCT_SOURCE
+            description: "nom de la table de la source (DEVICE / COMPANY etc)"
+          - name: TYPE_PRODUCT_DESTINATION
+            description: "nom de la table de la destination (DEVICE / COMPANY etc)"
+          - name: REAL_QUANTITY
+            description: "Quantité réel produit"
+          - name: NET_PRICE
+            description: "sale unit price net without tax"
+          - name: SALE_UNIT_PRICE
+            description: "sale unit price brut without tax"
+          - name: PURCHASE_UNIT_PRICE
+            description: "product purchase unit price net without tax"
+
+      - name: evs_task_has_resources
+        columns:
+          - name: idtask
+            tests:
+              - not_null
+            description: "Identifiant de la tâche"
+          - name: idresources
+            tests:
+              - not_null
+            description: "Identifiant de la resources"
+
+      - name: evs_task_status
+        columns:
+          - name: idtask_status
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant de la statut de la tâche"
+          - name: code
+            description: "Code status"
+
+      - name: evs_label
+        columns:
+          - name: idlabel
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant de la statut de la tâche"
+          - name: idlabel_family
+            description: "Link to LABEL_FAMILY"
+
+      - name: evs_label_has_contract
+        columns:
+          - name: idlabel
+            tests:
+              - not_null
+            description: "Identifiant du label"
+          - name: idcontract
+            tests:
+              - not_null
+            description: "Identifiant du contract"
+
+      - name: evs_label_has_device
+        columns:
+          - name: idlabel
+            tests:
+              - not_null
+            description: "Identifiant du label"
+          - name: iddevice
+            tests:
+              - not_null
+            description: "Identifiant du device"
+
+      - name: evs_label_has_product
+        columns:
+          - name: idlabel
+            tests:
+              - not_null
+            description: "Identifiant du label"
+          - name: idproduct
+            tests:
+              - not_null
+            description: "Identifiant du produit"
+
+      - name: evs_label_has_resources
+        columns:
+          - name: idlabel
+            tests:
+              - not_null
+            description: "Identifiant du label"
+          - name: idresources
+            tests:
+              - not_null
+            description: "Identifiant du resources"
+
+      - name: evs_label_has_task
+        columns:
+          - name: idlabel
+            tests:
+              - not_null
+            description: "Identifiant du label"
+          - name: idtask
+            tests:
+              - not_null
+            description: "Identifiant du task"
+
+      - name: evs_label_family
+        columns:
+          - name: idlabel_family
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du label family"
+          - name: code
+            description: "Code du label family"
+
+      - name: evs_location
+        columns:
+          - name: idlocation
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant du location"
+          - name: name
+            description: "Nom de la localisation"
