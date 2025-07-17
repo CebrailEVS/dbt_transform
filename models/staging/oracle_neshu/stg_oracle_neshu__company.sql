@@ -21,10 +21,10 @@ cleaned_data as (
         cast(idcontact_modification as int64) as idcontact_modification,
         
         -- Colonnes texte
-        code as company_code,
+        code,
         code_status_record,
-        name as company_name,
-        siret as company_siret,
+        name,
+        siret,
 
         -- Timestamps harmonisés
         timestamp(creation_date) as created_at,

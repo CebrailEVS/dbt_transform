@@ -3,7 +3,7 @@
         materialized='incremental',
         unique_key='idtask_has_product',
         partition_by={'field': 'updated_at', 'data_type': 'timestamp'},
-        cluster_by=['idtask', 'idproduct'],
+        cluster_by=['idtask', 'idproduct','idcompany_peer','idlocation'],
         description='Table de fait des produits liés aux tâches depuis task_has_product'
     )
 }}
@@ -24,17 +24,17 @@ cleaned_data as (
         cast(idtax as int64) as idtax,
         cast(idtask_has_product_associed as int64) as idtask_has_product_associed,
         cast(iddevice as int64) as iddevice,
-        cast(idcompany_peer as int64) as idcompany,
+        cast(idcompany_peer as int64) as idcompany_peer,
         cast(idlocation as int64) as idlocation,
-        
+
         -- Colonnes texte et types
         type_product_source,
         type_product_destination,
-        code as product_code,
-        name as product_name,
+        code,
+        name,
         cast(priceline_number as int64) as priceline_number,
-        
-        -- Colonnes numériques (quantités, prix, montants)
+
+        -- Colonnes numériques
         cast(real_quantity as float64) as real_quantity,
         cast(average_purchase_price as float64) as average_purchase_price,
         cast(tax_rate as float64) as tax_rate,
@@ -49,13 +49,13 @@ cleaned_data as (
         cast(unit_coeff_multi as float64) as unit_coeff_multi,
         cast(sale_unit_price_tax as float64) as sale_unit_price_tax,
         cast(unit_coeff_div as float64) as unit_coeff_div,
-        
-        -- Timestamps harmonisés
+
+        -- Timestamps harmonisés (standard DBT)
         timestamp(creation_date) as created_at,
-        timestamp(modification_date) as updated_at,
+        timestamp(coalesce(modification_date, creation_date)) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
-        
+
     from source_data
 )
 
