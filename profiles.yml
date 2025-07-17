@@ -10,6 +10,15 @@ dbt_warehouse:
       threads: 8
       location: europe-west1
       keyfile: "{{ env_var('DBT_BIGQUERY_KEYFILE') }}"
+
+    dev_analyst:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('DBT_BIGQUERY_PROJECT') }}"
+      dataset: "{{ env_var('DBT_BIGQUERY_DATASET_DEV') }}"  # Utilisera dev_analyst via .env
+      threads: 8
+      location: europe-west1
+      keyfile: "{{ env_var('DBT_BIGQUERY_KEYFILE') }}"
       
     prod:
       type: bigquery
