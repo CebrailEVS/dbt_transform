@@ -84,7 +84,7 @@ Ajuster les valeurs dans le fichier `.env` selon votre environnement :
 DBT_TARGET=dev  # dev, dev_analyst, ou prod
 
 # BigQuery Configuration
-DBT_BIGQUERY_PROJECT=meltano-test-data
+DBT_BIGQUERY_PROJECT=evs-datastack-prod
 DBT_BIGQUERY_KEYFILE=/chemin/vers/votre/cle.json
 
 # Datasets centralisés
