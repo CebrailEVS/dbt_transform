@@ -31,7 +31,7 @@ models:
         tests:
           - unique
           - not_null
-      - name: idcompany
+      - name: idcompany_peer
         description: "Référence vers l'entreprise propriétaire"
         tests:  
           - relationships:
