@@ -2,7 +2,7 @@
     config(
         materialized='table',
         cluster_by=['iddevice','idlocation','idcompany_customer'],
-        description='Device nettoyés et enrichis depuis evs_company'
+        description='Device nettoyés et enrichis depuis evs_device'
     )
 }}
 

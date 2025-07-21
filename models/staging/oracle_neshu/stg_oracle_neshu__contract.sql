@@ -2,7 +2,7 @@
     config(
         materialized='table',
         cluster_by=['idcontract'],
-        description='Contrat nettoyés et enrichis depuis evs_company'
+        description='Contrat nettoyés et enrichis depuis evs_contract'
     )
 }}
 

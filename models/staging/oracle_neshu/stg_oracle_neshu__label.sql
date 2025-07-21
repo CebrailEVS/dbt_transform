@@ -2,7 +2,7 @@
     config(
         materialized='table',
         cluster_by=['idlabel','idlabel_family'],
-        description='Label nettoyés et enrichis depuis evs_company'
+        description='Label nettoyés et enrichis depuis evs_label'
     )
 }}
 
