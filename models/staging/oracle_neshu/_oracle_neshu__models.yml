@@ -153,7 +153,7 @@ models:
               to: ref('stg_oracle_neshu__contract')
               field: idcontract
 
-  - name: stg_oracle_neshu_label_has_device
+  - name: stg_oracle_neshu__label_has_device
     description: "Association entre les labels et les devices"
     columns:
       - name: idlabel
