@@ -70,6 +70,8 @@ models:
           - relationships:
               to: ref('stg_oracle_neshu__company')
               field: idcompany
+      - name: idcontract_type
+        description: "ATTENTION : link to LABEL from label_family.code = CONTRACT_TYPE" 
       - name: code
         description: "code du contrat"
       - name: name
