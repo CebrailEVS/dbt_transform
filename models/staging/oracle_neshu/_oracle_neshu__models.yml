@@ -2,6 +2,7 @@
 version: 2
 
 models:
+  # COMPANY
   - name: stg_oracle_neshu__company
     description: "Clients transformés et nettoyés depuis la base Oracle"
     columns:
@@ -14,6 +15,10 @@ models:
         description: "Link to IDCOMPANY"
       - name: idcompany_type
         description: "Link to COMPANY_TYPE"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__company_type')
+              field: idcompany_type
       - name: created_at
         description: "Date creation de la ligne"
       - name: updated_at
@@ -23,11 +28,279 @@ models:
       - name: deleted_at
         description: "Date de suppression (soft delete)"
 
-  - name: stg_oracle_neshu__task_has_product
-    description: "Task_has_product transformés et nettoyés depuis la base Oracle"
+  - name: stg_oracle_neshu__company_type
+    description: "Types d'entreprises transformés et nettoyés depuis la base Oracle"
     columns:
-      - name: idtask_has_product
-        description: "Identifiant unique de la tâche associée au produit"
+      - name: idcompany_type
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant unique du type l'entreprise"
+      - name: code
+        description: "Code type entreprise"
+
+  # CONTACT
+  - name: stg_oracle_neshu__contact
+    description: "Contacts transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idcontact
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant unique du contact"
+      - name: idcompany
+        description: "Link to IDCOMPANY"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
+
+  # CONTRACT
+  - name: stg_oracle_neshu__contract
+    description: "Contrats transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idcontract
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant unique du contrat"
+      - name: idcompany_peer
+        description: "Link to IDCOMPANY for peer"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
+      - name: code
+        description: "code du contrat"
+      - name: name
+        description: "nom du contrat"
+      - name: ORIGINAL_START_DATE
+        description: "Date de debut original du contrat"
+      - name: ORIGINAL_END_DATE
+        description: "Date de fin original du contrat"
+      - name: CURRENT_END_DATE
+        description: "Date de fin courant du contrat"
+
+  # DEVICE
+  - name: stg_oracle_neshu__device
+    description: "Devices transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: iddevice
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant unique du device"
+      - name: device_iddevice
+        description: "Lien vers la machine parents/enfant => si pas d'id alors pas de machine parent"
+      - name: idlocation
+        description: "Link to LOCATION"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__location')
+              field: idlocation
+      - name: idcompany_customer
+        description: "Link to IDCOMPANY for customer"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
+      - name: idcompany_supplier
+        description: "Link to IDCOMPANY for supplier"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
+      - name: idcompany_owner
+        description: "Link to IDCOMPANY for owner"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
+      - name: code
+        description: "Code device (Numéro de serie AS/MA)"
+      - name: name
+        description: "Nom device"
+
+  # LABEL
+  - name: stg_oracle_neshu__label
+    description: "Labels transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idlabel
+        description: "Identifiant de la statut de la tâche"
+        tests:
+          - unique
+          - not_null
+      - name: idlabel_family
+        description: "Link to LABEL_FAMILY"
+
+  - name: stg_oracle_neshu__label_has_contract
+    description: "Association entre les labels et les contrats"
+    columns:
+      - name: idlabel
+        description: "Identifiant du label"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__label')
+              field: idlabel
+      - name: idcontract
+        description: "Identifiant du contract"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__contract')
+              field: idcontract
+
+  - name: stg_oracle_neshu_label_has_device
+    description: "Association entre les labels et les devices"
+    columns:
+      - name: idlabel
+        description: "Identifiant du label"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__label')
+              field: idlabel
+      - name: iddevice
+        description: "Identifiant du device"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__device')
+              field: iddevice
+
+  - name: stg_oracle_neshu__label_has_product
+    description: "Association entre les labels et les produits"
+    columns:
+      - name: idlabel
+        description: "Identifiant du label"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__label')
+              field: idlabel
+
+      - name: idproduct
+        description: "Identifiant du produit"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__product')
+              field: idproduct
+
+  - name: stg_oracle_neshu__label_has_resources
+    description: "Association entre les labels et les ressources"
+    columns:
+      - name: idlabel
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__label')
+              field: idlabel
+        description: "Identifiant du label"
+      - name: idresources
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__resources')
+              field: idresources
+        description: "Identifiant du resources"
+
+  - name: stg_oracle_neshu__label_has_task
+    columns:
+      - name: idlabel
+        tests:
+          - not_null
+        relationships:
+          to: ref('stg_oracle_neshu__label')
+        description: "Identifiant du label"
+      - name: idtask
+        tests:
+          - not_null
+        relationships:
+          to: ref('stg_oracle_neshu__task')
+        description: "Identifiant du task"
+
+
+  # LOCATION
+  - name: stg_oracle_neshu__location
+    description: "Locations transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idlocation
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant du location"
+      - name: name
+        description: "Nom de la localisation"
+
+  # PRODUCT
+  - name: stg_oracle_neshu__product
+    description: "Produits transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idproduct
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant unique du produit"
+      - name: code
+        description: "Code produit"
+      - name: name
+        description: "Nom produit"
+      - name: purchase_unit_price
+        description: "Prix d'achat unitaire"
+
+  # RESOURCES
+  - name: stg_oracle_neshu__resources
+    description: "Ressources transformées et nettoyées depuis la base Oracle"
+    columns:
+      - name: idresources
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant unique de la resources"
+      - name: idcompany
+        description: "Link to COMPANY"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
+      - name: idlocation
+        description: "Link to LOCATION"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__location')
+              field: idlocation
+      - name: RESOURCES_IDRESOURCES
+        description: "Link to RESOURCES peer"
+      - name: idresources_type
+        description: "Link to RESOURCES_TYPE"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__resources_type')
+              field: idresources_type
+      - name: code
+        description: "Code resource"
+      - name: name
+        description: "Nom resource"
+
+  - name: stg_oracle_neshu__resources_type
+    description: "Types de ressources transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idresources_type
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant unique du type la resources"
+      - name: code
+        description: "Code type resource"
+
+  # TASK
+  - name: stg_oracle_neshu__task
+    description: "TASK transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idtask
+        description: "Identifiant unique de la tâche"
         tests:
           - unique
           - not_null
@@ -37,3 +310,131 @@ models:
           - relationships:
               to: ref('stg_oracle_neshu__company')
               field: idcompany
+      - name: idtask_type
+        description: "link to TASK_TYPE"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__task_type')
+              field: idtask_type
+      - name: idtask_status
+        description: "link to TASK_STATUS"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__task_status')
+              field: idtask_status
+      - name: iddevice
+        description: "Link to DEVICE"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__device')
+              field: iddevice
+      - name: idcontact
+        description: "Link to CONTACT"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__contact')
+              field: idcontact
+      - name: idlocation
+        description: "Link to LOCATION"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__location')
+              field: idlocation
+      - name: IDPRODUCT_SOURCE
+        description: "ID de la source (IDDEVICE/IDCOMPANY etc)"
+      - name: IDPRODUCT_DESTINATION
+        description: "ID de la destination (IDDEVICE/IDCOMPANY etc)"
+      - name: TYPE_PRODUCT_SOURCE
+        description: "nom de la table de la source (DEVICE / COMPANY etc)"
+      - name: TYPE_PRODUCT_DESTINATION
+        description: "nom de la table de la destination (DEVICE / COMPANY etc)"
+      - name: code_status_record
+        description: "Code status de la tâche ( 1 = validé, 0 ou -1 = non validé)"
+      - name: real_start_date
+        description: "date demarrage de la tache"
+      - name: real_end_date
+        description: "date de fin de la tache"
+
+  - name: stg_oracle_neshu__task_has_product
+    description: "Task_has_product transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idtask_has_product
+        description: "Identifiant unique de la tâche associée au produit"
+        tests:
+          - unique
+          - not_null
+      - name: idtask
+        description: "link to task"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__task')
+              field: idtask
+      - name: idproduct
+        description: "ID du produit"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__product')
+              field: idproduct
+      - name: idcompany_peer
+        description: "Référence vers l'entreprise propriétaire"
+        tests:  
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
+      - name: IDPRODUCT_SOURCE
+        description: "ID de la source (IDDEVICE/IDCOMPANY etc)"
+      - name: IDPRODUCT_DESTINATION
+        description: "ID de la destination (IDDEVICE/IDCOMPANY etc)"
+      - name: TYPE_PRODUCT_SOURCE
+        description: "nom de la table de la source (DEVICE / COMPANY etc)"
+      - name: TYPE_PRODUCT_DESTINATION
+        description: "nom de la table de la destination (DEVICE / COMPANY etc)"
+      - name: REAL_QUANTITY
+        description: "Quantité réel produit"
+      - name: NET_PRICE
+        description: "sale unit price net without tax"
+      - name: SALE_UNIT_PRICE
+        description: "sale unit price brut without tax"
+      - name: PURCHASE_UNIT_PRICE
+        description: "product purchase unit price net without tax"
+
+  - name: stg_oracle_neshu__task_has_resources
+    description: "Association entre les tâches et les ressources"
+    columns:
+      - name: idtask
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__task')
+              field: idtask
+        description: "Identifiant de la tâche"
+      - name: idresources
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__resources')
+              field: idresources
+        description: "Identifiant de la resources"
+
+  - name: stg_oracle_neshu__task_status
+    description: "Statuts des tâches transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idtask_status
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant de la statut de la tâche"
+      - name: code
+        description: "Code status"
+
+  - name: stg_oracle_neshu__task_type
+    description: "Types de tâches transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idtask_type
+        tests:
+          - unique 
+          - not_null
+        description: "Identifiant unique du type de tâche"
+
+
+

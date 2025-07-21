@@ -171,6 +171,7 @@ sources:
             description: "Identifiant du location"
           - name: name
             description: "Nom de la localisation"
+
       # PRODUCT
       - name: evs_product
         columns:
@@ -185,6 +186,7 @@ sources:
             description: "Nom produit"
           - name: purchase_unit_price
             description: "Prix d'achat unitaire"
+            
       # RESOURCES
       - name: evs_resources
         columns:
@@ -230,6 +232,16 @@ sources:
             description: "link to TASK_TYPE"
           - name: idtask_status
             description: "link to TASK_STATUS"
+          - name: idcompany_peer
+            description: "Link to COMPANY"
+          - name: iddevice
+            description: "Link to DEVICE"
+          - name: idcontact
+            description: "Link to CONTACT"
+          - name: idlocation
+            description: "Link to LOCATION"
+          - name: code_status_record
+            description: "Code status de la tâche ( 1 = validé, 0 ou -1 = non validé)"
           - name: real_start_date
             description: "date demarrage de la tache"
           - name: real_end_date
