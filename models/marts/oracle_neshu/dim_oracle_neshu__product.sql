@@ -97,7 +97,7 @@ SELECT
   bio,
   product_group,
   product_type_standard,
-  isactive,
+  is_active,
   created_at,
   updated_at
 FROM final
