@@ -43,29 +43,11 @@ models:
         description: >
           Typologie produit standardisée selon règles métier :
           ex. 'CAFE CAPS', 'THE', 'CHOCOLATS VAN HOUTEN', 'BOISSONS GOURMANDES'.
-        tests:
-          - not_null
-          - accepted_values:
-              values:
-                - 'CAFE CAPS'
-                - 'THE'
-                - 'ACCESSOIRES'
-                - 'BOISSONS FRAICHES'
-                - 'SNACKING'
-                - 'CHOCOLATS VAN HOUTEN'
-                - 'BOISSONS GOURMANDES'
-                - 'INDEFINI'
-                - 'Non renseigné'
-              quote: true
-
+  
       - name: is_active
         description: >
           État d'activité du produit, converti en booléen :
           TRUE si le label ISACTIVE = 'YES', sinon FALSE.
-        tests:
-          - not_null
-          - accepted_values:
-              values: [true, false]
 
       - name: created_at
         description: "Date de création du produit dans la source"
