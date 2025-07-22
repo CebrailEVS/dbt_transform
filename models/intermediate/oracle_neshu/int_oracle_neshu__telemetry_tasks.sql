@@ -34,7 +34,7 @@ with telemetry_tasks as (
         t.real_start_date as task_start_date,
         
         -- Métrique business
-        1 as telemetry_quantity,  -- 1 Tâche = 1 unité de télémétrie
+        CAST(1 AS INT64) AS telemetry_quantity,  -- 1 Tâche = 1 unité de télémétrie
         
         -- Timestamps techniques pour l'incrément
         t.updated_at,
