@@ -23,6 +23,7 @@ cleaned_data as (
         cast(iddevice as int64) as iddevice,
         cast(idcompany_peer as int64) as idcompany_peer,
         cast(idlocation as int64) as idlocation,
+        cast(idcontact as int64) as idcontact,
         cast(idproduct_source as int64) as idproduct_source,
         cast(idproduct_destination as int64) as idproduct_destination,
 
