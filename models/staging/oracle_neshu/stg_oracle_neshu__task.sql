@@ -3,6 +3,7 @@
         materialized='incremental',
         unique_key='idtask',
         partition_by={'field': 'real_start_date', 'data_type': 'timestamp'},
+        incremental_strategy='merge', 
         cluster_by=['idtask_type','idtask_status','idcompany_peer','iddevice'],
         description='Table de fait des tâches depuis la table evs_task'
     )

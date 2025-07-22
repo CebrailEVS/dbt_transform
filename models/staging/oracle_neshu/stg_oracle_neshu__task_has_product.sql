@@ -3,6 +3,7 @@
         materialized='incremental',
         unique_key='idtask_has_product',
         partition_by={'field': 'updated_at', 'data_type': 'timestamp'},
+        incremental_strategy='merge',
         cluster_by=['idtask', 'idproduct','idcompany_peer','idlocation'],
         description='Table de fait des produits liés aux tâches depuis task_has_product'
     )
