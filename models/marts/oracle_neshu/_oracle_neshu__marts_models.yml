@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: dim_oracle_neshu__product
+    description: >
+      Dimension produit enrichie à partir des labels associés (type, famille, groupe, marque, etc.)
+      et filtrée sur les produits de type 1 (produit) et 5 (ligne de prix).
+    columns:
+      - name: idproduct
+        description: "Identifiant unique du produit"
+        tests:
+          - not_null
+          - unique
+
+      - name: idproduct_type
+        description: "Type de produit (1 = produit, 5 = ligne de prix)"
+
+      - name: product_code
+        description: "Code produit (référence interne)"
+
+      - name: product_name
+        description: "Nom du produit"
+
+      - name: purchase_unit_price
+        description: "Prix d'achat unitaire du produit"
+
+      - name: brand
+        description: "Marque du produit, extraite du label MARQUEP"
+
+      - name: owner
+        description: "Propriétaire du produit, via label PROPRIETAIRE"
+
+      - name: family
+        description: "Famille produit (ex : CAFE CAPSULES, THE), via label FAMILLE"
+
+      - name: bio
+        description: "Indication BIO ou non (via label BIO)"
+
+      - name: product_group
+        description: "Groupe produit (ACCESSOIRES, SNACKING...), via label GROUPE"
+
+      - name: product_type_standard
+        description: >
+          Typologie produit standardisée selon règles métier :
+          ex. 'CAFE CAPS', 'THE', 'CHOCOLATS VAN HOUTEN', 'BOISSONS GOURMANDES'.
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'CAFE CAPS'
+                - 'THE'
+                - 'ACCESSOIRES'
+                - 'BOISSONS FRAICHES'
+                - 'SNACKING'
+                - 'CHOCOLATS VAN HOUTEN'
+                - 'BOISSONS GOURMANDES'
+                - 'INDEFINI'
+                - 'Non renseigné'
+              quote: true
+
+      - name: is_active
+        description: >
+          État d'activité du produit, converti en booléen :
+          TRUE si le label ISACTIVE = 'YES', sinon FALSE.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
+
+      - name: created_at
+        description: "Date de création du produit dans la source"
+
+      - name: updated_at
+        description: "Date de dernière mise à jour du produit dans la source"

@@ -59,7 +59,11 @@ final AS (
     bio,
     product_group,
     product_type_raw,
-    isactive,
+    -- convert isactive from string to boolean
+    CASE
+      WHEN LOWER(isactive) = 'yes' THEN TRUE
+      ELSE FALSE
+    END AS is_active,
     created_at,
     updated_at,
     -- logique de typologie standardisée
