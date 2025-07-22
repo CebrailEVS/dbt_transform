@@ -15,6 +15,7 @@ cleaned_data as (
     select
         -- IDs convertis en BIGINT
         cast(idproduct as int64) as idproduct,
+        cast(idproduct_type as int64) as idproduct_type,
         cast(idcompany_supplier as int64) as idcompany_supplier,
         cast(idcontact_creation as int64) as idcontact_creation,
         cast(idcontact_modification as int64) as idcontact_modification,

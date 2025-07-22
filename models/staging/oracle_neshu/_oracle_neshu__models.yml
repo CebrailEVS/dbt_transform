@@ -256,12 +256,29 @@ models:
           - unique
           - not_null
         description: "Identifiant unique du produit"
+      - name: idproduct_type
+        description: "Link to PRODUCT_TYPE"
+        tests:
+          - relationships:
+              to: ref('stg_oracle_neshu__product_type')
+              field: idproduct_type
       - name: code
         description: "Code produit"
       - name: name
         description: "Nom produit"
       - name: purchase_unit_price
         description: "Prix d'achat unitaire"
+  
+  - name: stg_oracle_neshu__product_type
+    description: "Types de produits transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idproduct_type
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant unique du type de produit"
+      - name: code
+        description: "Code type produit"
 
   # RESOURCES
   - name: stg_oracle_neshu__resources

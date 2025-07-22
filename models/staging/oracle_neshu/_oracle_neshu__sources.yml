@@ -186,6 +186,16 @@ sources:
             description: "Nom produit"
           - name: purchase_unit_price
             description: "Prix d'achat unitaire"
+
+      - name: evs_product_type
+        columns:
+          - name: idproduct_type
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du type de produit"
+          - name: code
+            description: "Code type produit"
             
       # RESOURCES
       - name: evs_resources
