@@ -1,24 +1,26 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idcontract'],
-        description='Contrat nettoyés et enrichis depuis evs_contract'
+        cluster_by=['idresources'],
+        description='Resources nettoyés et enrichis depuis evs_resources'
     )
 }}
 
 with source_data as (
     select *
-    from {{ source('oracle_neshu', 'evs_contract') }}
+    from {{ source('oracle_neshu', 'evs_resources') }}
 ),
 
 cleaned_data as (
     select
         -- IDs convertis en BIGINT
-        cast(idcontract as int64) as idcontract,
-        cast(idcontract_type as int64) as idcontract_type,
-        cast(idcompany_self as int64) as idcompany_self,
-        cast(idcompany_financial as int64) as idcompany_financial,
-        cast(idcompany_peer as int64) as idcompany_peer,
+        cast(idresources as int64) as idresources,
+        cast(idresources_type as int64) as idresources_type,
+        cast(resources_idresources as int64) as resources_idresources,
+        cast(idcompany as int64) as idcompany,
+        cast(idcompany_storehouse as int64) as idcompany_storehouse,
+        cast(idlocation as int64) as idlocation,
+        cast(idcontact as int64) as idcontact,
         cast(idcontact_creation as int64) as idcontact_creation,
         cast(idcontact_modification as int64) as idcontact_modification,
         
@@ -27,14 +29,12 @@ cleaned_data as (
         name,
         code_status_record,
 
-        -- Colonnes XML
-        xml,
-
-        -- Date du contrat
-        timestamp(original_start_date) as original_start_date,
-        timestamp(original_end_date) as original_end_date,
-        timestamp(current_end_date) as current_end_date,
-        timestamp(termination_date) as termination_date,
+        -- Colonnes numériques
+        cast(cost as float64) as cost,
+    
+        -- Timestamps harmonisés
+        timestamp(arrival) as arrival,
+        timestamp(departure) as departure,
 
         -- Timestamps harmonisés
         timestamp(creation_date) as created_at,
