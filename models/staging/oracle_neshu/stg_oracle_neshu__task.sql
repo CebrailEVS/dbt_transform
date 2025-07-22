@@ -52,5 +52,8 @@ cleaned_data as (
 
 select * from cleaned_data
 {% if is_incremental() %}
-    where updated_at > (select max(updated_at) from {{ this }})
+    where updated_at >= (
+        select max(updated_at) - interval 1 day
+        from {{ this }}
+    )
 {% endif %}
