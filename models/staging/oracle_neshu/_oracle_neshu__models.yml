@@ -135,6 +135,17 @@ models:
       - name: idlabel_family
         description: "Link to LABEL_FAMILY"
 
+  - name: stg_oracle_neshu__label_family
+    description: "Familles de labels transformés et nettoyés depuis la base Oracle"
+    columns:
+      - name: idlabel_family
+        description: "Identifiant de la famille de labels"
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code de la famille de labels"
+
   - name: stg_oracle_neshu__label_has_contract
     description: "Association entre les labels et les contrats"
     columns:
