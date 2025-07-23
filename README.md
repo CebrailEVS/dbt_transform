@@ -213,9 +213,7 @@ dbt docs generate
 dbt docs serve  # Ouvre la doc dans le navigateur
 ```
 
-## 🔄🤝 Workflow Git
-
-# 🔄 Guide de Workflow Collaboratif DBT
+# 🤝🔄 Guide de Workflow Collaboratif DBT
 
 Ce guide décrit notre processus de collaboration sur le projet DBT avec des environnements séparés et une CI/CD automatisée.
 

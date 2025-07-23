@@ -4,11 +4,10 @@ name: dbt CI/CD
 on:
   push:
     branches:
-      - master        # branche prod
-      - 'feature/**'  # branches de dev
+      - master        # Déploiement prod seulement
   pull_request:
     branches:
-      - master        # tests à chaque PR vers master
+      - master        # Tests à chaque PR vers master
 
 jobs:
   dbt:
