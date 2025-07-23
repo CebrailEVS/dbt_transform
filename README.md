@@ -181,29 +181,6 @@ DBT_BIGQUERY_DATASET_PROD=prod
 
 **Important** : Seul le lead data a accès à la production. Airflow se charge du déploiement continu en production.
 
-## 🔄 Workflow Git
-
-### Pour le Data Analyst
-
-```bash
-# 1. TOUJOURS charger les variables d'environnement en premier
-set -a && source .env && set +a
-
-# 2. Créer une branche pour vos développements
-git checkout -b feature/nouveau-modele
-
-# 3. Développer et tester localement (en dev_analyst)
-dbt run --select votre_modele
-dbt test --select votre_modele
-
-# 4. Commit et push
-git add .
-git commit -m "Ajout du modèle xxx"
-git push origin feature/nouveau-modele
-
-# 5. Créer une Pull Request vers master sur GitHub
-```
-
 ### Bonnes pratiques
 
 - Une branche par fonctionnalité/modèle
@@ -236,13 +213,207 @@ dbt docs generate
 dbt docs serve  # Ouvre la doc dans le navigateur
 ```
 
-## 🤝 Contribution
+## 🔄🤝 Workflow Git
 
-1. Forker le projet ou créer une branche
-2. Développer en suivant nos conventions de nommage
-3. Tester localement
-4. Créer une Pull Request avec description détaillée
-5. Attendre la review et validation
+# 🔄 Guide de Workflow Collaboratif DBT
+
+Ce guide décrit notre processus de collaboration sur le projet DBT avec des environnements séparés et une CI/CD automatisée.
+
+## 📋 Configuration des Environnements
+
+### Répartition des datasets
+- **Data Engineer** : `dev` (développement) + `prod` (production)
+- **Data Analyst** : `dev_analyst` (développement personnel)
+
+### Structure des zones de travail
+```
+models/
+├── staging/
+│   ├── oracle_neshu/    # 🔄 Zone partagée - coordination requise
+│   └── yuman/           # 🔄 Zone partagée - coordination requise
+├── intermediate/
+│   └── oracle_neshu/    # 👤 Zone Data Engineer
+└── marts/
+    ├── oracle_neshu/    # 👤 Zone Data Engineer (business logic)
+    └── yuman/           # 📊 Zone Data Analyst (analytics)
+```
+
+## 🚀 Workflow Quotidien
+
+### 1. Démarrage de journée (OBLIGATOIRE)
+```bash
+# Toujours commencer par récupérer les dernières modifications
+git checkout master
+git pull origin master
+
+# Puis aller sur votre branche ou en créer une nouvelle
+git checkout feature/votre-branche
+# OU créer une nouvelle
+git checkout -b feature/nouvelle-fonctionnalite
+```
+
+### 2. Si votre branche existe depuis plusieurs jours
+```bash
+# Récupérer les modifications de master dans votre branche
+git checkout feature/votre-branche
+git rebase master  # Applique les nouveautés de master sur votre branche
+```
+
+**En cas de conflit pendant le rebase :**
+```bash
+# Résoudre les conflits dans les fichiers
+git add .
+git rebase --continue
+```
+
+## 💻 Pendant le Développement
+
+### 3. Cycle de travail
+```bash
+# Développer vos modèles...
+# Tester localement
+dbt run --target votre_environnement
+dbt test --target votre_environnement
+
+# Commits fréquents (pas besoin de push à chaque fois)
+git add .
+git commit -m "feat: add dim_oracle_neshu__product model"
+git commit -m "fix: correct join logic in telemetry_tasks"
+```
+
+### 4. Push seulement quand c'est validé
+```bash
+# Une fois vos tests passés et votre fonctionnalité terminée
+git push origin feature/votre-branche
+```
+
+## 🔀 Processus de Pull Request
+
+### 5. Avant de créer la PR (IMPORTANT)
+```bash
+# Synchroniser avec master une dernière fois
+git checkout master
+git pull origin master
+git checkout feature/votre-branche
+git rebase master
+
+# Tests finaux
+dbt run --target votre_environnement
+dbt test --target votre_environnement
+
+# Push final (avec --force-with-lease si rebase)
+git push origin feature/votre-branche --force-with-lease
+```
+
+### 6. Création et validation des PR
+
+#### Pour le Data Analyst :
+1. Travailler sur le dataset `dev_analyst`
+2. Tester les modèles : `dbt run --target dev_analyst`
+3. Une fois validé, push de la branche et création d'une PR sur GitHub
+4. Assigner le Data Engineer comme reviewer
+
+#### Pour le Data Engineer :
+1. Review de la PR sur GitHub
+2. Tests de la branche si nécessaire :
+   ```bash
+   git fetch origin
+   git checkout feature/branche-analyst
+   dbt run --target dev  # Test sur le dataset dev
+   ```
+3. Approbation et merge de la PR
+
+## 📐 Conventions de Nommage
+
+### Branches
+```bash
+# Exemples de noms de branches valides
+feature/modelisation-oracle_neshu
+feature/analytics-yuman-workorders
+feature/fix-telemetry-join
+feature/add-product-dimensions
+```
+
+## 🚦 Règles de Collaboration
+
+### Communication requise avant modification
+Prévenez-vous mutuellement avant de modifier :
+- `dbt_project.yml`
+- Fichiers dans `staging/` (sources communes)
+- `*_sources.yml` (définitions des sources)
+- Macros partagées
+
+### Processus de résolution de conflit
+```bash
+# Si conflit pendant un rebase
+git status  # Voir les fichiers en conflit
+# Éditer manuellement les fichiers
+git add .
+git rebase --continue
+
+# Si conflit trop complexe, annuler et demander de l'aide
+git rebase --abort
+```
+
+## ✅ Checklist Quotidienne
+
+### Début de journée
+- [ ] `git checkout master && git pull origin master`
+- [ ] `git checkout ma-branche` (ou créer nouvelle branche)
+- [ ] `git rebase master` (si branche existante)
+
+### Pendant le travail
+- [ ] Développement sur ma zone attribuée
+- [ ] Tests locaux : `dbt run --target mon_env && dbt test --target mon_env`
+- [ ] Commits réguliers avec messages clairs
+
+### Fin de fonctionnalité
+- [ ] Rebase final avec master
+- [ ] Tests complets validés
+- [ ] Push de la branche
+- [ ] Création de la PR
+- [ ] Review et merge
+
+## 🔧 Scripts Utiles
+
+### Test rapide de votre environnement
+```bash
+# Vérifier que tout fonctionne
+dbt debug --target votre_environnement
+dbt compile --target votre_environnement
+```
+
+## 🚨 Règles Importantes
+
+### ❌ Ne JAMAIS faire
+- Push direct sur `master`
+- Modifier les fichiers de staging sans coordination
+- Travailler directement sur `master`
+- Merger ses propres PR sans review
+
+### ✅ Toujours faire
+- Partir de `master` à jour pour créer une nouvelle branche
+- Tester localement avant de push
+- Créer des PR pour toute modification
+- Communiquer avant les gros changements
+
+## 🔄 CI/CD Automatique
+
+Le workflow GitHub Actions se déclenche automatiquement :
+- Sur push vers `master` → Déploiement en `prod`
+- Sur push vers `feature/**` → Tests en `dev`
+- Sur Pull Request vers `master` → Tests de validation
+
+## 📞 Support
+
+En cas de problème ou de conflit complexe, n'hésitez pas à :
+1. Faire `git rebase --abort` pour annuler une opération problématique
+2. Demander de l'aide avant de forcer quoi que ce soit
+3. Utiliser `git status` pour comprendre l'état actuel
+
+---
+
+*Ce workflow garantit une collaboration fluide et évite les conflits entre environnements !* 🎯
 
 ## 🔗 Liens utiles
 
