@@ -12,7 +12,6 @@ venv_dbt/
 # Python
 __pycache__/
 *.py[cod]git p
-profiles.yml
 
 # IDE & OS 
 .vscode/
