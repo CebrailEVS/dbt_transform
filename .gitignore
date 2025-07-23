@@ -2,15 +2,17 @@
 target/
 dbt_packages/
 logs/
-profiles.yml
+
 
 # Environment & secrets
 .env
 .env.*
+venv_dbt/
 
 # Python
 __pycache__/
-*.py[cod]
+*.py[cod]git p
+profiles.yml
 
 # IDE & OS 
 .vscode/
