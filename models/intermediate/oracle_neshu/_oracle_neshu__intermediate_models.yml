@@ -1,3 +1,4 @@
+# models/intermediate/oracle_neshu/_oracle_neshu__intermediate_models.yml
 version: 2
 
 models:
@@ -6,9 +7,6 @@ models:
       Table intermédiaire des tâches de télémétrie.
       Filtrée sur les tâches de type télémétrie (idtask_type=3) 
       avec statut FAIT/VALIDE et label TELEM_SOURCE.
-      
-    config:
-      materialized: incremental
       
     columns:
       - name: task_product_id
