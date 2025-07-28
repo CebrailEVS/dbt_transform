@@ -4,7 +4,7 @@
         unique_key='task_product_id',
         partition_by={'field': 'task_start_date', 'data_type': 'timestamp'},
         incremental_strategy='merge',
-        cluster_by=['company_id', 'device_id', 'product_id'],
+        cluster_by=['company_id', 'device_id', 'product_id','task_status_code'],
         description='Table intermédiaire des tâches de chargement - avec enrichissement ressources (roadman, véhicule)'
     )
 }}
@@ -112,24 +112,22 @@ select
     company_id,
     product_id,
     product_source_id,
-    product_source_type,
     product_destination_id,
-    product_destination_type,
-
-    -- Ressources
     roadman_id,
-    roadman_code,
     vehicle_id,
-    vehicle_code,
 
     -- Codes
     company_code,
     device_code,
     product_code,
+    roadman_code,
+    vehicle_code,
     task_status_code,
     load_type_code,
 
     -- Infos métier
+    product_source_type,
+    product_destination_type,
     task_location_info,
     task_start_date,
 
