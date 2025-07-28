@@ -16,6 +16,7 @@ cleaned_data as (
         -- IDs convertis en BIGINT
         cast(iddevice as int64) as iddevice,
         cast(device_iddevice as int64) as device_iddevice,
+        cast(iddevice_type as int64) as iddevice_type,
         cast(idcompany_customer as int64) as idcompany_customer,
         cast(idcompany_supplier as int64) as idcompany_supplier,
         cast(idcompany_owner as int64) as idcompany_owner,

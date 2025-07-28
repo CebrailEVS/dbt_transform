@@ -13,7 +13,11 @@ WITH product_labels AS (
     p.code AS product_code,
     p.name AS product_name,
     p.purchase_unit_price AS purchase_unit_price,
-    p.created_at,
+    -- Correction de created_at si idproduct = 1
+    CASE 
+      WHEN p.idproduct = 1 AND p.created_at IS NULL THEN p.updated_at
+      ELSE p.created_at
+    END AS created_at,
     p.updated_at,
     l.code AS label_code,
     lf.code AS label_family_code
@@ -25,8 +29,13 @@ WITH product_labels AS (
     ON l.idlabel = lhp.idlabel
   LEFT JOIN {{ ref('stg_oracle_neshu__label_family') }} lf 
     ON lf.idlabel_family = l.idlabel_family
-
   WHERE p.idproduct_type IN (1, 5)
+    AND (
+      CASE 
+        WHEN p.idproduct = 1 AND p.created_at IS NULL THEN p.updated_at
+        ELSE p.created_at
+      END
+    ) IS NOT NULL
 ),
 
 pivoted AS (
