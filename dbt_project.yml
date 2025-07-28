@@ -27,9 +27,17 @@ clean-targets:
 
 models:
   dbt_warehouse:
+    +materialized: view
+    +persist_docs:
+      relation: true
+      columns: true
     staging:
       +schema: staging
+      +tags: ['staging']
     intermediate:
       +schema: intermediate
+      +tags: ['intermediate']
     marts:
       +schema: marts
+      +tags: ['marts']
+
