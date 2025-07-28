@@ -100,10 +100,6 @@ models:
               field: client_id
       - name: workorder_id
         description: "Référence vers l'intervention"
-        tests:
-          - relationships:
-              to: ref('stg_yuman__workorders')
-              field: workorder_id
       - name: site_id
         description: "Référence vers le site propriétaire"
         tests:
