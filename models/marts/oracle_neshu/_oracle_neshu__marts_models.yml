@@ -55,3 +55,62 @@ models:
 
       - name: updated_at
         description: "Date de dernière mise à jour du produit dans la source"
+
+    # DEVICE
+  - name: dim_oracle_neshu__device
+    description: >
+      Dimension device enrichie à partir des labels associés (état, statut, gamme, catégorie, marque, etc.),
+      filtrée sur les machines (type 1) sans parent.
+    columns:
+      - name: iddevice
+        description: "Identifiant unique de la machine"
+        tests:
+          - not_null
+          - unique
+
+      - name: iddevice_type
+        description: "Type de machine (1 = machine, autres ignorés ici)"
+
+      - name: idcompany_customer
+        description: "Identifiant du client (company) auquel est rattachée la machine"
+
+      - name: idlocation
+        description: "Identifiant de localisation"
+
+      - name: device_code
+        description: "Code interne de la machine"
+
+      - name: device_name
+        description: "Nom de la machine"
+
+      - name: company_code
+        description: "Code client associé à la machine"
+
+      - name: brand
+        description: "Marque de la machine (label MARQUE)"
+
+      - name: machine_gamme
+        description: "Gamme de la machine (label GAMME)"
+
+      - name: machine_category
+        description: "Catégorie de la machine (label CATEGORIE)"
+
+      - name: modele_economique
+        description: "Modèle économique de la machine (label MODECOMA)"
+
+      - name: is_active
+        description: >
+          Indique si la machine est considérée comme active selon le label ISACTIVE.
+          TRUE si 'yes', sinon FALSE (converti en booléen).
+
+      - name: access_info
+        description: "Informations d'accès au site de la machine (depuis la table location)"
+
+      - name: last_installation_date
+        description: "Date de dernière installation de la machine"
+
+      - name: created_at
+        description: "Date de création de la machine dans la base source"
+
+      - name: updated_at
+        description: "Date de dernière mise à jour de la machine dans la base source"
