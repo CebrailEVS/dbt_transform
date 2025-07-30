@@ -2,11 +2,11 @@
   config(
     materialized='table',
     cluster_by=['iddevice'],
-    description='Dimension device enrichie à partir des labels associés (type, famille, groupe, marque, etc.) filtré sur les devices de type 1 (MACHINE) et device_iddevice NULL (sans équipement parent)'
+    description='Dimension device enrichie à partir des labels associés (état, statut, gamme, catégorie, marque, etc.), filtrée sur les machines (type 1) sans parent.'
   )
 }}
 
-WITH machine_labels AS (
+WITH device_labels AS (
   SELECT 
     d.iddevice,
     d.device_iddevice,
@@ -37,38 +37,70 @@ WITH machine_labels AS (
     AND d.device_iddevice IS NULL
 ),
 
-pivoted_labels AS (
-  SELECT *
-  FROM machine_labels
-  PIVOT (
-    MAX(label_code) FOR label_family_code IN (
-      'ETAT_MACHINE' AS machine_state,
-      'STATUT_MATERIEL' AS material_status,
-      'ISACTIVE' AS is_active, 
-      'GAMME' AS machine_gamme,
-      'CATEGORIE' AS machine_category,
-      'MARQUE' AS brand,
-      'MODECOMA' AS modele_economique
-    )
-  )
+aggregated_labels AS (
+  SELECT
+    iddevice,
+    iddevice_type,
+    device_iddevice,
+    idcompany_customer,
+    idlocation,
+    device_code,
+    device_name,
+    company_code,
+    access_info,
+    last_installation_date,
+    created_at,
+    updated_at,
+    MAX(CASE WHEN label_family_code = 'ETAT_MACHINE' THEN label_code END) AS machine_state,
+    MAX(CASE WHEN label_family_code = 'STATUT_MATERIEL' THEN label_code END) AS material_status,
+    MAX(CASE WHEN label_family_code = 'ISACTIVE' THEN label_code END) AS is_active,
+    MAX(CASE WHEN label_family_code = 'GAMME' THEN label_code END) AS machine_gamme,
+    MAX(CASE WHEN label_family_code = 'CATEGORIE' THEN label_code END) AS machine_category,
+    MAX(CASE WHEN label_family_code = 'MARQUE' THEN label_code END) AS brand,
+    MAX(CASE WHEN label_family_code = 'MODECOMA' THEN label_code END) AS modele_economique
+  FROM device_labels
+  GROUP BY
+    iddevice,
+    iddevice_type,
+    device_iddevice,
+    idcompany_customer,
+    idlocation,
+    device_code,
+    device_name,
+    company_code,
+    access_info,
+    last_installation_date,
+    created_at,
+    updated_at
 )
 
 SELECT
+  -- 🔑 Identifiants
   iddevice,
+  iddevice_type,
+  idcompany_customer,
+  idlocation,
+
+  -- 📇 Codes et noms
   device_code,
   device_name,
-  last_installation_date,
-  idcompany_customer,
   company_code,
-  idlocation,
-  access_info,
-  created_at,
-  updated_at,
-  machine_state,
-  material_status,
-  is_active,
+
+  -- 🏷️ Caractéristiques machine
+  brand,
   machine_gamme,
   machine_category,
-  brand,
-  modele_economique
-FROM pivoted_labels
+  modele_economique,
+  CASE
+    WHEN LOWER(is_active) = 'yes' THEN TRUE
+    ELSE FALSE
+  END AS is_active,
+
+  -- 📍 Localisation
+  access_info,
+
+  -- 🕒 Dates
+  last_installation_date,
+  created_at,
+  updated_at
+FROM aggregated_labels
