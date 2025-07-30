@@ -97,7 +97,7 @@ SELECT
   END AS is_active,
 
   -- 📍 Localisation
-  access_info,
+  access_info as device_location,
 
   -- 🕒 Dates
   last_installation_date,
