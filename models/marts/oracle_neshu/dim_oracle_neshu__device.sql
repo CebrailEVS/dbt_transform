@@ -35,6 +35,7 @@ WITH device_labels AS (
     ON lo.idlocation = d.idlocation
   WHERE d.iddevice_type = 1
     AND d.device_iddevice IS NULL
+    AND d.idcompany_customer IS NOT NULL
 ),
 
 aggregated_labels AS (
