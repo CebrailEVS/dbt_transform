@@ -28,6 +28,29 @@ models:
       - name: deleted_at
         description: "Date de suppression (soft delete)"
 
+  # COMPANY_HAS_LOCATION
+  - name: stg_oracle_neshu__company_has_location
+    description: "Association entre les entreprises et les localisations"
+    columns:
+      - name: idlocation
+        description: "Identifiant de la localisation"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__location')
+              field: idlocation
+      - name: idcompany
+        description: "Identifiant de l'entreprise"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
+      - name: idlocation_type
+        description: "Type de localisation (ex: siège, agence)"
+        tests:
+          - not_null
+
   - name: stg_oracle_neshu__company_type
     description: "Types d'entreprises transformés et nettoyés depuis la base Oracle"
     columns:
@@ -145,6 +168,25 @@ models:
           - not_null
       - name: code
         description: "Code de la famille de labels"
+
+  # LABEL_HAS_COMPANY
+  - name: stg_oracle_neshu__label_has_company
+    description: "Association entre les labels et les entreprises"
+    columns:
+      - name: idlabel
+        description: "Identifiant du label"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__label')
+              field: idlabel
+      - name: idcompany
+        description: "Identifiant de l'entreprise"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_oracle_neshu__company')
+              field: idcompany
 
   - name: stg_oracle_neshu__label_has_contract
     description: "Association entre les labels et les contrats"
