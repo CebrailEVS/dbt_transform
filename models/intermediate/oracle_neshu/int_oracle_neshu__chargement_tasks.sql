@@ -17,6 +17,7 @@ with chargement_base as (
         t.idtask as task_id,
         t.iddevice as device_id,
         t.idcompany_peer as company_id,
+        t.idlocation as location_id,
         t.idproduct_source as product_source_id,
         t.type_product_source as product_source_type,
         t.idproduct_destination as product_destination_id,
@@ -61,7 +62,7 @@ with chargement_base as (
 
     group by
         thp.idtask_has_product, t.idtask, t.iddevice, t.idcompany_peer,
-        t.idproduct_source, t.type_product_source,
+        t.idproduct_source, t.type_product_source, t.idlocation,
         t.idproduct_destination, t.type_product_destination,
         thp.idproduct, thp.net_price,
         c.code, d.code, p.code,
@@ -111,6 +112,7 @@ select
     device_id,
     company_id,
     product_id,
+    location_id,
     product_source_id,
     product_destination_id,
     roadman_id,
