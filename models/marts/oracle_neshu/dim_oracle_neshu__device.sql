@@ -33,11 +33,8 @@ WITH device_labels AS (
     ON c.idcompany = d.idcompany_customer
   LEFT JOIN {{ ref('stg_oracle_neshu__location') }} lo
     ON lo.idlocation = d.idlocation
-  WHERE d.iddevice_type = 1
-    AND d.device_iddevice IS NULL
-    AND d.idcompany_customer IS NOT NULL
+  WHERE d.idcompany_customer IS NOT NULL
 ),
-
 aggregated_labels AS (
   SELECT
     iddevice,
@@ -78,6 +75,7 @@ aggregated_labels AS (
 SELECT
   -- 🔑 Identifiants
   iddevice,
+  device_iddevice,
   iddevice_type,
   idcompany_customer,
   idlocation,
