@@ -2,6 +2,99 @@
 version: 2
 
 models:
+
+  - name: dim_oracle_neshu__company
+    description: >
+      Dimension client/company enrichie à partir des labels associés (région, secteur, statut, etc.)
+      et des informations de localisation.
+    columns:
+      - name: idcompany
+        description: "Identifiant unique de la société"
+        tests:
+          - not_null
+          - unique
+
+      - name: idcompany_type
+        description: "ID Type de société (ex : client, fournisseur...)"
+
+      - name: company_code
+        description: "Code client"
+
+      - name: company_name
+        description: "Nom de la société"
+
+      - name: region
+        description: "Région géographique de la société (label REGION)"
+
+      - name: sector
+        description: "Secteur d’activité (HORECA/OFFICE) (label SECTEUR_ACTVITE)"
+
+      - name: sector_code
+        description: "Code sectoriel associé, lien avec ceux de nespresso (label CODE_SECTEUR)"
+
+      - name: activity_sector
+        description: "Secteur d'activité détaillé (label SECTEUR_DACTIVITE)"
+
+      - name: employee_range
+        description: "Tranche de collaborateurs (label TRANCHE_COLLAB)"
+
+      - name: company_type
+        description: "Type d’entreprise (label TYPECOMPAGNIE)"
+
+      - name: economic_model
+        description: "Modèle économique client (label MODELEECOCLIENT)"
+
+      - name: client_status
+        description: "Statut client (OR/ARGENT/BRONZE) (label STATUT_CLIENT)"
+
+      - name: is_active
+        description: >
+          Indique si la société est active (label ISACTIVE). 
+          TRUE si 'yes', sinon FALSE.
+
+      - name: key_account
+        description: "KA grand compte (label KA)"
+
+      - name: katiers
+        description: "Label KATIERS lié au KA"
+
+      - name: remote_work
+        description: "Indicateur du nombre de télétravail par semaine (label TELETRAVAIL)"
+
+      - name: proadman
+        description: "Nombre de passage roadman (label PROADMAN)"
+
+      - name: gsm
+        description: "Gobelet Sucre Melangeur FORMULE (label GSM_TERRAIN)"
+
+      - name: badge
+        description: "Indicateur de badge client (label BADGE)"
+
+      - name: recycling
+        description: "Indicateur de recyclage (label RECYCLAGE)"
+
+      - name: address1
+        description: "Adresse principale (ligne 1)"
+
+      - name: address2
+        description: "Adresse complémentaire (ligne 2)"
+
+      - name: city
+        description: "Ville de la société"
+
+      - name: postal_code
+        description: "Code postal de la société"
+
+      - name: country
+        description: "Pays de la société"
+
+      - name: created_at
+        description: "Date de création dans la base source"
+
+      - name: updated_at
+        description: "Date de dernière mise à jour dans la base source"
+
+
   - name: dim_oracle_neshu__product
     description: >
       Dimension produit enrichie à partir des labels associés (type, famille, groupe, marque, etc.)

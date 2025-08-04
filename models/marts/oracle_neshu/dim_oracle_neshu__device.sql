@@ -2,7 +2,7 @@
   config(
     materialized='table',
     cluster_by=['iddevice'],
-    description='Dimension device enrichie à partir des labels associés (état, statut, gamme, catégorie, marque, etc.), filtrée sur les machines (type 1) sans parent.'
+    description='Dimension device enrichie à partir des labels associés (état, statut, gamme, catégorie, marque, etc.)'
   )
 }}
 
