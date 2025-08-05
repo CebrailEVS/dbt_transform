@@ -23,16 +23,16 @@ WITH telemetry_data AS (
 
     -- Machine
     d.device_code AS device_serial_number,
-    d.device_name AS device_name,
-    d.brand AS device_brand,
-    d.modele_economique AS economic_model,
+    d.device_name,
+    d.device_brand,
+    d.device_economic_model,
 
     -- Produit
     p.product_name,
-    p.brand AS product_brand,
-    p.family AS product_family,
+    p.product_brand,
+    p.product_family,
     p.product_group,
-    p.product_type_standard as product_type,
+    p.product_type,
 
     -- Contexte
     DATE(t.task_start_date) AS consumption_date,
@@ -52,8 +52,8 @@ WITH telemetry_data AS (
     t.company_id, t.device_id, t.location_id, t.product_id,
     c.company_code, c.company_name,
     COALESCE(NULLIF(t.task_location_info, ''), d.device_location),
-    d.device_code, d.device_name, d.brand, d.modele_economique,
-    p.product_name, p.brand, p.family, p.product_group, p.product_type_standard,
+    d.device_code, d.device_name, d.device_brand, d.device_economic_model,
+    p.product_name, p.product_brand, p.product_family, p.product_group, p.product_type,
     DATE(t.task_start_date)
 ),
 chargement_data AS (
@@ -74,15 +74,15 @@ chargement_data AS (
     -- Machine
     d.device_code AS device_serial_number,
     d.device_name,
-    d.brand AS device_brand,
-    d.modele_economique AS economic_model,
+    d.device_brand,
+    d.device_economic_model,
 
     -- Produit
     p.product_name,
-    p.brand AS product_brand,
-    p.family AS product_family,
+    p.product_brand,
+    p.product_family,
     p.product_group,
-    p.product_type_standard AS product_type,
+    p.product_type,
 
     -- Contexte
     DATE(l.task_start_date) AS consumption_date,
@@ -114,12 +114,12 @@ chargement_data AS (
     ON l.product_id = p.idproduct
   LEFT JOIN {{ ref('dim_oracle_neshu__company') }} c
     ON l.company_id = c.idcompany
-  WHERE task_status_code in ('FAIT','VALIDE')
+  WHERE l.task_status_code in ('FAIT','VALIDE')
   GROUP BY 
     l.company_id, l.device_id, l.location_id, l.product_id,
     COALESCE(NULLIF(l.task_location_info, ''), d.device_location), c.company_code, c.company_name,
-    d.device_code, d.device_name, d.brand, d.modele_economique,
-    p.product_name, p.brand, p.family, p.product_group, p.product_type_standard,
+    d.device_code, d.device_name, d.device_brand, d.device_economic_model,
+    p.product_name, p.product_brand, p.product_family, p.product_group, p.product_type,
     DATE(l.task_start_date)
 ),
 livraison_data AS (
@@ -141,14 +141,14 @@ livraison_data AS (
     'LIVRAISON' AS device_serial_number,
     'LIVRAISON' AS device_name,
     'LIVRAISON' AS device_brand,
-    'LIVRAISON' AS economic_model,
+    'LIVRAISON' AS device_economic_model,
 
     -- Produit
     p.product_name,
-    p.brand AS product_brand,
-    p.family AS product_family,
+    p.product_brand,
+    p.product_family,
     p.product_group,
-    p.product_type_standard AS product_type,
+    p.product_type,
 
     -- Contexte
     DATE(lt.task_start_date) AS consumption_date,
@@ -178,11 +178,11 @@ livraison_data AS (
     ON lt.product_id = p.idproduct
   LEFT JOIN {{ ref('dim_oracle_neshu__company') }} c
     ON lt.company_id = c.idcompany
-  WHERE task_status_code in ('FAIT','VALIDE')
-  AND p.product_type_standard in ('THE','CAFE CAPS','CHOCOLATS VAN HOUTEN','BOISSONS GOURMANDES','ACCESSOIRES')
+  WHERE lt.task_status_code in ('FAIT','VALIDE')
+  AND p.product_type in ('THE','CAFE CAPS','CHOCOLATS VAN HOUTEN','BOISSONS GOURMANDES','ACCESSOIRES')
   GROUP BY 
     lt.company_id, lt.product_id,
-    p.product_name, p.brand, p.family, p.product_group, p.product_type_standard, c.company_code, c.company_name,
+    p.product_name, p.product_brand, p.product_family, p.product_group, p.product_type, c.company_code, c.company_name,
     DATE(lt.task_start_date)
 ),
 -- Version optimisée : remplace combined_data + donnees_filtrees
@@ -193,7 +193,7 @@ combined_and_filtered_data AS (
   WHERE product_type IN ('BOISSONS GOURMANDES', 'CAFE CAPS', 'CAFENOIR', 'INDEFINI', 'THE', 'SNACKING', 'BOISSONS FRAICHES', 'CHOCOLATS VAN HOUTEN')
     AND NOT (
       device_brand IN ('NESTLE','ANIMO')
-      AND (economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR economic_model IS NULL)
+      AND (device_economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR device_economic_model IS NULL)
       AND product_type = 'THE'
     )
     AND NOT (company_code = 'CN1071' AND product_type = 'THE')
@@ -206,13 +206,13 @@ combined_and_filtered_data AS (
   WHERE (
     -- Cas 1: NESPRESSO avec conditions spécifiques
     (device_brand = 'NESPRESSO'
-     AND (economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR economic_model IS NULL)
+     AND (device_economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR device_economic_model IS NULL)
      AND product_type IN ('THE','CAFE CAPS')
      AND (company_code <> 'CN1070' OR consumption_date >= '2025-03-01'))
     
     -- Cas 2: NESTLE/ANIMO pour THE
     OR (device_brand IN ('NESTLE','ANIMO')
-        AND (economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR economic_model IS NULL)
+        AND (device_economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR device_economic_model IS NULL)
         AND product_type = 'THE')
     
     -- Cas 3: CHOCOLATS VAN HOUTEN pour toutes marques
@@ -251,7 +251,7 @@ SELECT
   device_serial_number,
   device_name,
   device_brand,
-  economic_model,
+  device_economic_model,
 
   -- Produit
   product_name,

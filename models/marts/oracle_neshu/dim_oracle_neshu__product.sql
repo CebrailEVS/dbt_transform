@@ -90,7 +90,7 @@ final AS (
       END,
       NULLIF(TRIM(product_type_raw), ''),
       'Non renseigné'
-    ) AS product_type_standard
+    ) AS product_type
   FROM pivoted
 )
 
@@ -105,7 +105,7 @@ SELECT
   product_family,
   product_bio,
   product_group,
-  product_type_standard,
+  product_type,
   is_active,
   created_at,
   updated_at

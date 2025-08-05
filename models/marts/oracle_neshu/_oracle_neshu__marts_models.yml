@@ -133,7 +133,7 @@ models:
       - name: product_group
         description: "Groupe produit (ACCESSOIRES, SNACKING...), via label GROUPE"
 
-      - name: product_type_standard
+      - name: product_type
         description: >
           Typologie produit standardisée selon règles métier :
           ex. 'CAFE CAPS', 'THE', 'CHOCOLATS VAN HOUTEN', 'BOISSONS GOURMANDES'.
@@ -274,7 +274,7 @@ models:
       - name: device_brand
         description: "Marque de la machine (NESPRESSO, NESTLE, ANIMO) ou 'LIVRAISON'"
 
-      - name: economic_model
+      - name: device_economic_model
         description: "Modèle économique (Participatif valeurs, Participatif unités, Payant) ou 'LIVRAISON'"
 
       # === PRODUIT ===
