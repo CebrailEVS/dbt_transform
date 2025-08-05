@@ -92,6 +92,29 @@ final AS (
       'Non renseigné'
     ) AS product_type
   FROM pivoted
+),
+
+standardized AS (
+  SELECT
+    idproduct,
+    idproduct_type,
+    product_code,
+    product_name,
+    purchase_unit_price,
+
+    -- FORCING champs à 'INDEFINI' si product_type est 'INDEFINI'
+    CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_brand END AS product_brand,
+    CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_owner END AS product_owner,
+    CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_family END AS product_family,
+    CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_bio END AS product_bio,
+    CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_group END AS product_group,
+
+    product_type_raw,
+    is_active,
+    created_at,
+    updated_at,
+    product_type
+  FROM final
 )
 
 SELECT  
@@ -109,4 +132,4 @@ SELECT
   is_active,
   created_at,
   updated_at
-FROM final
+FROM standardized
