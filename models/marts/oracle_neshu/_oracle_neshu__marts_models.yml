@@ -351,6 +351,8 @@ models:
             - company_id
             - device_id
             - product_id
+            - location_id
+            - location
             - consumption_date
             - data_source
           name: unique_consumption_record
