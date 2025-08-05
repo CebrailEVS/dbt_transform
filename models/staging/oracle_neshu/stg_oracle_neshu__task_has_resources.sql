@@ -23,6 +23,14 @@ cleaned_data as (
         timestamp(_sdc_deleted_at) as deleted_at
         
     from source_data
+),
+
+-- Synchro avec la table des tâches pour éviter les orphelins
+filtered_data as (
+    select cr.*
+    from cleaned_data cr
+    inner join {{ ref('stg_oracle_neshu__task') }} t
+      on cr.idtask = t.idtask
 )
 
-select * from cleaned_data
+select * from filtered_data

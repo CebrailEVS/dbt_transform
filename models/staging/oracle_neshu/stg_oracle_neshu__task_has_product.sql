@@ -58,9 +58,18 @@ cleaned_data as (
         timestamp(_sdc_deleted_at) as deleted_at
 
     from source_data
+),
+
+-- ⚠️ Sécurité de jointure pour éviter les orphelins
+filtered_data as (
+    select c.*
+    from cleaned_data c
+    inner join {{ ref('stg_oracle_neshu__task') }} t
+        on c.idtask = t.idtask
+        and c.updated_at >= t.updated_at - interval 2 day -- sécurité si des updates en tâche arrivent après
 )
 
-select * from cleaned_data
+select * from filtered_data
 {% if is_incremental() %}
     where updated_at >= (
         select max(updated_at) - interval 1 day
