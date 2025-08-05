@@ -41,7 +41,7 @@ models:
       - name: company_type
         description: "Type d’entreprise (label TYPECOMPAGNIE)"
 
-      - name: economic_model
+      - name: company_economic_model
         description: "Modèle économique client (label MODELEECOCLIENT)"
 
       - name: client_status
@@ -118,16 +118,16 @@ models:
       - name: purchase_unit_price
         description: "Prix d'achat unitaire du produit"
 
-      - name: brand
+      - name: product_brand
         description: "Marque du produit, extraite du label MARQUEP"
 
-      - name: owner
+      - name: product_owner
         description: "Propriétaire du produit, via label PROPRIETAIRE"
 
-      - name: family
+      - name: product_family
         description: "Famille produit (ex : CAFE CAPSULES, THE), via label FAMILLE"
 
-      - name: bio
+      - name: product_bio
         description: "Indication BIO ou non (via label BIO)"
 
       - name: product_group
@@ -184,16 +184,16 @@ models:
       - name: company_code
         description: "Code client associé à la machine"
 
-      - name: brand
+      - name: device_brand
         description: "Marque de la machine (label MARQUE)"
 
-      - name: machine_gamme
+      - name: device_gamme
         description: "Gamme de la machine (label GAMME)"
 
-      - name: machine_category
+      - name: device_category
         description: "Catégorie de la machine (label CATEGORIE)"
 
-      - name: modele_economique
+      - name: device_economic_model
         description: "Modèle économique de la machine (label MODECOMA)"
 
       - name: is_active
@@ -201,7 +201,7 @@ models:
           Indique si la machine est considérée comme active selon le label ISACTIVE.
           TRUE si 'yes', sinon FALSE (converti en booléen).
 
-      - name: access_info
+      - name: device_location
         description: "Informations d'accès au site de la machine (depuis la table location)"
 
       - name: last_installation_date
@@ -212,3 +212,150 @@ models:
 
       - name: updated_at
         description: "Date de dernière mise à jour de la machine dans la base source"
+
+# FACT BUSINESS REVIEW
+  - name: fct_oracle_neshu__business_review
+    description: >
+      Table de faits des consommations clients pour la Business Review Neshu.
+      Consolidation des données télémétrie, chargement et livraison avec application
+      des règles métier spécifiques (gratuité vs payant, types de produits, etc.).
+      Utilisée pour les analyses de consommation, comparatifs annuels et reporting client.
+    
+    columns:
+      # === IDENTIFIANTS ===
+      - name: company_id
+        description: "Identifiant unique de la société cliente"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_oracle_neshu__company')
+              field: idcompany
+
+      - name: device_id
+        description: "Identifiant de la machine (NULL pour les livraisons directes)"
+        tests:
+          - relationships:
+              to: ref('dim_oracle_neshu__device')
+              field: iddevice
+
+      - name: location_id
+        description: "Identifiant de localisation (NULL pour les livraisons)"
+
+      - name: product_id
+        description: "Identifiant unique du produit"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_oracle_neshu__product')
+              field: idproduct
+
+      # === COMPANY ===
+      - name: company_code
+        description: "Code client (ex: CN1234)"
+        tests:
+          - not_null
+
+      - name: company_name
+        description: "Nom de la société cliente"
+        tests:
+          - not_null
+
+      # === LOCALISATION ===
+      - name: location
+        description: "Localisation de la consommation (Localisation task par défault, si vide => prendre localisation device) ou 'LIVRAISON' pour les livraisons directes"
+
+      # === MACHINE ===
+      - name: device_serial_number
+        description: "Numéro de série de la machine ou 'LIVRAISON'"
+
+      - name: device_name
+        description: "Nom de la machine ou 'LIVRAISON'"
+
+      - name: device_brand
+        description: "Marque de la machine (NESPRESSO, NESTLE, ANIMO) ou 'LIVRAISON'"
+
+      - name: economic_model
+        description: "Modèle économique (Participatif valeurs, Participatif unités, Payant) ou 'LIVRAISON'"
+
+      # === PRODUIT ===
+      - name: product_name
+        description: "Nom complet du produit"
+        tests:
+          - not_null
+
+      - name: product_brand
+        description: "Marque du produit"
+
+      - name: product_family
+        description: "Famille de produits"
+
+      - name: product_group
+        description: "Groupe de produits"
+
+      - name: product_type
+        description: "Type standard de produit"
+        tests:
+          - not_null
+          - accepted_values:
+              values: 
+                - 'THE'
+                - 'CAFE CAPS'
+                - 'CHOCOLATS VAN HOUTEN'
+                - 'BOISSONS GOURMANDES'
+                - 'ACCESSOIRES'
+                - 'CAFENOIR'
+                - 'INDEFINI'
+                - 'SNACKING'
+                - 'BOISSONS FRAICHES'
+
+      # === CONTEXTE ===
+      - name: consumption_date
+        description: "Date de consommation (format DATE)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: "'2020-01-01'"
+              max_value: "current_date()"
+
+      - name: data_source
+        description: "Source des données de consommation"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['TELEMETRIE', 'CHARGEMENT', 'LIVRAISON']
+
+      # === MESURES ===
+      - name: quantity
+        description: >
+          Quantité consommée (ajustée selon les règles produit).
+          Multiplicateurs appliqués pour les rames, boîtes, etc.
+        tests:
+          - not_null
+
+      # === METADONNEES ===
+      - name: dbt_updated_at
+        description: "Timestamp de dernière mise à jour par dbt"
+        tests:
+          - not_null
+
+      - name: dbt_invocation_id
+        description: "ID unique de l'exécution dbt"
+        tests:
+          - not_null
+
+    # === TESTS AU NIVEAU TABLE ===
+    tests:
+      # Test d'unicité sur la combinaison clé
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - company_id
+            - device_id
+            - product_id
+            - consumption_date
+            - data_source
+          name: unique_consumption_record
+
+      # Test de cohérence : pas de device_id NULL sauf pour LIVRAISON
+      - dbt_utils.expression_is_true:
+          expression: "(device_id IS NOT NULL) OR (data_source = 'LIVRAISON')"
+          name: device_id_required_except_livraison

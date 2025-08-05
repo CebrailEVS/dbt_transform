@@ -44,10 +44,10 @@ pivoted AS (
   PIVOT (
     MAX(label_code)
     FOR label_family_code IN (
-      'MARQUEP' AS brand,
-      'PROPRIETAIRE' AS owner,
-      'FAMILLE' AS family, 
-      'BIO' AS bio,
+      'MARQUEP' AS product_brand,
+      'PROPRIETAIRE' AS product_owner,
+      'FAMILLE' AS product_family, 
+      'BIO' AS product_bio,
       'GROUPE' AS product_group,
       'LPTYPE' AS product_type_raw,
       'ISACTIVE' AS isactive
@@ -62,10 +62,10 @@ final AS (
     product_code,
     product_name,
     purchase_unit_price,
-    brand,
-    owner,
-    family,
-    bio,
+    product_brand,
+    product_owner,
+    product_family,
+    product_bio,
     product_group,
     product_type_raw,
     -- convert isactive from string to boolean
@@ -79,12 +79,12 @@ final AS (
     COALESCE(
       CASE
         WHEN idproduct = 1 THEN 'INDEFINI'
-        WHEN family IN ('CAFE CAPSULES', 'CAFE CAPSULES PREMIUM') THEN 'CAFE CAPS'
-        WHEN family IN ('THE') THEN 'THE'
+        WHEN product_family IN ('CAFE CAPSULES', 'CAFE CAPSULES PREMIUM') THEN 'CAFE CAPS'
+        WHEN product_family IN ('THE') THEN 'THE'
         WHEN product_group = 'ACCESSOIRES' THEN 'ACCESSOIRES'
         WHEN product_group = 'BOISSONS FRAICHES' THEN 'BOISSONS FRAICHES'
         WHEN product_group = 'SNACKING' THEN 'SNACKING'
-        WHEN brand = 'VAN HOUTEN' AND product_code = 'VANHCHOC23' THEN 'CHOCOLATS VAN HOUTEN'
+        WHEN product_brand = 'VAN HOUTEN' AND product_code = 'VANHCHOC23' THEN 'CHOCOLATS VAN HOUTEN'
         WHEN product_type_raw = 'BGOURMANDE' THEN 'BOISSONS GOURMANDES'
         ELSE NULL
       END,
@@ -100,10 +100,10 @@ SELECT
   product_code,
   product_name,
   purchase_unit_price,
-  brand,
-  owner,
-  family,
-  bio,
+  product_brand,
+  product_owner,
+  product_family,
+  product_bio,
   product_group,
   product_type_standard,
   is_active,

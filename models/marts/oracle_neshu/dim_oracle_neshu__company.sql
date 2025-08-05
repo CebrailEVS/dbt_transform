@@ -65,7 +65,7 @@ aggregated_labels AS (
     MAX(CASE WHEN label_family_code = 'BADGE' THEN label_code END) AS badge,
     MAX(CASE WHEN label_family_code = 'RECYCLAGE' THEN label_code END) AS recycling,
     MAX(CASE WHEN label_family_code = 'TYPECOMPAGNIE' THEN label_code END) AS company_type,
-    MAX(CASE WHEN label_family_code = 'MODELEECOCLIENT' THEN label_code END) AS economic_model,
+    MAX(CASE WHEN label_family_code = 'MODELEECOCLIENT' THEN label_code END) AS company_economic_model,
     MAX(CASE WHEN label_family_code = 'BL_GRP' THEN label_code END) AS bl_group,
     MAX(CASE WHEN label_family_code = 'KA' THEN label_code END) AS key_account
   FROM company_labels
@@ -99,7 +99,7 @@ SELECT
   activity_sector,
   employee_range,
   company_type,
-  economic_model,
+  company_economic_model,
   client_status,
   
   CASE

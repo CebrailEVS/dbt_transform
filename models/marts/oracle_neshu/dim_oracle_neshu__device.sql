@@ -49,13 +49,13 @@ aggregated_labels AS (
     last_installation_date,
     created_at,
     updated_at,
-    MAX(CASE WHEN label_family_code = 'ETAT_MACHINE' THEN label_code END) AS machine_state,
-    MAX(CASE WHEN label_family_code = 'STATUT_MATERIEL' THEN label_code END) AS material_status,
+    MAX(CASE WHEN label_family_code = 'ETAT_MACHINE' THEN label_code END) AS device_state,
+    MAX(CASE WHEN label_family_code = 'STATUT_MATERIEL' THEN label_code END) AS device_material_status,
     MAX(CASE WHEN label_family_code = 'ISACTIVE' THEN label_code END) AS is_active,
-    MAX(CASE WHEN label_family_code = 'GAMME' THEN label_code END) AS machine_gamme,
-    MAX(CASE WHEN label_family_code = 'CATEGORIE' THEN label_code END) AS machine_category,
-    MAX(CASE WHEN label_family_code = 'MARQUE' THEN label_code END) AS brand,
-    MAX(CASE WHEN label_family_code = 'MODECOMA' THEN label_code END) AS modele_economique
+    MAX(CASE WHEN label_family_code = 'GAMME' THEN label_code END) AS device_gamme,
+    MAX(CASE WHEN label_family_code = 'CATEGORIE' THEN label_code END) AS device_category,
+    MAX(CASE WHEN label_family_code = 'MARQUE' THEN label_code END) AS device_brand,
+    MAX(CASE WHEN label_family_code = 'MODECOMA' THEN label_code END) AS device_economic_model
   FROM device_labels
   GROUP BY
     iddevice,
@@ -86,17 +86,19 @@ SELECT
   company_code,
 
   -- 🏷️ Caractéristiques machine
-  brand,
-  machine_gamme,
-  machine_category,
-  modele_economique,
+  device_brand,
+  device_gamme,
+  device_category,
+  device_economic_model,
+
+  -- 📍 Localisation
+  access_info as device_location,
+
+  -- 🏷️ État et statu
   CASE
     WHEN LOWER(is_active) = 'yes' THEN TRUE
     ELSE FALSE
   END AS is_active,
-
-  -- 📍 Localisation
-  access_info as device_location,
 
   -- 🕒 Dates
   last_installation_date,
