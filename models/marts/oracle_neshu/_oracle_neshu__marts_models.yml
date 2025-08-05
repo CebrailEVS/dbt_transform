@@ -293,7 +293,7 @@ models:
         description: "Groupe de produits"
 
       - name: product_type
-        description: "Type standard de produit"
+        description: "Type de produit (adapté aux règles métier)"
         tests:
           - not_null
           - accepted_values:
