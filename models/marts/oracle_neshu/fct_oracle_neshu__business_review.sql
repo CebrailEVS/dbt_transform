@@ -108,7 +108,7 @@ chargement_data AS (
     ) AS quantity
 
   FROM {{ ref('int_oracle_neshu__chargement_tasks') }} l
-  LEFT JOIN {{ ref('dim_oracle_neshu__device') }} d 
+  INNER JOIN {{ ref('dim_oracle_neshu__device') }} d 
     ON l.device_id = d.iddevice
   LEFT JOIN {{ ref('dim_oracle_neshu__product') }} p 
     ON l.product_id = p.idproduct
