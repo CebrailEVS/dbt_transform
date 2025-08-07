@@ -66,7 +66,6 @@ filtered_data as (
     from cleaned_data c
     inner join {{ ref('stg_oracle_neshu__task') }} t
         on c.idtask = t.idtask
-        and c.updated_at >= t.updated_at - interval 2 day -- sécurité si des updates en tâche arrivent après
 )
 
 select * from filtered_data
