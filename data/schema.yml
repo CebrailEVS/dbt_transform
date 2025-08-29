@@ -1,0 +1,75 @@
+version: 2
+
+seeds:
+  - name: cp_metropole
+    description: "Correspondance codes postaux vers métropoles"
+    columns:
+      - name: Code_Postal
+        description: "Code postal (5 chiffres)"
+        tests:
+          - not_null
+      - name: Metropole
+        description: "Nom de la métropole"
+
+  - name: dpt_metropole
+    description: "Correspondance départements vers métropoles"
+    columns:
+      - name: Departement
+        description: "Numéro de département"
+        tests:
+          - not_null
+      - name: Metropole
+        description: "Nom de la métropole"
+
+  - name: machines_clean
+    description: "Mapping noms machines bruts vers standardisés"
+    columns:
+      - name: Machine_Brut
+        description: "Nom machine tel qu'en source"
+        tests:
+          - not_null
+      - name: MACHINE
+        description: "Nom machine standardisé"
+
+  - name: marque_clean
+    description: "Correspondance technicien vers marque"
+    columns:
+      - name: NOM_DU_TECHNICIEN
+        description: "Nom du technicien"
+      - name: MARQUE
+        description: "Marque associée"
+
+  - name: techniciens_clean
+    description: "Référentiel des techniciens et équipes"
+    columns:
+      - name: TECHNICIEN
+        description: "Format 'prénom nom'"
+        tests:
+          - unique
+          - not_null
+      - name: EQUIPE
+        description: "Équipe d'affectation"
+        tests:
+          - not_null
+
+  - name: type_inter_clean
+    description: "Mapping types d'interventions"
+    columns:
+      - name: Type_intervention_Brut
+        description: "Type intervention source"
+      - name: TYPE_INTER
+        description: "Type intervention standardisé"
+
+  - name: tarification_ref_clean
+    description: "Grille tarifaire complète"
+    columns:
+      - name: KEY
+        description: "Clé de tarification composite"
+        tests:
+          - not_null
+      - name: Montant
+        description: "Montant en euros"
+        tests:
+          - not_null
+      - name: PROD
+        description: "Indicateur production"

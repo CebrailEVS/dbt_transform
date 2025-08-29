@@ -41,3 +41,54 @@ models:
       +schema: marts
       +tags: ['marts']
 
+# ✨ AJOUT de la section pour les seeds
+seeds:
+  dbt_warehouse:
+    +materialized: seed
+    +schema: reference
+    +tags: ['reference']
+    
+    reference_data:
+      cp_metropole:
+        +column_types:
+          Code_Postal: STRING
+          Metropole: STRING
+      
+      dpt_metropole:
+        +column_types:
+          Departement: STRING
+          Metropole: STRING
+      
+      machines_clean:
+        +column_types:
+          Machine_Brut: STRING
+          MACHINE: STRING
+      
+      marque_clean:
+        +column_types:
+          NOM_DU_TECHNICIEN: STRING
+          MARQUE: STRING
+      
+      techniciens_clean:
+        +column_types:
+          TECHNICIEN: STRING
+          Nom: STRING
+          Prenom: STRING
+          Nom_Prenom: STRING
+          EQUIPE: STRING
+      
+      type_inter_clean:
+        +column_types:
+          Type_intervention_Brut: STRING
+          TYPE_INTER: STRING
+      
+      tarification_ref_clean:
+        +column_types:
+          TYPE_INTER: STRING
+          MACHINE: STRING
+          KEY: STRING
+          MARQUE: STRING
+          METROPOLE: STRING
+          Type_tarif: STRING
+          Montant: INTEGER
+          PROD: INTEGER

@@ -1,0 +1,82 @@
+Type_intervention_Brut,TYPE_INTER
+pré-visite,PREVISITE
+installation,INSTALLATION
+curative idf,CURATIVE
+curative lyon,CURATIVE
+préventive,PREVENTIVE
+préventive urgente,PREVENTIVE
+desinstallation,DESINSTALLATION
+intervention standard,VERIFICATION REQUISE
+installation auum,INSTALLATION
+curative auum,CURATIVE
+installation frigo nu,INSTALLATION
+curative frigo nu,CURATIVE
+préventive nu,PREVENTIVE
+installation twyd,INSTALLATION
+preventive twyd,PREVENTIVE
+livraison fontaine mocako,LIVRAISON
+installation fontaine mokaco,INSTALLATION
+livraison co2 paris / idf / aura,LIVRAISON
+sanitation fontaine à eaux,PREVENTIVE
+bordeaux - curative,CURATIVE
+bordeaux - preventive,PREVENTIVE
+curative bordeaux,CURATIVE
+curative j+1,CURATIVE J+1
+curative j+2,CURATIVE J+2
+curative h-4,CURATIVE H-4
+installation type a,INSTALLATION TYPE A
+installation type b,INSTALLATION TYPE B
+installation type c,INSTALLATION TYPE C
+curative twyd,CURATIVE
+installation bob,INSTALLATION
+curatif,CURATIVE
+préventif,PREVENTIVE
+curative j+2 - neshu,CURATIVE
+installation prog - neshu,INSTALLATION
+installation type c prog - auum,INSTALLATION TYPE C
+curative j+2 - auum,CURATIVE J+2
+installation j+7 prog - nu,INSTALLATION
+desinstallation prog - auum,DESINSTALLATION
+installation type b prog - auum,INSTALLATION TYPE B
+installation type a prog - auum,INSTALLATION TYPE A
+"curative j+0,5 - neshu",CURATIVE
+curative j+2 - twyd,CURATIVE J+2
+curative j+1 - auum,CURATIVE J+1
+preventive prog - neshu,PREVENTIVE
+curative - fontainco,CURATIVE
+curative standard j+2 - nu,CURATIVE J+2
+preventive j+30 prog - twyd,PREVENTIVE
+sanitation 2 par an prog - fontainco,PREVENTIVE
+desinstallation prog - neshu,DESINSTALLATION
+installation j+7 prog - twyd,INSTALLATION
+installation plug&play prog - fontainco,INSTALLATION
+curative express j+1 - nu,CURATIVE J+1
+preparation atelier prog - neshu,PREPA ATELIER
+desinstallation j+7 prog - twyd,DESINSTALLATION
+curative j+1 - neshu,CURATIVE
+preventive prog - auum,PREVENTIVE
+preventive j+30 prog - auum,PREVENTIVE
+preventive j+15 prog - auum,PREVENTIVE
+sanitation anuelle prog - fontainco,PREVENTIVE
+preventive j+30 prog - nu,PREVENTIVE
+installation sous comptoir prog - fontainco,INSTALLATION SOUS COMPTOIR
+installation prog - daan,INSTALLATION
+installation prog - brita,INSTALLATION
+desinstallation prog - brita,DESINSTALLATION
+desinstallation j+7 prog - nu,DESINSTALLATION
+curative j+2 - brita,CURATIVE J+2
+curative j+1 - brita,CURATIVE J+1
+curative j+2 - fontainco,CURATIVE
+preventive prog - brita,PREVENTIVE
+plan de prevention prog - brita,PREVENTIVE
+preventive - expresso,PREVENTIVE
+curative j+2 - expresso,CURATIVE J+2
+curative j+2 - daan,CURATIVE J+2
+remise en etat atelier j+10 - neshu,REMISE_EN_ETAT
+installation prog - expresso,INSTALLATION PROG - EXPRESSO
+desinstallation prog - fontainco,DESINSTALLATION
+curative j+1 - daan,CURATIVE J+1
+autre activite - brita,CURATIVE J+2
+desinstallation prog - expresso,DESINSTALLATION
+demenagement - brita,DESINSTALLATION
+curative h-4 - nu,CURATIVE J+2
