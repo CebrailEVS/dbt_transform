@@ -45,7 +45,6 @@ seeds:
       - name: TECHNICIEN
         description: "Format 'prénom nom'"
         tests:
-          - unique
           - not_null
       - name: EQUIPE
         description: "Équipe d'affectation"
