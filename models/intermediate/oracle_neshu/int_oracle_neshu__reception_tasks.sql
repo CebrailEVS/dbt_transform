@@ -1,12 +1,12 @@
 {{
     config(
         materialized='table',
-        cluster_by=['company_id', 'product_id', 'task_status_code'],
-        description='Table intermédiaire des tâches d"inventaire - avec enrichissement produit, source, quantité et valorisation'
+        cluster_by=['company_id', 'product_id','task_status_code'],
+        description='Table intermédiaire des tâches de bon de réception - avec enrichissement produit, destination, quantité et valorisation'
     )
 }}
 
-with inventaire_base as (
+with reception_base as (
 
     select
         -- Identifiants
@@ -14,14 +14,11 @@ with inventaire_base as (
         t.idtask as task_id,
         t.idcompany_peer as company_id,
         thp.idproduct as product_id,
-        t.idproduct_source as product_source_id,
-        t.type_product_source as product_source_type,
+        t.idproduct_destination as product_destination_id,
+        t.type_product_destination as product_destination_type,
 
         -- Codes
-        case 
-            when t.type_product_source = 'COMPANY' then cs.code
-            when t.type_product_source = 'RESOURCES' then r.code
-        end as source_code,
+        cd.code as destination_code,
         p.code as product_code,
         ts.code as task_status_code,
 
@@ -38,31 +35,30 @@ with inventaire_base as (
         t.extracted_at
 
     from {{ ref('stg_oracle_neshu__task') }} t
-    inner join {{ ref('stg_oracle_neshu__task_has_product') }} thp on thp.idtask = t.idtask
-    left join {{ ref('stg_oracle_neshu__product') }} p on p.idproduct = thp.idproduct
-    left join {{ ref('stg_oracle_neshu__task_status') }} ts on t.idtask_status = ts.idtask_status
+    inner join {{ ref('stg_oracle_neshu__task_has_product') }} thp 
+        on thp.idtask = t.idtask
+    left join {{ ref('stg_oracle_neshu__product') }} p 
+        on p.idproduct = thp.idproduct
+    left join {{ ref('stg_oracle_neshu__task_status') }} ts 
+        on t.idtask_status = ts.idtask_status
 
-    -- jointure company pour la source si COMPANY
-    left join {{ ref('stg_oracle_neshu__company') }} cs 
-        on t.idproduct_source = cs.idcompany 
-       and t.type_product_source = 'COMPANY'
-
-    -- jointure resources pour la source si RESOURCES
-    left join {{ ref('stg_oracle_neshu__resources') }} r 
-        on t.idproduct_source = r.idresources
-       and t.type_product_source = 'RESOURCES'
+    -- Destination = COMPANY uniquement
+    left join {{ ref('stg_oracle_neshu__company') }} cd
+        on t.idproduct_destination = cd.idcompany 
+       and t.type_product_destination = 'COMPANY'
 
     where 1=1
         and t.idtask_status in (1, 4, 3)  -- FAIT, VALIDE, ANNULE
         and t.code_status_record = '1'
-        and t.idtask_type = 162 -- INVENTAIRE
+        and t.idtask_type = 121 -- BON RECEPTION
         and t.real_start_date is not null
 
     group by
         thp.idtask_has_product, t.idtask, t.idcompany_peer,
-        t.idproduct_source, t.type_product_source,
+        t.idproduct_destination, t.type_product_destination,
         thp.idproduct, thp.net_price,
-        cs.code, r.code, p.code, ts.code,
+        cd.code,
+        p.code, ts.code,
         t.real_start_date,
         t.updated_at, t.created_at, t.extracted_at
 )
@@ -73,11 +69,11 @@ select
     task_id,
     company_id,
     product_id,
-    product_source_id,
-    product_source_type,
+    product_destination_id,
+    product_destination_type,
 
     -- Codes
-    source_code,
+    destination_code,
     product_code,
     task_status_code,
 
@@ -93,5 +89,4 @@ select
     created_at,
     extracted_at
 
-from inventaire_base
-where source_code is not null
+from reception_base
