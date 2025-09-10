@@ -327,6 +327,88 @@ models:
           - not_null
 
 
+  - name: int_oracle_neshu__ecart_inventaire_tasks
+    description: >
+      Table intermédiaire des tâches de d'ecart inventaire.
+      Filtrée sur les tâches de type ECART INVENTAIRE (idtask_type=163) 
+      avec statut FAIT/VALIDE/ANNULE.
+      
+    columns:
+      - name: task_product_id
+        description: "Clé primaire de task_has_product - Identifiant unique de la relation task-produit"
+        data_type: int64
+        tests:
+          - unique
+          - not_null
+          
+      - name: task_id
+        description: "ID de la tâche (référence vers EVS.TASK)"
+        data_type: int64
+        tests:
+          - not_null
+        
+      - name: company_id
+        description: "ID de l'entreprise cliente (peer company)"
+        data_type: int64
+          
+      - name: product_id
+        description: "ID du produit télémétrique"
+        data_type: int64
+        tests:
+          - not_null
+
+      - name: product_source_id
+        description: "ID du produit source"
+        data_type: int64
+
+      - name: product_source_type
+        description: "Type du produit source"
+        data_type: string
+
+      - name: source_code
+        description: "Code source du produit"
+        data_type: string
+        
+      - name: product_code
+        description: "Code métier du produit"
+        data_type: string
+
+      - name: task_status_code
+        description: "Code statut de la tâche (FAIT, VALIDE, ANNULE)"
+        data_type: string 
+        
+      - name: task_start_date
+        description: "Date et heure réelle de la tâche"
+        data_type: timestamp
+        tests:
+          - not_null
+        
+      - name: quantity
+        description: "Quantité produit"
+        data_type: int64
+
+      - name: valuation
+        description: "Valorisation du produit (quantité * prix unitaire)"
+        data_type: int64
+        
+      - name: updated_at
+        description: "Timestamp de dernière modification (pour incrément)"
+        data_type: timestamp
+        tests:
+          - not_null
+          
+      - name: created_at
+        description: "Timestamp de création"
+        data_type: timestamp
+        tests:
+          - not_null
+          
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis Oracle"
+        data_type: timestamp
+        tests:
+          - not_null
+
   - name: int_oracle_neshu__reception_tasks
     description: >
       Table intermédiaire des tâches de RECEPTION.
