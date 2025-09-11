@@ -17,6 +17,7 @@ cleaned_data as (
         cast(iddevice as int64) as iddevice,
         cast(device_iddevice as int64) as device_iddevice,
         cast(iddevice_type as int64) as iddevice_type,
+        cast(idmodel as int64) as idmodel,
         cast(idcompany_customer as int64) as idcompany_customer,
         cast(idcompany_supplier as int64) as idcompany_supplier,
         cast(idcompany_owner as int64) as idcompany_owner,

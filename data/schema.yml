@@ -72,3 +72,11 @@ seeds:
           - not_null
       - name: PROD
         description: "Indicateur production"
+
+  - name: valo_parc_machine
+    description: "Fichier de référence (machine -> valorisation unitaire)."
+    columns:
+      - name: machine_modele
+        description: "Identifiant / libellé du modèle de machine."
+      - name: montant_inv
+        description: "Valorisation unitaire (format texte ou numérique selon l'import)."
