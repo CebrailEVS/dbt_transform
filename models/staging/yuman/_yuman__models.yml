@@ -205,3 +205,92 @@ models:
         description: "Date d'extraction depuis la source"
       - name: deleted_at
         description: "Date de suppression (soft delete)"
+
+  - name: stg_yuman__purchase_orders
+    description: "Purchase Orders dépliés : une ligne = une commande + une pièce associée"
+    columns:
+      # --- Identifiants clés ---
+      - name: purchase_order_line_id
+        description: "Identifiant unique de la ligne de commande"
+        tests:
+          - unique
+          - not_null
+
+      - name: purchase_order_id
+        description: "Identifiant du bon de commande (entête)"
+        tests:
+          - not_null
+
+      - name: product_id
+        description: "Référence vers le produit commandé"
+        tests:
+          - relationships:
+              to: ref('stg_yuman__products')   # ou ton modèle produit
+              field: product_id
+
+      - name: supplier_id
+        description: "Référence vers le fournisseur (lié à un client ou supplier)"
+
+      # --- Champs commande (entête) ---
+      - name: purchase_order_number
+        description: "Numéro du bon de commande"
+      - name: purchase_order_satus
+        description: "Statut de la commande"
+      - name: purchase_order_invoice_status
+        description: "Statut de facturation du bon de commande"
+      - name: purchase_order_title
+        description: "Titre du bon de commande"
+      - name: order_description
+        description: "Description du bon de commande"
+      - name: creation_date
+        description: "Date de création de la commande"
+      - name: expected_delivery_date
+        description: "Date de livraison attendue"
+      - name: order_created_at
+        description: "Date de création de l'enregistrement commande"
+      - name: order_updated_at
+        description: "Date de dernière mise à jour de la commande"
+      - name: order_vat
+        description: "Montant total de TVA de la commande"
+      - name: order_subtotal
+        description: "Sous-total de la commande"
+      - name: order_total
+        description: "Montant total TTC de la commande"
+      - name: manager_id
+        description: "Référence vers le manager de la commande"
+      - name: quote_id
+        description: "Référence vers le devis associé"
+      - name: delivery_address
+        description: "Adresse de livraison"
+
+      # --- Champs ligne (items) ---
+      - name: line_reference
+        description: "Référence du produit dans la ligne"
+      - name: line_description
+        description: "Description de l’article de la ligne"
+      - name: quantity
+        description: "Quantité commandée"
+      - name: unit
+        description: "Unité de la ligne (ex: PIECE)"
+      - name: quantity_received
+        description: "Quantité effectivement reçue"
+      - name: unit_price
+        description: "Prix unitaire"
+      - name: line_vat
+        description: "TVA appliquée à la ligne"
+      - name: line_subtotal
+        description: "Sous-total HT de la ligne"
+      - name: subtotal_received_eur
+        description: "Sous-total reçu (converti en euros)"
+      - name: subtotal_received_currency
+        description: "Devise du sous-total reçu"
+      - name: line_created_at
+        description: "Date de création de la ligne"
+      - name: line_updated_at
+        description: "Date de dernière mise à jour de la ligne"
+
+      # --- Métadonnées ---
+      - name: extracted_at
+        description: "Date d'extraction depuis la source (Singer/Meltano)"
+      - name: sdc_sequence
+        description: "Numéro de séquence pour suivi d’update via Meltano"

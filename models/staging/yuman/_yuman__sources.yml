@@ -131,3 +131,12 @@ sources:
               - unique 
               - not_null
             description: "Identifiant unique de la catégorie de demande"
+
+      - name: yuman_purchase_orders
+        description: "Table des commandes d'achat Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique du bon de commande"
