@@ -4,8 +4,8 @@
         unique_key='task_id',
         partition_by={'field': 'task_start_date', 'data_type': 'timestamp'},
         incremental_strategy='merge',
-        cluster_by=['company_id', 'device_id', 'task_status_code','roadman_code'],
-        description='Table intermédiaire des passages approvisionneurs - avec enrichissement ressources (roadman, véhicule)'
+        cluster_by=['company_id', 'device_id', 'task_status_code'],
+        description='Table intermédiaire des passages approvisionneurs - avec enrichissement'
     )
 }}
 
@@ -22,13 +22,15 @@ with passage_appro_base as (
         t.type_product_destination as product_destination_type,
 
         -- Codes
-        ts.code as task_status_code,
         c.code as company_code,
 
         -- Infos métier
         l.access_info as task_location_info,
         t.real_start_date as task_start_date,
         t.real_end_date as task_end_date,
+
+        -- Status
+        ts.code as task_status_code,
 
         -- Timestamps techniques
         t.updated_at,
@@ -37,7 +39,6 @@ with passage_appro_base as (
 
     from {{ ref('stg_oracle_neshu__task') }} t
     left join {{ ref('stg_oracle_neshu__company') }} c on c.idcompany = t.idcompany_peer
-    left join {{ ref('stg_oracle_neshu__label_has_task') }} lht on t.idtask = lht.idtask
     left join {{ ref('stg_oracle_neshu__task_status') }} ts on t.idtask_status = ts.idtask_status
     left join {{ ref('stg_oracle_neshu__location') }} l on l.idlocation = t.idlocation
 
@@ -53,42 +54,6 @@ with passage_appro_base as (
         ts.code, c.code, l.access_info,
         t.real_start_date, t.real_end_date,
         t.updated_at, t.created_at, t.extracted_at
-),
-
-ressources_roadman as (
-    select 
-        thr.idtask, 
-        min(r.idresources) as roadman_id,
-        min(r.code) as roadman_code
-    from {{ ref('stg_oracle_neshu__task_has_resources') }} thr
-    join {{ ref('stg_oracle_neshu__resources') }} r 
-      on r.idresources = thr.idresources
-     and r.idresources_type = 2
-    group by thr.idtask
-),
-
-ressources_vehicle as (
-    select 
-        thr.idtask, 
-        min(r.idresources) as vehicle_id,
-        min(r.code) as vehicle_code
-    from {{ ref('stg_oracle_neshu__task_has_resources') }} thr
-    join {{ ref('stg_oracle_neshu__resources') }} r 
-      on r.idresources = thr.idresources
-     and r.idresources_type = 3
-    group by thr.idtask
-),
-
-passage_appro_enrichi as (
-    select 
-        pa.*,
-        rr.roadman_id,
-        rr.roadman_code,
-        rv.vehicle_id,
-        rv.vehicle_code
-    from passage_appro_base pa
-    left join ressources_roadman rr on pa.task_id = rr.idtask
-    left join ressources_vehicle rv on pa.task_id = rv.idtask
 )
 
 select
@@ -98,19 +63,15 @@ select
     company_id,
     product_source_id,
     product_destination_id,
-    roadman_id,
-    vehicle_id,
 
     -- Codes
     company_code,
-    roadman_code,
-    vehicle_code,
-    task_status_code,
 
     -- Infos métier
     product_source_type,
     product_destination_type,
     task_location_info,
+    task_status_code,
     task_start_date,
     task_end_date,
 
@@ -119,7 +80,7 @@ select
     created_at,
     extracted_at
 
-from passage_appro_enrichi
+from passage_appro_base
 
 {% if is_incremental() %}
   where updated_at >= (
