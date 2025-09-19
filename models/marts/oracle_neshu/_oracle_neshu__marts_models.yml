@@ -214,7 +214,7 @@ models:
         description: "Date de dernière mise à jour de la machine dans la base source"
 
 # FACT BUSINESS REVIEW
-  - name: fct_oracle_neshu__business_review
+  - name: fct_oracle_neshu__conso_business_review
     description: >
       Table de faits des consommations clients pour la Business Review Neshu.
       Consolidation des données télémétrie, chargement et livraison avec application

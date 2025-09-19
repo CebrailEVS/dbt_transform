@@ -1,9 +1,7 @@
-{{ 
-    config(
-        materialized='view',  -- suffisant car 7Mo seulement
-        description='Table de faits des passages appro (Business Review Neshu) - permet de tracer le passage des roadmen chez les clients à partir de 2025'
-    ) 
-}}
+{{ config(
+    materialized='view',
+    description='Table de faits des passages appro (Business Review Neshu) - permet de tracer le passage des roadmen chez les clients à partir de 2025'
+) }}
 
 SELECT
     -- Identifiants
