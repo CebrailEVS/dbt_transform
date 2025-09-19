@@ -39,3 +39,4 @@ JOIN {{ ref('dim_oracle_neshu__device') }} d
 JOIN {{ ref('dim_oracle_neshu__company') }} c 
     ON pa.company_id = c.idcompany
 WHERE DATE(pa.task_start_date) >= '2025-01-01'
+    AND pa.task_status_code != 'ANNULE'

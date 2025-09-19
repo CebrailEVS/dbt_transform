@@ -361,3 +361,69 @@ models:
       - dbt_utils.expression_is_true:
           expression: "(device_id IS NOT NULL) OR (data_source = 'LIVRAISON')"
           name: device_id_required_except_livraison
+
+# FACT PASSAGES APPRO BUSINESS REVIEW
+  - name: fct_oracle_neshu__pa_business_review
+    description: >
+      Table de faits des passages appro (Business Review Neshu).
+      Permet de tracer le passage des roadmen chez les clients à partir de 2025,
+      avec enrichissement des informations clients et machines.
+    
+    columns:
+      # === IDENTIFIANTS ===
+      - name: task_id
+        description: "Identifiant unique de la tâche de passage appro"
+        tests:
+          - not_null
+          - unique
+
+      - name: company_code
+        description: "Code client (ex: CN1234)"
+        tests:
+          - not_null
+
+      - name: company_info
+        description: "Concaténation du nom de la société et du code client"
+        tests:
+          - not_null
+
+      - name: device_id
+        description: "Identifiant unique de la machine associée au passage"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_oracle_neshu__device')
+              field: iddevice
+
+      - name: device_info
+        description: "Concaténation de la marque et du code machine"
+        tests:
+          - not_null
+
+      # === DATES ===
+      - name: task_start_date
+        description: "Horodatage de début de tâche"
+        tests:
+          - not_null
+
+      - name: task_start_date_day
+        description: "Date (jour) de début de tâche, utilisée pour les filtres/partitionnement"
+
+      - name: task_end_date
+        description: "Horodatage de fin de tâche (NULL si non terminée)"
+
+      # === STATUTS ===
+      - name: task_status_code
+        description: "Statut de la tâche (PREVU, FAIT, ENCOURS, etc.)"
+        tests:
+          - not_null
+
+      - name: mission_faite
+        description: "Indicateur binaire : 1 si la mission est faite, sinon 0"
+        tests:
+          - not_null
+
+      - name: mission_prevue
+        description: "Indicateur binaire : 1 si la mission est prévue ou faite ou en cours"
+        tests:
+          - not_null
