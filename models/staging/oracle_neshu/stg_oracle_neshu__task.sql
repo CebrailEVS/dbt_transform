@@ -34,7 +34,7 @@ cleaned_data as (
 
         -- Colonne numérique
         spantime as spantime, -- durée de la tâche en minute
-        code_status_record as code_status_record, -- status record (1 = validé, 0 ou -1 possiblement inactif/desactivé : à confirmer)
+        CAST(code_status_record AS STRING) as code_status_record, -- status record (1 = validé, 0 ou -1 possiblement inactif/desactivé : à confirmer)
         
         -- Date de la tache
         timestamp(real_start_date) as real_start_date,
