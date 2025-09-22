@@ -86,6 +86,20 @@ sources:
           - name: CURRENT_END_DATE
             description: "Date de fin courant du contrat"
 
+      - name: evs_contract_parsed
+        columns:
+          - name: idcontract
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du contrat"
+          - name: nombre_collab
+            description: "Nombre collab du contrat"
+          - name: engagement
+            description: "Engagement consommation du contrat"
+          - name: extracted_at
+            description: "Meta donnée d'extraction script python"
+
       # DEVICE
       - name: evs_device
         columns:
