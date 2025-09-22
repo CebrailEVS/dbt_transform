@@ -99,6 +99,12 @@ models:
         description: "code du contrat"
       - name: name
         description: "nom du contrat"
+      - name: engagement_raw
+        description: "Engagement conso brut sans nettoyage (ex: '45 000', '2000', 'AUCUN', '0')"
+      - name: engagement_cleaned
+        description: "Engagement conso nettoyé en entier (ex: 45000, 2000, 0)"
+      - name: nb_collaborateurs
+        description: "Nombre de collaborateurs, transformation en entier"
       - name: ORIGINAL_START_DATE
         description: "Date de debut original du contrat"
       - name: ORIGINAL_END_DATE
