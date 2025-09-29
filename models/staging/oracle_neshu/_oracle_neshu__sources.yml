@@ -3,7 +3,7 @@ version: 2
 
 sources:
   - name: oracle_neshu
-    schema: "{{ target.name }}_raw"
+    schema: "prod_raw"
     tables:
       # COMPANY
       - name: evs_company

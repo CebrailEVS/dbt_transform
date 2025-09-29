@@ -3,7 +3,7 @@ version: 2
 
 sources:
   - name: yuman_api
-    schema: "{{ target.name }}_raw"
+    schema: "prod_raw"
     description: "Données brutes extraites de l'API Yuman"  
     tables:
       - name: yuman_clients
