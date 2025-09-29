@@ -85,7 +85,7 @@ final as (
     select * from with_partner_name
     where client_id is not null
 )
-
+--Salut les khoyas
 select 
     client_id,
     partner_id,
