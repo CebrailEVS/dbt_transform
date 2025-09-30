@@ -586,7 +586,7 @@ models:
         tests:
           - not_null
 
-  - name: int_oracle_neshu__passage_appro
+  - name: int_oracle_neshu__passage_appro_tasks
     description: >
       Table intermédiaire des passages approvisionneurs.
       Filtrée sur les tâches de type PASSAGE APPRO (idtask_type=32) 
