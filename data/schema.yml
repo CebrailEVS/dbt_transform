@@ -80,3 +80,41 @@ seeds:
         description: "Identifiant / libellé du modèle de machine."
       - name: montant_inv
         description: "Valorisation unitaire (format texte ou numérique selon l'import)."
+
+  - name: cps_tech
+    description: "Correspondance codes postaux et regions pour les techniciens"
+    columns:
+      - name: cp_depart_int
+        description: "code postal de départ (cedex) - integer"
+        tests:
+          - not_null
+          - unique
+      - name: cp_depart_texte
+        description: "code postal de départ (cedex) - texte"
+        tests:
+          - not_null
+          - unique
+      - name: cp_final_int
+        description: "code postal de fin (simplifié) - integer"
+        tests:
+          - not_null
+      - name: cp_final_texte
+        description: "code postal de fin (simplifié) - texte"
+        tests:
+          - not_null
+      - name: libelle_cp
+        description: "libellé du code postal de fin"
+        tests:
+          - not_null
+      - name: num_departement_texte
+        description: "numéro du département - texte (2 chiffres)"
+        tests:
+          - not_null
+      - name: nom_departement
+        description: "Nom du département"
+        tests:
+          - not_null
+      - name: region_tech
+        description: "Région correspondante pour la sectorisation des techniciens"
+        tests:
+          - not_null
