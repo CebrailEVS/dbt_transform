@@ -2,6 +2,10 @@
 
 Transformations de données dbt pour **EVS Professionnelle France** dans une stack ELT moderne orchestrée via Airflow.
 
+## 📚 Documentation
+
+**[🔗 Voir la documentation dbt complète](https://cebrailevs.github.io/dbt_transform/)**
+
 ## 📋 Vue d'ensemble
 
 ### Stack Technique
