@@ -8,6 +8,12 @@ on:
     branches:
       - master        # Tests à chaque PR vers master
 
+# Ajoutez ces permissions au niveau du workflow
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   dbt:
     runs-on: ubuntu-latest
