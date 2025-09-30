@@ -92,3 +92,14 @@ seeds:
           Type_tarif: STRING
           Montant: INTEGER
           PROD: INTEGER
+
+      cps_tech:
+        +column_types:
+          cp_depart_int: integer
+          cp_depart_texte: string
+          cp_final_int: integer
+          cp_final_texte: string
+          libelle_cp: string
+          num_departement_texte: string
+          nom_departement: string
+          region_tech: string

@@ -1,0 +1,61 @@
+# models/marts/yuman/_yuman__marts_models.yml
+version: 2
+
+models:
+  # MATERIALS & CLIENTS
+  # Informations Machine
+  - name: dim_yuman__materials_clients
+    description: >
+      Dimension materials enrichie avec les informations de sites et de clients
+    columns:
+      - name: material_id
+        description: "Identifiant unique de la machine"
+        tests:
+          - not_null
+          - unique
+
+      - name : material_description
+        description : "type de machine"
+
+      - name: material_brand
+        description: "Marque de la machine"
+
+      - name: material_serial_number
+        description: "Numero de série de la machine"
+
+      - name: category_name
+        description: "Catégorie de la machine"
+
+      - name: material_in_service_date
+        description: "Date de mise en service de la machine"
+# Informations client
+      - name: client_id
+        description: "Id du client associé à la machine"
+        tests:
+          - not_null
+
+      - name: client_code
+        description: "Code du client associé à la machine"
+
+      - name: client_address
+        description: "Adresse du client associé à la machine"
+
+      - name: client_name
+        description: "Nom du client associé à la machine"
+
+      - name: partner_name
+        description: "Nom du partenaire associé à la machine"
+# Informations Site
+      - name: site_id
+        description: "Id du site associé à la machine"
+        tests:
+          - not_null
+
+      - name: site_address
+        description: "Adresse du site associé à la machine"
+
+      - name: site_name
+        description:  "Nom du site associé à la machine"
+
+      - name: site_postal_code
+        description: "Code postal du site associé à la machine"
