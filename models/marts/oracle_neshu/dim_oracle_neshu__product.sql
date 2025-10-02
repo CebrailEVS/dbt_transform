@@ -1,15 +1,15 @@
 {{
   config(
     materialized='table',
-    cluster_by=['idproduct'],
+    cluster_by=['product_id'],
     description='Dimension produit enrichie à partir des labels associés (type, famille, groupe, marque, etc.) filtré sur les produits de type 1 (produit) et 5 (Ligne de prix).',
   )
 }}
 
 WITH product_labels AS (
   SELECT 
-    p.idproduct,
-    p.idproduct_type,
+    p.idproduct as product_id,
+    p.idproduct_type as product_type_id,
     p.code AS product_code,
     p.name AS product_name,
     p.purchase_unit_price AS purchase_unit_price,
@@ -57,8 +57,8 @@ pivoted AS (
 
 final AS (
   SELECT
-    idproduct,
-    idproduct_type,
+    product_id,
+    product_type_id,
     product_code,
     product_name,
     purchase_unit_price,
@@ -78,7 +78,7 @@ final AS (
     -- logique de typologie standardisée
     COALESCE(
       CASE
-        WHEN idproduct = 1 THEN 'INDEFINI'
+        WHEN product_id = 1 THEN 'INDEFINI'
         WHEN product_family IN ('CAFE CAPSULES', 'CAFE CAPSULES PREMIUM') THEN 'CAFE CAPS'
         WHEN product_family IN ('THE') THEN 'THE'
         WHEN product_group = 'ACCESSOIRES' THEN 'ACCESSOIRES'
@@ -96,8 +96,8 @@ final AS (
 
 standardized AS (
   SELECT
-    idproduct,
-    idproduct_type,
+    product_id,
+    product_type_id,
     product_code,
     product_name,
     purchase_unit_price,
@@ -118,8 +118,8 @@ standardized AS (
 )
 
 SELECT  
-  idproduct,
-  idproduct_type,
+  product_id,
+  product_type_id,
   product_code,
   product_name,
   purchase_unit_price,

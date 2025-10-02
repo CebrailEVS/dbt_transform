@@ -43,11 +43,11 @@ WITH telemetry_data AS (
     
   FROM {{ ref('int_oracle_neshu__telemetry_tasks') }} t
   LEFT JOIN {{ ref('dim_oracle_neshu__device') }} d 
-    ON t.device_id = d.iddevice
+    ON t.device_id = d.device_id
   LEFT JOIN {{ ref('dim_oracle_neshu__product') }} p 
-    ON t.product_id = p.idproduct
+    ON t.product_id = p.product_id
   LEFT JOIN {{ ref('dim_oracle_neshu__company') }} c
-    ON t.company_id = c.idcompany
+    ON t.company_id = c.company_id
   GROUP BY 
     t.company_id, t.device_id, t.location_id, t.product_id,
     c.company_code, c.company_name,
@@ -109,11 +109,11 @@ chargement_data AS (
 
   FROM {{ ref('int_oracle_neshu__chargement_tasks') }} l
   INNER JOIN {{ ref('dim_oracle_neshu__device') }} d 
-    ON l.device_id = d.iddevice
+    ON l.device_id = d.device_id
   LEFT JOIN {{ ref('dim_oracle_neshu__product') }} p 
-    ON l.product_id = p.idproduct
+    ON l.product_id = p.product_id
   LEFT JOIN {{ ref('dim_oracle_neshu__company') }} c
-    ON l.company_id = c.idcompany
+    ON l.company_id = c.company_id
   WHERE l.task_status_code in ('FAIT','VALIDE')
   GROUP BY 
     l.company_id, l.device_id, l.location_id, l.product_id,
@@ -175,9 +175,9 @@ livraison_data AS (
 
   FROM {{ ref('int_oracle_neshu__livraison_tasks') }} lt
   LEFT JOIN {{ ref('dim_oracle_neshu__product') }} p 
-    ON lt.product_id = p.idproduct
+    ON lt.product_id = p.product_id
   LEFT JOIN {{ ref('dim_oracle_neshu__company') }} c
-    ON lt.company_id = c.idcompany
+    ON lt.company_id = c.company_id
   WHERE lt.task_status_code in ('FAIT','VALIDE')
   AND p.product_type in ('THE','CAFE CAPS','CHOCOLATS VAN HOUTEN','BOISSONS GOURMANDES','ACCESSOIRES')
   GROUP BY 

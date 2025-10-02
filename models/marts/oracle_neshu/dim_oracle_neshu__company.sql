@@ -1,16 +1,16 @@
 {{
   config(
     materialized='table',
-    cluster_by=['idcompany'],
+    cluster_by=['company_id'],
     description='Dimension client/company enrichie à partir des labels associés (région, secteur, statut, etc.) et des informations de localisation.'
   )
 }}
 
 WITH company_labels AS (
   SELECT 
-    c.idcompany,
+    c.idcompany as company_id,
     c.code AS company_code,
-    c.idcompany_type,
+    c.idcompany_type as company_type_id,
     c.name AS company_name,
     c.created_at,
     c.updated_at,
@@ -36,7 +36,7 @@ WITH company_labels AS (
 )),
 aggregated_labels AS (
   SELECT
-    idcompany,
+    company_id,
     idcompany_type,
     company_code,
     company_name,
@@ -70,7 +70,7 @@ aggregated_labels AS (
     MAX(CASE WHEN label_family_code = 'KA' THEN label_code END) AS key_account
   FROM company_labels
   GROUP BY
-    idcompany,
+    company_id,
     idcompany_type,
     company_code,
     company_name,
@@ -85,7 +85,7 @@ aggregated_labels AS (
 
 SELECT
   -- 🔑 Identifiants
-  idcompany,
+  company_id,
   idcompany_type,
 
   -- 📇 Codes et noms

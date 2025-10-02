@@ -35,8 +35,8 @@ SELECT
 
 FROM {{ ref('int_oracle_neshu__appro_tasks') }} pa
 JOIN {{ ref('dim_oracle_neshu__device') }} d 
-    ON pa.device_id = d.iddevice
+    ON pa.device_id = d.device_id
 JOIN {{ ref('dim_oracle_neshu__company') }} c 
-    ON pa.company_id = c.idcompany
+    ON pa.company_id = c.company_id
 WHERE DATE(pa.task_start_date) >= '2025-01-01'
     AND pa.task_status_code != 'ANNULE'
