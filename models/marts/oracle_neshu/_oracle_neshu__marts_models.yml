@@ -8,13 +8,13 @@ models:
       Dimension client/company enrichie à partir des labels associés (région, secteur, statut, etc.)
       et des informations de localisation.
     columns:
-      - name: idcompany
+      - name: company_id
         description: "Identifiant unique de la société"
         tests:
           - not_null
           - unique
 
-      - name: idcompany_type
+      - name: company_type_id
         description: "ID Type de société (ex : client, fournisseur...)"
 
       - name: company_code
@@ -100,13 +100,13 @@ models:
       Dimension produit enrichie à partir des labels associés (type, famille, groupe, marque, etc.)
       et filtrée sur les produits de type 1 (produit) et 5 (ligne de prix).
     columns:
-      - name: idproduct
+      - name: product_id
         description: "Identifiant unique du produit"
         tests:
           - not_null
           - unique
 
-      - name: idproduct_type
+      - name: product_type_id
         description: "Type de produit (1 = produit, 5 = ligne de prix)"
 
       - name: product_code
@@ -155,24 +155,24 @@ models:
       Dimension device enrichie à partir des labels associés (état, statut, gamme, catégorie, marque, etc.),
       filtrée sur les machines (type 1).
     columns:
-      - name: iddevice
+      - name: device_id
         description: "Identifiant unique de la machine"
         tests:
           - not_null
           - unique
 
-      - name: iddevice_type
+      - name: device_type_id
         description: "Type de machine (1 = machine, autres ignorés ici)"
 
-      - name: idcompany_customer
+      - name: company_id
         description: "Identifiant du client (company) auquel est rattachée la machine"
         tests:
           - not_null
           - relationships:
               to: ref('dim_oracle_neshu__company')
-              field: idcompany
+              field: company_id
 
-      - name: idlocation
+      - name: location_id
         description: "Identifiant de localisation"
 
       - name: device_code
@@ -229,14 +229,14 @@ models:
           - not_null
           - relationships:
               to: ref('dim_oracle_neshu__company')
-              field: idcompany
+              field: company_id
 
       - name: device_id
         description: "Identifiant de la machine (NULL pour les livraisons directes)"
         tests:
           - relationships:
               to: ref('dim_oracle_neshu__device')
-              field: iddevice
+              field: device_id
 
       - name: location_id
         description: "Identifiant de localisation (NULL pour les livraisons)"
@@ -247,7 +247,7 @@ models:
           - not_null
           - relationships:
               to: ref('dim_oracle_neshu__product')
-              field: idproduct
+              field: product_id
 
       # === COMPANY ===
       - name: company_code
@@ -393,7 +393,7 @@ models:
           - not_null
           - relationships:
               to: ref('dim_oracle_neshu__device')
-              field: iddevice
+              field: device_id
 
       - name: device_info
         description: "Concaténation de la marque et du code machine"
