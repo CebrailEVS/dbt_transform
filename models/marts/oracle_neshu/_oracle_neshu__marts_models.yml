@@ -164,6 +164,9 @@ models:
       - name: device_type_id
         description: "Type de machine (1 = machine, autres ignorés ici)"
 
+      - name: device_iddevice
+        description: "ID de la machine correspondant : vaut nulle si pas d'équipement parent, sinon l'ID de la machine parente"
+
       - name: company_id
         description: "Identifiant du client (company) auquel est rattachée la machine"
         tests:

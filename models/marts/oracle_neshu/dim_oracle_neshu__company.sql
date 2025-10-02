@@ -37,7 +37,7 @@ WITH company_labels AS (
 aggregated_labels AS (
   SELECT
     company_id,
-    idcompany_type,
+    company_type_id,
     company_code,
     company_name,
     created_at,
@@ -71,7 +71,7 @@ aggregated_labels AS (
   FROM company_labels
   GROUP BY
     company_id,
-    idcompany_type,
+    company_type_id,
     company_code,
     company_name,
     created_at,
@@ -86,7 +86,7 @@ aggregated_labels AS (
 SELECT
   -- 🔑 Identifiants
   company_id,
-  idcompany_type,
+  company_type_id,
 
   -- 📇 Codes et noms
   company_code,
