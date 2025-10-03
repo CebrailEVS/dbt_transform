@@ -37,11 +37,11 @@ WITH telemetry_data AS (
     
   FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__telemetry_tasks` t
   LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` d 
-    ON t.device_id = d.iddevice
+    ON t.device_id = d.device_id
   LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` p 
-    ON t.product_id = p.idproduct
+    ON t.product_id = p.product_id
   LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` c
-    ON t.company_id = c.idcompany
+    ON t.company_id = c.company_id
   GROUP BY 
     t.company_id, t.device_id, t.location_id, t.product_id,
     c.company_code, c.company_name,
@@ -103,11 +103,11 @@ chargement_data AS (
 
   FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__chargement_tasks` l
   INNER JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` d 
-    ON l.device_id = d.iddevice
+    ON l.device_id = d.device_id
   LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` p 
-    ON l.product_id = p.idproduct
+    ON l.product_id = p.product_id
   LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` c
-    ON l.company_id = c.idcompany
+    ON l.company_id = c.company_id
   WHERE l.task_status_code in ('FAIT','VALIDE')
   GROUP BY 
     l.company_id, l.device_id, l.location_id, l.product_id,
@@ -169,9 +169,9 @@ livraison_data AS (
 
   FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__livraison_tasks` lt
   LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` p 
-    ON lt.product_id = p.idproduct
+    ON lt.product_id = p.product_id
   LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` c
-    ON lt.company_id = c.idcompany
+    ON lt.company_id = c.company_id
   WHERE lt.task_status_code in ('FAIT','VALIDE')
   AND p.product_type in ('THE','CAFE CAPS','CHOCOLATS VAN HOUTEN','BOISSONS GOURMANDES','ACCESSOIRES')
   GROUP BY 
@@ -263,6 +263,6 @@ SELECT
 
   -- Métadonnées d'exécution
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  '89b0bec3-b37c-487b-8dfd-c458e92b3096' as dbt_invocation_id
+  'f15d8333-8c00-40e4-ad89-5b4512513b69' as dbt_invocation_id
 
 FROM combined_and_filtered_data

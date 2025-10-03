@@ -5,19 +5,19 @@
     create or replace table `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__contract`
       
     
-    cluster by idcontract
+    cluster by contract_id
 
     
     OPTIONS(
-      description=""""""
+      description="""Dimension contrat : pivot des labels et s\u00e9lection du contrat actif principal par client.\nCette table contient un seul contrat actif par client (company_id), s\u00e9lectionn\u00e9 selon\nla date de fin de contrat la plus r\u00e9cente, puis la date de d\u00e9but la plus r\u00e9cente.\n"""
     )
     as (
       
 
 WITH contract_labels AS (
   SELECT 
-    c.idcontract,
-    c.idcompany_peer as idcompany,
+    c.idcontract as contract_id,
+    c.idcompany_peer as company_id,
     c.code AS contract_code,
     c.engagement_raw,
     c.engagement_clean,
@@ -41,8 +41,8 @@ WITH contract_labels AS (
 
 aggregated_labels AS ( 
   SELECT
-    idcontract,
-    idcompany,
+    contract_id,
+    company_id,
     contract_code,
     engagement_raw,
     engagement_clean,
@@ -63,8 +63,8 @@ aggregated_labels AS (
 
   FROM contract_labels
   GROUP BY
-    idcontract,
-    idcompany,
+    contract_id,
+    company_id,
     contract_code,
     engagement_raw,
     engagement_clean,
@@ -79,8 +79,8 @@ aggregated_labels AS (
 
 aggreated_contract as (
   SELECT
-    idcontract,
-    idcompany,
+    contract_id,
+    company_id,
     contract_code,
     engagement_raw,
     engagement_clean,
@@ -99,8 +99,8 @@ aggreated_contract as (
 )
 
 SELECT
-  idcontract,
-  idcompany,
+  contract_id,
+  company_id,
   contract_code,
   engagement_raw,
   engagement_clean,
@@ -115,8 +115,8 @@ SELECT
 FROM (
     SELECT *,
            ROW_NUMBER() OVER (
-               PARTITION BY idcompany
-               ORDER BY current_end_date DESC, original_start_date DESC, idcontract
+               PARTITION BY company_id
+               ORDER BY current_end_date DESC, original_start_date DESC, contract_id
            ) as rn
     FROM aggreated_contract
     WHERE is_active = TRUE

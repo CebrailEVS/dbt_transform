@@ -2,9 +2,9 @@
 
 WITH company_labels AS (
   SELECT 
-    c.idcompany,
+    c.idcompany as company_id,
     c.code AS company_code,
-    c.idcompany_type,
+    c.idcompany_type as company_type_id,
     c.name AS company_name,
     c.created_at,
     c.updated_at,
@@ -30,8 +30,8 @@ WITH company_labels AS (
 )),
 aggregated_labels AS (
   SELECT
-    idcompany,
-    idcompany_type,
+    company_id,
+    company_type_id,
     company_code,
     company_name,
     created_at,
@@ -64,8 +64,8 @@ aggregated_labels AS (
     MAX(CASE WHEN label_family_code = 'KA' THEN label_code END) AS key_account
   FROM company_labels
   GROUP BY
-    idcompany,
-    idcompany_type,
+    company_id,
+    company_type_id,
     company_code,
     company_name,
     created_at,
@@ -79,8 +79,8 @@ aggregated_labels AS (
 
 SELECT
   -- 🔑 Identifiants
-  idcompany,
-  idcompany_type,
+  company_id,
+  company_type_id,
 
   -- 📇 Codes et noms
   company_code,

@@ -22,7 +22,6 @@ cleaned_users as (
     select
         id as user_id,
         manager_id, -- ID du manager de l'utilisateur
-        agency_id,
         name as user_name,
         email as user_email,
         user_type as user_type,

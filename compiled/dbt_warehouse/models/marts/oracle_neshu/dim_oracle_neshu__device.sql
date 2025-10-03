@@ -2,16 +2,16 @@
 
 WITH device_labels AS (
   SELECT 
-    d.iddevice,
+    d.iddevice as device_id,
     d.device_iddevice,
-    d.iddevice_type,
+    d.iddevice_type as device_type_id,
     d.code AS device_code,
     d.name AS device_name,
     d.last_installation_date,
     d.created_at,
     d.updated_at,
-    d.idlocation,
-    d.idcompany_customer,
+    d.idlocation as location_id,
+    d.idcompany_customer as company_id,
     c.code AS company_code,
     lo.access_info,
     l.code AS label_code,
@@ -31,11 +31,11 @@ WITH device_labels AS (
 ),
 aggregated_labels AS (
   SELECT
-    iddevice,
-    iddevice_type,
+    device_id,
+    device_type_id,
     device_iddevice,
-    idcompany_customer,
-    idlocation,
+    company_id,
+    location_id,
     device_code,
     device_name,
     company_code,
@@ -52,11 +52,11 @@ aggregated_labels AS (
     MAX(CASE WHEN label_family_code = 'MODECOMA' THEN label_code END) AS device_economic_model
   FROM device_labels
   GROUP BY
-    iddevice,
-    iddevice_type,
+    device_id,
+    device_type_id,
     device_iddevice,
-    idcompany_customer,
-    idlocation,
+    company_id,
+    location_id,
     device_code,
     device_name,
     company_code,
@@ -68,11 +68,11 @@ aggregated_labels AS (
 
 SELECT
   -- 🔑 Identifiants
-  iddevice,
+  device_id,
   device_iddevice,
-  iddevice_type,
-  idcompany_customer,
-  idlocation,
+  device_type_id,
+  company_id,
+  location_id,
 
   -- 📇 Codes et noms
   device_code,

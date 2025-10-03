@@ -28,12 +28,12 @@ SELECT
 
     -- Métadonnées dbt
     CURRENT_TIMESTAMP() as dbt_updated_at,
-    '89b0bec3-b37c-487b-8dfd-c458e92b3096' as dbt_invocation_id
+    'f15d8333-8c00-40e4-ad89-5b4512513b69' as dbt_invocation_id
 
 FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_tasks` pa
 JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` d 
-    ON pa.device_id = d.iddevice
+    ON pa.device_id = d.device_id
 JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` c 
-    ON pa.company_id = c.idcompany
+    ON pa.company_id = c.company_id
 WHERE DATE(pa.task_start_date) >= '2025-01-01'
     AND pa.task_status_code != 'ANNULE'
