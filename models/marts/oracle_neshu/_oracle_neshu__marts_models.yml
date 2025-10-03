@@ -430,3 +430,85 @@ models:
         description: "Indicateur binaire : 1 si la mission est prévue ou faite ou en cours"
         tests:
           - not_null
+
+      # === CONTRACT ===
+  - name: dim_oracle_neshu__contract
+    description: |
+      Dimension contrat : pivot des labels et sélection du contrat actif principal par client.
+      Cette table contient un seul contrat actif par client (company_id), sélectionné selon
+      la date de fin de contrat la plus récente, puis la date de début la plus récente.
+    
+    config:
+      materialized: table
+      cluster_by:
+        - contract_id
+    
+    columns:
+      - name: contract_id
+        description: Identifiant unique du contrat
+        data_type: number
+        tests:
+          - unique
+          - not_null
+      
+      - name: company_id
+        description: Identifiant de l'entreprise cliente associée au contrat
+        data_type: number
+      
+      - name: contract_code
+        description: Code du contrat
+        data_type: varchar
+      
+      - name: engagement_raw
+        description: Engagement brut du contrat (valeur non nettoyée)
+        data_type: varchar
+      
+      - name: engagement_clean
+        description: Engagement nettoyé du contrat
+        data_type: number
+      
+      - name: nombre_collab
+        description: Nombre de collaborateurs associés au contrat
+        data_type: number
+      
+      - name: is_active
+        description: Indique si le contrat est actif (transformé depuis le label ISACTIVE)
+        data_type: boolean
+        tests:
+          - not_null
+      
+      - name: original_start_date
+        description: Date de début originale du contrat
+        data_type: timestamp
+      
+      - name: original_end_date
+        description: Date de fin originale du contrat
+        data_type: timestamp
+      
+      - name: current_end_date
+        description: Date de fin courante du contrat
+        data_type: timestamp
+      
+      - name: termination_date
+        description: Date de résiliation du contrat
+        data_type: timestamp
+      
+      - name: created_at
+        description: Date de création de l'enregistrement
+        data_type: timestamp
+        tests:
+          - not_null
+      
+      - name: updated_at
+        description: Date de dernière mise à jour de l'enregistrement
+        data_type: timestamp
+        tests:
+          - not_null
+    
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - company_id
+          config:
+            severity: warn
+            error_if: ">1"
