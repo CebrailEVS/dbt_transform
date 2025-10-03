@@ -766,3 +766,50 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+    # Table intermédiaire reliant les machines Oracle NESHU aux matériels Yuman (avec enrichissement client et site)
+  - name: int_oracle_neshu__machines_yuman_maintenance_base
+    description: >
+      Table intermédiaire reliant les machines Oracle NESHU (issues de dim_oracle_neshu__device)
+      aux matériels Yuman (materials, sites, clients, catégories). 
+      Sert de dimension de référence pour les analyses de maintenance,
+      enrichie avec informations client et site.
+    columns:
+      - name: device_id
+        description: Identifiant unique de la machine dans Oracle.
+        tests:
+          - not_null
+          - unique
+      - name: material_id
+        description: Identifiant du matériel dans Yuman.
+
+      - name: device_code
+        description: Code machine Oracle avec préfixe 'NESH_'.
+        tests:
+          - not_null
+      - name: device_name
+        description: Libellé de la machine Oracle.
+      - name: company_code
+        description: Code société Oracle, préfixé 'NESH_' et filtré sur le format CN[0-9]{4}.
+      - name: last_installation_date
+        description: Dernière date d’installation de la machine (Oracle).
+      - name: material_serial_number
+        description: Numéro de série du matériel Yuman (matché avec le device_code Oracle).
+      - name: client_id
+        description: Identifiant du client Yuman associé.
+      - name: client_code
+        description: Code client Yuman associé à la machine.
+      - name: client_name
+        description: Nom du client Yuman associé.
+      - name: client_category
+        description: Catégorie du client Yuman.
+      - name: site_id
+        description: Identifiant du site Yuman associé.
+      - name: site_code
+        description: Code site Yuman associé (excluant dépôts et ateliers).
+      - name: site_postal_code
+        description: Code postal du site Yuman associé.
+      - name: material_created_at
+        description: Date de création du matériel Yuman.
+      - name: material_updated_at
+        description: Dernière mise à jour du matériel Yuman.
