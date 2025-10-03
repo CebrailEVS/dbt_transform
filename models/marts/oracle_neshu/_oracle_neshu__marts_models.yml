@@ -512,3 +512,123 @@ models:
           config:
             severity: warn
             error_if: ">1"
+
+
+  # marts/oracle_neshu/_oracle_neshu__marts_models.yml
+  - name: fct_oracle_neshu__machines_maintenance_tracking
+    description: |
+      Table de faits pour le suivi des maintenances préventives des machines NESHU.
+      
+      Cette table croise les données Oracle (DLOG) et Yuman pour :
+      - Identifier les machines en retard de maintenance préventive
+      - Calculer le délai de retard ou d'avance par rapport à l'échéance annuelle
+      - Suivre le statut des demandes d'intervention ouvertes ou planifiées
+      
+      **Règles métier de calcul du retard :**
+      - Machine < 13 mois (395 jours) : pas de retard (période de grâce)
+      - Machine sans préventive : en retard si > 365 jours après installation
+      - Machine avec préventives : en retard si dernière préventive > 365 jours
+      
+      **Sources de données :**
+      - Oracle NESHU (DLOG) : machines et interventions techniques (preventive dlog)
+      - Yuman : matériels, clients, sites et workorders
+    
+    columns:
+      - name: device_id
+        description: Identifiant unique du device dans DLOG NESHU
+        tests:
+          - not_null
+          - unique
+
+      - name: device_code
+        description: Numéro de série du device de la source DLOG NESHU
+        tests:
+          - not_null
+
+      - name: device_name
+        description: Nom du device de la source DLOG NESHU
+        tests:
+          - not_null
+
+      - name: company_code
+        description: Code de l'entreprise/site client dans Oracle (format NESH_CNxxxx)
+        tests:
+          - not_null
+
+      - name: company_name
+        description: Nom de l'entreprise/site client dans Oracle
+        tests:
+          - not_null
+
+      - name: device_last_installation_date
+        description: Date de dernière installation du device (source Oracle)
+        tests:
+          - not_null
+
+      - name: material_id
+        description: Identifiant unique du matériel dans Yuman (peut être NULL si machine non référencée dans Yuman)
+
+      - name: material_serial_number
+        description:
+          Numéro de série du matériel Yuman (correspond au device_code Oracle avec préfixe NESH_).
+          Clé de liaison entre Oracle et Yuman. Peut être NULL si machine uniquement dans Oracle.
+
+      - name: material_name
+        description: Nom du type de machine ('MOMENTO 100', 'GEMINI 200', 'OPTIBEAN X 12' etc)
+
+      - name: client_code
+        description: Code client (source Yuman)
+
+      - name: client_name
+        description: Nom du client (source Yuman)
+
+      - name: client_category
+        description: Catégorie du client dans Yuman (OR / ARGENT / BRONZE)
+
+      - name: site_postal_code
+        description: Code postal du site d'installation (source Yuman)
+
+      - name: retard_bol
+        description: |
+          Indicateur booléen de retard de maintenance préventive.
+          - TRUE : machine en retard (nécessite une intervention)
+          - FALSE : machine à jour ou dans la période de grâce
+        tests:
+          - not_null
+
+      - name: retard_delai
+        description: |
+          Délai en jours par rapport à l'échéance de maintenance préventive.
+          - Valeur positive : nombre de jours restants avant l'échéance
+          - Valeur négative : nombre de jours de retard
+          - Ex: +30 = 30 jours d'avance, -45 = 45 jours de retard
+        tests:
+          - not_null
+
+      - name: source_last_preventive
+        description: |
+          Source de la dernière intervention préventive référencée.
+          - 'yuman' : dernière préventive enregistrée dans Yuman
+          - 'dlog' : dernière préventive enregistrée dans Oracle/DLOG
+          - 'aucune' : aucune préventive trouvée ou machine récente (< 13 mois)
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['yuman', 'dlog', 'aucune']
+
+      - name: status_inter
+        description: |
+          Statut de la demande d'intervention préventive en cours.
+          - 'Ouvert' : demande ouverte mais non planifiée
+          - 'Planifie' : intervention planifiée avec une date
+          - 'Aucune' : aucune demande en cours
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Ouvert', 'Planifie', 'Aucune']
+
+      - name: date_planned
+        description: Date planifiée de l'intervention préventive (si status_inter = 'Planifie')
+
+      - name: material_created_at
+        description: Date de création de l'enregistrement matériel dans Yuman (utilisée pour la déduplication)

@@ -68,11 +68,15 @@ material_enrichi AS (
 -- CALCUL DU RETARD PAR MACHINE
 calcul_retard AS (
     SELECT
+        device_id,
         material_id,
+        device_code,
         material_serial_number,
         last_installation_date,
         device_name,
         company_code,
+        company_name,
+        client_code,
         client_name,
         client_category,
         site_postal_code,
@@ -100,11 +104,15 @@ calcul_retard AS (
 -- LOGIQUE PRINCIPALE DE CALCUL
 retard_final AS (
     SELECT DISTINCT
+        device_id,
         material_id,
+        device_code,
         material_serial_number,
         last_installation_date,
         device_name,
         company_code,
+        company_name,
+        client_code,
         client_name,
         client_category,
         site_postal_code,
@@ -196,11 +204,15 @@ deduplique AS (
 -- RÉSULTAT RETARD DEDUPLIQUÉ
 resultat_retard AS (
     SELECT
+        device_id,
         material_id,
+        device_code,
         material_serial_number,
         last_installation_date,
         device_name,
         company_code,
+        company_name,
+        client_code,
         client_name,
         client_category,
         site_postal_code,
@@ -233,14 +245,18 @@ di_data AS (
 
 -- ENRICHISSEMENT FINAL AVEC STATUT DES INTERVENTIONS
 final AS (
-    SELECT 
+    SELECT
+        rr.device_id,
+        rr.device_code,
+        rr.device_name,
+        rr.company_code,
+        rr.company_name,
+        rr.last_installation_date AS device_last_installation_date,
         rr.material_id,
         rr.material_serial_number,
-        rr.device_name AS material_name,
-        rr.last_installation_date AS material_last_installation_date,
-        rr.company_code,
-        rr.client_name AS company_name,
-        rr.client_category AS company_category,
+        rr.client_code,
+        rr.client_name,
+        rr.client_category,
         rr.site_postal_code,
         rr.retard_bol,
         rr.retard_delai,

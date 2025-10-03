@@ -12,7 +12,10 @@ WITH liste_machine_oracle AS (
       CONCAT('NESH_', d.device_code) AS device_code,
       d.device_name,
       CONCAT('NESH_', company_code) AS company_code,
-      d.last_installation_date
+      d.company_name,
+      d.last_installation_date,
+      d.created_at as device_created_at,
+      d.updated_at as device_updated_at
     FROM {{ ref('dim_oracle_neshu__device') }} d
     WHERE is_active
       AND device_type_id IN (1, 2)
@@ -84,12 +87,16 @@ yuman_materials_clean  AS (
 merged_materials_dlog_yuman AS (
     SELECT 
         lo.device_id,
-        ym.material_id,
         lo.device_code,
         lo.device_name,
         lo.company_code,
+        lo.company_name,
         lo.last_installation_date,
+        lo.device_created_at,
+        lo.device_updated_at,
+        ym.material_id,
         ym.material_serial_number,
+        ym.material_name,
         ym.client_id,
         ym.client_code,
         ym.client_name,
@@ -101,6 +108,6 @@ merged_materials_dlog_yuman AS (
         ym.updated_at AS material_updated_at
     FROM liste_machine_oracle lo
     LEFT JOIN yuman_materials_clean ym
-        ON lo.device_code = ym.material_serial_number
+        ON lo.device_code = ym.material_serial_number and lo.company_code = ym.client_code
 )
 SELECT * from merged_materials_dlog_yuman
