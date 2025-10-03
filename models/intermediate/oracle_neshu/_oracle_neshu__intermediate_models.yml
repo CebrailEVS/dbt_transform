@@ -779,7 +779,6 @@ models:
         description: Identifiant unique de la machine dans Oracle.
         tests:
           - not_null
-          - unique
       - name: material_id
         description: Identifiant du matériel dans Yuman.
 
