@@ -263,7 +263,12 @@ final AS (
         rr.source_last_preventive,
         COALESCE(di.status_inter, 'Aucune') AS status_inter,
         di.date_planned,
-        rr.material_created_at
+        rr.material_created_at,
+
+        -- Métadonnées dbt
+        CURRENT_TIMESTAMP() as dbt_updated_at,
+        '{{ invocation_id }}' as dbt_invocation_id
+
     FROM resultat_retard rr
     LEFT JOIN di_data di
         ON rr.material_id = di.material_id
