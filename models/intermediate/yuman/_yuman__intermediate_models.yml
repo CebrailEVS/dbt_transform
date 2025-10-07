@@ -1,0 +1,126 @@
+version: 2
+
+models:
+  - name: int_yuman__demands_workorders_enriched
+    description: >
+      Vue intermédiaire unifiée regroupant les demandes d'intervention (workorder_demands)
+      et les interventions (workorders). 
+      Ce modèle combine également les informations associées aux clients, sites, matériels, 
+      catégories et utilisateurs. 
+      Il sert de base de données centrale pour les analyses et modèles marts relatifs aux 
+      opérations de maintenance et d'intervention.
+
+    columns:
+      # --- DEMANDES D'INTERVENTION ---
+      - name: demand_id
+        description: Identifiant unique de la demande d'intervention.
+      - name: workorder_id
+        description: Identifiant du bon de travail associé à la demande (si existant).
+      - name: material_id
+        description: Identifiant du matériel concerné par la demande.
+      - name: site_id
+        description: Identifiant du site client concerné.
+      - name: client_id
+        description: Identifiant du client concerné.
+      - name: user_id
+        description: Identifiant de l'utilisateur ayant créé la demande.
+      - name: demand_description
+        description: Description textuelle de la demande d'intervention.
+      - name: demand_status
+        description: Statut actuel de la demande d'intervention.
+      - name: demand_reject_comment
+        description: Commentaire éventuel de rejet de la demande.
+      - name: demand_created_at
+        description: Date et heure de création de la demande d'intervention.
+      - name: demand_updated_at
+        description: Date et heure de la dernière mise à jour de la demande.
+
+      # --- CATEGORIE DEMANDE ---
+      - name: demand_category_name
+        description: Nom de la catégorie associée à la demande d'intervention.
+
+      # --- INTERVENTIONS / WORKORDERS ---
+      - name: technician_id
+        description: Identifiant du technicien affecté à l'intervention.
+      - name: workorder_number
+        description: Numéro unique du bon de travail.
+      - name: workorder_category
+        description: Catégorie de l'intervention (préventive, curative, etc.).
+      - name: workorder_status
+        description: Statut actuel du bon de travail.
+      - name: workorder_title
+        description: Titre ou résumé de l'intervention.
+      - name: workorder_description
+        description: Description détaillée du bon de travail.
+      - name: workorder_report
+        description: Compte-rendu ou rapport de l'intervention réalisée.
+      - name: workorder_technician_name
+        description: Nom du technicien affecté.
+      - name: workorder_date_creation
+        description: Date de création du bon de travail.
+      - name: workorder_motif_non_intervention
+        description: Motif de non-intervention, si applicable.
+      - name: workorder_detail_non_intervention
+        description: Détails supplémentaires sur la non-intervention.
+      - name: workorder_raison_mise_en_pause
+        description: Raison de mise en pause du bon de travail.
+      - name: workorder_explication_mise_en_pause
+        description: Explications détaillées concernant la mise en pause.
+      - name: workorder_necessite_intervenir
+        description: Indique si une intervention est nécessaire.
+      - name: workorder_si_non_pourquoi
+        description: Justification en cas de non-intervention.
+      - name: date_planned
+        description: Date planifiée de l'intervention.
+      - name: date_started
+        description: Date de début réel de l'intervention.
+      - name: date_done
+        description: Date de fin ou de clôture de l'intervention.
+
+      # --- CLIENTS ---
+      - name: partner_name
+        description: Nom du partenaire associé au client.
+      - name: client_code
+        description: Code unique du client.
+      - name: client_name
+        description: Nom du client.
+      - name: client_category
+        description: Catégorie ou segment du client.
+      - name: client_is_active
+        description: Indicateur précisant si le client est actif.
+
+      # --- SITES ---
+      - name: site_code
+        description: Code unique du site client.
+      - name: site_name
+        description: Nom du site.
+      - name: site_address
+        description: Adresse complète du site.
+      - name: site_postal_code
+        description: Code postal du site.
+
+      # --- MATERIELS ---
+      - name: material_name
+        description: Nom ou désignation du matériel.
+      - name: material_serial_number
+        description: Numéro de série du matériel.
+      - name: material_brand
+        description: Marque ou fabricant du matériel.
+      - name: material_description
+        description: Description ou caractéristiques du matériel.
+      - name: material_in_service_date
+        description: Date de mise en service du matériel.
+
+      # --- CATEGORIE MATERIEL ---
+      - name: material_category
+        description: Catégorie fonctionnelle du matériel.
+
+      # --- UTILISATEURS ---
+      - name: manager_id
+        description: Identifiant du manager associé à l'utilisateur.
+      - name: user_name
+        description: Nom de l'utilisateur ou du créateur de la demande.
+      - name: user_type
+        description: Type d'utilisateur (technicien, manager, client, etc.).
+      - name: is_manager_as_technician
+        description: Indique si un manager agit en tant que technicien.
