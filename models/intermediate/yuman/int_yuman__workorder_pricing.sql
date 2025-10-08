@@ -3,7 +3,7 @@
     schema='intermediate',
     alias = "int_yuman__workorder_pricing",
     partition_by={"field": "date_done", "data_type": "timestamp"},
-    cluster_by=['workorder_status','demand_status','partner_name',workorder_status]
+    cluster_by=['workorder_status','demand_status','partner_name']
 ) }}
 
 -- ============================================================================
