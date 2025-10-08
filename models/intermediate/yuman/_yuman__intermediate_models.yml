@@ -124,3 +124,116 @@ models:
         description: Type d'utilisateur (technicien, manager, client, etc.).
       - name: is_manager_as_technician
         description: Indique si un manager agit en tant que technicien.
+
+
+  - name: int_yuman__workorder_pricing
+    description: >
+      Vue intermédiaire de tarification automatique des interventions (workorders).
+      Ce modèle enrichit les données unifiées des interventions et des demandes issues de 
+      `int_yuman__demands_workorders_enriched` avec les référentiels de types d'intervention,
+      machines, tarifications et zones géographiques. 
+      Il calcule les prix automatiques des interventions selon les règles de récurrence, 
+      de partenaire et de localisation (métropole).
+
+    columns:
+      # --- IDENTIFIANTS ---
+      - name: demand_id
+        description: Identifiant unique de la demande d'intervention.
+      - name: workorder_id
+        description: Identifiant unique du bon de travail.
+      - name: material_id
+        description: Identifiant du matériel concerné.
+      - name: site_id
+        description: Identifiant du site client.
+      - name: client_id
+        description: Identifiant du client.
+      - name: technician_id
+        description: Identifiant du technicien associé.
+      - name: manager_id
+        description: Identifiant du manager ou responsable associé.
+
+      # --- DEMANDE D'INTERVENTION ---
+      - name: demand_description
+        description: Description textuelle de la demande d’intervention.
+      - name: demand_status
+        description: Statut de la demande d’intervention.
+      - name: demand_created_at
+        description: Date de création de la demande.
+      - name: demand_updated_at
+        description: Date de dernière mise à jour de la demande.
+      - name: demand_category_name
+        description: Catégorie de la demande d’intervention.
+
+      # --- BON DE TRAVAIL ---
+      - name: workorder_number
+        description: Numéro unique du bon de travail.
+      - name: workorder_category
+        description: Catégorie ou type brut du bon de travail.
+      - name: workorder_status
+        description: Statut actuel du bon de travail.
+      - name: workorder_technician_name
+        description: Nom du technicien affecté au bon de travail.
+      - name: workorder_date_creation
+        description: Date de création du bon de travail.
+      - name: workorder_motif_non_intervention
+        description: Motif de non-intervention, si applicable.
+      - name: workorder_detail_non_intervention
+        description: Détail du motif de non-intervention, si applicable.
+      - name: date_planned
+        description: Date planifiée de l’intervention.
+      - name: date_started
+        description: Date de début de l’intervention.
+      - name: date_done
+        description: Date de clôture de l’intervention.
+
+      # --- CLIENT & SITE ---
+      - name: partner_name
+        description: Nom du partenaire ou marque associée au client.
+      - name: client_code
+        description: Code unique du client.
+      - name: client_name
+        description: Nom du client.
+      - name: client_category
+        description: Catégorie commerciale ou segment du client.
+      - name: client_is_active
+        description: Indique si le client est actif.
+      - name: site_code
+        description: Code unique du site.
+      - name: site_name
+        description: Nom du site client.
+      - name: site_address
+        description: Adresse complète du site client.
+      - name: site_postal_code
+        description: Code postal fourni dans le système Yuman.
+      - name: postal_code_site
+        description: Code postal normalisé du site (corrigé ou extrait de la description si manquant).
+
+      # --- MATERIEL ---
+      - name: material_serial_number
+        description: Numéro de série du matériel concerné.
+      - name: workorder_type_raw
+        description: Type brut de l’intervention avant normalisation.
+      - name: machine_raw
+        description: Catégorie brute du matériel avant nettoyage.
+      - name: workorder_type_clean
+        description: Type d’intervention normalisé (préventif, curatif, installation…).
+      - name: machine_clean
+        description: Catégorie de machine normalisée.
+
+      # --- LOCALISATION ---
+      - name: metropolitan
+        description: Indicateur binaire (1 = métropole, 0 = hors métropole).
+      - name: recurrence_count
+        description: Nombre d’interventions réalisées pour un même client le même jour (récurrence).
+
+      # --- TARIFICATION ---
+      - name: pricing_type
+        description: Type de tarification appliquée (Tarif normal, Remise niv1, Remise niv2).
+      - name: pricing_key_used
+        description: Clé de tarification générée pour le matching avec la table de référence.
+      - name: amount
+        description: Montant appliqué selon la tarification automatique.
+      - name: prod_number
+        description: Code produit ou référence tarifaire associée.
+      - name: to_invoice
+        description: Indique si le bon d’intervention doit être facturé (true = à facturer).
