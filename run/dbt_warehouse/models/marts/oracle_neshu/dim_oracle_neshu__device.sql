@@ -27,6 +27,7 @@ WITH device_labels AS (
     d.idlocation as location_id,
     d.idcompany_customer as company_id,
     c.code AS company_code,
+    c.name AS company_name,
     lo.access_info,
     l.code AS label_code,
     lf.code AS label_family_code
@@ -53,6 +54,7 @@ aggregated_labels AS (
     device_code,
     device_name,
     company_code,
+    company_name,
     access_info,
     last_installation_date,
     created_at,
@@ -74,6 +76,7 @@ aggregated_labels AS (
     device_code,
     device_name,
     company_code,
+    company_name,
     access_info,
     last_installation_date,
     created_at,
@@ -92,6 +95,7 @@ SELECT
   device_code,
   device_name,
   company_code,
+  company_name,
 
   -- 🏷️ Caractéristiques machine
   device_brand,

@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description=""""""
+      description="""Table de faits pour le suivi des maintenances pr\u00e9ventives des machines NESHU.\n\nCette table croise les donn\u00e9es Oracle (DLOG) et Yuman pour :\n- Identifier les machines en retard de maintenance pr\u00e9ventive\n- Calculer le d\u00e9lai de retard ou d'avance par rapport \u00e0 l'\u00e9ch\u00e9ance annuelle\n- Suivre le statut des demandes d'intervention ouvertes ou planifi\u00e9es\n\n**R\u00e8gles m\u00e9tier de calcul du retard :**\n- Machine < 13 mois (395 jours) : pas de retard (p\u00e9riode de gr\u00e2ce)\n- Machine sans pr\u00e9ventive : en retard si > 365 jours apr\u00e8s installation\n- Machine avec pr\u00e9ventives : en retard si derni\u00e8re pr\u00e9ventive > 365 jours\n\n**Sources de donn\u00e9es :**\n- Oracle NESHU (DLOG) : machines et interventions techniques (preventive dlog)\n- Yuman : mat\u00e9riels, clients, sites et workorders\n"""
     )
     as (
       -- fct_oracle_neshu__machines_maintenance_tracking.sql
@@ -79,11 +79,15 @@ material_enrichi AS (
 -- CALCUL DU RETARD PAR MACHINE
 calcul_retard AS (
     SELECT
+        device_id,
         material_id,
+        device_code,
         material_serial_number,
         last_installation_date,
         device_name,
         company_code,
+        company_name,
+        client_code,
         client_name,
         client_category,
         site_postal_code,
@@ -111,11 +115,15 @@ calcul_retard AS (
 -- LOGIQUE PRINCIPALE DE CALCUL
 retard_final AS (
     SELECT DISTINCT
+        device_id,
         material_id,
+        device_code,
         material_serial_number,
         last_installation_date,
         device_name,
         company_code,
+        company_name,
+        client_code,
         client_name,
         client_category,
         site_postal_code,
@@ -207,11 +215,15 @@ deduplique AS (
 -- RÉSULTAT RETARD DEDUPLIQUÉ
 resultat_retard AS (
     SELECT
+        device_id,
         material_id,
+        device_code,
         material_serial_number,
         last_installation_date,
         device_name,
         company_code,
+        company_name,
+        client_code,
         client_name,
         client_category,
         site_postal_code,
@@ -244,21 +256,30 @@ di_data AS (
 
 -- ENRICHISSEMENT FINAL AVEC STATUT DES INTERVENTIONS
 final AS (
-    SELECT 
+    SELECT
+        rr.device_id,
+        rr.device_code,
+        rr.device_name,
+        rr.company_code,
+        rr.company_name,
+        rr.last_installation_date AS device_last_installation_date,
         rr.material_id,
         rr.material_serial_number,
-        rr.device_name AS material_name,
-        rr.last_installation_date AS material_last_installation_date,
-        rr.company_code,
-        rr.client_name AS company_name,
-        rr.client_category AS company_category,
+        rr.client_code,
+        rr.client_name,
+        rr.client_category,
         rr.site_postal_code,
         rr.retard_bol,
         rr.retard_delai,
         rr.source_last_preventive,
         COALESCE(di.status_inter, 'Aucune') AS status_inter,
         di.date_planned,
-        rr.material_created_at
+        rr.material_created_at,
+
+        -- Métadonnées dbt
+        CURRENT_TIMESTAMP() as dbt_updated_at,
+        'd7463ac7-8c2a-440f-81d9-1be043c245c7' as dbt_invocation_id
+
     FROM resultat_retard rr
     LEFT JOIN di_data di
         ON rr.material_id = di.material_id
