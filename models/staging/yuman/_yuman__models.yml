@@ -294,3 +294,46 @@ models:
         description: "Date d'extraction depuis la source (Singer/Meltano)"
       - name: sdc_sequence
         description: "Numéro de séquence pour suivi d’update via Meltano"
+
+  # --- Table de faits dépliée des produits utilisés dans les interventions (workorders) ---
+  - name: stg_yuman__workorder_products
+    description: "Produits utilisés lors des interventions (workorders). 1 ligne = 1 produit utilisé dans une intervention. Cette table déplie le JSON _embed_products de la table yuman_workorders."
+    columns:
+      - name: workorder_product_id
+        description: "Identifiant unique du produit utilisé dans l'intervention (clé primaire)"
+        tests:
+          - unique
+          - not_null
+
+      - name: workorder_id
+        description: "Identifiant de l'intervention (clé étrangère vers stg_yuman__workorders)"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_yuman__workorders')
+              field: workorder_id
+
+      - name: product_id
+        description: "Identifiant du produit (clé étrangère vers stg_yuman__products)"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_yuman__products')
+              field: product_id
+
+      - name: product_reference
+        description: "Référence du produit (ex: EVS_NESPRESSO_0042605)"
+
+      - name: product_designation
+        description: "Désignation/nom du produit"
+
+      - name: product_quantity
+        description: "Quantité de produit utilisée lors de l'intervention"
+        tests:
+          - not_null
+
+      - name: product_created_at
+        description: "Date de création de l'association produit-workorder dans Yuman"
+
+      - name: product_updated_at
+        description: "Date de dernière mise à jour de l'association produit-workorder dans Yuman"
