@@ -223,6 +223,8 @@ models:
       # --- LOCALISATION ---
       - name: metropolitan
         description: Indicateur binaire (1 = métropole, 0 = hors métropole).
+      - name: metropole_city
+        description: Ville de la métropole associée à l'intervention.
       - name: recurrence_count
         description: Nombre d’interventions réalisées pour un même client le même jour (récurrence).
 
@@ -237,3 +239,5 @@ models:
         description: Code produit ou référence tarifaire associée.
       - name: to_invoice
         description: Indique si le bon d’intervention doit être facturé (true = à facturer).
+      - name: billing_validation_status
+        description: Statut de validation de la facturation (VALIDATED, MISSING_TARIF, NOT_BILLABLE).
