@@ -194,6 +194,7 @@ combined_and_filtered_data AS (
   WHERE device_serial_number = 'AS00446'
     AND company_code = 'CN1046'
     AND consumption_date < '2025-08-28'
+    AND product_type IN ('THE','CAFE CAPS','CHOCOLATS VAN HOUTEN')
 
   UNION ALL
 
@@ -235,6 +236,7 @@ combined_and_filtered_data AS (
         AND product_type = 'CHOCOLATS VAN HOUTEN')
     OR (product_type = 'ACCESSOIRES')
     OR (company_code = 'CN1071' AND product_type = 'THE')
+    AND NOT (device_serial_number = 'AS00446' AND company_code = 'CN1046') 
   )
 
   UNION ALL
