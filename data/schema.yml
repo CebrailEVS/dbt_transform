@@ -118,3 +118,20 @@ seeds:
         description: "Région correspondante pour la sectorisation des techniciens"
         tests:
           - not_null
+
+
+  - name: tech_piece_agence_mapping
+    description: "Mapping entre tech et agence stock"
+    columns:
+      - name: nom
+        description: "nom tech"
+        tests:
+          - not_null
+      - name: prenom
+        description: "prénom du tech"
+        tests:
+          - not_null
+      - name: agence
+        description: "agence rattaché pour le stock"
+        tests:
+          - not_null

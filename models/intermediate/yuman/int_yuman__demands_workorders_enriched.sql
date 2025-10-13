@@ -136,6 +136,17 @@ users as (
         user_type,
         is_manager_as_technician
     from {{ ref('stg_yuman__users') }}
+),
+
+-- =======================
+-- CTE 9 : Mapping techniciens - agences
+-- =======================
+tech_agence_mapping as (
+    select
+        nom,
+        prenom,
+        agence
+    from {{ ref('tech_piece_agence_mapping') }}
 )
 
 -- =======================
@@ -206,7 +217,10 @@ select
     u.manager_id,
     u.user_name,
     u.user_type,
-    u.is_manager_as_technician
+    u.is_manager_as_technician,
+
+    -- === Agence du technicien (via mapping) ===
+    tam.agence as technician_agency_stock
 
 from workorder_demands wd
 left join workorder_demands_categories wdc
@@ -229,3 +243,7 @@ left join materials_categories mc
 
 left join users u
     on wd.user_id = u.user_id
+
+left join tech_agence_mapping tam
+    on UPPER(TRIM(REGEXP_REPLACE(wo.workorder_technician_name, r'\[INACTIF\]\s*', ''))) = 
+       UPPER(TRIM(tam.nom || ' ' || tam.prenom))

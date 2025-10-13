@@ -125,6 +125,10 @@ models:
       - name: is_manager_as_technician
         description: Indique si un manager agit en tant que technicien.
 
+      # --- AGENCE TECHNICIEN (MAPPING) ---
+      - name: technician_agency_stock
+        description: Agence de rattachement du technicien selon le mapping fourni de Vincent.
+
 
   - name: int_yuman__workorder_pricing
     description: >
