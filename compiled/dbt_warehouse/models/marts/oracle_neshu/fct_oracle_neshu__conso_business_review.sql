@@ -181,6 +181,25 @@ livraison_data AS (
 ),
 -- Version optimisée : remplace combined_data + donnees_filtrees
 combined_and_filtered_data AS (
+
+  -- Cas particulier : machine AS00446 chez CN1046
+  SELECT *
+  FROM chargement_data
+  WHERE device_serial_number = 'AS00446'
+    AND company_code = 'CN1046'
+    AND consumption_date < '2025-08-28'
+    AND product_type IN ('THE','CAFE CAPS','CHOCOLATS VAN HOUTEN')
+
+  UNION ALL
+
+  SELECT *
+  FROM telemetry_data
+  WHERE device_serial_number = 'AS00446'
+    AND company_code = 'CN1046'
+    AND consumption_date >= '2025-08-28'
+
+  UNION ALL
+
   -- TELEMETRIE avec filtres
   SELECT *
   FROM telemetry_data
@@ -191,6 +210,8 @@ combined_and_filtered_data AS (
       AND product_type = 'THE'
     )
     AND NOT (company_code = 'CN1071' AND product_type = 'THE')
+    AND NOT (device_serial_number = 'AS00446' AND company_code = 'CN1046') 
+
 
   UNION ALL
 
@@ -198,26 +219,18 @@ combined_and_filtered_data AS (
   SELECT *
   FROM chargement_data
   WHERE (
-    -- Cas 1: NESPRESSO avec conditions spécifiques
     (device_brand = 'NESPRESSO'
      AND (device_economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR device_economic_model IS NULL)
      AND product_type IN ('THE','CAFE CAPS')
      AND (company_code <> 'CN1070' OR consumption_date >= '2025-03-01'))
-    
-    -- Cas 2: NESTLE/ANIMO pour THE
     OR (device_brand IN ('NESTLE','ANIMO')
         AND (device_economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR device_economic_model IS NULL)
         AND product_type = 'THE')
-    
-    -- Cas 3: CHOCOLATS VAN HOUTEN pour toutes marques
     OR (device_brand IN ('NESPRESSO','NESTLE','ANIMO')
         AND product_type = 'CHOCOLATS VAN HOUTEN')
-    
-    -- Cas 4: Tous les ACCESSOIRES
     OR (product_type = 'ACCESSOIRES')
-    
-    -- Cas 5: Exception pour CN1071 et THE
     OR (company_code = 'CN1071' AND product_type = 'THE')
+    AND NOT (device_serial_number = 'AS00446' AND company_code = 'CN1046') 
   )
 
   UNION ALL
@@ -226,6 +239,7 @@ combined_and_filtered_data AS (
   SELECT *
   FROM livraison_data
 )
+
 
 SELECT 
   -- Identifiants
@@ -263,6 +277,6 @@ SELECT
 
   -- Métadonnées d'exécution
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  'b72ccd66-685b-45e8-8dc3-813763d2841e' as dbt_invocation_id
+  '656c5827-1b25-4bb4-af82-58f537b41df5' as dbt_invocation_id
 
 FROM combined_and_filtered_data

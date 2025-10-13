@@ -4,7 +4,7 @@
 -- MODEL: int_yuman__workorder_pricing
 -- PURPOSE: Determine automatic pricing for technical interventions from Yuman
 -- AUTHOR: Cebrail AKSOY
--- UPDATED: 2025-10-08 15:37:54.236332+00:00
+-- UPDATED: 2025-10-13 13:16:10.881712+00:00
 -- ============================================================================
 
 WITH 
@@ -120,12 +120,12 @@ ref_machine AS (
 ),
 
 ref_cp_metropole AS (
-  SELECT Code_Postal
+  SELECT Code_Postal, Metropole
   FROM `evs-datastack-prod`.`prod_reference`.`cp_metropole`
 ),
 
 ref_dpt_metropole AS (
-  SELECT Departement
+  SELECT Departement, Metropole
   FROM `evs-datastack-prod`.`prod_reference`.`dpt_metropole`
 ),
 
@@ -151,6 +151,7 @@ workorders_enriched AS (
     w.*,
     COALESCE(ti.workorder_type_clean, w.workorder_type_raw) AS workorder_type_clean,
     COALESCE(m.machine_clean, w.machine_raw) AS machine_clean,
+    COALESCE(cp.Metropole, dp.Metropole) AS metropole_city,
     CASE
       WHEN w.postal_code_site IS NULL THEN 1
       WHEN cp.Code_Postal IS NOT NULL THEN 1
@@ -269,14 +270,20 @@ SELECT
   machine_raw,
 
   -- Renamed metrics and keys
-  a_facturer            AS to_invoice,
   workorder_type_clean,
   machine_clean,
   metropole             AS metropolitan,
+  metropole_city,
   reccurence            AS recurrence_count,
   type_tarif            AS pricing_type,
   key_tarif_used        AS pricing_key_used,
+  a_facturer            AS to_invoice,
   Montant               AS amount,
-  PROD                  AS prod_number
+  PROD                  AS prod_number,
+  CASE
+    WHEN Montant IS NOT NULL AND a_facturer = TRUE THEN 'VALIDATED'
+    WHEN Montant IS NULL AND a_facturer = TRUE THEN 'MISSING_TARIF'
+    ELSE 'NOT_BILLABLE'
+  END as billing_validation_status
 
 FROM final_result
