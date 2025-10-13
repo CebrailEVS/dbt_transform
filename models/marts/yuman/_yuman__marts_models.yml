@@ -1,34 +1,145 @@
 # models/marts/yuman/_yuman__marts_models.yml
+
 version: 2
 
 models:
-  # MATERIALS & CLIENTS
-  # Informations Machine
-  - name: dim_yuman__materials_clients
-    description: >
-      Dimension materials enrichie avec les informations de sites et de clients
+
+  - name: dim_yuman__clients
+    description: "Clients Marts Yuman"
     columns:
-      - name: material_id
-        description: "Identifiant unique de la machine"
+      - name: client_id
+        description: "Identifiant unique du client"
+        tests:
+          - unique
+          - not_null
+
+      - name: client_code
+        description: "Code du client"
+
+      - name: client_name
+        description: "Nom du client"
+
+      - name: client_category
+        description: "Catégorie du client (Spécifique NESHU : OR / ARGENT / BRONZE)"
+
+      - name: client_address
+        description: "Adresse du client"
+
+      - name: is_active
+        description: "Statut d'activation du client"
+
+      - name: partner_name
+        description: "Nom du partenaire associé au client"
+
+
+  - name: dim_yuman__sites
+    description: "Sites Marts Yuman"
+    columns:
+      - name: site_id
+        description: "Identifiant unique du site"
+        tests:
+          - unique
+          - not_null
+
+      - name: client_id
+        description: "Référence vers le client propriétaire"
         tests:
           - not_null
-          - unique
+          - relationships:
+              to: ref('dim_yuman__clients')
+              field: client_id
 
-      - name : material_description
-        description : "type de machine"
+      - name: agency_id
+        description: "Identifiant de l'agence associée au site"
+
+      - name: site_code
+        description: "Code du site"
+
+      - name: site_name
+        description: "Nom du site"
+
+      - name: site_address
+        description: "Adresse du site"
+
+      - name: site_postal_code
+        description: "Code postal du site"
+
+      - name: created_at
+        description: "Date de création de l'enregistrement"
+
+      - name: updated_at
+        description: "Date de la dernière mise à jour de l'enregistrement"
+
+
+  - name: dim_yuman__materials
+    description: "Matériaux Marts Yuman enrichie avec les informations catégorie material"
+    columns:
+      - name: material_id
+        description: "Identifiant unique du matériau"
+        tests:
+          - unique
+          - not_null
+
+      - name: site_id
+        description: "Référence vers le site propriétaire"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_yuman__sites')
+              field: site_id
+
+      - name: material_description
+        description: "Description de la machine"
+
+      - name: material_name
+        description: "Nom de la machine"
 
       - name: material_brand
         description: "Marque de la machine"
 
       - name: material_serial_number
-        description: "Numero de série de la machine"
+        description: "Numéro de série de la machine"
 
       - name: category_name
         description: "Catégorie de la machine"
 
       - name: material_in_service_date
         description: "Date de mise en service de la machine"
-# Informations client
+
+      - name: created_at
+        description: "Date de création de l'enregistrement"
+
+      - name: updated_at
+        description: "Date de la dernière mise à jour de l'enregistrement"
+
+
+  - name: dim_yuman__materials_clients
+    description: >
+      Dimension materials enrichie avec les informations de sites et de clients
+    columns:
+      # Informations Machine
+      - name: material_id
+        description: "Identifiant unique de la machine"
+        tests:
+          - not_null
+          - unique
+
+      - name: material_description
+        description: "Type de machine"
+
+      - name: material_brand
+        description: "Marque de la machine"
+
+      - name: material_serial_number
+        description: "Numéro de série de la machine"
+
+      - name: category_name
+        description: "Catégorie de la machine"
+
+      - name: material_in_service_date
+        description: "Date de mise en service de la machine"
+
+      # Informations Client
       - name: client_id
         description: "Id du client associé à la machine"
         tests:
@@ -45,7 +156,8 @@ models:
 
       - name: partner_name
         description: "Nom du partenaire associé à la machine"
-# Informations Site
+
+      # Informations Site
       - name: site_id
         description: "Id du site associé à la machine"
         tests:
@@ -55,7 +167,7 @@ models:
         description: "Adresse du site associé à la machine"
 
       - name: site_name
-        description:  "Nom du site associé à la machine"
+        description: "Nom du site associé à la machine"
 
       - name: site_postal_code
         description: "Code postal du site associé à la machine"
