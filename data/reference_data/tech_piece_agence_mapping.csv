@@ -1,56 +1,56 @@
-﻿nom,prenom,Chef,agence
-ADON,Jordan,Messaoud,Rungis
-ADON,Christophe,Messaoud,Rungis
-ARFAOUI,Ramzi,Messaoud,Rungis
-AUGUSTIN,ETIENNE,Messaoud,Rungis
-BAYARMAA,MARGAD,Eric,Lyon
-Berkane,Cyril,Messaoud,Rungis
-BOUDY,STEPHANE,Messaoud,Rungis
-CAGNAZZO,Giovanni,Messaoud,Rungis
-CAMARA,Omar,Messaoud,Rungis
-CAMARA,Abdoulaye,Messaoud,Rungis
-CARAGE,Christophe,Eric,Lyon
-COIFFIER,Mickael,Messaoud,Rungis
-COIFFIER, Mickael,Messaoud,Rungis
-CUNY,HERVE,Messaoud,Rungis
-Cotineau,Teddy,Eric,Lyon
-COTINEAUV2,Jeremy,Eric,Lyon
-DESPRES,BRUNO,Eric,Lyon
-DIDION,Franck,Eric,Rungis
-DISTRISUD,Astreinte,Messaoud,Rungis
-Domagala,Arnaud,Messaoud,Rungis
-Domagala2,Maxime,Eric,Lyon
-DURAND,OCEANE,Lopez,Bordeaux
-DURAND,OCEANE ,Lopez,Bordeaux
-DUVAL,Nicolas,Messaoud,Rungis
-ERIC,LOPEZ,Lopez,Bordeaux
-EVS,Astreinte,Eric,Lyon
-FAYE,VINCENT,Lopez,Bordeaux
-FERLAT,Jason,Messaoud,Rungis
-FERRANTE,Adrien,Eric,Lyon
-GADIFFERT,ALAIN,Messaoud,Rungis
-Garret,Antoine,Messaoud,Rungis
-GEFFROY,MICKAEL,Messaoud,Rungis
-GRANDJEAN,ALEXIS,Eric,Rungis
-GRANDJEAN,ALEXIS ,Eric,Rungis
-HAMIDI,Abdoulrhaman,Messaoud,Rungis
-HANI,ADAM,Messaoud,Rungis
-HECKLY,EVAN,Eric,Strasbourg
-HEIDINGER,Yannick,Eric,Strasbourg
-JUANOLA,Thibaut,Eric,Strasbourg
-KARI,Mohamed,Messaoud,Rungis
-Lironville,Geoffrey,Eric,Strasbourg
-LOJO,MICKAEL,Lopez,Bordeaux
-MAURAY,PASCAL,Lopez,Bordeaux
-MIREPOIX,HERVE,Lopez,Bordeaux
-ALLAN,NICOLAS,Lopez,Bordeaux
-OCEANE,DURAND,Lopez,Bordeaux
-PERDRIAU,Olivier,Messaoud,Rungis
-Piga,kevin,Eric,Lyon
-PIGNON,CEDRIC,Eric,Lyon
-RISSELIN,Cedric,Eric,Lyon
-SECOND1,Wilfried,Eric,Lyon
-Tadjemout,Mohamed,Messaoud,Rungis
-Trautmann2,Jérôme,Eric,Strasbourg
-VALLA,Stéphane,Eric,Lyon
-VORMS,Eric,Messaoud,Rungis
+﻿nom,prenom,Chef,agence,equipe
+ADON,Jordan,Messaoud,Rungis,IDF P1P2
+ADON,Christophe,Messaoud,Rungis,IDF P1P2
+ARFAOUI,Ramzi,Messaoud,Rungis,IDF P1P2
+AUGUSTIN,ETIENNE,Messaoud,Rungis,IDF P1P2
+BAYARMAA,MARGAD,Eric,Lyon,AURA EST
+Berkane,Cyril,Messaoud,Rungis,IDF P1P2
+BOUDY,STEPHANE,Messaoud,Rungis,IDF P1P2
+CAGNAZZO,Giovanni,Messaoud,Rungis,IDF P1P2
+CAMARA,Omar,Messaoud,Rungis,IDF P1P2
+CAMARA,Abdoulaye,Messaoud,Rungis,IDF P1P2
+CARAGE,Christophe,Eric,Lyon,AURA EST
+COIFFIER,Mickael,Messaoud,Rungis,IDF P1P2
+COIFFIER, Mickael,Messaoud,Rungis,IDF P1P2
+CUNY,HERVE,Messaoud,Rungis,IDF P1P2
+Cotineau,Teddy,Eric,Lyon,AURA EST
+COTINEAUV2,Jeremy,Eric,Lyon,AURA EST
+DESPRES,BRUNO,Eric,Lyon,AURA EST
+DIDION,Franck,Eric,Rungis,AURA EST
+DISTRISUD,Astreinte,Messaoud,Rungis,IDF P1P2
+Domagala,Arnaud,Messaoud,Rungis,IDF P1P2
+Domagala2,Maxime,Eric,Lyon,AURA EST
+DURAND,OCEANE,Lopez,Bordeaux,BORDEAUX 
+DURAND,OCEANE ,Lopez,Bordeaux,BORDEAUX
+DUVAL,Nicolas,Messaoud,Rungis,IDF P1P2
+ERIC,LOPEZ,Lopez,Bordeaux,BORDEAUX
+EVS,Astreinte,Eric,Lyon,AURA EST
+FAYE,VINCENT,Lopez,Bordeaux,BORDEAUX
+FERLAT,Jason,Messaoud,Rungis,IDF P1P2
+FERRANTE,Adrien,Eric,Lyon,AURA EST
+GADIFFERT,ALAIN,Messaoud,Rungis,IDF P1P2
+Garret,Antoine,Messaoud,Rungis,IDF P1P2
+GEFFROY,MICKAEL,Messaoud,Rungis,IDF P1P2
+GRANDJEAN,ALEXIS,Eric,Rungis,IDF P1P2
+GRANDJEAN,ALEXIS ,Eric,Rungis,IDF P1P2
+HAMIDI,Abdoulrhaman,Messaoud,Rungis,IDF P1P2
+HANI,ADAM,Messaoud,Rungis,IDF P1P2
+HECKLY,EVAN,Eric,Strasbourg,AURA EST
+HEIDINGER,Yannick,Eric,Strasbourg,AURA EST
+JUANOLA,Thibaut,Eric,Strasbourg,AURA EST
+KARI,Mohamed,Messaoud,Rungis,IDF P1P2
+Lironville,Geoffrey,Eric,Strasbourg,AURA EST
+LOJO,MICKAEL,Lopez,Bordeaux,BORDEAUX
+MAURAY,PASCAL,Lopez,Bordeaux,BORDEAUX
+MIREPOIX,HERVE,Lopez,Bordeaux,BORDEAUX
+ALLAN,NICOLAS,Lopez,Bordeaux,BORDEAUX
+OCEANE,DURAND,Lopez,Bordeaux,BORDEAUX
+PERDRIAU,Olivier,Messaoud,Rungis,IDF P1P2
+Piga,kevin,Eric,Lyon,AURA EST
+PIGNON,CEDRIC,Eric,Lyon,AURA EST
+RISSELIN,Cedric,Eric,Lyon,AURA EST
+SECOND1,Wilfried,Eric,Lyon,AURA EST
+Tadjemout,Mohamed,Messaoud,Rungis,IDF P1P2
+Trautmann2,Jérôme,Eric,Strasbourg,AURA EST
+VALLA,Stéphane,Eric,Lyon,AURA EST
+VORMS,Eric,Messaoud,Rungis,IDF P1P2

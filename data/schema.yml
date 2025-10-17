@@ -135,3 +135,7 @@ seeds:
         description: "agence rattaché pour le stock"
         tests:
           - not_null
+      - name: equipe
+        description: "équipe du technicien"
+        tests:
+          - not_null

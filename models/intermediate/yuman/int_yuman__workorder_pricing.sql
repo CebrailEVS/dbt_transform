@@ -51,6 +51,7 @@ base_workorders AS (
     site_address,
     site_postal_code,
     material_serial_number,
+    technician_equipe,
 
     -- Normalize workorder type
     LOWER(COALESCE(
@@ -280,6 +281,7 @@ SELECT
   machine_clean,
   metropole             AS metropolitan,
   metropole_city,
+  technician_equipe,
   reccurence            AS recurrence_count,
   type_tarif            AS pricing_type,
   key_tarif_used        AS pricing_key_used,
