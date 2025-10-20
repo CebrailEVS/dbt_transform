@@ -1,0 +1,93 @@
+version: 2
+
+models:
+  - name: stg_mssql_sage__f_ecriturea
+    description: "Écritures analytiques nettoyées issues du système MSSQL Sage"
+    columns:
+      - name: cb_marq
+        description: "Identifiant unique de l'écriture analytique"
+        tests:
+          - unique
+          - not_null
+      - name: ec_no
+        description: "Numéro de l'écriture comptable associée"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_mssql_sage__f_ecriturec') 
+              field: ec_no                             
+      - name: ea_ligne
+        description: "Numéro de la ligne dans l'écriture analytique"
+      - name: ca_num
+        description: "Code analytique"
+      - name: ea_montant
+        description: "Montant de l'écriture analytique"
+      - name: ea_quantite
+        description: "Quantité associée"
+      - name: cb_createur
+        description: "Utilisateur créateur"
+      - name: cb_creation_user
+        description: "Utilisateur ayant créé l'écriture"
+      - name: created_at
+        description: "Timestamp de création"
+      - name: updated_at
+        description: "Timestamp de dernière modification"
+      - name: extracted_at
+        description: "Timestamp d'extraction"
+      - name: deleted_at
+        description: "Timestamp de suppression logique"
+
+  - name: stg_mssql_sage__f_ecriturec
+    description: "Écritures comptables nettoyées issues du système MSSQL Sage"
+    columns:
+      - name: ec_no
+        description: "Numéro de l'écriture comptable (PK)"
+        tests:
+          - unique
+          - not_null
+      - name: cb_marq
+        description: "Identifiant unique de l'écriture comptable"
+        tests:
+          - not_null
+      - name: ec_no_link
+        description: "Lien vers l'écriture parent, si existant"
+      - name: jo_num
+        description: "Code du journal"
+      - name: cg_num
+        description: "Compte général"
+      - name: ct_num
+        description: "Compte tiers"
+      - name: ec_intitule
+        description: "Libellé de l'écriture"
+      - name: ec_sens
+        description: "Sens de l'écriture (1 = débit, 2 = crédit)"
+      - name: ec_montant
+        description: "Montant de l'écriture"
+      - name: ec_montant_regle
+        description: "Montant réglé"
+      - name: ec_devise
+        description: "Code devise"
+      - name: n_devise
+        description: "Numéro de devise"
+      - name: ec_date
+        description: "Date de l'écriture comptable"
+      - name: jm_date
+        description: "Date du journal"
+      - name: ec_echeance
+        description: "Date d'échéance (NULL si placeholder 1753-01-01)"
+      - name: ec_date_rappro
+        description: "Date de rapprochement (NULL si placeholder 1753-01-01)"
+      - name: ec_date_regle
+        description: "Date de règlement (NULL si placeholder 1753-01-01)"
+      - name: cb_createur
+        description: "Utilisateur créateur"
+      - name: cb_creation_user
+        description: "Utilisateur ayant créé l'écriture"
+      - name: created_at
+        description: "Timestamp de création"
+      - name: updated_at
+        description: "Timestamp de dernière modification"
+      - name: extracted_at
+        description: "Timestamp d'extraction"
+      - name: deleted_at
+        description: "Timestamp de suppression logique"
