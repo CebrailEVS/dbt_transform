@@ -2,7 +2,7 @@
     config(
         materialized='table',
         cluster_by=['company_id', 'product_id','task_status_code'],
-        description='Table intermédiaire des mouvements internes - avec enrichissement produit, source, destination, quantité et valorisation'
+        description='Table intermédiaire des livraisons internes - avec enrichissement produit, source, destination, quantité et valorisation'
     )
 }}
 
@@ -76,7 +76,7 @@ with mouvement_interne_base as (
     where 1=1
         and t.idtask_status in (1, 4, 3)  -- FAIT, VALIDE, ANNULE
         and t.code_status_record = '1'
-        and t.idtask_type = 161 -- MOUVEMENT INTERNE
+        and t.idtask_type = 161 -- LIVRAISONS INTERNE
         and t.real_start_date is not null
 
     group by

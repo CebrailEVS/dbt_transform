@@ -492,10 +492,10 @@ models:
           - not_null
 
 
-  - name: int_oracle_neshu__mouvement_interne_tasks
+  - name: int_oracle_neshu__livraison_interne_tasks
     description: >
-      Table intermédiaire des tâches de Mouvement interne.
-      Filtrée sur les tâches de type MOUVEMENT INTERNE (idtask_type=161) 
+      Table intermédiaire des tâches de Livraison interne.
+      Filtrée sur les tâches de type LIVRAISON INTERNE (idtask_type=161) 
       avec statut FAIT/VALIDE/ANNULE.
       
     columns:
