@@ -1,0 +1,192 @@
+# models/_mssql_sage__sources.yml
+version: 2
+
+sources:
+  - name: mssql_sage
+    description: "Source des données issues de Sage (MSSQL) — données brutes extraites vers BigQuery"
+    schema: prod_raw
+    tables:
+      - name: dbo_f_ecriturea
+        description: "Table des écritures analytiques (f_ecriturea) — détail des montants et quantités analytiques par écriture comptable"
+        loaded_at_field: _sdc_received_at
+
+        columns:
+          - name: ec_no
+            description: "Numéro d'écriture comptable"
+          - name: n_analytique
+            description: "Numéro de l'axe analytique"
+          - name: ea_ligne
+            description: "Numéro de ligne d'écriture analytique"
+          - name: ca_num
+            description: "Code du compte analytique (lisible)"
+          - name: cb_ca_num
+            description: "Code du compte analytique en hexadécimal (encodé)"
+          - name: ea_montant
+            description: "Montant de l'écriture analytique"
+          - name: ea_quantite
+            description: "Quantité associée à l'écriture analytique"
+          - name: cb_prot
+            description: "Indicateur de protection (technique Sage)"
+          - name: cb_marq
+            description: "Identifiant unique de l'écriture analytique"
+            tests:
+              - unique
+              - not_null
+          - name: cb_createur
+            description: "Utilisateur ayant créé la ligne"
+          - name: cb_modification
+            description: "Horodatage de la dernière modification"
+          - name: cb_replication
+            description: "Indicateur de réplication"
+          - name: cb_flag
+            description: "Flag technique interne"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_creation_user
+            description: "Utilisateur ayant créé la ligne (UUID)"
+          - name: _sdc_received_at
+            description: "Timestamp de réception du flux par Singer/ETL"
+          - name: _sdc_extracted_at
+            description: "Timestamp d’extraction initiale"
+          - name: _sdc_batched_at
+            description: "Timestamp de regroupement du lot"
+          - name: _sdc_deleted_at
+            description: "Timestamp de suppression logique (si applicable)"
+          - name: _sdc_table_version
+            description: "Version de la table dans le flux d’ingestion"
+          - name: _sdc_sequence
+            description: "Numéro de séquence du flux pour suivi d’ordre"
+
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              combination_of_columns:
+                - ec_no
+                - n_analytique
+                - ea_ligne
+
+      # TABLE ECRITURE COMPTABLE
+      - name: dbo_f_ecriturec
+        description: "Table des écritures comptables (f_ecriturec) — enregistre les mouvements comptables avec leurs montants, comptes, dates et statuts"
+        loaded_at_field: _sdc_received_at
+
+        columns:
+          - name: ec_no
+            description: "Identifiant unique de l’écriture comptable (clé primaire)"
+            tests:
+              - unique
+              - not_null
+
+          - name: jo_num
+            description: "Code du journal comptable"
+          - name: cb_jo_num
+            description: "Code journal comptable (encodé)"
+          - name: ec_no_link
+            description: "Numéro d’écriture liée (ex : écriture d’origine ou d’annulation)"
+          - name: jm_date
+            description: "Date du mouvement comptable"
+          - name: ec_jour
+            description: "Jour du mouvement"
+          - name: ec_date
+            description: "Date de l’écriture"
+          - name: ec_piece
+            description: "Numéro de pièce comptable"
+          - name: cb_ec_piece
+            description: "Numéro de pièce comptable encodé"
+          - name: ec_ref_piece
+            description: "Référence de la pièce associée"
+          - name: cb_ec_ref_piece
+            description: "Référence de la pièce encodée"
+          - name: ec_treso_piece
+            description: "Pièce de trésorerie associée"
+          - name: cg_num
+            description: "Numéro du compte général"
+          - name: cb_cg_num
+            description: "Numéro du compte général encodé"
+          - name: cg_num_cont
+            description: "Compte général contrepartie"
+          - name: ct_num
+            description: "Code du tiers associé"
+          - name: cb_ct_num
+            description: "Code tiers encodé"
+          - name: ec_intitule
+            description: "Libellé de l’écriture"
+          - name: n_reglement
+            description: "Numéro de règlement associé"
+          - name: ec_echeance
+            description: "Date d’échéance"
+          - name: ec_parite
+            description: "Taux de parité utilisé pour conversion"
+          - name: ec_quantite
+            description: "Quantité associée à l’écriture"
+          - name: n_devise
+            description: "Code devise"
+          - name: ec_sens
+            description: "Sens de l’écriture (Débit/Crédit)"
+          - name: ec_montant
+            description: "Montant de l’écriture"
+          - name: ec_lettre
+            description: "Indicateur de lettrage"
+          - name: ec_lettrage
+            description: "Code de lettrage"
+          - name: ec_point
+            description: "Indicateur de pointage"
+          - name: ec_pointage
+            description: "Code de pointage"
+          - name: ec_impression
+            description: "Indicateur d’impression"
+          - name: ec_cloture
+            description: "Indicateur de clôture"
+          - name: ec_c_type
+            description: "Type de compte (client, fournisseur, etc.)"
+          - name: ec_rappel
+            description: "Indicateur de rappel"
+          - name: ct_num_cont
+            description: "Code du tiers contrepartie"
+          - name: ec_lettre_q
+            description: "Indicateur de lettrage quantitatif"
+          - name: ec_lettrage_q
+            description: "Code de lettrage quantitatif"
+          - name: ec_an_type
+            description: "Type analytique lié"
+          - name: ec_r_type
+            description: "Type de règlement"
+          - name: ec_devise
+            description: "Montant dans la devise"
+          - name: ec_remise
+            description: "Indicateur de remise"
+          - name: ec_export_expert
+            description: "Indicateur d’export vers Expert"
+          - name: ta_code
+            description: "Code de taxe associé"
+          - name: cb_ta_code
+            description: "Code de taxe encodé"
+          - name: ec_norme
+            description: "Norme comptable utilisée"
+          - name: ta_provenance
+            description: "Provenance de la taxe"
+          - name: ec_penal_type
+            description: "Type de pénalité"
+          - name: ec_date_penal
+            description: "Date de pénalité"
+          - name: ec_date_relance
+            description: "Date de relance"
+          - name: ec_date_rappro
+            description: "Date de rapprochement"
+          - name: ec_reference
+            description: "Référence libre de l’écriture"
+          - name: ec_status_regle
+            description: "Statut de règlement (0 = non réglé, 1 = réglé)"
+          - name: ec_montant_regle
+            description: "Montant réglé"
+          - name: _sdc_received_at
+            description: "Timestamp d’ingestion du flux par Singer/ETL"
+          - name: _sdc_extracted_at
+            description: "Timestamp d’extraction"
+          - name: _sdc_batched_at
+            description: "Timestamp de batch"
+          - name: _sdc_deleted_at
+            description: "Timestamp de suppression logique"
+          - name: _sdc_table_version
+            description: "Version de la table dans le flux d’ingestion"
+          - name: _sdc_sequence
+            description: "Numéro de séquence du flux"
