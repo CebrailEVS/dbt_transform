@@ -139,7 +139,8 @@ tech_agence_mapping as (
     select
         nom,
         prenom,
-        agence
+        agence,
+        equipe
     from `evs-datastack-prod`.`prod_reference`.`tech_piece_agence_mapping`
 )
 
@@ -214,7 +215,8 @@ select
     u.is_manager_as_technician,
 
     -- === Agence du technicien (via mapping) ===
-    tam.agence as technician_agency_stock
+    tam.agence as technician_agency_stock,
+    tam.equipe as technician_equipe
 
 from workorder_demands wd
 left join workorder_demands_categories wdc

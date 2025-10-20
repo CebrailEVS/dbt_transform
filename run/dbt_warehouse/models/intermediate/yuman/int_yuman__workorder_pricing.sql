@@ -18,7 +18,7 @@
 -- MODEL: int_yuman__workorder_pricing
 -- PURPOSE: Determine automatic pricing for technical interventions from Yuman
 -- AUTHOR: Cebrail AKSOY
--- UPDATED: 2025-10-13 13:13:39.957836+00:00
+-- UPDATED: 2025-10-20 12:21:45.910421+00:00
 -- ============================================================================
 
 WITH 
@@ -59,6 +59,7 @@ base_workorders AS (
     site_address,
     site_postal_code,
     material_serial_number,
+    technician_equipe,
 
     -- Normalize workorder type
     LOWER(COALESCE(
@@ -288,6 +289,7 @@ SELECT
   machine_clean,
   metropole             AS metropolitan,
   metropole_city,
+  technician_equipe,
   reccurence            AS recurrence_count,
   type_tarif            AS pricing_type,
   key_tarif_used        AS pricing_key_used,
