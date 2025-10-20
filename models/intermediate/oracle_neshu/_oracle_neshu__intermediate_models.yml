@@ -812,3 +812,108 @@ models:
         description: Date de création du matériel Yuman.
       - name: material_updated_at
         description: Dernière mise à jour du matériel Yuman.
+
+
+  - name: int_oracle_neshu__commande_interne
+    description: >
+      Table intermédiaire des mouvements internes (commandes internes).
+      Filtrée sur les tâches de type LIVRAISON INTERNE (idtask_type = 132)
+      avec statut FAIT / VALIDE / ANNULE, et labels de la famille STATUT_LIVRAISON.
+      Contient les métriques de quantité et valorisation, avec les codes source et destination
+      (entreprise ou ressource) associés.
+
+    columns:
+      - name: task_product_id
+        description: "Clé primaire de task_has_product - Identifiant unique de la relation tâche-produit"
+        data_type: int64
+        tests:
+          - unique
+          - not_null
+
+      - name: task_id
+        description: "Identifiant de la tâche (référence EVS.TASK)"
+        data_type: int64
+        tests:
+          - not_null
+
+      - name: company_id
+        description: "Identifiant de l'entreprise cliente (peer company)"
+        data_type: int64
+
+      - name: product_id
+        description: "Identifiant du produit concerné"
+        data_type: int64
+        tests:
+          - not_null
+
+      - name: product_source_id
+        description: "Identifiant du produit source (COMPANY ou RESOURCES)"
+        data_type: int64
+
+      - name: product_source_type
+        description: "Type du produit source (COMPANY ou RESOURCES)"
+        data_type: string
+
+      - name: product_destination_id
+        description: "Identifiant du produit destination (COMPANY ou RESOURCES)"
+        data_type: int64
+
+      - name: product_destination_type
+        description: "Type du produit destination (COMPANY ou RESOURCES)"
+        data_type: string
+
+      - name: source_code
+        description: "Code de la source du mouvement (entreprise ou ressource)"
+        data_type: string
+        tests:
+          - not_null
+
+      - name: destination_code
+        description: "Code de la destination du mouvement (entreprise ou ressource)"
+        data_type: string
+        tests:
+          - not_null
+
+      - name: product_code
+        description: "Code métier du produit (référence EVS.PRODUCT)"
+        data_type: string
+
+      - name: task_status_code
+        description: "Code statut de la tâche (FAIT, VALIDE, ANNULE)"
+        data_type: string
+
+      - name: label_code
+        description: "Code du label associé à la tâche (famille STATUT_LIVRAISON)"
+        data_type: string
+
+      - name: task_start_date
+        description: "Date et heure réelle de début de la tâche"
+        data_type: timestamp
+        tests:
+          - not_null
+
+      - name: quantity
+        description: "Quantité totale du produit transféré (avec coefficients unitaires)"
+        data_type: numeric
+
+      - name: valuation
+        description: "Valorisation totale (quantité * prix unitaire net)"
+        data_type: numeric
+
+      - name: updated_at
+        description: "Timestamp de dernière mise à jour de la tâche"
+        data_type: timestamp
+        tests:
+          - not_null
+
+      - name: created_at
+        description: "Timestamp de création de la tâche"
+        data_type: timestamp
+        tests:
+          - not_null
+
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis Oracle (suivi de synchronisation)"
+        data_type: timestamp
+        tests:
+          - not_null
