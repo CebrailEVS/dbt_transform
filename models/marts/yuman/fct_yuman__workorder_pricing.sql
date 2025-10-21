@@ -1,13 +1,13 @@
 {{ config(
     materialized = "table",
-    schema='intermediate',
-    alias = "int_yuman__workorder_pricing",
+    schema='marts',
+    alias = "fct_yuman__workorder_pricing",
     partition_by={"field": "date_done", "data_type": "timestamp"},
     cluster_by=['billing_validation_status','workorder_status','demand_status','partner_name']
 ) }}
 
 -- ============================================================================
--- MODEL: int_yuman__workorder_pricing
+-- MODEL: fct_yuman__workorder_pricing
 -- PURPOSE: Determine automatic pricing for technical interventions from Yuman
 -- AUTHOR: Cebrail AKSOY
 -- UPDATED: {{ run_started_at }}
@@ -181,7 +181,9 @@ workorders_dedup AS (
     *,
     CASE
       WHEN postal_code_site IS NULL THEN 1
-      ELSE COUNT(*) OVER (PARTITION BY client_id, DATE(date_done))
+      ELSE COUNT(
+        CASE WHEN a_facturer THEN site_id END
+      ) OVER (PARTITION BY site_id, DATE(date_done))
     END AS reccurence
   FROM workorders_enriched
 ),
