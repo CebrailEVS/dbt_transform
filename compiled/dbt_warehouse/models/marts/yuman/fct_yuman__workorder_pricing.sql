@@ -1,24 +1,10 @@
 
-  
-    
-
-    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_yuman__workorder_pricing`
-      
-    partition by timestamp_trunc(date_done, day)
-    cluster by billing_validation_status, workorder_status, demand_status, partner_name
-
-    
-    OPTIONS(
-      description="""Vue interm\u00e9diaire de tarification automatique des interventions (workorders). Ce mod\u00e8le enrichit les donn\u00e9es unifi\u00e9es des interventions et des demandes issues de  `int_yuman__demands_workorders_enriched` avec les r\u00e9f\u00e9rentiels de types d'intervention, machines, tarifications et zones g\u00e9ographiques.  Il calcule les prix automatiques des interventions selon les r\u00e8gles de r\u00e9currence,  de partenaire et de localisation (m\u00e9tropole).\n"""
-    )
-    as (
-      
 
 -- ============================================================================
--- MODEL: int_yuman__workorder_pricing
+-- MODEL: fct_yuman__workorder_pricing
 -- PURPOSE: Determine automatic pricing for technical interventions from Yuman
 -- AUTHOR: Cebrail AKSOY
--- UPDATED: 2025-10-20 12:21:45.910421+00:00
+-- UPDATED: 2025-10-21 12:43:27.883385+00:00
 -- ============================================================================
 
 WITH 
@@ -189,7 +175,9 @@ workorders_dedup AS (
     *,
     CASE
       WHEN postal_code_site IS NULL THEN 1
-      ELSE COUNT(*) OVER (PARTITION BY client_id, DATE(date_done))
+      ELSE COUNT(
+        CASE WHEN a_facturer THEN site_id END
+      ) OVER (PARTITION BY site_id, DATE(date_done))
     END AS reccurence
   FROM workorders_enriched
 ),
@@ -303,5 +291,3 @@ SELECT
   END as billing_validation_status
 
 FROM final_result
-    );
-  
