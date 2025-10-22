@@ -1,0 +1,36 @@
+version: 2
+
+snapshots:
+  - name: snap_oracle_neshu__device
+    description: |
+      Historical snapshot of device dimension tracking changes to:
+      - Economic model (MODECOMA label)
+      - Company assignments (company_code)
+      
+      Uses check strategy to only capture changes to these specific fields.
+    
+    columns:
+      - name: device_id
+        description: "Unique device identifier (primary key)"
+        tests:
+          - not_null
+          - unique
+      
+      - name: device_economic_model
+        description: "Economic model (GRATUIT, PAYANT, etc.) - TRACKED for changes"
+      
+      - name: company_code
+        description: "Company code - TRACKED for changes (detects device transfers)"
+      
+      - name: dbt_valid_from
+        description: "Timestamp when this version became active"
+      
+      - name: dbt_valid_to
+        description: "Timestamp when this version was superseded (NULL = current)"
+      
+      - name: dbt_scd_id
+        description: "Unique identifier for this snapshot record"
+
+  # Future snapshots can be added here:
+  # - name: snap_oracle_neshu__company
+  # - name: snap_oracle_neshu__contract
