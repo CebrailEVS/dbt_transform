@@ -14,7 +14,6 @@ snapshots:
         description: "Unique device identifier (primary key)"
         tests:
           - not_null
-          - unique
       
       - name: device_economic_model
         description: "Economic model (GRATUIT, PAYANT, etc.) - TRACKED for changes"
@@ -30,6 +29,9 @@ snapshots:
       
       - name: dbt_scd_id
         description: "Unique identifier for this snapshot record"
+        tests:
+          - unique
+          - not_null
 
   # Future snapshots can be added here:
   # - name: snap_oracle_neshu__company
