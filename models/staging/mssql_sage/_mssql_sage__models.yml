@@ -72,7 +72,9 @@ models:
       - name: ec_date
         description: "Date de l'écriture comptable"
       - name: jm_date
-        description: "Date du journal"
+        description: "Periode de facturation de l'ecriture comptable"
+      - name: ec_jour
+        description: "Jour de la date de facturation de l'ecriture comptable"
       - name: ec_echeance
         description: "Date d'échéance (NULL si placeholder 1753-01-01)"
       - name: ec_date_rappro

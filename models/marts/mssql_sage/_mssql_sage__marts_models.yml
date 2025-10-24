@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: fct_mssql_sage__pnl_bu
+    description: >
+      Table de faits combinant écritures comptables et analytiques issues de SAGE
+      pour la construction du P&L par Business Unit.
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - numero_ecriture_comptable
+            - numero_plan_analytique
+            - numero_ligne_analytique
+
+    columns:
+      - name: numero_ecriture_comptable
+        description: Clé de l'écriture comptable (f_ecriturec)
+        tests:
+          - not_null
+
+      - name: numero_plan_analytique
+        description: numero analytique(f_ecriturea)
+
+      - name: numero_ligne_analytique
+        description: Ligne du numero analytique
+
+      - name: code_section_analytique
+        description: Code de la section analytique (BU, projet, etc.)
+
+      - name: numero_compte_general
+        description: Numéro de compte général (classes 6 et 7)
+        tests:
+          - not_null
+
+      - name: libelle_ecriture
+        description: Libellé de l'écriture comptable
+
+      - name: montant_analytique
+        description: Montant ventilé sur la section analytique
+
+      - name: date_facturation
+        description: Date réelle de facturation (reconstruite à partir de jm_date + ec_jour)
+        tests:
+          - not_null
+
+      - name: is_missing_analytical
+        description: Indique si l'écriture comptable n'a pas de ventilation analytique
