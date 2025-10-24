@@ -1,0 +1,236 @@
+﻿code_comptable,designation_compte,macro_categorie_pnl_bu
+611001,Administratif fees,Frais Directs & Amortissements
+612200,CREDIT BAIL MOBILIER,Frais Directs & Amortissements
+681110,DOT AMORT IMMO INCORPO,Frais Directs & Amortissements
+681120,DOT. AMORT. IMMO. CORPORELLES,Frais Directs & Amortissements
+633500,CONTRIBUTION AGEFIPH,Masse Salariale
+647000,AUTRES CHARGES SOCIALES,Masse Salariale
+647100,TICKETS RESTAURANT,Masse Salariale
+647200,CSE FONCTIONNEMENT,Masse Salariale
+647500,MEDECINE TRAVAIL PHCIE,Masse Salariale
+648000,AUTR.CHARGES DE PERSONNEL,Masse Salariale
+606300,FOURN.PETIT OUTILLAGE,Frais Directs & Amortissements
+606330,PRODUITS D'ENTRETIEN,Frais Directs & Amortissements
+606400,FOURNITURES DE BUREAU,Frais Directs & Amortissements
+606800,ACHATS DIVERS,Frais Directs & Amortissements
+616081,ASSURANCE S/EMPRUNT,Frais Directs & Amortissements
+617000,Etudes et recherches,Frais Directs & Amortissements
+618100,DOCUMENTATION,Frais Directs & Amortissements
+621000,PERSONNEL INTERIMAIRE,Frais Directs & Amortissements
+622100,COMMISSIONS (TO GOOD TO GO),Frais Directs & Amortissements
+622200,COMMISSIONS ET COURTAGE,Frais Directs & Amortissements
+622600,HONORAIRES,Frais Directs & Amortissements
+622605,Honoraires prestations sociales,Frais Directs & Amortissements
+622610,HONORAIRES AVOCAT,Frais Directs & Amortissements
+622700,FRAIS D_ACTES,Frais Directs & Amortissements
+623400,cadeaux clientèles/salariés,Frais Directs & Amortissements
+623800,DONS,Frais Directs & Amortissements
+625500,FRAIS DIVERS,Frais Directs & Amortissements
+625700,RECEPTIONS/REUNION COM/ REPRESENTATION,Frais Directs & Amortissements
+626000,AFFRANCHISSEMENT,Frais Directs & Amortissements
+626100,TELEPHONE/INTERNET,Frais Directs & Amortissements
+627500,FRAIS BANCAIRES,Frais Directs & Amortissements
+627501,FRAIS BANCAIRES (STRIPE/DA/FRIGO),Frais Directs & Amortissements
+628400,FRAIS DE RECRUTEMENT,Frais Directs & Amortissements
+633200,TAXE APPRENTISSAGE,Masse Salariale
+633300,PART. FORMATION,Masse Salariale
+633400,1% LOGEMENT,Masse Salariale
+645100,URSSAF,Masse Salariale
+645300,APICIL,Masse Salariale
+645400,POLE EMPLOI,Masse Salariale
+645500,PREVOYANCE,Masse Salariale
+645520,CHARGES / BONUS A PAYER,Masse Salariale
+645600,MUTUELLE,Masse Salariale
+706250,CASTALIE PRESTATION SAV,Chiffre d'Affaires
+706260,CASTALIE COMMISSIONS COMMERCIALES,Chiffre d'Affaires
+707500,CASTALIE VENTES 20%,Chiffre d'Affaires
+708820,Refacturation Bons de réduction 20%,Chiffre d'Affaires
+706430,AUTRES PARTENAIRES PRESTATIONS TECH,Chiffre d'Affaires
+706010,PRESTATION 20% DIVERS,Chiffre d'Affaires
+706100,NNFR COMMISSIONS TECHNIQUES,Chiffre d'Affaires
+706210,NESHU COMMISSIONS PARTENAIRES,Chiffre d'Affaires
+706400,NESHU FONTAINE LOC 20%,Chiffre d'Affaires
+706420,NESHUPRESTATION 20%,Chiffre d'Affaires
+707300,NESHU 10%,Chiffre d'Affaires
+707305,NESHU 5.5%,Chiffre d'Affaires
+707320,NESHU 20%,Chiffre d'Affaires
+709710,NESHU REMISE RABAIS10%,Chiffre d'Affaires
+709711,NESHU RISTOURNE 20%,Chiffre d'Affaires
+706300,NUNSHEN FORMATION EXPORT,Chiffre d'Affaires
+706310,NUNSHEN FORMATION,Chiffre d'Affaires
+706320,NUNSHEN DECOMMISSION,Chiffre d'Affaires
+707000,NUNSHEN 20%,Chiffre d'Affaires
+707100,NUNSHEN 5.5%,Chiffre d'Affaires
+707105,NUNSHEN 2.1%,Chiffre d'Affaires
+707400,VENTES CHOCOLAT 5.5%,Chiffre d'Affaires
+707800,NUNSHEN THE UE 0%,Chiffre d'Affaires
+707805,NUNSHEN ACCESSOIRE UE 0%,Chiffre d'Affaires
+707810,NUNSHEN THE UE 5.5%,Chiffre d'Affaires
+707900,NUNSHEN EXPORT 0%,Chiffre d'Affaires
+707905,NUNSHEN EXPORT 5.5%,Chiffre d'Affaires
+707910,NUNSHEN ACCESSOIRES EXPORT,Chiffre d'Affaires
+708100,Port /vente NUNSHEN 20%,Chiffre d'Affaires
+708105,Port /vente NUNSHEN 2.1% CORSE,Chiffre d'Affaires
+708110,Port/Ventes Export NUNSHEN,Chiffre d'Affaires
+708810,PRODUITS ACTIVITES ANNEXES EXPORT,Chiffre d'Affaires
+709700,NUNSHEN REMISE RABAIS 0%,Chiffre d'Affaires
+709705,NUNSHEN REMISE RABAIS 5.5%,Chiffre d'Affaires
+709720,NUNSHEN REMISE RABAI 20%,Chiffre d'Affaires
+706200,NNFR PRESTATION /GESTION PDTECH,Chiffre d'Affaires
+707200,NNFR VENTES PIECES DETACHEES,Chiffre d'Affaires
+707410,VENTES CHOCOLAT EXPORT,Chiffre d'Affaires
+706101,NNFR COMMISSIONS MACHINES,Chiffre d'Affaires
+706103,NNFR COMMISSIONS CAPSULES,Chiffre d'Affaires
+706104,NNFR COMMISSIONS DIVERSES,Chiffre d'Affaires
+706106,NNFR COMMISSIONS ACCESSOIRES,Chiffre d'Affaires
+622800,Honoraires divers,Frais Directs & Amortissements
+623100,ANNONCES ET INSERTIONS,Frais Directs & Amortissements
+623300,FOIRES ET EXPOSITIONS,Frais Directs & Amortissements
+623600,CATALOGUES ET IMPRIMES,Frais Directs & Amortissements
+641200,CONGES PAYES,Masse Salariale
+645800,COT.SOC./PROV.CONG.PAYES,Masse Salariale
+603705,Variation stocks NESHU,Consommation MP & SSTT
+604215,SOUS TRAITANCE NESHU,Consommation MP & SSTT
+607010,ACHATS NESPRESSO,Consommation MP & SSTT
+607015,ACHATS NESTLE,Consommation MP & SSTT
+607020,ACHATS CASTALIE,Consommation MP & SSTT
+607115,ACHATS NESHU,Consommation MP & SSTT
+602600,ACHATS D_EMBALLAGES,Consommation MP & SSTT
+603200,Variation stocks autres approv.,Consommation MP & SSTT
+603700,Variation stocks NUNSHEN,Consommation MP & SSTT
+604200,CONDITIONNEMENT/ MARCHANDISES,Consommation MP & SSTT
+604210,SOUS TRAITANCE / PREPARATION CDE,Consommation MP & SSTT
+607000,ACHATS THE,Consommation MP & SSTT
+607111,ACHATS CHOCOLAT,Consommation MP & SSTT
+607113,ACHATS ACCESSOIRES NUNSHEN,Consommation MP & SSTT
+608000,ACHAT FRAIS ACCESSOIRES,Consommation MP & SSTT
+608700,FRAIS ACCESS SUR ACHATS MARCHANDISE,Consommation MP & SSTT
+603710,Variation stocks pièces détachées,Consommation MP & SSTT
+607200,ACHATS PIECES DETACHEES,Consommation MP & SSTT
+606100,E.D.F.,Frais Directs & Amortissements
+606101,EAU,Frais Directs & Amortissements
+606130,CARBURANTS,Frais Directs & Amortissements
+605000,Achats matériel équipement tx revente,Frais Directs & Amortissements
+606310,AUTRES ACHATS NESHU,Frais Directs & Amortissements
+613505,LOCATIONS MACHINE NESTLE,Frais Directs & Amortissements
+613513,LOCATION MACHINE A LAVER AUUM,Frais Directs & Amortissements
+695000,IMPOTS SUR LES BENEFICES,Frais Directs & Amortissements
+613200,LOCATION ENTREPROT,Frais Directs & Amortissements
+613210,LOYER LYON,Frais Directs & Amortissements
+613211,LOYER PARIS/RUNGIS,Frais Directs & Amortissements
+613212,LOYER ILLKIRCH,Frais Directs & Amortissements
+613214,LOCATION BOX,Frais Directs & Amortissements
+613500,LOCATIONS MOBILIERES,Frais Directs & Amortissements
+613510,LOYER MOB.MAT.BUREAU,Frais Directs & Amortissements
+613512,LOCATION FRIGO CONNECTE,Frais Directs & Amortissements
+613514,LOCATION PHOTOCOPIEUR,Frais Directs & Amortissements
+614500,CHARGES LOCAT.COPROPRIETE,Frais Directs & Amortissements
+615200,ENTRETIEN LOCAUX,Frais Directs & Amortissements
+615510,ENT.MAT.BUREAU,Frais Directs & Amortissements
+616010,ASSURANCES S/LOCATIONS,Frais Directs & Amortissements
+616020,ASSURANCE BOX,Frais Directs & Amortissements
+611000,Management fees,Frais Directs & Amortissements
+612520,CREDIT BAIL VEHICULES,Frais Directs & Amortissements
+613520,LOYER MAT.TRANSPORT,Frais Directs & Amortissements
+613521,LOCATION TRACEURS GEOLOCALISATION,Frais Directs & Amortissements
+615500,ENTRETIEN MATERIEL TRANSPORT,Frais Directs & Amortissements
+615520,ENTRETIEN MATERIEL TRANSPORT,Frais Directs & Amortissements
+616000,ASSURANCES,Frais Directs & Amortissements
+691000,PARTICIPATION DES SALARIES,Frais Directs & Amortissements
+654000,Pertes/cr‚ances irr‚couvrables,Frais Directs & Amortissements
+658000,CHARGES DIV.GEST.COURANTE,Frais Directs & Amortissements
+671200,PENALITES AMENDES,Frais Directs & Amortissements
+671800,CHARGES EXCEPT. OP GESTION,Frais Directs & Amortissements
+672000,CHARGES EXCEP./EXO ANTERIEUR,Frais Directs & Amortissements
+675100,VNC IMMOB INCORPO,Frais Directs & Amortissements
+675200,VNC IMMOB CORPO,Frais Directs & Amortissements
+675600,VNC IMMO FINANCIERES,Frais Directs & Amortissements
+678800,CHARGES EXCEPT DIVERSES,Frais Directs & Amortissements
+681740,Dotation provision Dépréciation actif,Frais Directs & Amortissements
+687100,Dotation provision pour risque except,Frais Directs & Amortissements
+687250,Dotation dérogatoire,Frais Directs & Amortissements
+708800,PRODUITS ACTIVITES ANNEXES 20%,Frais Directs & Amortissements
+720000,PRODUCTION IMMOBILISEE,Frais Directs & Amortissements
+740000,Subvention bonus,Frais Directs & Amortissements
+758000,PROD.DIVERS DE GEST.COUR.,Frais Directs & Amortissements
+771800,PROD.EXCEPT./OPER.GESTION,Frais Directs & Amortissements
+771810,Produits exceptionnels soumis … TVA,Frais Directs & Amortissements
+772000,PRODUITS EXCEP./EXO ANTERIEUR,Frais Directs & Amortissements
+775200,Produits cessions soumis TVA,Frais Directs & Amortissements
+775201,Produits cessions exo TVA,Frais Directs & Amortissements
+775600,Cession immobilisation financière,Frais Directs & Amortissements
+781500,Reprise/prov risque chg except,Frais Directs & Amortissements
+781730,REPR/ PRIV DEP STOCK,Frais Directs & Amortissements
+781740,REPR/ PRIV DEP ACT CIRCULANT,Frais Directs & Amortissements
+787500,REPR/ PROV POUR RISQUE,Frais Directs & Amortissements
+791100,TRANSFERT DE CHARGES DFS,Frais Directs & Amortissements
+791600,TRANSFERT DE CHARGES IJ,Frais Directs & Amortissements
+791610,TRANSFERTS CHARGES D_EXPL HT,Frais Directs & Amortissements
+791621,TRANSFERT CHG 10%,Frais Directs & Amortissements
+791622,TRANSFERT CHG 20%,Frais Directs & Amortissements
+791630,TRANSFERT DE CHARGES,Frais Directs & Amortissements
+791640,TRANSFERTS CHARGES D_EXPL,Frais Directs & Amortissements
+791641,TRANSFERT CHGES PERS.HT,Frais Directs & Amortissements
+656000,PERTES DE CHANGE,Frais Directs & Amortissements
+661100,INTERETS D'EMPRUNT,Frais Directs & Amortissements
+661500,INTERET COMPTE COURANT,Frais Directs & Amortissements
+661600,INTERETS BANCAIRES,Frais Directs & Amortissements
+756000,GAINS DE CHANGE,Frais Directs & Amortissements
+762000,AUTRES PRODUITS FINANCIERS IMMO,Frais Directs & Amortissements
+762400,PRODUITS FIN. REVENUS DES PRETS,Frais Directs & Amortissements
+768000,AUTRES PRODUITS FINANCIERS,Frais Directs & Amortissements
+651000,REDEVENCE CESSION BREVET,Frais Directs & Amortissements
+641100,SALAIRES,Masse Salariale
+641105,REMBOURSEMENT ETAT CHOMAGE PARTIEL,Masse Salariale
+641110,INDEMNITES LICENCIEMENT,Masse Salariale
+641400,INDEMNITE / AVANTAGE / DSF,Masse Salariale
+641800,AVANTAGES EN NATURE,Masse Salariale
+791000,TRANSFERTS CHARGES D_EXPL AEN,Masse Salariale
+611050,Sous traitance générale (NEMORUN),Frais Directs & Amortissements
+613511,LOCATION SOLUTION INFORM.,Frais Directs & Amortissements
+613515,LOCATION VISIO,Frais Directs & Amortissements
+613516,Location SAGE,Frais Directs & Amortissements
+615600,MAINTENANCE INFORMATIQUE,Frais Directs & Amortissements
+628100,COTISATIONS ET ABONNEMENTS,Frais Directs & Amortissements
+628300,ABONNEMEMENT INFORMATIQUE,Frais Directs & Amortissements
+604100,SOUS TRAITANCE / SAV TECHNIQUE,Consommation MP & SSTT
+635110,CFE ET CVAE,Frais Directs & Amortissements
+635120,TAXES FONCIERES,Frais Directs & Amortissements
+635140,TAXES/VEHICUL.DE SOCIETES,Frais Directs & Amortissements
+635400,CARTES GRISES,Frais Directs & Amortissements
+635800,AUTRES DROITS,Frais Directs & Amortissements
+635810,Taxe bureaux,Frais Directs & Amortissements
+624100,TRANSP.S/ACHATS,Frais Directs & Amortissements
+624200,TRANSP.S/VENTES,Frais Directs & Amortissements
+613522,LOCATION VEHICULE OCCASIONNEL,Frais Directs & Amortissements
+618500,FRAIS DE STAGES / SEMINAIRES,Frais Directs & Amortissements
+625110,FRAIS DEPLACEMENTS SALARIES,Frais Directs & Amortissements
+625112,FRAIS DEPLACEMENTS MANAGEMENT,Frais Directs & Amortissements
+641120,BONUS A PAYER,Masse Salariale
+641300,VARIABLE NESPRESSO,Masse Salariale
+641305,PRIMES EXCEPTIONNELLES,Masse Salariale
+641310,VARIABLE NUNSHEN,Masse Salariale
+641315,VARIABLE NESHU,Masse Salariale
+641320,VARIABLE CASTALIE,Masse Salariale
+641322,VARIABLE TECHNIQUE,Masse Salariale
+641325,VARIABLE DIVERS,Masse Salariale
+706431,AUUM PRESTATIONS TECH,Chiffre d'Affaires
+706433,TWYD PRESTATIONS TECH,Chiffre d'Affaires
+606110,EAU,Frais Directs & Amortissements
+706432,BRITA PRESTATIONS TECH,Chiffre d'Affaires
+625113,PEAGES/TELEPEAGES/PARKING,Frais Directs & Amortissements
+612250,CREDIT BAIL VEHICULES,Frais Directs & Amortissements
+618200,FRAIS DE FORMATION SALARIES,Frais Directs & Amortissements
+628200,INFOGERANCE,Frais Directs & Amortissements
+613506,LOCATION MATERIEL NESHU,Frais Directs & Amortissements
+707815,NUNSHEN ACCESSOIRES UE 20%,Chiffre d'Affaires
+615521,RESTITUTION ENT. MAT. TRANSP.,Frais Directs & Amortissements
+618300,FRAIS DE FORMATION ECOLES,Frais Directs & Amortissements
+637100,C3S,Frais Directs & Amortissements
+641900,TRANSF. AVANTAGE EN NATURE,Frais Directs & Amortissements
+649300,REMBOURSEMENTS SUBVENTION APPRENTIS,Frais Directs & Amortissements
+657000,VNC IMMO CORP ET INCORP.,Frais Directs & Amortissements
+758700,INDEMNITES D'ASSURANCE AUTRES,Frais Directs & Amortissements
+758710,INDEMNITES D'ASSURANCES VEHICULES,Frais Directs & Amortissements
+649200,IJSS,Frais Directs & Amortissements
+757000,PRODUIT CESSIONS IMMO CORP ET INC,Frais Directs & Amortissements

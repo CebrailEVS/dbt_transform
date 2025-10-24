@@ -28,6 +28,12 @@ models:
       - name: code_section_analytique
         description: Code de la section analytique (BU, projet, etc.)
 
+      - name: code_analytique_bu
+        description: Business Unit (BU) associée à la section analytique
+      
+      - name: macro_categorie_pnl_bu
+        description: Macro catégorie P&L associée au compte comptable
+
       - name: numero_compte_general
         description: Numéro de compte général (classes 6 et 7)
         tests:

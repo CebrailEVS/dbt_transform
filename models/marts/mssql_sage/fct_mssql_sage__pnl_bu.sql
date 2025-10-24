@@ -36,6 +36,15 @@ ecritures_analytiques AS (
     created_at,
     updated_at
   FROM {{ ref('stg_mssql_sage__f_ecriturea') }}
+),
+
+-- 🆕 Import des mappings pour code_compta et code_analytique BU
+mapping_code_comptable__bu AS (
+  SELECT * FROM {{ ref('mapping_code_comptable__bu') }}
+),
+
+mapping_code_analytique__bu AS (
+  SELECT * FROM {{ ref('mapping_code_analytique__bu') }}
 )
 
 SELECT
@@ -46,10 +55,12 @@ SELECT
   
   -- Dimensions analytiques
   a.code_section_analytique,
+  bu.code_analytique_bu,
   
   -- Comptabilité générale
   c.numero_compte_general,
   c.libelle_ecriture,
+  cbu.macro_categorie_pnl_bu,
   
   -- Montants
   a.montant_analytique,
@@ -65,7 +76,17 @@ SELECT
     WHEN a.numero_ecriture_comptable IS NULL THEN TRUE 
     ELSE FALSE 
   END AS is_missing_analytical,
-  
+
+  CASE
+    WHEN bu.code_analytique_bu IS NULL THEN TRUE
+    ELSE FALSE
+  END AS is_missing_bu_mapping,
+
+  CASE
+    WHEN cbu.macro_categorie_pnl_bu IS NULL THEN TRUE
+    ELSE FALSE
+  END AS is_missing_comptable_mapping,
+
   -- Métadonnées
   COALESCE(a.created_at, c.created_at) AS created_at,
   COALESCE(a.updated_at, c.updated_at) AS updated_at
@@ -73,3 +94,7 @@ SELECT
 FROM ecritures_comptables c
 LEFT JOIN ecritures_analytiques a
   ON c.numero_ecriture_comptable = a.numero_ecriture_comptable
+LEFT JOIN mapping_code_analytique__bu bu
+  ON a.code_section_analytique = bu.code_analytique
+LEFT JOIN mapping_code_comptable__bu cbu
+  ON CAST(c.numero_compte_general AS STRING) = cbu.code_comptable  
