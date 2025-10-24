@@ -5,7 +5,7 @@
         'field': 'date_facturation',
         'data_type': 'timestamp'
     },
-    cluster_by = ['numero_compte_general', 'code_section_analytique']
+    cluster_by = ['numero_compte_general', 'code_analytique']
 ) }}
 
 WITH ecritures_comptables AS (
@@ -31,7 +31,7 @@ ecritures_analytiques AS (
     ec_no AS numero_ecriture_comptable,
     n_analytique AS numero_plan_analytique,
     ea_ligne AS numero_ligne_analytique,
-    ca_num AS code_section_analytique,
+    ca_num AS code_analytique,
     ea_montant AS montant_analytique,
     created_at,
     updated_at
@@ -54,7 +54,7 @@ SELECT
   a.numero_ligne_analytique,
   
   -- Dimensions analytiques
-  a.code_section_analytique,
+  a.code_analytique,
   bu.code_analytique_bu,
   
   -- Comptabilité générale
@@ -95,6 +95,6 @@ FROM ecritures_comptables c
 LEFT JOIN ecritures_analytiques a
   ON c.numero_ecriture_comptable = a.numero_ecriture_comptable
 LEFT JOIN mapping_code_analytique__bu bu
-  ON a.code_section_analytique = bu.code_analytique
+  ON a.code_analytique = bu.code_analytique
 LEFT JOIN mapping_code_comptable__bu cbu
   ON CAST(c.numero_compte_general AS STRING) = cbu.code_comptable  

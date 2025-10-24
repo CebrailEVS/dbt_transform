@@ -25,7 +25,7 @@ models:
       - name: numero_ligne_analytique
         description: Ligne du numero analytique
 
-      - name: code_section_analytique
+      - name: code_analytique
         description: Code de la section analytique (BU, projet, etc.)
 
       - name: code_analytique_bu

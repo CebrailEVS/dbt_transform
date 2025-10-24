@@ -143,7 +143,7 @@ seeds:
   - name: mapping_code_analytique__bu
     description: "Mapping code analytique vers description"
     columns:
-      - name: code_section_analytique
+      - name: code_analytique
         description: "Code de la section analytique"
         tests:
           - not_null
