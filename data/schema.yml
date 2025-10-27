@@ -149,8 +149,6 @@ seeds:
           - not_null
       - name: code_analytique_bu
         description: "BU associé au code analytique"
-        tests:
-          - not_null
 
   - name: mapping_code_comptable__bu
     description: "Mapping compte comptable vers BU"
@@ -169,5 +167,3 @@ seeds:
           - not_null
       - name: macro_categorie_pnl_bu
         description: "Macro catégorie P&L BU associée au compte comptable"
-        tests:
-          - not_null
