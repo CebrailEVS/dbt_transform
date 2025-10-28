@@ -28,6 +28,7 @@ cleaned_data as (
         -- Dates
         timestamp(ec_date) as ec_date,
         timestamp(jm_date) as jm_date,
+        ec_jour,
         -- Dates avec placeholder à nettoyer
         case when ec_echeance = '1753-01-01' then NULL else timestamp(ec_echeance) end as ec_echeance,
         case when ec_date_rappro = '1753-01-01' then NULL else timestamp(ec_date_rappro) end as ec_date_rappro,
