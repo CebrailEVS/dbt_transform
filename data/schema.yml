@@ -167,3 +167,15 @@ seeds:
           - not_null
       - name: macro_categorie_pnl_bu
         description: "Macro catégorie P&L BU associée au compte comptable"
+
+  - name: mapping_neshu__roadman_gea
+    description: "Mapping code roadman NESHU vers GEA"
+    columns:
+      - name: roadman_code
+        description: "Code roadman NESHU"
+        tests:
+          - not_null
+      - name: gea_code
+        description: "Code GEA associé"
+        tests:
+          - not_null
