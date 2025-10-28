@@ -1,0 +1,196 @@
+version: 2
+
+# ============================================
+# SOURCES EXTERNES - MARTS ORACLE NESHU
+# ============================================
+# Tables créées en dehors de la pipeline dbt standard
+# (scripts Python ETL, outils tiers, etc.)
+# ============================================
+
+sources:
+  - name: marts_oracle_neshu_external
+    description: |
+      Tables de la couche marts créées par des pipelines externes à dbt.
+      
+      **⚠️ IMPORTANT :**
+      Ces tables ne sont PAS générées par dbt run, mais par des scripts Python
+      orchestrés via Airflow. Elles sont documentées ici pour :
+      - Centraliser la documentation
+      - Permettre les tests de qualité via dbt test
+      - Assurer la visibilité dans dbt docs
+      - Permettre les références dans d'autres modèles dbt
+      
+    database: evs-datastack-prod
+    schema: prod_marts
+    
+    tables:
+      # ============================================
+      # TABLE : PASSAGES APPRO ROADMAN (HOURLY REFRESH)
+      # ============================================
+      - name: fct_oracle_neshu__passages_appro
+        description: |
+          **Table des passages approvisionneurs roadman**
+          
+          📍 **SOURCE DE CRÉATION :**
+          - Script : `/mnt/data/extract_load/scripts/oracle_neshu/passages_appro_etl.py`
+          - Requête SQL : `/mnt/data/extract_load/scripts/oracle_neshu/queries/passages_appro_extract.sql`
+          - DAG Airflow : `dag_passages_appro_hourly` (à créer)
+          
+          🔄 **REFRESH :**
+          - Fréquence : Toutes les heures entre 6h-15h
+          - Mode : TRUNCATE (full refresh)
+          - Historique : 15 derniers jours
+          
+          📊 **DONNÉES :**
+          - Source : Oracle Neshu (TASK, TASK_HAS_RESOURCES, LABEL_HAS_TASK, etc.)
+          - Transformations : Effectuées dans la requête SQL Oracle (CTEs)
+          - Période : Passages des 15 derniers jours
+          - Filtres : Statuts PREVU, ENCOURS, FAIT uniquement
+          
+          🎯 **USAGE MÉTIER :**
+          Cette table est utilisée pour le suivi en quasi temps-réel des passages
+          approvisionneurs des roadmen chez les clients. Contrairement aux autres
+          tables marts qui sont rafraîchies quotidiennement, celle-ci nécessite
+          un refresh horaire pour les besoins opérationnels.
+          
+          ⚠️ **ATTENTION :**
+          Ne pas modifier cette table via dbt ! Toute modification doit se faire
+          dans le script Python ou la requête SQL source.
+          
+        meta:
+          owner: "Data Engineering"
+          refresh_frequency: "hourly"
+          refresh_schedule: "0 6-15 * * *"
+          data_retention_days: 15
+          external_pipeline: true
+          pipeline_type: "Python ETL"
+          
+        loaded_at_field: loaded_at
+        
+        columns:
+          - name: task_id
+            description: "Identifiant unique de la tâche de passage (clé primaire)"
+            data_type: integer
+            tests:
+              - unique
+              - not_null
+          
+          - name: roadman_code
+            description: |
+              Code du roadman (ressource de type 2) assigné au passage.
+              Un roadman peut avoir plusieurs passages dans la journée.
+            data_type: string
+          
+          - name: company_code
+            description: "Code client (idcompany_peer de la tâche)"
+            data_type: string
+          
+          - name: company_name
+            description: "Nom du client"
+            data_type: string
+          
+          - name: device_id
+            description: "Identifiant de l'équipement/machine concerné"
+            data_type: integer
+          
+          - name: device_info
+            description: |
+              Info complet de l'équipement au format 'nom - code'.
+              Exemple : 'MOMENTO - ASXXXX'
+            data_type: string
+          
+          - name: passage_start_datetime
+            description: |
+              Date et heure de début réel du passage (real_start_date de la tâche).
+              Utilisé pour le calcul de durée et séquencement.
+            data_type: timestamp
+            tests:
+              - not_null
+              - dbt_utils.expression_is_true:
+                  expression: "<= passage_end_datetime"
+                  config:
+                    severity: warn
+          
+          - name: passage_start_date
+            description: |
+              Date du passage sans l'heure (TRUNC de passage_start_datetime).
+              Utilisé pour les agrégations journalières.
+            data_type: date
+          
+          - name: passage_end_datetime
+            description: |
+              Date et heure de fin réelle du passage (real_end_date de la tâche).
+              Peut être NULL si passage en cours.
+            data_type: timestamp
+          
+          - name: day_start_datetime
+            description: |
+              Heure de pointage du roadman ce jour-là (premier pointage valide après 3h).
+              NULL si pas de pointage trouvé. Utilisé pour calculer les retards/avances.
+            data_type: timestamp
+          
+          - name: passage_status
+            description: |
+              Statut du passage :
+              - PREVU : Passage planifié mais pas encore commencé
+              - ENCOURS : Passage en cours d'exécution
+              - FAIT : Passage terminé et validé
+            data_type: string
+          
+          - name: passage_duration_min
+            description: |
+              Durée du passage en minutes, calculée par :
+              (passage_end_datetime - passage_start_datetime) * 24 * 60
+              NULL si passage pas encore terminé.
+            data_type: float
+            tests:
+              - dbt_utils.expression_is_true:
+                  expression: ">= 0 OR passage_duration_min IS NULL"
+                  config:
+                    severity: warn
+          
+          - name: is_done
+            description: |
+              Flag binaire indiquant si le passage est terminé.
+              1 = FAIT, 0 = PREVU ou ENCOURS
+            data_type: integer
+          
+          - name: is_planned
+            description: |
+              Flag binaire indiquant si le passage est planifié ou réalisé.
+              1 = PREVU, ENCOURS ou FAIT
+              0 = Autres statuts (normalement filtré en amont)
+            data_type: integer
+          
+          - name: passage_sequence
+            description: |
+              Numéro de séquence du passage pour ce roadman dans la journée.
+              Calculé par ROW_NUMBER() PARTITION BY roadman ORDER BY start_datetime.
+              Permet d'identifier le 1er, 2ème, 3ème passage du roadman.
+            data_type: integer
+          
+          - name: loaded_at
+            description: |
+              Timestamp de chargement dans BigQuery (ajouté par le script Python).
+              Permet de tracer quand les données ont été rafraîchies.
+            data_type: timestamp
+            tests:
+              - not_null
+
+        # Tests au niveau de la table
+        tests:
+          # Vérifier qu'il n'y a pas de doublons sur task_id + roadman_code
+          - dbt_utils.unique_combination_of_columns:
+              combination_of_columns:
+                - task_id
+                - roadman_code
+              config:
+                severity: error
+          
+          # Vérifier qu'on a bien des données récentes (moins de 24h)
+          - dbt_utils.recency:
+              datepart: hour
+              field: loaded_at
+              interval: 24
+              config:
+                severity: error

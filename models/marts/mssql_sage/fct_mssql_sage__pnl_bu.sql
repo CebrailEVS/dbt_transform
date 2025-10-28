@@ -13,6 +13,7 @@ WITH ecritures_comptables AS (
     ec_no AS numero_ecriture_comptable,
     cg_num AS numero_compte_general,
     ec_intitule AS libelle_ecriture,
+    ec_sens as sens_ecriture,
     ec_date AS date_ecriture_comptable,
     jm_date AS date_periode_facturation,
     ec_jour AS jour_facturation,
@@ -68,6 +69,8 @@ mapped_with_fallback AS (
     c.libelle_ecriture,
     cbu.macro_categorie_pnl_bu,
 
+    c.sens_ecriture,
+
     a.montant_analytique,
 
     c.date_facturation,
@@ -107,7 +110,17 @@ SELECT
   libelle_ecriture,
   macro_categorie_pnl_bu,
 
+  sens_ecriture,
+
   montant_analytique,
+
+  CASE
+  WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '6' AND sens_ecriture = 0 THEN -ABS(montant_analytique)  -- charge débitée → négatif
+  WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '6' AND sens_ecriture = 1 THEN ABS(montant_analytique)   -- charge créditée → positif (rare, extourne)
+  WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '7' AND sens_ecriture = 0 THEN -ABS(montant_analytique)  -- produit débité (rare, correction)
+  WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '7' AND sens_ecriture = 1 THEN ABS(montant_analytique)   -- produit crédité → positif
+  ELSE montant_analytique
+  END AS montant_analytique_signe,
 
   date_facturation,
   date_ecriture_comptable,
