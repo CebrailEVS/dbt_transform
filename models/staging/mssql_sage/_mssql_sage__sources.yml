@@ -5,6 +5,7 @@ sources:
   - name: mssql_sage
     description: "Source des données issues de Sage (MSSQL) — données brutes extraites vers BigQuery"
     schema: prod_raw
+    tags: ['mssql_sage', 'source']
     tables:
       - name: dbo_f_ecriturea
         description: "Table des écritures analytiques (f_ecriturea) — détail des montants et quantités analytiques par écriture comptable"

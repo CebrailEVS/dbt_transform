@@ -19,7 +19,7 @@ sources:
       - Permettre les tests de qualité via dbt test
       - Assurer la visibilité dans dbt docs
       - Permettre les références dans d'autres modèles dbt
-      
+    tags: ['marts', 'oracle_neshu', 'external_source']
     database: evs-datastack-prod
     schema: prod_marts
     
@@ -174,7 +174,7 @@ sources:
               Permet d'identifier le 1er, 2ème, 3ème passage du roadman.
             data_type: integer
           
-          - name: loaded_at
+          - name: loaded_at_utc
             description: |
               Timestamp de chargement dans BigQuery (ajouté par le script Python).
               Permet de tracer quand les données ont été rafraîchies.
@@ -195,7 +195,7 @@ sources:
           # Vérifier qu'on a bien des données récentes (moins de 24h)
           - dbt_utils.recency:
               datepart: hour
-              field: loaded_at
+              field: loaded_at_utc
               interval: 24
               config:
                 severity: error

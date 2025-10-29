@@ -31,15 +31,46 @@ models:
     +persist_docs:
       relation: true
       columns: true
+
     staging:
       +schema: staging
       +tags: ['staging']
+
+      yuman:
+        +tags: ['staging', 'yuman']
+
+      oracle_neshu:
+        +tags: ['staging', 'oracle_neshu']
+
+      mssql_sage:
+        +tags: ['staging', 'mssql_sage']
+
     intermediate:
       +schema: intermediate
       +tags: ['intermediate']
+
+      yuman:
+        +tags: ['intermediate', 'yuman']
+
+      oracle_neshu:
+        +tags: ['intermediate', 'oracle_neshu']
+
+      mssql_sage:
+        +tags: ['intermediate', 'mssql_sage']
+
     marts:
       +schema: marts
       +tags: ['marts']
+
+      yuman:
+        +tags: ['marts', 'yuman']
+
+      oracle_neshu:
+        +tags: ['marts', 'oracle_neshu']
+
+      mssql_sage:
+        +tags: ['marts', 'mssql_sage']
+
 
 # ✨ AJOUT de la section pour les seeds
 seeds:
