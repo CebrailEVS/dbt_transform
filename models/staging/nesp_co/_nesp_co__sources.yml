@@ -1,0 +1,140 @@
+# models/_nesp_co__sources.yml
+version: 2
+
+sources:
+  - name: nesp_co
+    schema: "prod_raw"
+    description: "Données brutes extraites des fichiers excel Activité et Opportunités Nespresso depuis le FTP nespresso commerce"  
+    tags: ['nesp_co', 'source']
+    tables:
+      - name: nespresso_commerce_activite
+        description: "Table des activites commerciales Nespresso"  
+        columns:
+          - name: employee_responsible
+            description: "Identifiant de l'employé responsable"
+          - name: activity_id
+            description: "Identifiant de l'activité commerciale"
+          - name: unnamed_1
+            description: "Id C4C du commercial"
+          - name: activity_type
+            description: "Type d'activité commerciale (Phone call, appointment, etc.)"
+          - name: phone_call
+            description: "Description de l'appel téléphonique si activity_type = Phone call"
+          - name: created_by_phone_call_id
+            description: "Identifiant du commercial responsable de l'appel téléphonique"
+          - name: unnamed_5
+            description: "Colonne inutile ignorée"
+          - name: appointment
+            description: "Description du rendez-vous si activity_type = appointment"
+          - name: created_by_appointment_
+            description: "Identifiant du commercial responsable du rendez-vous"          
+          - name: activity_category
+            description: "Catégorie de l'activité commerciale"
+          - name: week_calendar_year
+            description: "Semaine de l'année. exemple format : [08.04.2024 ... 14.04.2024]"
+          - name: calendar_month
+            description: "Mois du calendrier en format texte"
+          - name: main_account
+            description: "Nom du compte"
+          - name: unnamed_12
+            description: "ID C4C du nom du compte lié a main_account"
+          - name: category
+            description: "Catégorie du compte"
+          - name: industry
+            description: "Secteur d'activité du compte"
+          - name: sales_potential
+            description: "(COLONNE INUTILE) Potentiel de vente du compte"
+          - name: role 
+            description: "Prospect / Client"
+          - name: nessoft_id_main_account_ 
+            description: "Identifiant Nessoft du compte principal"
+          - name: activity_unit
+            description: "Unité de l'activité commerciale"
+          - name: activity_life_cycle_status
+            description: "Statut du cycle de vie de l'activité commerciale"
+          - name: campaign_id_preceding_lead_
+            description: "Identifiant de la campagne précédant le lead"
+          - name: unnamed_22
+            description: "ID C4C de la campagne"
+          - name: start_date_phone_call_
+            description: "Date de l'appel téléphonique"
+          - name: start_date_appointment_
+            description: "Date du rendez-vous"
+          - name: start_date_task_
+            description: "Date de la tâche"
+          - name: notes
+            description: "Notes supplémentaires sur l'activité commerciale"
+          - name: extracted_at
+            description: "Date et heure d'extraction des données"
+          - name: source_file
+            description: "Nom du fichier source d'où proviennent les données"
+          - name: file_date
+            description: "Date du fichier source"
+          
+      - name: nespresso_commerce_opportunities
+        description: "Table des opportunités commerciales Nespresso"  
+        columns:
+          - name: opportunity
+            description: "Identifiant de l'opportunité commerciale"
+          - name: employee_responsible
+            description: "Nom de l'employé responsable"
+          - name: employee_responsible_id
+            description: "Identifiant de l'employé responsable"
+          - name: unnamed_2
+            description: "ID C4C du commercial"
+          - name: created_by
+            description: "Nom du créateur de l'opportunité"
+          - name: unnamed_4
+            description: "ID C4C du créateur de l'opportunité" 
+          - name: unnamed_6
+            description: "Nom de l'opportunite"
+          - name: campaign
+            description: "Nom de la campagne associée à l'opportunité"
+          - name: unnamed_8
+            description: "ID C4C de la campagne"
+          - name: created_on
+            description: "Date de création de l'opportunité"
+          - name: source
+            description: "Source de l'opportunité"
+          - name: unnamed_11
+            description: "Colonne inutile ignorée"
+          - name: account
+            description: "Nom du compte associé à l'opportunité"
+          - name: unnamed_13
+            description: "ID C4C du compte"
+          - name: reason_for_status
+            description: "Raison du statut de l'opportunité"
+          - name: close_date
+            description: "Date de clôture de l'opportunité"
+          - name: calendar_month
+            description: "Mois du calendrier en format texte"
+          - name: calendar_year
+            description: "Année du calendrier"
+          - name: nessoft_id
+            description: "Identifiant Nessoft du compte"
+          - name: sales_unit
+            description: "Unité de vente associée à l'opportunité"
+          - name: role_account_
+            description: "Rôle du compte (Prospect / Client)"
+          - name: lifecycle_status
+            description: "Statut du cycle de vie de l'opportunité"
+          - name: first_coffee_order
+            description: "Nombre de capsules de la première commande de café"
+          - name: expected_value
+            description: "Valeur attendue de l'opportunité"
+          - name: _zeq_zenius_equivalent_
+            description: "Équivalent Zenius de l'opportunité"
+          - name: chance_of_success
+            description: "Chance de succès de l'opportunité en pourcentage"
+          - name: days_in_sales_phase
+            description: "Nombre de jours dans la phase de vente actuelle"
+          - name: number_of_opportunities
+            description: "Nombre d'opp"
+          - name: machines
+            description: "Nombre de machines associées à l'opportunité"
+          - name: extracted_at
+            description: "Date et heure d'extraction des données"
+          - name: source_file
+            description: "Nom du fichier source d'où proviennent les données"
+          - name: file_date
+            description: "Date du fichier source"
