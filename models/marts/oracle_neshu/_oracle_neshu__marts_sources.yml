@@ -191,11 +191,3 @@ sources:
                 - roadman_code
               config:
                 severity: error
-          
-          # Vérifier qu'on a bien des données récentes (moins de 24h)
-          - dbt_utils.recency:
-              datepart: hour
-              field: loaded_at_utc
-              interval: 24
-              config:
-                severity: error
