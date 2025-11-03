@@ -20,7 +20,7 @@ sources:
             description: "Type d'activité commerciale (Phone call, appointment, etc.)"
           - name: phone_call
             description: "Description de l'appel téléphonique si activity_type = Phone call"
-          - name: created_by_phone_call_id
+          - name: created_by_phone_call_
             description: "Identifiant du commercial responsable de l'appel téléphonique"
           - name: unnamed_5
             description: "Colonne inutile ignorée"
@@ -71,7 +71,7 @@ sources:
           - name: file_date
             description: "Date du fichier source"
           
-      - name: nespresso_commerce_opportunities
+      - name: nespresso_commerce_opportunite
         description: "Table des opportunités commerciales Nespresso"  
         columns:
           - name: opportunity
