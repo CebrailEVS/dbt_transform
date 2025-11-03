@@ -29,6 +29,7 @@ base_opportunite as (
 
         -- Colonnes texte
         nullif(employee_responsible, '#') as employee_responsible,
+        nullif(created_by, '#') as created_by,
         nullif(unnamed_6, '#') as opportunity_name,
         nullif(campaign, '#') as campaign_name,
         nullif(source, '#') as source,
@@ -46,7 +47,7 @@ base_opportunite as (
         cast(nullif(machines, '#') as int64) as machines_opportunity,
 
         -- Dates harmonisées (converties en TIMESTAMP)
-        timestamp(nullif(created_on, '#')) as created_at,
+        timestamp(nullif(created_on, '#')) as created_on,
         timestamp(nullif(close_date, '#')) as close_date,
 
         -- Metadata

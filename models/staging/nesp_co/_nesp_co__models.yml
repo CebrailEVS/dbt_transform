@@ -1,0 +1,121 @@
+# models/_nesp_co__models.yml
+version: 2
+
+models:
+  # ACTIVITE
+  - name: stg_nesp_co__activite
+    description: "Activite transformés et nettoyés depuis la source Nespresso Commerce Activite"
+    columns:
+      - name: employee_responsible
+        description: "Identifiant de l'employé responsable"
+      - name: activity_id
+        description: "Identifiant de l'activité commerciale"
+      - name: c4c_id_commercial
+        description: "Id C4C du commercial"
+      - name: activity_type
+        description: "Type d'activité commerciale (Phone call, appointment, etc.)"
+      - name: phone_call
+        description: "Description de l'appel téléphonique si activity_type = Phone call"
+      - name: created_by_phone_call
+        description: "Identifiant du commercial responsable de l'appel téléphonique"
+      - name: appointment
+        description: "Description du rendez-vous si activity_type = appointment"
+      - name: created_by_appointment
+        description: "Identifiant du commercial responsable du rendez-vous"          
+      - name: activity_category
+        description: "Catégorie de l'activité commerciale"
+      - name: calendar_month
+        description: "Mois du calendrier en format texte"
+      - name: main_account
+        description: "Nom du compte"
+      - name: c4c_id_main_account
+        description: "ID C4C du nom du compte lié a main_account"
+      - name: role 
+        description: "Prospect / Client"
+      - name: nessoft_id_main_account 
+        description: "Identifiant Nessoft du compte principal"
+      - name: activity_unit
+        description: "Unité de l'activité commerciale"
+      - name: activity_life_cycle_status
+        description: "Statut du cycle de vie de l'activité commerciale"
+      - name: campaign_id_preceding_lead
+        description: "Identifiant de la campagne précédant le lead"
+      - name: c4c_id_campaign
+        description: "ID C4C de la campagne"
+      - name: start_date_phone_call
+        description: "Date de l'appel téléphonique"
+      - name: start_date_appointment
+        description: "Date du rendez-vous"
+      - name: start_date_task
+        description: "Date de la tâche"
+      - name: notes
+        description: "Notes supplémentaires sur l'activité commerciale"
+      - name: extracted_at
+        description: "Date et heure d'extraction des données"
+      - name: source_file
+        description: "Nom du fichier source d'où proviennent les données"
+      - name: file_date
+        description: "Date du fichier source"
+
+  # OPPORTUNITE
+  - name: stg_nesp_co__opportunite
+    description: "Opportunités transformés et nettoyés depuis la source Nespresso Commerce Opportunite"
+    columns:
+      - name: opportunity_id
+        description: "Identifiant de l'opportunité commerciale"
+        tests:
+          - not_null
+      - name: employee_responsible
+        description: "Nom de l'employé responsable"
+        tests:
+          - not_null
+      - name: c4c_id_commercial
+        description: "ID C4C du commercial"
+      - name: created_by
+        description: "Nom du créateur de l'opportunité"
+      - name: opportunity_name
+        description: "Nom de l'opportunite"
+      - name: campaign_name
+        description: "Nom de la campagne associée à l'opportunité"
+      - name: c4c_id_campaign
+        description: "ID C4C de la campagne"
+      - name: created_on
+        description: "Date de création de l'opportunité"
+      - name: source
+        description: "Source de l'opportunité"
+      - name: account_name
+        description: "Nom du compte associé à l'opportunité"
+      - name: c4c_id_account
+        description: "ID C4C du compte"
+      - name: reason_for_status
+        description: "Raison du statut de l'opportunité"
+      - name: close_date
+        description: "Date de clôture de l'opportunité"
+      - name: calendar_month
+        description: "Mois du calendrier en format texte"
+      - name: calendar_year
+        description: "Année du calendrier"
+      - name: nessoft_id_account
+        description: "Identifiant Nessoft du compte"
+      - name: sales_unit
+        description: "Unité de vente associée à l'opportunité"
+      - name: role_account
+        description: "Rôle du compte (Prospect / Client)"
+      - name: lifecycle_status
+        description: "Statut du cycle de vie de l'opportunité"
+      - name: first_coffee_order
+        description: "Nombre de capsules de la première commande de café"
+      - name: expected_value
+        description: "Valeur attendue de l'opportunité"
+      - name: zeq_zenius_equivalent
+        description: "Équivalent Zenius de l'opportunité"
+      - name: chance_of_success
+        description: "Chance de succès de l'opportunité en pourcentage"
+      - name: machines_opportunity
+        description: "Nombre de machines associées à l'opportunité"
+      - name: extracted_at
+        description: "Date et heure d'extraction des données"
+      - name: source_file
+        description: "Nom du fichier source d'où proviennent les données"
+      - name: file_date
+        description: "Date du fichier source"
