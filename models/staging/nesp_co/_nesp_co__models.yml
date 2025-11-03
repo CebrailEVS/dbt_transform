@@ -1,19 +1,30 @@
-# models/_nesp_co__models.yml
 version: 2
 
 models:
   # ACTIVITE
   - name: stg_nesp_co__activite
     description: "Activite transformés et nettoyés depuis la source Nespresso Commerce Activite"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - activity_id
+            - employee_responsible
+            - activity_type
     columns:
       - name: employee_responsible
         description: "Identifiant de l'employé responsable"
+        tests:
+          - not_null
       - name: activity_id
         description: "Identifiant de l'activité commerciale"
+        tests:
+          - not_null
       - name: c4c_id_commercial
         description: "Id C4C du commercial"
       - name: activity_type
         description: "Type d'activité commerciale (Phone call, appointment, etc.)"
+        tests:
+          - not_null
       - name: phone_call
         description: "Description de l'appel téléphonique si activity_type = Phone call"
       - name: created_by_phone_call
@@ -60,6 +71,12 @@ models:
   # OPPORTUNITE
   - name: stg_nesp_co__opportunite
     description: "Opportunités transformés et nettoyés depuis la source Nespresso Commerce Opportunite"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - opportunity_id
+            - employee_responsible
+            - created_by
     columns:
       - name: opportunity_id
         description: "Identifiant de l'opportunité commerciale"
@@ -73,6 +90,8 @@ models:
         description: "ID C4C du commercial"
       - name: created_by
         description: "Nom du créateur de l'opportunité"
+        tests:
+          - not_null
       - name: opportunity_name
         description: "Nom de l'opportunite"
       - name: campaign_name
