@@ -37,11 +37,11 @@ ecritures_analytiques AS (
 ),
 
 mapping_code_comptable__bu AS (
-  SELECT * FROM {{ ref('mapping_code_comptable__bu') }}
+  SELECT * FROM {{ ref('ref_mssql_sage__code_comptable_bu') }}
 ),
 
 mapping_code_analytique__bu AS (
-  SELECT * FROM {{ ref('mapping_code_analytique__bu') }}
+  SELECT * FROM {{ ref('ref_mssql_sage__code_analytique_bu') }}
 ),
 
 -- 🧩 Jointure principale + fallback BU analytique

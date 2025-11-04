@@ -111,7 +111,7 @@ ref_type_inter AS (
   SELECT 
     LOWER(Type_intervention_Brut) AS workorder_type_raw,
     LOWER(TYPE_INTER) AS workorder_type_clean
-  FROM {{ ref('type_inter_clean') }}
+  FROM {{ ref('ref_yuman__type_inter_clean') }}
 ),
 
 ref_machine AS (
@@ -121,19 +121,19 @@ ref_machine AS (
       LOWER(TRIM(Machine_Brut)) AS machine_raw,
       LOWER(TRIM(MACHINE)) AS machine_clean,
       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(Machine_Brut)) ORDER BY MACHINE) AS rn
-    FROM {{ ref('machines_clean') }}
+    FROM {{ ref('ref_yuman__machine_clean') }}
   )
   WHERE rn = 1
 ),
 
 ref_cp_metropole AS (
   SELECT Code_Postal, Metropole
-  FROM {{ ref('cp_metropole') }}
+  FROM {{ ref('ref_yuman__cp_metropole') }}
 ),
 
 ref_dpt_metropole AS (
   SELECT Departement, Metropole
-  FROM {{ ref('dpt_metropole') }}
+  FROM {{ ref('ref_yuman__dpt_metropole') }}
 ),
 
 ref_tarification AS (
@@ -147,7 +147,7 @@ ref_tarification AS (
     )) AS key_tarif,
     Montant,
     PROD
-  FROM {{ ref('tarification_ref_clean') }}
+  FROM {{ ref('ref_yuman__tarification_clean') }}
 ),
 
 -- ============================================================================

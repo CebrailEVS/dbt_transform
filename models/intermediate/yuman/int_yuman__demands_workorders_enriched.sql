@@ -147,7 +147,7 @@ tech_agence_mapping as (
         prenom,
         agence,
         equipe
-    from {{ ref('tech_piece_agence_mapping') }}
+    from {{ ref('ref_yuman__tech_agence') }}
 )
 
 -- =======================

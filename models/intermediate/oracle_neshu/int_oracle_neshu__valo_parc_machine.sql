@@ -65,7 +65,7 @@ ref_valo as (
   select
     lower(trim(machine_modele)) as machine_modele,
     montant_inv as montant_unitaire
-  from {{ ref('valo_parc_machine') }}
+  from {{ ref('ref_oracle_neshu__valo_parc_machine') }}
 
 ),
 

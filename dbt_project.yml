@@ -80,57 +80,98 @@ seeds:
     +tags: ['reference']
     
     reference_data:
-      cp_metropole:
-        +column_types:
-          Code_Postal: STRING
-          Metropole: STRING
+      # Yuman seeds
+      yuman:
+        ref_yuman__cp_metropole:
+          +column_types:
+            Code_Postal: STRING
+            Metropole: STRING
+        
+        ref_yuman__cp_tech:
+          +column_types:
+            cp_depart_int: INTEGER
+            cp_depart_texte: STRING
+            cp_final_int: INTEGER
+            cp_final_texte: STRING
+            libelle_cp: STRING
+            num_departement_texte: STRING
+            nom_departement: STRING
+            region_tech: STRING
+        
+        ref_yuman__dpt_metropole:
+          +column_types:
+            Departement: STRING
+            Metropole: STRING
+        
+        ref_yuman__machine_clean:
+          +column_types:
+            Machine_Brut: STRING
+            MACHINE: STRING
+        
+        ref_yuman__marque_clean:
+          +column_types:
+            NOM_DU_TECHNICIEN: STRING
+            MARQUE: STRING
+        
+        ref_yuman__technicien_clean:
+          +column_types:
+            TECHNICIEN: STRING
+            Nom: STRING
+            Prenom: STRING
+            Nom_Prenom: STRING
+            EQUIPE: STRING
+        
+        ref_yuman__type_inter_clean:
+          +column_types:
+            Type_intervention_Brut: STRING
+            TYPE_INTER: STRING
+        
+        ref_yuman__tarification_clean:
+          +column_types:
+            TYPE_INTER: STRING
+            MACHINE: STRING
+            KEY: STRING
+            MARQUE: STRING
+            METROPOLE: STRING
+            Type_tarif: STRING
+            Montant: INTEGER
+            PROD: INTEGER
+        
+        ref_yuman__tech_agence:
+          +column_types:
+            nom: STRING
+            prenom: STRING
+            agence: STRING
+            equipe: STRING
+        
+        ref_yuman__tech_nomad:
+          +column_types:
+            user_id: INTEGER
+            user_name: STRING
+            nomad_id: STRING
+            user_stock_name: STRING
       
-      dpt_metropole:
-        +column_types:
-          Departement: STRING
-          Metropole: STRING
+      # Oracle Neshu seeds
+      oracle_neshu:
+        ref_oracle_neshu__valo_parc_machine:
+          +column_types:
+            machine_modele: STRING
+            montant_inv: FLOAT 
+        
+        ref_oracle_neshu__roadman_gea:
+          +column_types:
+            roadman_code: STRING
+            gea_code: STRING
       
-      machines_clean:
-        +column_types:
-          Machine_Brut: STRING
-          MACHINE: STRING
-      
-      marque_clean:
-        +column_types:
-          NOM_DU_TECHNICIEN: STRING
-          MARQUE: STRING
-      
-      techniciens_clean:
-        +column_types:
-          TECHNICIEN: STRING
-          Nom: STRING
-          Prenom: STRING
-          Nom_Prenom: STRING
-          EQUIPE: STRING
-      
-      type_inter_clean:
-        +column_types:
-          Type_intervention_Brut: STRING
-          TYPE_INTER: STRING
-      
-      tarification_ref_clean:
-        +column_types:
-          TYPE_INTER: STRING
-          MACHINE: STRING
-          KEY: STRING
-          MARQUE: STRING
-          METROPOLE: STRING
-          Type_tarif: STRING
-          Montant: INTEGER
-          PROD: INTEGER
-
-      cps_tech:
-        +column_types:
-          cp_depart_int: integer
-          cp_depart_texte: string
-          cp_final_int: integer
-          cp_final_texte: string
-          libelle_cp: string
-          num_departement_texte: string
-          nom_departement: string
-          region_tech: string
+      # MSSQL Sage seeds
+      mssql_sage:
+        ref_mssql_sage__code_analytique_bu:
+          +column_types:
+            code_analytique: STRING
+            code_analytique_bu: STRING
+        
+        ref_mssql_sage__code_comptable_bu:
+          +column_types:
+            code_comptable: STRING
+            designation_compte: STRING
+            macro_categorie_pnl_bu: STRING
