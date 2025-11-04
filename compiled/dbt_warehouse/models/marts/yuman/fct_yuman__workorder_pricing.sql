@@ -4,7 +4,7 @@
 -- MODEL: fct_yuman__workorder_pricing
 -- PURPOSE: Determine automatic pricing for technical interventions from Yuman
 -- AUTHOR: Cebrail AKSOY
--- UPDATED: 2025-11-03 21:01:58.165165+00:00
+-- UPDATED: 2025-11-04 09:25:24.087813+00:00
 -- ============================================================================
 
 WITH 
@@ -105,7 +105,7 @@ ref_type_inter AS (
   SELECT 
     LOWER(Type_intervention_Brut) AS workorder_type_raw,
     LOWER(TYPE_INTER) AS workorder_type_clean
-  FROM `evs-datastack-prod`.`prod_reference`.`type_inter_clean`
+  FROM `evs-datastack-prod`.`prod_reference`.`ref_yuman__type_inter_clean`
 ),
 
 ref_machine AS (
@@ -115,19 +115,19 @@ ref_machine AS (
       LOWER(TRIM(Machine_Brut)) AS machine_raw,
       LOWER(TRIM(MACHINE)) AS machine_clean,
       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(Machine_Brut)) ORDER BY MACHINE) AS rn
-    FROM `evs-datastack-prod`.`prod_reference`.`machines_clean`
+    FROM `evs-datastack-prod`.`prod_reference`.`ref_yuman__machine_clean`
   )
   WHERE rn = 1
 ),
 
 ref_cp_metropole AS (
   SELECT Code_Postal, Metropole
-  FROM `evs-datastack-prod`.`prod_reference`.`cp_metropole`
+  FROM `evs-datastack-prod`.`prod_reference`.`ref_yuman__cp_metropole`
 ),
 
 ref_dpt_metropole AS (
   SELECT Departement, Metropole
-  FROM `evs-datastack-prod`.`prod_reference`.`dpt_metropole`
+  FROM `evs-datastack-prod`.`prod_reference`.`ref_yuman__dpt_metropole`
 ),
 
 ref_tarification AS (
@@ -141,7 +141,7 @@ ref_tarification AS (
     )) AS key_tarif,
     Montant,
     PROD
-  FROM `evs-datastack-prod`.`prod_reference`.`tarification_ref_clean`
+  FROM `evs-datastack-prod`.`prod_reference`.`ref_yuman__tarification_clean`
 ),
 
 -- ============================================================================

@@ -1,0 +1,24 @@
+
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select gea_code
+from `evs-datastack-prod`.`prod_reference`.`ref_oracle_neshu__roadman_gea`
+where gea_code is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test

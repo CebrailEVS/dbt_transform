@@ -43,11 +43,11 @@ ecritures_analytiques AS (
 ),
 
 mapping_code_comptable__bu AS (
-  SELECT * FROM `evs-datastack-prod`.`prod_reference`.`mapping_code_comptable__bu`
+  SELECT * FROM `evs-datastack-prod`.`prod_reference`.`ref_mssql_sage__code_comptable_bu`
 ),
 
 mapping_code_analytique__bu AS (
-  SELECT * FROM `evs-datastack-prod`.`prod_reference`.`mapping_code_analytique__bu`
+  SELECT * FROM `evs-datastack-prod`.`prod_reference`.`ref_mssql_sage__code_analytique_bu`
 ),
 
 -- 🧩 Jointure principale + fallback BU analytique

@@ -155,7 +155,7 @@ tech_agence_mapping as (
         prenom,
         agence,
         equipe
-    from `evs-datastack-prod`.`prod_reference`.`tech_piece_agence_mapping`
+    from `evs-datastack-prod`.`prod_reference`.`ref_yuman__tech_agence`
 )
 
 -- =======================
