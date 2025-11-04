@@ -3,12 +3,32 @@ name: dbt CI/CD
 on:
   push:
     branches:
-      - master        # Déploiement prod seulement
+      - master
+    paths:
+      # 🧠 Déclenche la CI/CD uniquement si des fichiers impactant dbt changent
+      - 'models/**'
+      - 'data/**'
+      - 'snapshots/**'
+      - 'macros/**'
+      - 'tests/**'
+      - 'dbt_project.yml'
+      - 'profiles.yml'
+      - 'packages.yml'
+      - '.github/workflows/dbt_ci.yml'
   pull_request:
     branches:
-      - master        # Tests à chaque PR vers master
+      - master
+    paths:
+      - 'models/**'
+      - 'data/**'
+      - 'snapshots/**'
+      - 'macros/**'
+      - 'tests/**'
+      - 'dbt_project.yml'
+      - 'profiles.yml'
+      - 'packages.yml'
+      - '.github/workflows/dbt_ci.yml'
 
-# Ajoutez ces permissions au niveau du workflow
 permissions:
   contents: write
   pages: write
@@ -17,31 +37,32 @@ permissions:
 jobs:
   dbt:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: 🧾 Checkout repo
         uses: actions/checkout@v3
 
-      - name: Setup Python
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install dbt-bigquery
 
-      - name: Decode and write service account keyfile
+      - name: 🔑 Decode and write service account keyfile
         run: echo "${{ secrets.DBT_BIGQUERY_KEYFILE }}" | base64 -d > $GITHUB_WORKSPACE/keyfile.json
 
-      - name: Export env variables for dbt
+      - name: 🌍 Export env variables for dbt
         run: |
           echo "DBT_BIGQUERY_PROJECT=${{ secrets.DBT_BIGQUERY_PROJECT }}" >> $GITHUB_ENV
           echo "DBT_BIGQUERY_KEYFILE=$GITHUB_WORKSPACE/keyfile.json" >> $GITHUB_ENV
           echo "DBT_BIGQUERY_DATASET_DEV=${{ secrets.DBT_BIGQUERY_DATASET_DEV }}" >> $GITHUB_ENV
           echo "DBT_BIGQUERY_DATASET_PROD=${{ secrets.DBT_BIGQUERY_DATASET_PROD }}" >> $GITHUB_ENV
 
-      - name: Determine target env
+      - name: 🎯 Determine target environment
         id: target
         run: |
           if [[ "${GITHUB_REF}" == "refs/heads/master" ]]; then
@@ -50,36 +71,34 @@ jobs:
             echo "target=dev" >> $GITHUB_OUTPUT
           fi
 
-      - name: Run dbt commands
+      - name: 🧱 Run dbt commands
         run: |
           dbt deps
           dbt debug --target ${{ steps.target.outputs.target }}
-          dbt run --target ${{ steps.target.outputs.target }}
           dbt seed --target ${{ steps.target.outputs.target }}
+          dbt run --target ${{ steps.target.outputs.target }}
           dbt test --target ${{ steps.target.outputs.target }}
           dbt docs generate --target ${{ steps.target.outputs.target }}
 
-      # Upload des artefacts de documentation (v4)
-      - name: Upload docs artifacts
+      - name: 📤 Upload docs artifacts
         if: github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: dbt-docs
           path: target/
 
-  # Déploiement de la documentation
   deploy-docs:
     needs: dbt
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
-    
+
     steps:
-      - name: Download docs artifacts
+      - name: 📥 Download docs artifacts
         uses: actions/download-artifact@v4
         with:
           name: dbt-docs
 
-      - name: Deploy to GitHub Pages
+      - name: 🌐 Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

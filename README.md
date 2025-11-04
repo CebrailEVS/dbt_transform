@@ -23,14 +23,43 @@ Transformations de données dbt pour **EVS Professionnelle France** dans une sta
 
 ```
 models/
-├── staging/          # 🔄 Nettoyage et standardisation (zone partagée)
+├── staging/              # 🔄 Nettoyage et standardisation des données sources
+│   ├── mssql_sage/
+│   ├── nesp_co/
 │   ├── oracle_neshu/
 │   └── yuman/
-├── intermediate/     # 👤 Logique métier complexe (Data Engineer)
-│   └── oracle_neshu/
-└── marts/           # 📊 Modèles finaux orientés business
-    ├── oracle_neshu/ # 👤 Business logic (Data Engineer)
-    └── yuman/        # 📊 Analytics (Data Analyst)
+│
+├── intermediate/
+    ├── mssql_sage/          # ⚙️ Tables intermédiaires — logique métier ou enrichissement multi-sources
+│   ├── oracle_neshu/
+│   └── yuman/
+│
+└── marts/                 # 📊 Modèles finaux orientés business (dimensions + facts)
+    ├── mssql_sage/
+    ├── oracle_neshu/
+    └── yuman/
+
+```
+
+### Données de Références (Seeds)
+
+```
+data/
+├── reference_data/        # 📚 Données statiques et tables de correspondance
+│   ├── mssql_sage/
+│   ├── oracle_neshu/
+│   └── yuman/
+└── schema.yml
+```
+
+### Snapshots
+
+```
+snapshots/
+├── mssql_sage/            # 🧱 Historisation de certaines tables
+├── oracle_neshu/          
+└── yuman/                 
+
 ```
 
 ## 🚀 Installation & Configuration
@@ -71,7 +100,7 @@ dbt debug
 Fichier `.env` :
 ```bash
 # Environment cible
-DBT_TARGET=dev  # dev (Data Engineer) | dev_analyst (Data Analyst) | prod
+DBT_TARGET=dev 
 
 # Configuration BigQuery
 DBT_BIGQUERY_PROJECT=evs-datastack-prod
@@ -88,15 +117,13 @@ DBT_BIGQUERY_DATASET_PROD=prod
 
 | Environnement | Utilisateur    | Dataset BigQuery | Usage                    |
 |---------------|----------------|------------------|--------------------------|
-| `dev`         | Data Engineer  | `dev`           | Développement principal  |
-| `dev_analyst` | Data Analyst   | `dev_analyst`   | Développement analytique |
+| `dev`         | Data Engineer,Anlyst  | `dev`           | Développement principal  |
 | `prod`        | Airflow        | `prod`          | Production automatisée   |
 
 ### Zones de Responsabilité
 
-- **🔄 Zone Partagée** (`staging/`) : Coordination requise entre équipes
-- **👤 Zone Data Engineer** (`intermediate/`, `marts/oracle_neshu/`) : Business logic
-- **📊 Zone Data Analyst** (`marts/yuman/`) : Analytics et reporting
+- **👤 Zone Data Engineer** (`raw/`, `staging/`, `intermediate/` ) : Data source quality
+- **📊 Zone Data Analyst** (`intermediate/`,`marts/`) : Analytics et reporting
 
 ## 💻 Utilisation Quotidienne
 
@@ -120,13 +147,6 @@ dbt test --select stg_yuman__clients # Tests d'un modèle
 
 # Documentation
 dbt docs generate && dbt docs serve
-```
-
-### Alias Utile
-
-Ajoutez à votre `.bashrc` ou `.zshrc` :
-```bash
-alias dbt-env="set -a && source .env && set +a"
 ```
 
 ## 🤝 Workflow Collaboratif
@@ -230,7 +250,7 @@ models:
 ### ❌ À Éviter
 
 - Push direct sur `master`
-- Modifier `staging/` sans coordination
+- Modifier des modèles sans coordination
 - Merger ses propres PR sans review
 - Ignorer les tests qui échouent
 
@@ -238,7 +258,7 @@ models:
 
 Prévenez-vous mutuellement avant de modifier :
 - `dbt_project.yml`
-- Fichiers dans `staging/` (sources communes)
+- les modèles DBT qui ont un impacte important
 - `*_sources.yml` (définitions des sources)
 - Macros partagées
 
@@ -290,4 +310,4 @@ En cas de problème :
 
 ---
 
-**Développé avec ❤️ par l'équipe Data EVS**
+**Développé par l'équipe Data EVS ❤️**
