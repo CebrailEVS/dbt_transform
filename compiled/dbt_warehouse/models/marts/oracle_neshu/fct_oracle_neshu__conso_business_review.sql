@@ -277,6 +277,6 @@ SELECT
 
   -- Métadonnées d'exécution
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  '8f00a968-1666-4692-84ae-1cf2c8292b7e' as dbt_invocation_id
+  '8f1ba790-8e7f-4f29-a44b-661e4b19b346' as dbt_invocation_id
 
 FROM combined_and_filtered_data
