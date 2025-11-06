@@ -1,0 +1,128 @@
+# models/staging/nesp_tech/_nesp_tech__models.yml
+version: 2
+
+models:
+  - name: stg_nesp_tech__interventions
+    description: >
+      Modèle de staging nettoyant les données des interventions Nespresso issues
+      de la source `nespresso_technique_interventions` (API Nomad Repair).
+      Convertit les identifiants en entiers, harmonise les dates au format TIMESTAMP
+      et nettoie les libellés et champs texte.
+    tags: ['nesp_tech', 'staging']
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - n_planning
+            - etat_intervention
+            - date_heure_fin
+    columns:
+      - name: n_planning
+        description: "Identifiant unique d'intervention"
+        tests:
+          - not_null
+      - name: n_client
+        description: "Identifiant du client (Nessoft)"
+      - name: n_site
+        description: "Identifiant du site client"
+      - name: n_tech
+        description: "Code technicien (ex: TEC-XXXXX)"
+      - name: nom_tech
+        description: "Nom du technicien"
+      - name: prenom_tech
+        description: "Prénom du technicien"
+      - name: raison_sociale_client
+        description: "Raison sociale du client"
+      - name: adresse_client
+        description: "Adresse du client"
+      - name: code_postal_client
+        description: "Code postal du client"
+      - name: ville_client
+        description: "Ville du client"
+      - name: nom_site
+        description: "Nom du site"
+      - name: adresse_site
+        description: "Adresse du site"
+      - name: code_postal_site
+        description: "Code postal du site"
+      - name: ville_site
+        description: "Ville du site"
+      - name: code_machine
+        description: "Identifiant machine"
+      - name: nom_machine
+        description: "Nom de la machine"
+      - name: num_serie_machine
+        description: "Numéro de série de la machine"
+      - name: type
+        description: "Type d'intervention"
+      - name: date_heure_debut
+        description: "Horodatage du début de l'intervention"
+      - name: date_heure_fin
+        description: "Horodatage de fin de l'intervention"
+      - name: etat_intervention
+        description: "Statut ou état de l'intervention"
+      - name: observations
+        description: "Observations saisies"
+      - name: agency
+        description: "Code Agence"
+      - name: creation_date
+        description: "Date de création de l'intervention"
+      - name: pickup_date
+        description: "Date de prise en charge"
+      - name: date_planning_nomadrepair
+        description: "Date de planification dans Nomad Repair"
+      - name: extracted_at
+        description: "Horodatage d'extraction de la donnée source"
+      - name: file_date
+        description: "Date du fichier source"
+      - name: source_file
+        description: "Nom du fichier source (trace technique)"
+  
+  - name: stg_nesp_tech__articles
+    description: >
+      Modèle de staging nettoyant les données des articles consommés lors des
+      interventions Nespresso issues de la table `nespresso_technique_articles`.
+      Convertit les identifiants en entiers, harmonise les dates, et cast la quantité en float.
+    tags: ['nesp_tech', 'staging']
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - n_planning
+            - code_article
+            - date_intervention
+    columns:
+      - name: n_planning
+        description: "Identifiant de l'intervention associée"
+        tests:
+          - not_null
+      - name: n_client
+        description: "Identifiant du client (Nessoft)"
+      - name: n_site
+        description: "Identifiant du site"
+      - name: n_tech
+        description: "Code technicien"
+      - name: nom_tech
+        description: "Nom du technicien"
+      - name: prenom_tech
+        description: "Prénom du technicien"
+      - name: raison_sociale_client
+        description: "Nom du client"
+      - name: code_machine
+        description: "Code machine"
+      - name: nom_machine
+        description: "Nom de la machine"
+      - name: num_serie_machine
+        description: "Numéro de série de la machine"
+      - name: code_article
+        description: "Code de l'article consommé"
+      - name: nom_article
+        description: "Nom de l'article consommé"
+      - name: quantite_article
+        description: "Quantité consommée (castée en float)"
+      - name: date_intervention
+        description: "Date de l'intervention associée"
+      - name: extracted_at
+        description: "Horodatage d'extraction de la donnée source"
+      - name: file_date
+        description: "Date du fichier source"
+      - name: source_file
+        description: "Nom du fichier source (trace technique)"

@@ -1,0 +1,148 @@
+# models/_nesp_co__sources.yml
+version: 2
+
+sources:
+  - name: nesp_tech
+    schema: "prod_raw"
+    description: "Données brutes extraites du fichier excel depuis l'API Arbiter Nomad Repair afin de récupérer les interventions et les articles consommées"  
+    tags: ['nesp_tech', 'source']
+    tables:
+      - name: nespresso_technique_articles
+        description: "Table des activites commerciales Nespresso"  
+        columns:
+          - name: n_planning
+            description: "Identifiant de l'intervention (peut être en doublons à la source)"
+          - name: n_tech
+            description: "Identifiant du technicien du type TEC-XXXXX"
+          - name: nom_tech
+            description: "Nom du technicien"
+          - name: pr_nom_tech
+            description: "Prénom du technicien"
+          - name: n_client
+            description: "Identifiant nessoft du client (à confirmer)"
+          - name: raison_sociale_client
+            description: "Nom client" 
+          - name: n_site
+            description: "Identifiant du site"
+          - name: nom_site
+            description: "Nom du site"
+          - name: code_machine
+            description: "Code machine (identifiant de la machine)"
+          - name: nom_machine
+            description: "Nom de la machine"
+          - name: n_s_rie_machine
+            description: "Numéro de série de la machine"
+          - name: date
+            description: "Date de l'intervention"
+          - name: code_article
+            description: "Code de l'article consommé"
+          - name: nom_article
+            description: "Nom de l'article consommé"
+          - name: quantit
+            description: "Quantité de l'article consommé"
+          - name: extracted_at
+            description: "Date et heure d'extraction des données"
+          - name: source_file
+            description: "Nom du fichier source d'où proviennent les données"
+          - name: file_date
+            description: "Date du fichier source"
+          
+      - name: nespresso_technique_interventions
+        description: "Table des opportunités commerciales Nespresso"  
+        columns:
+          - name: n_planning
+            description: "Identifiant de l'intervention (peut être en doublons à la source)"
+          - name: n_tech
+            description: "Identifiant du technicien du type TEC-XXXXX"
+          - name: nom_tech
+            description: "Nom du technicien"
+          - name: pr_nom_tech
+            description: "Prénom du technicien"
+          - name: n_client
+            description: "Identifiant nessoft du client (à confirmer)"
+          - name: raison_sociale_client
+            description: "Nom client" 
+          - name: adresse_client
+            description: "Adresse du client (si disponible)"
+          - name: code_postal_client
+            description: "Code postal client"
+          - name: ville_client
+            description: "Ville du client"
+          - name: n_site
+            description: "Identifiant du site"
+          - name: nom_site
+            description: "Nom du site"
+          - name: adresse_site
+            description: "Adresse du site"
+          - name: code_postal_site
+            description: "Code postal du site"
+          - name: ville_site
+            description: "Ville du site"
+          - name: code_machine
+            description: "Code machine (identifiant de la machine)"
+          - name: nom_machine
+            description: "Nom de la machine"
+          - name: n_s_rie_machine
+            description: "Numéro de série de la machine"
+          - name: type
+            description: "Type intervention"
+          - name: libell_type
+            description: "Libellé du type d'intervention"
+          - name: date_heure_d_but
+            description: "Date et heure de début de l'intervention"
+          - name: date_heure_fin
+            description: "Date et heure de fin de l'intervention"
+          - name: dur_e_d_clar_ee
+            description: "Durée déclarée de l'intervention"
+          - name: tat_intervention
+            description: "Statut de l'intervention"
+          - name: creation_user
+            description: "Utilisateur ayant créé l'intervention"
+          - name: observations
+            description: "Observations sur l'intervention"
+          - name: creation_date
+            description: "Date de création de l'intervention"
+          - name: pickup_date
+            description: "Date de prise en charge"
+          - name: date_planning_nomadrepair
+            description: "Date de planification dans Nomad Repair"
+          - name: d_lai_d_inter_vs_rdv
+            description: "Délai entre l'intervention et le rendez-vous"
+          - name: agency
+            description: "Agence"
+          - name: tech_nessoft_id
+            description: "Identifiant Nessoft"
+          - name: repair_place_code
+            description: "Code Repair Place"
+          - name: repair_place_name
+            description: "Nom Repair"
+          - name: repair_code_1
+            description: "Code Repair 1"
+          - name: repair_code_2
+            description: "Code Repair 2"
+          - name: repair_code_3
+            description: "Code Repair 3"
+          - name: category
+            description: "Catégorie"
+          - name: warranty_type
+            description: "Type de garantie"
+          - name: failure_code
+            description: "Code de la panne"
+          - name: phone
+            description: "Numéro de téléphone"
+          - name: contact_nessoft_id
+            description: "Identifiant Nessoft du contact"
+          - name: contact_nomadrepair
+            description: "Nom du contact Nomad Repair"
+          - name: email_nessoft
+            description: "Email Nessoft"
+          - name: email_nomad_repair
+            description: "Email Nomad Repair"
+          - name: consignes
+            description: "Consignes"
+          - name: extracted_at
+            description: "Date et heure d'extraction des données"
+          - name: source_file
+            description: "Nom du fichier source d'où proviennent les données"
+          - name: file_date
+            description: "Date du fichier source"

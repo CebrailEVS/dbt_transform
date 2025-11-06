@@ -39,6 +39,12 @@ models:
       yuman:
         +tags: ['staging', 'yuman']
 
+      nesp_co:
+        +tags: ['staging', 'nesp_co']
+
+      nesp_tech:
+        +tags: ['staging', 'nesp_tech']
+
       oracle_neshu:
         +tags: ['staging', 'oracle_neshu']
 
