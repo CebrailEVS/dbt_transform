@@ -35,9 +35,16 @@ with chargement_base as (
         l.access_info as task_location_info,
         t.real_start_date as task_start_date,
 
+        -- Informations de conditionnement
+        thp.unit_coeff_multi,
+        thp.unit_coeff_div,
+        thp.real_quantity,
+        thp.net_price,
+        p.purchase_unit_price,
+
         -- Métriques
         sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div) as load_quantity,
-        sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div) * thp.net_price as load_valuation,
+        sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div) * p.purchase_unit_price as load_valuation,
 
         -- Timestamps techniques
         t.updated_at,
@@ -64,10 +71,15 @@ with chargement_base as (
         thp.idtask_has_product, t.idtask, t.iddevice, t.idcompany_peer,
         t.idproduct_source, t.type_product_source, t.idlocation,
         t.idproduct_destination, t.type_product_destination,
-        thp.idproduct, thp.net_price,
+        thp.idproduct,
         c.code, d.code, p.code,
         ts.code, la.code,
         l.access_info, t.real_start_date,
+        thp.unit_coeff_multi,
+        thp.unit_coeff_div,
+        thp.real_quantity,
+        thp.net_price,
+        p.purchase_unit_price,
         t.updated_at, t.created_at, t.extracted_at
 ),
 
@@ -132,6 +144,12 @@ select
     product_destination_type,
     task_location_info,
     task_start_date,
+
+    unit_coeff_multi,
+    unit_coeff_div,
+    real_quantity,
+    net_price,
+    purchase_unit_price,
 
     -- Métriques
     load_quantity,

@@ -147,6 +147,25 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur d'unité du produit"
+        data_type: int64
+
+      - name: unit_coeff_div
+        description: "Coefficient diviseur d'unité du produit"
+        data_type: int64
+
+      - name: real_quantity
+        description: "Quantité unitaire (sans conditionnement)"
+        data_type: int64
+
+      - name: net_price
+        description: "Prix unitaire hors tax du produit au moment de la tâche"
+
+      - name: purchase_unit_price
+        description: "Dernier Prix d'achat unitaire hors tax du produit"
+        data_type: int64
         
       - name: load_quantity
         description: "Quantité produit chargée ou retirée"
@@ -891,6 +910,25 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur d'unité du produit"
+        data_type: int64
+
+      - name: unit_coeff_div
+        description: "Coefficient diviseur d'unité du produit"
+        data_type: int64
+
+      - name: real_quantity
+        description: "Quantité unitaire (sans conditionnement)"
+        data_type: int64
+
+      - name: net_price
+        description: "Prix unitaire hors tax du produit au moment de la tâche"
+
+      - name: purchase_unit_price
+        description: "Dernier Prix d'achat unitaire hors tax du produit"
+        data_type: int64
 
       - name: quantity
         description: "Quantité totale du produit transféré (avec coefficients unitaires)"
