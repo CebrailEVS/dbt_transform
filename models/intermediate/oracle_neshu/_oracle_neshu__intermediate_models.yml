@@ -156,14 +156,14 @@ models:
         description: "Coefficient diviseur d'unité du produit"
         data_type: int64
 
-      - name: real_quantity
+      - name: base_unit_quantity
         description: "Quantité unitaire (sans conditionnement)"
         data_type: int64
 
-      - name: net_price
+      - name: product_unit_price_task
         description: "Prix unitaire hors tax du produit au moment de la tâche"
 
-      - name: purchase_unit_price
+      - name: product_unit_price_latest
         description: "Dernier Prix d'achat unitaire hors tax du produit"
         data_type: int64
         
@@ -236,6 +236,17 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+      - name: base_unit_quantity
+        description: "Quantité unitaire (sans conditionnement)"
+        data_type: int64
+
+      - name: product_unit_price_task
+        description: "Prix unitaire hors tax du produit au moment de la tâche"
+
+      - name: product_unit_price_latest
+        description: "Dernier Prix d'achat unitaire hors tax du produit"
+        data_type: int64
         
       - name: quantity
         description: "Quantité produit"
@@ -318,6 +329,17 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+      - name: base_unit_quantity
+        description: "Quantité unitaire (sans conditionnement)"
+        data_type: int64
+
+      - name: product_unit_price_task
+        description: "Prix unitaire hors tax du produit au moment de la tâche"
+
+      - name: product_unit_price_latest
+        description: "Dernier Prix d'achat unitaire hors tax du produit"
+        data_type: int64
         
       - name: quantity
         description: "Quantité produit"
@@ -401,6 +423,17 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+      - name: base_unit_quantity
+        description: "Quantité unitaire (sans conditionnement)"
+        data_type: int64
+
+      - name: product_unit_price_task
+        description: "Prix unitaire hors tax du produit au moment de la tâche"
+
+      - name: product_unit_price_latest
+        description: "Dernier Prix d'achat unitaire hors tax du produit"
+        data_type: int64
         
       - name: quantity
         description: "Quantité produit"
@@ -483,6 +516,17 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+      - name: base_unit_quantity
+        description: "Quantité unitaire (sans conditionnement)"
+        data_type: int64
+
+      - name: product_unit_price_task
+        description: "Prix unitaire hors tax du produit au moment de la tâche"
+
+      - name: product_unit_price_latest
+        description: "Dernier Prix d'achat unitaire hors tax du produit"
+        data_type: int64
         
       - name: quantity
         description: "Quantité produit"
@@ -578,6 +622,17 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+      - name: base_unit_quantity
+        description: "Quantité unitaire (sans conditionnement)"
+        data_type: int64
+
+      - name: product_unit_price_task
+        description: "Prix unitaire hors tax du produit au moment de la tâche"
+
+      - name: product_unit_price_latest
+        description: "Dernier Prix d'achat unitaire hors tax du produit"
+        data_type: int64
         
       - name: quantity
         description: "Quantité produit"
@@ -919,14 +974,14 @@ models:
         description: "Coefficient diviseur d'unité du produit"
         data_type: int64
 
-      - name: real_quantity
+      - name: base_unit_quantity
         description: "Quantité unitaire (sans conditionnement)"
         data_type: int64
 
-      - name: net_price
+      - name: product_unit_price_task
         description: "Prix unitaire hors tax du produit au moment de la tâche"
 
-      - name: purchase_unit_price
+      - name: product_unit_price_latest
         description: "Dernier Prix d'achat unitaire hors tax du produit"
         data_type: int64
 

@@ -38,9 +38,9 @@ with chargement_base as (
         -- Informations de conditionnement
         thp.unit_coeff_multi,
         thp.unit_coeff_div,
-        thp.real_quantity,
-        thp.net_price,
-        p.purchase_unit_price,
+        thp.real_quantity as base_unit_quantity,
+        thp.net_price as product_unit_price_task,
+        p.purchase_unit_price as product_unit_price_latest,
 
         -- Métriques
         sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div) as load_quantity,
@@ -147,9 +147,9 @@ select
 
     unit_coeff_multi,
     unit_coeff_div,
-    real_quantity,
-    net_price,
-    purchase_unit_price,
+    base_unit_quantity,
+    product_unit_price_task,
+    product_unit_price_latest,
 
     -- Métriques
     load_quantity,
