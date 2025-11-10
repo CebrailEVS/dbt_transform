@@ -40,9 +40,16 @@ with chargement_base as (
         l.access_info as task_location_info,
         t.real_start_date as task_start_date,
 
+        -- Informations de conditionnement
+        thp.unit_coeff_multi,
+        thp.unit_coeff_div,
+        thp.real_quantity as base_unit_quantity,
+        thp.net_price as product_unit_price_task,
+        p.purchase_unit_price as product_unit_price_latest,
+
         -- Métriques
         sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div) as load_quantity,
-        sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div) * thp.net_price as load_valuation,
+        sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div) * p.purchase_unit_price as load_valuation,
 
         -- Timestamps techniques
         t.updated_at,
@@ -69,10 +76,15 @@ with chargement_base as (
         thp.idtask_has_product, t.idtask, t.iddevice, t.idcompany_peer,
         t.idproduct_source, t.type_product_source, t.idlocation,
         t.idproduct_destination, t.type_product_destination,
-        thp.idproduct, thp.net_price,
+        thp.idproduct,
         c.code, d.code, p.code,
         ts.code, la.code,
         l.access_info, t.real_start_date,
+        thp.unit_coeff_multi,
+        thp.unit_coeff_div,
+        thp.real_quantity,
+        thp.net_price,
+        p.purchase_unit_price,
         t.updated_at, t.created_at, t.extracted_at
 ),
 
@@ -138,6 +150,12 @@ select
     task_location_info,
     task_start_date,
 
+    unit_coeff_multi,
+    unit_coeff_div,
+    base_unit_quantity,
+    product_unit_price_task,
+    product_unit_price_latest,
+
     -- Métriques
     load_quantity,
     load_valuation,
@@ -160,13 +178,13 @@ from chargement_enrichi
 
     
     when matched then update set
-        `task_product_id` = DBT_INTERNAL_SOURCE.`task_product_id`,`task_id` = DBT_INTERNAL_SOURCE.`task_id`,`device_id` = DBT_INTERNAL_SOURCE.`device_id`,`company_id` = DBT_INTERNAL_SOURCE.`company_id`,`product_id` = DBT_INTERNAL_SOURCE.`product_id`,`location_id` = DBT_INTERNAL_SOURCE.`location_id`,`product_source_id` = DBT_INTERNAL_SOURCE.`product_source_id`,`product_destination_id` = DBT_INTERNAL_SOURCE.`product_destination_id`,`roadman_id` = DBT_INTERNAL_SOURCE.`roadman_id`,`vehicle_id` = DBT_INTERNAL_SOURCE.`vehicle_id`,`company_code` = DBT_INTERNAL_SOURCE.`company_code`,`device_code` = DBT_INTERNAL_SOURCE.`device_code`,`product_code` = DBT_INTERNAL_SOURCE.`product_code`,`roadman_code` = DBT_INTERNAL_SOURCE.`roadman_code`,`vehicle_code` = DBT_INTERNAL_SOURCE.`vehicle_code`,`task_status_code` = DBT_INTERNAL_SOURCE.`task_status_code`,`load_type_code` = DBT_INTERNAL_SOURCE.`load_type_code`,`product_source_type` = DBT_INTERNAL_SOURCE.`product_source_type`,`product_destination_type` = DBT_INTERNAL_SOURCE.`product_destination_type`,`task_location_info` = DBT_INTERNAL_SOURCE.`task_location_info`,`task_start_date` = DBT_INTERNAL_SOURCE.`task_start_date`,`load_quantity` = DBT_INTERNAL_SOURCE.`load_quantity`,`load_valuation` = DBT_INTERNAL_SOURCE.`load_valuation`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`created_at` = DBT_INTERNAL_SOURCE.`created_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`
+        `task_product_id` = DBT_INTERNAL_SOURCE.`task_product_id`,`task_id` = DBT_INTERNAL_SOURCE.`task_id`,`device_id` = DBT_INTERNAL_SOURCE.`device_id`,`company_id` = DBT_INTERNAL_SOURCE.`company_id`,`product_id` = DBT_INTERNAL_SOURCE.`product_id`,`location_id` = DBT_INTERNAL_SOURCE.`location_id`,`product_source_id` = DBT_INTERNAL_SOURCE.`product_source_id`,`product_destination_id` = DBT_INTERNAL_SOURCE.`product_destination_id`,`roadman_id` = DBT_INTERNAL_SOURCE.`roadman_id`,`vehicle_id` = DBT_INTERNAL_SOURCE.`vehicle_id`,`company_code` = DBT_INTERNAL_SOURCE.`company_code`,`device_code` = DBT_INTERNAL_SOURCE.`device_code`,`product_code` = DBT_INTERNAL_SOURCE.`product_code`,`roadman_code` = DBT_INTERNAL_SOURCE.`roadman_code`,`vehicle_code` = DBT_INTERNAL_SOURCE.`vehicle_code`,`task_status_code` = DBT_INTERNAL_SOURCE.`task_status_code`,`load_type_code` = DBT_INTERNAL_SOURCE.`load_type_code`,`product_source_type` = DBT_INTERNAL_SOURCE.`product_source_type`,`product_destination_type` = DBT_INTERNAL_SOURCE.`product_destination_type`,`task_location_info` = DBT_INTERNAL_SOURCE.`task_location_info`,`task_start_date` = DBT_INTERNAL_SOURCE.`task_start_date`,`unit_coeff_multi` = DBT_INTERNAL_SOURCE.`unit_coeff_multi`,`unit_coeff_div` = DBT_INTERNAL_SOURCE.`unit_coeff_div`,`base_unit_quantity` = DBT_INTERNAL_SOURCE.`base_unit_quantity`,`product_unit_price_task` = DBT_INTERNAL_SOURCE.`product_unit_price_task`,`product_unit_price_latest` = DBT_INTERNAL_SOURCE.`product_unit_price_latest`,`load_quantity` = DBT_INTERNAL_SOURCE.`load_quantity`,`load_valuation` = DBT_INTERNAL_SOURCE.`load_valuation`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`created_at` = DBT_INTERNAL_SOURCE.`created_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`
     
 
     when not matched then insert
-        (`task_product_id`, `task_id`, `device_id`, `company_id`, `product_id`, `location_id`, `product_source_id`, `product_destination_id`, `roadman_id`, `vehicle_id`, `company_code`, `device_code`, `product_code`, `roadman_code`, `vehicle_code`, `task_status_code`, `load_type_code`, `product_source_type`, `product_destination_type`, `task_location_info`, `task_start_date`, `load_quantity`, `load_valuation`, `updated_at`, `created_at`, `extracted_at`)
+        (`task_product_id`, `task_id`, `device_id`, `company_id`, `product_id`, `location_id`, `product_source_id`, `product_destination_id`, `roadman_id`, `vehicle_id`, `company_code`, `device_code`, `product_code`, `roadman_code`, `vehicle_code`, `task_status_code`, `load_type_code`, `product_source_type`, `product_destination_type`, `task_location_info`, `task_start_date`, `unit_coeff_multi`, `unit_coeff_div`, `base_unit_quantity`, `product_unit_price_task`, `product_unit_price_latest`, `load_quantity`, `load_valuation`, `updated_at`, `created_at`, `extracted_at`)
     values
-        (`task_product_id`, `task_id`, `device_id`, `company_id`, `product_id`, `location_id`, `product_source_id`, `product_destination_id`, `roadman_id`, `vehicle_id`, `company_code`, `device_code`, `product_code`, `roadman_code`, `vehicle_code`, `task_status_code`, `load_type_code`, `product_source_type`, `product_destination_type`, `task_location_info`, `task_start_date`, `load_quantity`, `load_valuation`, `updated_at`, `created_at`, `extracted_at`)
+        (`task_product_id`, `task_id`, `device_id`, `company_id`, `product_id`, `location_id`, `product_source_id`, `product_destination_id`, `roadman_id`, `vehicle_id`, `company_code`, `device_code`, `product_code`, `roadman_code`, `vehicle_code`, `task_status_code`, `load_type_code`, `product_source_type`, `product_destination_type`, `task_location_info`, `task_start_date`, `unit_coeff_multi`, `unit_coeff_div`, `base_unit_quantity`, `product_unit_price_task`, `product_unit_price_latest`, `load_quantity`, `load_valuation`, `updated_at`, `created_at`, `extracted_at`)
 
 
     

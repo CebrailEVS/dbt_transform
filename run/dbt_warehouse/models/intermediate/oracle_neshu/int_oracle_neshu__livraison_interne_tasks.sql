@@ -44,9 +44,16 @@ with mouvement_interne_base as (
         -- Informations date
         t.real_start_date as task_start_date,
 
+        -- Informations de conditionnement
+        thp.unit_coeff_multi,
+        thp.unit_coeff_div,
+        thp.real_quantity as base_unit_quantity,
+        thp.net_price as product_unit_price_task,
+        p.purchase_unit_price as product_unit_price_latest,
+
         -- Métriques
         sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div) as quantity,
-        sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div * thp.net_price) as valuation,
+        sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div * p.purchase_unit_price) as valuation,
 
         -- Timestamps techniques
         t.updated_at,
@@ -91,7 +98,12 @@ with mouvement_interne_base as (
         thp.idtask_has_product, t.idtask, t.idcompany_peer,
         t.idproduct_source, t.type_product_source,
         t.idproduct_destination, t.type_product_destination,
-        thp.idproduct, thp.net_price,
+        thp.idproduct,
+        thp.unit_coeff_multi,
+        thp.unit_coeff_div,
+        thp.real_quantity,
+        thp.net_price,
+        p.purchase_unit_price,
         cs.code, rs.code, cd.code, rd.code,
         p.code, ts.code,
         t.real_start_date,
@@ -117,6 +129,13 @@ select
 
     -- Infos métier
     task_start_date,
+
+    -- Infos de conditionnement
+    unit_coeff_multi,
+    unit_coeff_div,
+    base_unit_quantity,
+    product_unit_price_task,
+    product_unit_price_latest,
 
     -- Métriques
     quantity,
