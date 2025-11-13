@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: stg_oracle_neshu_gcs__stock_theorique
+    description: "Table staging des fichiers CSV quotidiens de stock théorique Oracle Neshu depuis GCS. Les colonnes sont typées et les dates converties en TIMESTAMP."
+    columns:
+      - name: id_entity
+        description: "Identifiant de l'entité (ressource ou dépôt)"
+        tests:
+          - not_null
+      - name: entity_name
+        description: "Nom de l'entité (en lowercase)"
+      - name: entity_type
+        description: "Type de l'entité (en lowercase)"
+      - name: date_system
+        description: "Date du système d'inventaire théorique (TIMESTAMP)"
+        tests:
+          - not_null
+      - name: resources_code
+        description: "Code de la ressource"
+      - name: product_code
+        description: "Code du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit"
+      - name: date_inventaire
+        description: "Date du dernier inventaire réalisé (TIMESTAMP)"
+      - name: stock_inventaire
+        description: "Stock inventaire réel ou théorique à la date donnée"
+      - name: plus
+        description: "Quantité en plus par rapport au stock théorique"
+      - name: moins
+        description: "Quantité en moins par rapport au stock théorique"
+      - name: stock_at_date
+        description: "Stock théorique à la date donnée"
+      - name: dpa
+        description: "Dernier prix d'achat"
+      - name: pump
+        description: "Prix moyen pondéré ou autre information de prix"
+      - name: purchase_price
+        description: "Prix d'achat unitaire"
+      - name: extraction_timestamp
+        description: "Timestamp d'extraction des données (TIMESTAMP)"
+      - name: row_count
+        description: "Nombre de lignes du fichier CSV source"
+      - name: file_datetime
+        description: "Date/heure du fichier source (TIMESTAMP)"
+        tests:
+          - not_null
