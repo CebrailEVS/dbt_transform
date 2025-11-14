@@ -26,7 +26,9 @@ models/
 ├── staging/              # 🔄 Nettoyage et standardisation des données sources
 │   ├── mssql_sage/
 │   ├── nesp_co/
+│   ├── nesp_tech/
 │   ├── oracle_neshu/
+│   ├── oracle_neshu_gcs/
 │   └── yuman/
 │
 ├── intermediate/
