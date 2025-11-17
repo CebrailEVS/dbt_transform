@@ -1,6 +1,8 @@
 {{
     config(
-        materialized='table',
+        materialized='incremental',
+        unique_key='cb_marq',
+        incremental_strategy='merge',
         partition_by={
             "field": "created_at",
             "data_type": "timestamp",
@@ -42,4 +44,16 @@ cleaned_data as (
     from source_data
 )
 
-select * from cleaned_data
+select *
+from cleaned_data
+
+{% if is_incremental() %}
+WHERE
+    (
+        updated_at > (
+            SELECT MAX(updated_at)
+            FROM {{ this }}
+        )
+        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+    )
+{% endif %}

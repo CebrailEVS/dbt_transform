@@ -1,10 +1,12 @@
 {{
     config(
-        materialized='table',
+        materialized='incremental',
+        unique_key='cb_marq',
+        incremental_strategy='merge',
         partition_by={
             "field": "ec_date",
             "data_type": "timestamp",
-            "granularity": "month"
+            "granularity": "day"
         },
         cluster_by=['ec_no','cg_num'],
         description='Écritures comptables nettoyées issues du système MSSQL Sage (dbo_f_ecriturec)'
@@ -40,7 +42,6 @@ cleaned_data as (
         timestamp(ec_date) as ec_date,
         timestamp(jm_date) as jm_date,
         ec_jour,
-        -- Dates avec placeholder à nettoyer
         case when ec_echeance = '1753-01-01' then NULL else timestamp(ec_echeance) end as ec_echeance,
         case when ec_date_rappro = '1753-01-01' then NULL else timestamp(ec_date_rappro) end as ec_date_rappro,
         case when ec_date_regle = '1753-01-01' then NULL else timestamp(ec_date_regle) end as ec_date_regle,
@@ -56,4 +57,16 @@ cleaned_data as (
     from source_data
 )
 
-select * from cleaned_data
+select *
+from cleaned_data
+
+{% if is_incremental() %}
+WHERE
+    (
+        updated_at > (
+            SELECT MAX(updated_at)
+            FROM {{ this }}
+        )
+        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+    )
+{% endif %}
