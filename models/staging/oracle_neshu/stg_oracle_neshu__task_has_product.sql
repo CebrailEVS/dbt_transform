@@ -68,7 +68,7 @@ filtered_data as (
         on c.idtask = t.idtask
 )
 
-SELECT * FROM cleaned_data
+SELECT * FROM filtered_data
 {% if is_incremental() %}
 WHERE
     (
