@@ -141,3 +141,12 @@ sources:
               - unique 
               - not_null
             description: "Identifiant unique du bon de commande"
+
+      - name: yuman_storehouses
+        description: "Table des storehouses Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique 
+              - not_null
+            description: "Identifiant unique du bon du storehouses"

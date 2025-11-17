@@ -337,3 +337,13 @@ models:
 
       - name: product_updated_at
         description: "Date de dernière mise à jour de l'association produit-workorder dans Yuman"
+
+  - name: stg_yuman__storehouses
+    description: "Storehouses clean depuis la table source yuman_storehouses"
+    columns:
+      - name: storehouses_id
+        description: "Identifiant unique du storehouses (clé primaire)"
+        tests:
+          - unique
+          - not_null
+    
