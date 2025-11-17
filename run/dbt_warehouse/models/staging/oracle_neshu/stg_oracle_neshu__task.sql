@@ -56,11 +56,15 @@ cleaned_data as (
     from source_data
 )
 
-select * from cleaned_data
+SELECT * FROM cleaned_data
 
-    where updated_at >= (
-        select max(updated_at) - interval 1 day
-        from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task`
+WHERE
+    (
+        updated_at > (
+            SELECT MAX(updated_at)
+            FROM `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task`
+        )
+        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
     )
 
         ) as DBT_INTERNAL_SOURCE

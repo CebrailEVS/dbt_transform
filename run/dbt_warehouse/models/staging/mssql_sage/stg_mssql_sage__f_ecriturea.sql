@@ -1,18 +1,18 @@
-
+-- back compat for old kwarg name
   
+  
+        
+            
+	    
+	    
+            
+        
     
 
-    create or replace table `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_ecriturea`
-      
-    partition by timestamp_trunc(created_at, day)
-    cluster by ec_no
-
     
-    OPTIONS(
-      description="""\u00c9critures analytiques nettoy\u00e9es issues du syst\u00e8me MSSQL Sage"""
-    )
-    as (
-      
+
+    merge into `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_ecriturea` as DBT_INTERNAL_DEST
+        using (
 
 with source_data as (
     select *
@@ -45,6 +45,31 @@ cleaned_data as (
     from source_data
 )
 
-select * from cleaned_data
-    );
-  
+select *
+from cleaned_data
+
+
+WHERE
+    (
+        updated_at > (
+            SELECT MAX(updated_at)
+            FROM `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_ecriturea`
+        )
+        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+    )
+
+        ) as DBT_INTERNAL_SOURCE
+        on ((DBT_INTERNAL_SOURCE.cb_marq = DBT_INTERNAL_DEST.cb_marq))
+
+    
+    when matched then update set
+        `cb_marq` = DBT_INTERNAL_SOURCE.`cb_marq`,`ec_no` = DBT_INTERNAL_SOURCE.`ec_no`,`n_analytique` = DBT_INTERNAL_SOURCE.`n_analytique`,`ea_ligne` = DBT_INTERNAL_SOURCE.`ea_ligne`,`ca_num` = DBT_INTERNAL_SOURCE.`ca_num`,`cb_createur` = DBT_INTERNAL_SOURCE.`cb_createur`,`cb_creation_user` = DBT_INTERNAL_SOURCE.`cb_creation_user`,`ea_montant` = DBT_INTERNAL_SOURCE.`ea_montant`,`ea_quantite` = DBT_INTERNAL_SOURCE.`ea_quantite`,`created_at` = DBT_INTERNAL_SOURCE.`created_at`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`,`deleted_at` = DBT_INTERNAL_SOURCE.`deleted_at`
+    
+
+    when not matched then insert
+        (`cb_marq`, `ec_no`, `n_analytique`, `ea_ligne`, `ca_num`, `cb_createur`, `cb_creation_user`, `ea_montant`, `ea_quantite`, `created_at`, `updated_at`, `extracted_at`, `deleted_at`)
+    values
+        (`cb_marq`, `ec_no`, `n_analytique`, `ea_ligne`, `ca_num`, `cb_createur`, `cb_creation_user`, `ea_montant`, `ea_quantite`, `created_at`, `updated_at`, `extracted_at`, `deleted_at`)
+
+
+    

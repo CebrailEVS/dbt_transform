@@ -31,4 +31,15 @@ cleaned_data as (
     from source_data
 )
 
-select * from cleaned_data
+select *
+from cleaned_data
+
+
+WHERE
+    (
+        updated_at > (
+            SELECT MAX(updated_at)
+            FROM `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_ecriturea`
+        )
+        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+    )
