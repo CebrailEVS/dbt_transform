@@ -18,7 +18,7 @@ cleaned_storehouses as (
         name as storehouses_name,
         address as storehouses_address,
         cast(_sdc_extracted_at as timestamp) as extracted_at,
-        null as deleted_at
+        cast(null as timestamp) as deleted_at
     from source_data
 )
 
@@ -27,10 +27,9 @@ from cleaned_storehouses
 
 {% if is_incremental() %}
 
--- Marquer les lignes supprimées dans la source
--- Toutes les lignes existantes dans la table mais pas dans la source
 union all
 
+-- lignes supprimées depuis la source
 select
     s.storehouses_id,
     s.storehouses_name,
