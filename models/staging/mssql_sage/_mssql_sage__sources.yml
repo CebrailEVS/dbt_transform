@@ -230,3 +230,22 @@ sources:
             description: "Identifiant de séquence Meltano pour la réplication"
           - name: _sdc_table_version
             description: "Version de la table source pour la réplication"
+
+      # NUNSHEN COMMERCE : TABLE DOCLIGNE 
+      - name: dbo_f_docligne
+        description: "Table brute des ventes de MSSQL Sage importée via Meltano. La colonne 'data' contient le JSON complet des informations docligne."
+        columns:
+          - name: data
+            description: "Colonne JSON contenant toutes les informations détaillées des ventes docligne"
+          - name: _sdc_extracted_at
+            description: "Timestamp d'extraction depuis la source Meltano"
+          - name: _sdc_received_at
+            description: "Timestamp de réception dans Meltano"
+          - name: _sdc_batched_at
+            description: "Timestamp indiquant quand le batch a été traité"
+          - name: _sdc_deleted_at
+            description: "Timestamp indiquant si la ligne a été supprimée dans la source"
+          - name: _sdc_sequence
+            description: "Identifiant de séquence Meltano pour la réplication"
+          - name: _sdc_table_version
+            description: "Version de la table source pour la réplication"

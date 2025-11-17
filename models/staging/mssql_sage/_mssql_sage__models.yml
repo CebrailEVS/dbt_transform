@@ -173,3 +173,43 @@ models:
         description: "Date de dernière modification du collaborateur (cbModification)"
       - name: extracted_at
         description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
+
+
+  # TABLE DOCLIGNE NUNSHEN COMMERCE
+  - name: stg_mssql_sage__f_docligne
+    description: "Table des docligne Nunshen nettoyée et transformée depuis la table source dbo_f_docligne de MSSQL Sage"
+    columns:
+      - name: dl_no
+        description: "Code unique de de la transaction"
+        tests:
+          - unique
+          - not_null
+      - name: cbco_no
+        description: "Code du collaborateur associé à la vente"
+        relationships:
+          - to: ref('stg_mssql_sage__f_collaborateur')
+            field: co_no
+      - name: ct_num
+        description: "Code du compte client associé"
+      - name: do_piece
+        description: "Pièce associée à la ventes"
+      - name: dl_design
+        description: "Désignation produit de la ventes"
+      - name: ar_ref
+        description: "Référence article de la ventes"
+      - name: do_date
+        description: "Date de la vente"
+      - name: dl_qte
+        description: "Quantité vendue"
+      - name: dl_montant_ht
+        description: "Montant HT de la vente"
+      - name: dl_montant_ttc
+        description: "Montant TTC de la vente"
+      - name: dl_prix_unitaire
+        description: "Prix unitaire du produit"
+      - name: created_at
+        description: "Date de création du collaborateur (cbCreation)"
+      - name: updated_at
+        description: "Date de dernière modification du collaborateur (cbModification)"
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
