@@ -51,6 +51,7 @@ cleaned_data as (
     from source_data
 )
 
+SELECT * FROM cleaned_data
 {% if is_incremental() %}
 WHERE
     (
