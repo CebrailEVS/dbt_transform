@@ -191,3 +191,42 @@ sources:
             description: "Version de la table dans le flux d’ingestion"
           - name: _sdc_sequence
             description: "Numéro de séquence du flux"
+
+
+      # NUNSHEN COMMERCE : TABLE COMPTE 
+      - name: dbo_f_comptet
+        description: "Table brute des comptes clients de MSSQL Sage importée via Meltano. La colonne 'data' contient le JSON complet des informations clients."
+        columns:
+          - name: data
+            description: "Colonne JSON contenant toutes les informations détaillées du compte client"
+          - name: _sdc_extracted_at
+            description: "Timestamp d'extraction depuis la source Meltano"
+          - name: _sdc_received_at
+            description: "Timestamp de réception dans Meltano"
+          - name: _sdc_batched_at
+            description: "Timestamp indiquant quand le batch a été traité"
+          - name: _sdc_deleted_at
+            description: "Timestamp indiquant si la ligne a été supprimée dans la source"
+          - name: _sdc_sequence
+            description: "Identifiant de séquence Meltano pour la réplication"
+          - name: _sdc_table_version
+            description: "Version de la table source pour la réplication"
+
+      # NUNSHEN COMMERCE : TABLE COLLABORATEUR 
+      - name: dbo_f_collaborateur
+        description: "Table brute des collaborateur de MSSQL Sage importée via Meltano. La colonne 'data' contient le JSON complet des informations collaborateurs."
+        columns:
+          - name: data
+            description: "Colonne JSON contenant toutes les informations détaillées du collaborateur"
+          - name: _sdc_extracted_at
+            description: "Timestamp d'extraction depuis la source Meltano"
+          - name: _sdc_received_at
+            description: "Timestamp de réception dans Meltano"
+          - name: _sdc_batched_at
+            description: "Timestamp indiquant quand le batch a été traité"
+          - name: _sdc_deleted_at
+            description: "Timestamp indiquant si la ligne a été supprimée dans la source"
+          - name: _sdc_sequence
+            description: "Identifiant de séquence Meltano pour la réplication"
+          - name: _sdc_table_version
+            description: "Version de la table source pour la réplication"

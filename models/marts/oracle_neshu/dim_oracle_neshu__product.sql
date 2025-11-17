@@ -51,6 +51,7 @@ pivoted AS (
       'PLANOETE' AS product_planoete,
       'PLANOHIVER' AS product_planohiver,
       'HPALME' AS product_hpalme,
+      'CLASSABC' AS product_classabc,
       'GROUPE' AS product_group,
       'LPTYPE' AS product_type_raw,
       'ISACTIVE' AS isactive
@@ -72,6 +73,7 @@ final AS (
     product_planoete,
     product_planohiver,
     product_hpalme,
+    product_classabc,
     product_group,
     product_type_raw,
     -- convert isactive from string to boolean
@@ -116,6 +118,7 @@ standardized AS (
     CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_planoete END AS product_planoete,
     CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_planohiver END AS product_planohiver,
     CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_hpalme END AS product_hpalme,
+    CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_classabc END AS product_classabc,
     CASE WHEN product_type = 'INDEFINI' THEN 'INDEFINI' ELSE product_group END AS product_group,
 
     product_type_raw,
@@ -139,6 +142,7 @@ SELECT
   product_planoete,
   product_planohiver,
   product_hpalme,
+  product_classabc,
   product_group,
   product_type,
   is_active,

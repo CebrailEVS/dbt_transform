@@ -93,3 +93,83 @@ models:
         description: "Timestamp d'extraction"
       - name: deleted_at
         description: "Timestamp de suppression logique"
+
+  # TABLE COMPTE NUNSHEN COMMERCE
+  - name: stg_mssql_sage__f_comptet
+    description: "Table des comptes clients Nunshen nettoyée et transformée depuis la table source dbo_f_comptet de MSSQL Sage"
+    columns:
+      - name: ct_num
+        description: "Code unique du compte client"
+        tests:
+          - unique
+          - not_null
+      - name: ct_intitule
+        description: "Intitulé ou nom du compte client"
+        tests:
+          - not_null
+      - name: ct_type
+        description: "Type de compte client"
+      - name: ct_contact
+        description: "Nom du contact principal du compte client"
+      - name: ct_adresse
+        description: "Adresse principale du compte client"
+      - name: ct_complement
+        description: "Complément d'adresse"
+      - name: ct_codepostal
+        description: "Code postal du compte client"
+      - name: ct_ville
+        description: "Ville du compte client"
+      - name: ct_pays
+        description: "Pays du compte client"
+      - name: ct_siret
+        description: "Numéro SIRET du compte client"
+      - name: ct_numpayeur
+        description: "Numéro du payeur associé au compte client"
+      - name: co_no
+        description: "Code comptable associé au compte client"
+      - name: ct_telephone
+        description: "Téléphone du compte client"
+      - name: ct_email
+        description: "Email du compte client"
+      - name: categorisation_niv_1
+        description: "Catégorisation niveau 1 du compte client"
+      - name: categorisation_niv_2
+        description: "Catégorisation niveau 2 du compte client"
+      - name: categorisation_niv_3
+        description: "Catégorisation niveau 3 du compte client"
+      - name: ligne_de_service
+        description: "Ligne de service associée au compte client"
+      - name: annee_origine
+        description: "Année d'origine du compte client"
+      - name: client_perdu
+        description: "Indique si le client est perdu"
+      - name: typologie
+        description: "Typologie du compte client"
+      - name: created_at
+        description: "Date de création du compte client (cbCreation)"
+      - name: updated_at
+        description: "Date de dernière modification du compte client (cbModification)"
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
+
+  # TABLE COLLABORATEUR NUNSHEN COMMERCE
+  - name: stg_mssql_sage__f_collaborateur
+    description: "Table des collaborateur Nunshen nettoyée et transformée depuis la table source dbo_f_collaborateur de MSSQL Sage"
+    columns:
+      - name: co_no
+        description: "Code unique du collaborateur"
+        tests:
+          - unique
+          - not_null
+      - name: co_nom
+        description: "Nom du collaborateur"
+      - name: co_prenom
+        description: "Prénom du collaborateur"
+      - name: co_fonction
+        description: "Fonction du collaborateur"
+      - name: created_at
+        description: "Date de création du collaborateur (cbCreation)"
+      - name: updated_at
+        description: "Date de dernière modification du collaborateur (cbModification)"
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
