@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: fct_oracle_neshu_gcs__stock_theorique
+    description: "Table marts des suivi inventaire théorique VEHICULE Actif + Dépôt quotidiens de stock théorique Oracle Neshu depuis la table staging"
+    columns:
+      - name: id_entity
+        description: "Identifiant de l'entité (ressource ou dépôt)"
+        tests:
+          - not_null
+      - name: entity_name
+        description: "Nom de l'entité (en lowercase)"
+      - name: entity_type
+        description: "Type de l'entité (en lowercase)"
+      - name: date_system
+        description: "Date du système d'inventaire théorique (TIMESTAMP)"
+        tests:
+          - not_null
+      - name: entity_code
+        description: "Code de la ressource ou dépôt"
+      - name: product_code
+        description: "Code du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit"
+      - name: is_out_of_stock
+        description: "Bolean qui vaut TRUE si le stock_at_date est 0 pour un produit, FALSE sinon"
+      - name: date_inventaire
+        description: "Date du dernier inventaire réalisé (TIMESTAMP)"
+      - name: stock_inventaire
+        description: "Stock inventaire réel ou théorique à la date donnée"
+      - name: plus
+        description: "Quantité en plus par rapport au stock théorique"
+      - name: moins
+        description: "Quantité en moins par rapport au stock théorique"
+      - name: stock_at_date
+        description: "Stock théorique à la date donnée"
+      - name: dpa
+        description: "Dernier prix d'achat"
+      - name: purchase_price
+        description: "Prix d'achat unitaire"
+      - name: extraction_timestamp
+        description: "Timestamp d'extraction des données (TIMESTAMP)"
+      - name: file_datetime
+        description: "Date/heure du fichier source (TIMESTAMP)"
+        tests:
+          - not_null
