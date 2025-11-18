@@ -59,14 +59,3 @@ cleaned_data as (
 
 select *
 from cleaned_data
-
-{% if is_incremental() %}
-WHERE
-    (
-        updated_at > (
-            SELECT MAX(updated_at)
-            FROM {{ this }}
-        )
-        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
-    )
-{% endif %}
