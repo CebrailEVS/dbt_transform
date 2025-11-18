@@ -19,13 +19,22 @@ cleaned_materials as (
         serial_number as material_serial_number,
         brand as material_brand,
         description as material_description,
-        in_service_date as material_in_service_date,      
+        in_service_date as material_in_service_date,
+
+        (
+          select JSON_VALUE(elem, '$.value')
+          from UNNEST(JSON_QUERY_ARRAY(_embed_fields)) elem
+          where JSON_VALUE(elem, '$.name') = 'LOCALISATION'
+        ) as material_localisation,
+
         timestamp(created_at) as created_at,
         timestamp(updated_at) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
+
     from source_data
     where id is not null
 )
 
 select * from cleaned_materials
+
