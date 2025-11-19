@@ -2,7 +2,7 @@
     materialized='table',
     partition_by = {
     'field': 'date_system',
-    'data_type': 'date'},
+    'data_type': 'timestamp'},
     description= 'Table de fait marts afin de suivre l"inventaire véhicule roadman + dépôt filtrer sur vehicule actif et depôt 1-5 10 et 13, enrichi et cleané'
 ) }}
 
