@@ -184,3 +184,25 @@ seeds:
           - not_null
       - name: macro_categorie_pnl_bu
         description: "Macro catégorie P&L BU associée au compte comptable"
+
+#### REFERENCE GENERAL ####
+
+  - name: ref_general__feries_metropole
+    description: "Liste des jours fériés en métropole"
+    columns:
+      - name: annee
+        description: "Année"
+        tests:
+          - not_null
+      - name: mois
+        description: "Mois"
+        tests:
+          - not_null
+      - name: date_ferie
+        description: "Date du jour férié"
+        tests:
+          - not_null
+      - name: nom_jour_ferie
+        description: "Nom du jour férié"
+        tests:
+          - not_null
