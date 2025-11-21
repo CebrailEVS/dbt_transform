@@ -1,13 +1,12 @@
 {{
     config(
-        materialized='incremental',
+        materialized='table',
         unique_key='dl_no',
         partition_by={
             "field": "do_date",
             "data_type": "timestamp",
             "granularity": "day"
         },
-        incremental_strategy='merge',
         description='Table des ventes Nunshen nettoyée et transformée depuis la table source dbo_f_docligne de MSSQL Sage'
     )
 }}

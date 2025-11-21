@@ -1,8 +1,7 @@
 {{
     config(
-        materialized='incremental',
+        materialized='table',
         unique_key='cb_marq',
-        incremental_strategy='merge',
         partition_by={
             "field": "ec_date",
             "data_type": "timestamp",
