@@ -1,18 +1,18 @@
--- back compat for old kwarg name
+
   
-  
-        
-            
-	    
-	    
-            
-        
     
 
-    
+    create or replace table `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_ecriturec`
+      
+    partition by timestamp_trunc(ec_date, day)
+    cluster by ec_no, cg_num
 
-    merge into `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_ecriturec` as DBT_INTERNAL_DEST
-        using (
+    
+    OPTIONS(
+      description="""\u00c9critures comptables nettoy\u00e9es issues du syst\u00e8me MSSQL Sage"""
+    )
+    as (
+      
 
 with source_data as (
     select *
@@ -60,29 +60,5 @@ cleaned_data as (
 
 select *
 from cleaned_data
-
-
-WHERE
-    (
-        updated_at > (
-            SELECT MAX(updated_at)
-            FROM `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_ecriturec`
-        )
-        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
-    )
-
-        ) as DBT_INTERNAL_SOURCE
-        on ((DBT_INTERNAL_SOURCE.cb_marq = DBT_INTERNAL_DEST.cb_marq))
-
-    
-    when matched then update set
-        `ec_no` = DBT_INTERNAL_SOURCE.`ec_no`,`ec_no_link` = DBT_INTERNAL_SOURCE.`ec_no_link`,`cb_marq` = DBT_INTERNAL_SOURCE.`cb_marq`,`jo_num` = DBT_INTERNAL_SOURCE.`jo_num`,`cg_num` = DBT_INTERNAL_SOURCE.`cg_num`,`ct_num` = DBT_INTERNAL_SOURCE.`ct_num`,`ec_intitule` = DBT_INTERNAL_SOURCE.`ec_intitule`,`ec_sens` = DBT_INTERNAL_SOURCE.`ec_sens`,`ec_montant` = DBT_INTERNAL_SOURCE.`ec_montant`,`ec_montant_regle` = DBT_INTERNAL_SOURCE.`ec_montant_regle`,`ec_devise` = DBT_INTERNAL_SOURCE.`ec_devise`,`n_devise` = DBT_INTERNAL_SOURCE.`n_devise`,`ec_date` = DBT_INTERNAL_SOURCE.`ec_date`,`jm_date` = DBT_INTERNAL_SOURCE.`jm_date`,`ec_jour` = DBT_INTERNAL_SOURCE.`ec_jour`,`ec_echeance` = DBT_INTERNAL_SOURCE.`ec_echeance`,`ec_date_rappro` = DBT_INTERNAL_SOURCE.`ec_date_rappro`,`ec_date_regle` = DBT_INTERNAL_SOURCE.`ec_date_regle`,`cb_createur` = DBT_INTERNAL_SOURCE.`cb_createur`,`cb_creation_user` = DBT_INTERNAL_SOURCE.`cb_creation_user`,`created_at` = DBT_INTERNAL_SOURCE.`created_at`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`,`deleted_at` = DBT_INTERNAL_SOURCE.`deleted_at`
-    
-
-    when not matched then insert
-        (`ec_no`, `ec_no_link`, `cb_marq`, `jo_num`, `cg_num`, `ct_num`, `ec_intitule`, `ec_sens`, `ec_montant`, `ec_montant_regle`, `ec_devise`, `n_devise`, `ec_date`, `jm_date`, `ec_jour`, `ec_echeance`, `ec_date_rappro`, `ec_date_regle`, `cb_createur`, `cb_creation_user`, `created_at`, `updated_at`, `extracted_at`, `deleted_at`)
-    values
-        (`ec_no`, `ec_no_link`, `cb_marq`, `jo_num`, `cg_num`, `ct_num`, `ec_intitule`, `ec_sens`, `ec_montant`, `ec_montant_regle`, `ec_devise`, `n_devise`, `ec_date`, `jm_date`, `ec_jour`, `ec_echeance`, `ec_date_rappro`, `ec_date_regle`, `cb_createur`, `cb_creation_user`, `created_at`, `updated_at`, `extracted_at`, `deleted_at`)
-
-
-    
+    );
+  

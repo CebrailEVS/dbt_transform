@@ -4,7 +4,7 @@
 
     create or replace table `evs-datastack-prod`.`prod_marts`.`fct_oracle_neshu__conso_business_review`
       
-    
+    partition by consumption_date
     cluster by company_id, consumption_date, product_type, data_source
 
     
@@ -291,7 +291,7 @@ SELECT
 
   -- Métadonnées d'exécution
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  'e1e7d5ce-5e1d-4b19-adb1-408c9d47d4a6' as dbt_invocation_id
+  'd770035a-5afc-42d5-9c50-b79de3abc792' as dbt_invocation_id
 
 FROM combined_and_filtered_data
     );
