@@ -1,0 +1,83 @@
+# models/_sg__sources.yml
+version: 2
+
+sources:
+  - name: sg
+    schema: "prod_raw"
+    description: "Données brutes extraites du fichiers suivi sinistres envoyé depuis GAC vers le FTP sg"  
+    tags: ['sg', 'source']
+    tables:
+      - name: sg_sinistres
+        description: "Table des sinistres SG"
+        columns:
+          - name: date
+            tests:
+              - not_null
+            description: "Date du sinistre"
+          - name: immat
+            tests:
+              - not_null
+            description: "Immatriculation du véhicule"
+          - name: statut_actuel
+            tests:
+              - not_null
+            description: "Statut actuel du vehicule"
+          - name: n_de_sinistre
+            tests:
+              - unique
+            description: "Numéro de sinistre SG"
+          - name: type
+            tests:
+              - not_null
+            description: "Type de sinistre"
+          - name: circonstance
+            tests:
+              - not_null
+            description: "Circonstance du sinistre"
+          - name: tiers
+            tests:
+              - not_null
+            description: "Indique si un tiers est impliqué"
+          - name: resp
+            description: "Taux de responsabilite (nombre entre 0 et 100)"
+          - name: matricule
+            description: "Matricule"
+          - name: nom
+            description: "Nom de l'assuré"
+          - name: prenom
+            description: "Prénom de l'assuré"
+          - name: centre_de_couts
+            description: "Centre de coûts"
+          - name: cout_assureur
+            description: "Coût de l'assureur"
+          - name: auto_assurance
+            description: "Auto assurance"
+          - name: franchise
+            description: "Franchise de l'assuré"
+          - name: cout_global
+            description: "Coût global du sinistre"
+          - name: cloture
+            description: "Indique si le sinistre est clôturé"
+          - name: description
+            description: "Description du sinistre"
+          - name: date_de_creation
+            description: "Date de création du sinistre"
+          - name: genre_fiscal
+            description: "Genre fiscal du véhicule"
+          - name: entite_entite_1
+            description: "Entité 1"
+          - name: entite_entite_2
+            description: "Entité 2"
+          - name: entite_entite_3
+            description: "Entité 3"
+          - name: entite_entite_4
+            description: "Entité 4"
+          - name: extracted_at
+            tests:
+              - not_null
+            description: "Date d'extraction des données depuis le FTP"
+          - name: source_file
+            tests:
+              - not_null
+            description: "Nom du fichier source d'où proviennent les données"
+          
