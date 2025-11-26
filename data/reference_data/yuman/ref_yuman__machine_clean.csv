@@ -159,7 +159,6 @@ sm 50-3-fs-0 cu ce,FONTAINE A EAU,BRITA
 sm 50-3-ts30-tgb cu ce,FONTAINE A EAU,BRITA
 sm 50-f-1-ct-tgb cu ce,FONTAINE A EAU,BRITA
 sm 50-f-1-fs-tgb cu ce,FONTAINE A EAU,BRITA
-sm 50-f-1-fs-tgb cu ce,FONTAINE A EAU,BRITA
 sm 50-f-3-ct-tgb cu ce,FONTAINE A EAU,BRITA
 sm 50-f-3-fs-tgb cu ce,FONTAINE A EAU,BRITA
 table top,DISP GEMINI,NESPRESSO
@@ -198,9 +197,7 @@ vitap 302-g-2-ts-0 cu ce,FONTAINE A EAU,BRITA
 vitap 304-g-1h-ts-0 cu ce,FONTAINE A EAU,BRITA
 vitap 305-2h-ts-0 cu ce,FONTAINE A EAU,BRITA
 vitap 305-g-2h-ts-0 cu ce,FONTAINE A EAU,BRITA
-vitap 305-g-2h-ts-0 cu ce,FONTAINE A EAU,BRITA
 viv e 50 i-26-c2-tg-i-cu ce,FONTAINE A EAU,BRITA
-viv e 50 i-33-c2-tg-i-cu ce,FONTAINE A EAU,BRITA
 viv e 50 i-33-c2-tg-i-cu ce,FONTAINE A EAU,BRITA
 viv e 50 i-33-c2-tg-i-cu ce ,FONTAINE A EAU,BRITA
 viv e 50 i-33-c2-tg-i-cu ce  ,FONTAINE A EAU,BRITA
@@ -221,8 +218,6 @@ viv e 85 i-33-c2-hp-o-cu za,FONTAINE A EAU,BRITA
 viv e 85 i-33-c2-tg-i-cu ce,FONTAINE A EAU,BRITA
 viv e 85 i-33-c2-tg-n-cu ce,FONTAINE A EAU,BRITA
 viv f 200 ct-c2-tg-j cu ce,FONTAINE A EAU,BRITA
-viv f 200 ct-c2-tg-j cu ce,FONTAINE A EAU,BRITA
-viv f 200 ts idt-c2-tg-j cu ce,FONTAINE A EAU,BRITA
 viv f 200 ts idt-c2-tg-j cu ce,FONTAINE A EAU,BRITA
 viv f 200 ts ocdt-c2-tg-j cu ce,FONTAINE A EAU,BRITA
 viv f 200 ts wodt-c2-tg-j cu ce,FONTAINE A EAU,BRITA
@@ -232,7 +227,6 @@ viv t 15 c2-tg-k cu ce,FONTAINE A EAU,BRITA
 viv t 50 c1-tg-l-cu ce,FONTAINE A EAU,BRITA
 viv t 50 c1-tg-n-cu ce,FONTAINE A EAU,BRITA
 viv t 50 c2-hp-i-cu ce,FONTAINE A EAU,BRITA
-viv t 50 c2-tg-i-cu ce,FONTAINE A EAU,BRITA
 viv t 50 c2-tg-i-cu ce,FONTAINE A EAU,BRITA
 viv t 50 c2-tg-n-cu ce,FONTAINE A EAU,BRITA
 viv t 85 c1-tg-n-cu ce,FONTAINE A EAU,BRITA
