@@ -1,0 +1,11 @@
+
+    
+    
+
+
+
+select extracted_at
+from `evs-datastack-prod`.`prod_raw`.`sg_sinistres`
+where extracted_at is null
+
+
