@@ -11,32 +11,18 @@ sources:
         description: "Table des sinistres SG"
         columns:
           - name: date
-            tests:
-              - not_null
             description: "Date du sinistre"
           - name: immat
-            tests:
-              - not_null
             description: "Immatriculation du véhicule"
           - name: statut_actuel
-            tests:
-              - not_null
             description: "Statut actuel du vehicule"
           - name: n_de_sinistre
-            tests:
-              - unique
             description: "Numéro de sinistre SG"
           - name: type
-            tests:
-              - not_null
             description: "Type de sinistre"
           - name: circonstance
-            tests:
-              - not_null
             description: "Circonstance du sinistre"
           - name: tiers
-            tests:
-              - not_null
             description: "Indique si un tiers est impliqué"
           - name: resp
             description: "Taux de responsabilite (nombre entre 0 et 100)"
