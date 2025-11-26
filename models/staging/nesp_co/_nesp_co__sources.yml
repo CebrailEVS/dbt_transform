@@ -20,13 +20,13 @@ sources:
             description: "Type d'activité commerciale (Phone call, appointment, etc.)"
           - name: phone_call
             description: "Description de l'appel téléphonique si activity_type = Phone call"
-          - name: created_by_phone_call_
+          - name: created_by_phone_call
             description: "Identifiant du commercial responsable de l'appel téléphonique"
           - name: unnamed_5
             description: "Colonne inutile ignorée"
           - name: appointment
             description: "Description du rendez-vous si activity_type = appointment"
-          - name: created_by_appointment_
+          - name: created_by_appointment
             description: "Identifiant du commercial responsable du rendez-vous"          
           - name: activity_category
             description: "Catégorie de l'activité commerciale"
@@ -46,21 +46,21 @@ sources:
             description: "(COLONNE INUTILE) Potentiel de vente du compte"
           - name: role 
             description: "Prospect / Client"
-          - name: nessoft_id_main_account_ 
+          - name: nessoft_id_main_account 
             description: "Identifiant Nessoft du compte principal"
           - name: activity_unit
             description: "Unité de l'activité commerciale"
           - name: activity_life_cycle_status
             description: "Statut du cycle de vie de l'activité commerciale"
-          - name: campaign_id_preceding_lead_
+          - name: campaign_id_preceding_lead
             description: "Identifiant de la campagne précédant le lead"
           - name: unnamed_22
             description: "ID C4C de la campagne"
-          - name: start_date_phone_call_
+          - name: start_date_phone_call
             description: "Date de l'appel téléphonique"
-          - name: start_date_appointment_
+          - name: start_date_appointment
             description: "Date du rendez-vous"
-          - name: start_date_task_
+          - name: start_date_task
             description: "Date de la tâche"
           - name: notes
             description: "Notes supplémentaires sur l'activité commerciale"

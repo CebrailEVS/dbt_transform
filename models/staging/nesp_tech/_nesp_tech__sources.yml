@@ -16,7 +16,7 @@ sources:
             description: "Identifiant du technicien du type TEC-XXXXX"
           - name: nom_tech
             description: "Nom du technicien"
-          - name: pr_nom_tech
+          - name: prenom_tech
             description: "Prénom du technicien"
           - name: n_client
             description: "Identifiant nessoft du client (à confirmer)"
@@ -30,7 +30,7 @@ sources:
             description: "Code machine (identifiant de la machine)"
           - name: nom_machine
             description: "Nom de la machine"
-          - name: n_s_rie_machine
+          - name: n_serie_machine
             description: "Numéro de série de la machine"
           - name: date
             description: "Date de l'intervention"
@@ -44,8 +44,6 @@ sources:
             description: "Date et heure d'extraction des données"
           - name: source_file
             description: "Nom du fichier source d'où proviennent les données"
-          - name: file_date
-            description: "Date du fichier source"
           
       - name: nespresso_technique_interventions
         description: "Table des opportunités commerciales Nespresso"  
@@ -56,7 +54,7 @@ sources:
             description: "Identifiant du technicien du type TEC-XXXXX"
           - name: nom_tech
             description: "Nom du technicien"
-          - name: pr_nom_tech
+          - name: prenom_tech
             description: "Prénom du technicien"
           - name: n_client
             description: "Identifiant nessoft du client (à confirmer)"
@@ -82,19 +80,19 @@ sources:
             description: "Code machine (identifiant de la machine)"
           - name: nom_machine
             description: "Nom de la machine"
-          - name: n_s_rie_machine
+          - name: n_serie_machine
             description: "Numéro de série de la machine"
           - name: type
             description: "Type intervention"
-          - name: libell_type
+          - name: libelle_type
             description: "Libellé du type d'intervention"
-          - name: date_heure_d_but
+          - name: date_heure_debut
             description: "Date et heure de début de l'intervention"
           - name: date_heure_fin
             description: "Date et heure de fin de l'intervention"
-          - name: dur_e_d_clar_ee
+          - name: duree_declaree
             description: "Durée déclarée de l'intervention"
-          - name: tat_intervention
+          - name: etat_inter
             description: "Statut de l'intervention"
           - name: creation_user
             description: "Utilisateur ayant créé l'intervention"
@@ -106,7 +104,7 @@ sources:
             description: "Date de prise en charge"
           - name: date_planning_nomadrepair
             description: "Date de planification dans Nomad Repair"
-          - name: d_lai_d_inter_vs_rdv
+          - name: delai_d_inter_vs_rdv
             description: "Délai entre l'intervention et le rendez-vous"
           - name: agency
             description: "Agence"
@@ -144,5 +142,3 @@ sources:
             description: "Date et heure d'extraction des données"
           - name: source_file
             description: "Nom du fichier source d'où proviennent les données"
-          - name: file_date
-            description: "Date du fichier source"
