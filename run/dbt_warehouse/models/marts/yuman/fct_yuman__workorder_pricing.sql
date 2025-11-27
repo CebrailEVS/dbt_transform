@@ -18,7 +18,7 @@
 -- MODEL: fct_yuman__workorder_pricing
 -- PURPOSE: Determine automatic pricing for technical interventions from Yuman
 -- AUTHOR: Cebrail AKSOY
--- UPDATED: 2025-11-27 09:18:35.880317+00:00
+-- UPDATED: 2025-11-27 11:56:34.768946+00:00
 -- ============================================================================
 
 WITH 
@@ -46,6 +46,8 @@ base_workorders AS (
     workorder_date_creation,
     workorder_motif_non_intervention,
     workorder_detail_non_intervention,
+    workorder_raison_mise_en_pause,
+    workorder_explication_mise_en_pause,
     date_planned,
     date_started,
     date_done,
@@ -270,6 +272,8 @@ SELECT
   workorder_date_creation,
   workorder_motif_non_intervention,
   workorder_detail_non_intervention,
+  workorder_raison_mise_en_pause,
+  workorder_explication_mise_en_pause,
   date_planned,
   date_started,
   date_done,
