@@ -88,8 +88,13 @@ seeds:
         description: "Nom machine tel qu'en source"
         tests:
           - not_null
+          - unique
       - name: MACHINE
         description: "Nom machine standardisé"
+      - name: famille_neshu
+        description: "Famille de la machine"
+        tests:
+          - not_null
 
   - name: ref_yuman__marque_clean
     description: "Correspondance technicien vers marque"
