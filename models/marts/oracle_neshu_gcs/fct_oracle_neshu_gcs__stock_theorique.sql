@@ -53,7 +53,7 @@ filtered_stock AS (
         COALESCE(st.dpa, st.purchase_price) AS dpa,
         st.purchase_price,
         st.date_system,
-        st.extraction_timestamp,
+        st.extracted_at,
         st.file_datetime
     FROM {{ ref('stg_oracle_neshu_gcs__stock_theorique') }} st
     LEFT JOIN aggregated_labels al
