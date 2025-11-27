@@ -32,13 +32,6 @@ models:
       relation: true
       columns: true
 
-    raw:
-      +schema: raw
-      +tags: ['raw']
-
-      oracle_neshu_gcs:
-        +tags: ['raw', 'oracle_neshu_gcs']
-
     staging:
       +schema: staging
       +tags: ['staging']
