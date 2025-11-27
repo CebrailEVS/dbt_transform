@@ -264,7 +264,7 @@ final AS (
 
         -- Métadonnées dbt
         CURRENT_TIMESTAMP() as dbt_updated_at,
-        'fe422ed6-ee05-47a6-a956-4007c75975a7' as dbt_invocation_id
+        '740dcbcf-98ce-4f42-adb5-38ca5f6abf60' as dbt_invocation_id
 
     FROM resultat_retard rr
     LEFT JOIN di_data di

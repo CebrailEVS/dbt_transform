@@ -38,6 +38,13 @@ dates_range AS (
 jours_feries as (
 select * from `evs-datastack-prod`.`prod_reference`.`ref_general__feries_metropole`  
 ),
+famille_machine as (
+select 
+  Machine_Brut,
+  MACHINE,
+  famille_neshu
+from `evs-datastack-prod`.`prod_reference`.`ref_yuman__machine_clean`
+),
 jours_ouvrables AS (
     -- Filtrer les jours ouvrés (exclure week-ends et jours fériés)
     select
@@ -76,9 +83,11 @@ final_table as (
     	  when dc.delai_jours_ouvres = 2 then 'J+2'
     	  when dc.delai_jours_ouvres > 2 then 'J++'
     	  else 'ERREUR'
-   	END) as type_delai
+   	END) as type_delai,
+  fm.famille_neshu
 from `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_pricing` sfp
-left join delai_calcul dc on dc.sfp_numero = sfp.workorder_id)
+left join delai_calcul dc on dc.sfp_numero = sfp.workorder_id
+left join famille_machine fm on fm.Machine_Brut = sfp.machine_raw)
 --where extract(month from sfp.date_done) = 11 and extract(year from sfp.date_done) = 2025)
 -- SELECT REQUETE GLOBALE
 select * from final_table
