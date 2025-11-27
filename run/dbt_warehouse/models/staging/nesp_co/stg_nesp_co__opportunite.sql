@@ -45,13 +45,13 @@ base_opportunite as (
         nullif(account, '#') as account_name,
         nullif(reason_for_status, '#') as reason_for_status,
         nullif(sales_unit, '#') as sales_unit,
-        nullif(role_account_, '#') as role_account,
+        nullif(role_account, '#') as role_account,
         nullif(lifecycle_status, '#') as lifecycle_status,
 
         -- Mesures numériques
         cast(nullif(first_coffee_order, '#') as float64) as first_coffee_order,
         cast(nullif(expected_value, '#') as float64) as expected_value,
-        cast(nullif(_zeq_zenius_equivalent_, '#') as float64) as zeq_zenius_equivalent,
+        cast(nullif(zeq_zenius_equivalent, '#') as float64) as zeq_zenius_equivalent,
         cast(replace(replace(trim(nullif(chance_of_success, '#')), '%', ''), ',', '.') as float64) as chance_of_success,
         cast(nullif(machines, '#') as int64) as machines_opportunity,
 

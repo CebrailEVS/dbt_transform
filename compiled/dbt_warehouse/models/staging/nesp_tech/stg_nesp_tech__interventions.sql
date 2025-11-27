@@ -24,7 +24,7 @@ cleaned_data as (
         -- Colonnes texte (avec traitement "nan" -> NULL)
         nullif(lower(trim(n_tech)), 'nan') as n_tech,
         nullif(lower(trim(nom_tech)), 'nan') as nom_tech,
-        nullif(lower(trim(pr_nom_tech)), 'nan') as prenom_tech,
+        nullif(lower(trim(prenom_tech)), 'nan') as prenom_tech,
         nullif(lower(trim(raison_sociale_client)), 'nan') as raison_sociale_client,
         nullif(lower(trim(adresse_client)), 'nan') as adresse_client,
         nullif(lower(trim(code_postal_client)), 'nan') as code_postal_client,
@@ -35,9 +35,9 @@ cleaned_data as (
         nullif(lower(trim(ville_site)), 'nan') as ville_site,
         nullif(lower(trim(code_machine)), 'nan') as code_machine,
         nullif(lower(trim(nom_machine)), 'nan') as nom_machine,
-        nullif(lower(trim(n_s_rie_machine)), 'nan') as num_serie_machine,
+        nullif(lower(trim(n_serie_machine)), 'nan') as num_serie_machine,
         nullif(lower(trim(type)), 'nan') as type,
-        nullif(lower(trim(tat_inter)), 'nan') as etat_intervention,
+        nullif(lower(trim(etat_inter)), 'nan') as etat_intervention,
         nullif(lower(trim(observations)), 'nan') as observations,
         nullif(lower(trim(agency)), 'nan') as agency,
         nullif(lower(trim(repair_code_1)), 'nan') as repair_code_1,
@@ -48,9 +48,9 @@ cleaned_data as (
 
         -- Dates harmonisées (converties en TIMESTAMP, avec traitement "NaT" et dates invalides -> NULL)
         case 
-            when lower(trim(date_heure_d_but)) in ('nat', 'nan') then null
-            when date_heure_d_but like '01/01/0001%' then null
-            else TIMESTAMP(date_heure_d_but)
+            when lower(trim(date_heure_debut)) in ('nat', 'nan') then null
+            when date_heure_debut like '01/01/0001%' then null
+            else TIMESTAMP(date_heure_debut)
         end as date_heure_debut,
         case 
             when lower(trim(date_heure_fin)) in ('nat', 'nan') then null
@@ -75,7 +75,6 @@ cleaned_data as (
 
         -- Metadata
         timestamp(extracted_at) as extracted_at,
-        timestamp(file_date) as file_date,
         source_file
         
     from source_data
