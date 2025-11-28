@@ -78,7 +78,7 @@ delai_calcul AS (
 final_table as (
   select sfp.*,dc.date_creation_ref,dc.delai_jours_ouvres,
     (case when dc.delai_jours_ouvres = 0 then 'J+0,5'
-    	  when dc.delai_jours_ouvres = 1 and extract(time from date_creation_ref) > '12:00:00' and extract(time from date_fin) < '12:00:00' then 'J+0,55'
+    	  when dc.delai_jours_ouvres = 1 and extract(time from date_creation_ref) > '12:00:00' and extract(time from date_fin) < '12:00:00' then 'J+0,5'
     	  when dc.delai_jours_ouvres = 1 then 'J+1'
     	  when dc.delai_jours_ouvres = 2 then 'J+2'
     	  when dc.delai_jours_ouvres > 2 then 'J++'
