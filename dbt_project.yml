@@ -39,6 +39,9 @@ models:
       yuman:
         +tags: ['staging', 'yuman']
 
+      yuman_gcs:
+        +tags: ['staging', 'yuman_gcs']
+
       nesp_co:
         +tags: ['staging', 'nesp_co']
 
@@ -53,6 +56,9 @@ models:
 
       mssql_sage:
         +tags: ['staging', 'mssql_sage']
+
+      gac:
+        +tags: ['staging', 'gac']
 
     intermediate:
       +schema: intermediate

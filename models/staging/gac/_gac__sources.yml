@@ -2,13 +2,13 @@
 version: 2
 
 sources:
-  - name: sg
+  - name: gac
     schema: "prod_raw"
     description: "Données brutes extraites du fichiers suivi sinistres envoyé depuis GAC vers le FTP sg"  
-    tags: ['sg', 'source']
+    tags: ['gac', 'source']
     tables:
-      - name: sg_sinistres
-        description: "Table des sinistres SG"
+      - name: gac_suivi_sinistres_sg
+        description: "Table des sinistres des véhicules extrait depuis GAC vers SFTP EVS"
         columns:
           - name: date
             description: "Date du sinistre"
@@ -24,13 +24,13 @@ sources:
             description: "Circonstance du sinistre"
           - name: tiers
             description: "Indique si un tiers est impliqué"
-          - name: resp
+          - name: resp_
             description: "Taux de responsabilite (nombre entre 0 et 100)"
           - name: matricule
             description: "Matricule"
           - name: nom
             description: "Nom de l'assuré"
-          - name: prenom
+          - name: pr_nom
             description: "Prénom de l'assuré"
           - name: centre_de_couts
             description: "Centre de coûts"
@@ -58,11 +58,3 @@ sources:
             description: "Entité 3"
           - name: entite_entite_4
             description: "Entité 4"
-          - name: extracted_at
-            tests:
-              - not_null
-            description: "Date d'extraction des données depuis le FTP"
-          - name: source_file
-            tests:
-              - not_null
-            description: "Nom du fichier source d'où proviennent les données"

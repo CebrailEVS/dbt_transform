@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: stg_yuman_gcs__stock_theorique
+    description: "Export des stocks théoriques depuis Yuman via GCS nettoyé et typé"
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - export_date
+            - _sdc_source_lineno
+
+    columns:
+      - name: reference
+        description: "Référence de l'article"
+
+      - name: designation
+        description: "Désignation de l'article"
+
+      - name: quantite
+        description: "Quantité de l'article"
+
+      - name: nom_du_stock
+        description: "Nom du stock d'où provient l'article"
+
+      - name: export_date
+        description: "Date d'exportation des données"
+
+      - name: _sdc_source_file
+        description: "Nom du fichier source d'où proviennent les données"
+
+      - name: _sdc_source_lineno
+        description: "Numéro de ligne dans le fichier source d'où proviennent les données"
