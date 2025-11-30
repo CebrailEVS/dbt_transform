@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description=""""""
+      description="""Export des stocks th\u00e9oriques depuis Yuman via GCS nettoy\u00e9 et typ\u00e9"""
     )
     as (
       
