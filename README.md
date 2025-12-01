@@ -207,6 +207,51 @@ git push origin feature/votre-branche
 
 4. **Review** : Le Data Engineer review les PR du Data Analyst et vice versa
 
+## 🔄 Workflow de développement
+
+### 1. Créer une branche et faire une PR
+
+```bash
+# 1. Se mettre sur master et mettre à jour
+git checkout master
+git pull origin master
+
+# 2. Créer une nouvelle branche
+git checkout -b feature/nom-de-ma-feature
+
+# 3. Faire vos modifications dans dbt
+# - Modifier des modèles dans models/
+# - Ajouter des tests dans tests/
+# - etc.
+
+# 4. Commit et push
+git add .
+git commit -m "feat: description de mes changements"
+git push origin feature/nom-de-ma-feature
+
+# 5. Créer une Pull Request sur GitHub
+# → Allez sur https://github.com/CebrailEVS/dbt_transform/pulls
+# → Cliquez sur "New Pull Request"
+# → Sélectionnez votre branche
+```
+
+### 2. Après l'approbation de la PR
+
+```bash
+# 1. Merger la PR sur GitHub (bouton "Merge pull request")
+# → La branche est automatiquement supprimée sur GitHub ✨
+
+# 2. Revenir sur master et mettre à jour
+git checkout master
+git pull origin master
+
+# 3. Nettoyer les références obsolètes
+git fetch --prune
+
+# 4. Supprimer la branche locale
+git branch -d feature/nom-de-ma-feature
+```
+
 ### Conventions de Nommage
 
 ```bash
