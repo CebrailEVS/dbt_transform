@@ -1,3 +1,4 @@
+-- TEST SELECTIVE RUN
 {{ 
   config(
     materialized='table',
