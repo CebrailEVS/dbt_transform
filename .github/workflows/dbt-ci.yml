@@ -5,7 +5,6 @@ on:
     branches:
       - master
     paths:
-      # 🧠 Déclenche la CI/CD uniquement si des fichiers impactant dbt changent
       - 'models/**'
       - 'data/**'
       - 'snapshots/**'
@@ -71,14 +70,67 @@ jobs:
             echo "target=dev" >> $GITHUB_OUTPUT
           fi
 
+      # --- Download master manifest for state comparison (PRs only) ---
+      - name: ⬇️ Download master manifest for state comparison
+        id: download_manifest
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: master-dbt-artifacts
+          path: target/state/
+
+      # --- Check if manifest was downloaded successfully ---
+      - name: 🔍 Check manifest availability
+        id: check_manifest
+        if: github.event_name == 'pull_request'
+        run: |
+          if [[ -f "target/state/manifest.json" ]]; then
+            echo "manifest_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Master manifest found - will run selective tests"
+          else
+            echo "manifest_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  No master manifest found - will run full tests (this is normal for first PR)"
+          fi
+
+      # --- Run dbt commands with conditional selective/full runs ---
       - name: 🧱 Run dbt commands
         run: |
           dbt deps
           dbt debug --target ${{ steps.target.outputs.target }}
           dbt seed --target ${{ steps.target.outputs.target }}
-          dbt run --target ${{ steps.target.outputs.target }}
-          dbt test --target ${{ steps.target.outputs.target }}
-          dbt docs generate --target ${{ steps.target.outputs.target }}
+          
+          TARGET=${{ steps.target.outputs.target }}
+          
+          # For Pull Requests: selective run if manifest exists, otherwise full run
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            if [[ "${{ steps.check_manifest.outputs.manifest_exists }}" == "true" ]]; then
+              echo "🎯 Running SELECTIVE models and tests (state:modified+)..."
+              dbt run --target $TARGET --select state:modified+ --state target/state/
+              dbt test --target $TARGET --select state:modified+ --state target/state/
+            else
+              echo "🔄 Running FULL models and tests (no state comparison available)..."
+              dbt run --target $TARGET
+              dbt test --target $TARGET
+            fi
+          
+          # For master branch: always full run
+          else
+            echo "🚀 Running FULL models and tests on master..."
+            dbt run --target $TARGET
+            dbt test --target $TARGET
+          fi
+          
+          dbt docs generate --target $TARGET
+
+      # --- Upload dbt artifacts from master runs ---
+      - name: 📤 Upload dbt artifacts (manifest for state comparison)
+        if: github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-dbt-artifacts
+          path: target/
+          retention-days: 90
 
       - name: 📤 Upload docs artifacts
         if: github.ref == 'refs/heads/master'
@@ -86,6 +138,7 @@ jobs:
         with:
           name: dbt-docs
           path: target/
+          retention-days: 90
 
   deploy-docs:
     needs: dbt
