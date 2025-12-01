@@ -2,7 +2,6 @@
     config(
         materialized='table',
         partition_by={"field": "date_system", "data_type": "timestamp"},
-        cluster_by=['id_entity', 'resources_code'],
         description='Table des stocks théoriques depuis les fichiers GCS Oracle Neshu'
     )
 }}

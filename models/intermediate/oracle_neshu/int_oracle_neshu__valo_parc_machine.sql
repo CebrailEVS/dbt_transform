@@ -1,9 +1,7 @@
 {{
   config(
     materialized = 'table',
-    description = 'Valorisation du parc machine par modèle (Montant_INV depuis prod_reference * nombre de machines comptées depuis les stg). Exclut les dépôts/ateliers internes.',
-    tags = ['valorisation','intermediate','oracle_neshu'],
-    cluster_by = ['machine_modele']
+    description = 'Valorisation du parc machine par modèle (Montant_INV depuis prod_reference * nombre de machines comptées depuis les stg). Exclut les dépôts/ateliers internes.'
   )
 }}
 

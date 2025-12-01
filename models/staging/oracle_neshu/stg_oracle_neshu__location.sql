@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idlocation'],
         description='Locations nettoyés et enrichis depuis evs_location'
     )
 }}

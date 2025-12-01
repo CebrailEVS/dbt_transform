@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idlocation'],
         description='company_has_location nettoyés et enrichis depuis evs_company_has_location'
     )
 }}

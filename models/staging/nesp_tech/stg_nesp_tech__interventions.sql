@@ -6,7 +6,6 @@
             "data_type": "timestamp",
             "granularity": "day"
         },
-        cluster_by=['n_planning'],
         description='Interventions nettoyée depuis nespresso_technique_intervention'
     )
 }}

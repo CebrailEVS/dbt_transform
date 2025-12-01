@@ -2,8 +2,7 @@
     materialized='table',
     schema='intermediate',
     alias='int_yuman__demands_workorders_enriched',
-    partition_by={"field": "demand_created_at", "data_type": "timestamp"},
-    cluster_by=['workorder_status','demand_status','partner_name']
+    partition_by={"field": "demand_created_at", "data_type": "timestamp"}
 ) }}
 
 -- =====================================================================

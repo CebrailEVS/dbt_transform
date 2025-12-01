@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idtask'],
         description='task_has_resources nettoyés et enrichis depuis evs_task_has_resources'
     )
 }}

@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idtask_type'],
         description='task_type nettoyés et enrichis depuis evs_task_type'
     )
 }}

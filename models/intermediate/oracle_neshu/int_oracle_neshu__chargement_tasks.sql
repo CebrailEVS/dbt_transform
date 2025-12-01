@@ -4,7 +4,6 @@
         unique_key='task_product_id',
         partition_by={'field': 'task_start_date', 'data_type': 'timestamp'},
         incremental_strategy='merge',
-        cluster_by=['company_id', 'device_id', 'product_id','task_status_code'],
         description='Table intermédiaire des tâches de chargement - avec enrichissement ressources (roadman, véhicule)'
     )
 }}

@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idlabel'],
         description='label_has_device nettoyés et enrichis depuis evs_label_has_device'
     )
 }}

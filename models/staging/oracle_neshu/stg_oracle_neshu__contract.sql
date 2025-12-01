@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idcontract'],
         description='Contrats nettoyés et enrichis depuis evs_contract et evs_contract_parsed (XML parsé).'
     )
 }}

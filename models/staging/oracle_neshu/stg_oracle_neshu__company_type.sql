@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idcompany_type'],
         description='Type client nettoyés et enrichis depuis evs_company_type'
     )
 }}

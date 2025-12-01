@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idcontact','idcompany'],
         description='Contact nettoyés et enrichis depuis evs_contact'
     )
 }}

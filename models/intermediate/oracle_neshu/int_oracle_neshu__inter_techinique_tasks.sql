@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['company_id', 'product_id', 'task_status_code'],
         description="Table intermédiaire des tâches d'intervention technique preventive - avec enrichissement produit, source, client et pivot des labels"
     )
 }}

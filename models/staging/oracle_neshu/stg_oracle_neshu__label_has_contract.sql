@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idlabel','idcontract'],
         description='label_has_contract nettoyés et enrichis depuis evs_label_has_contract'
     )
 }}

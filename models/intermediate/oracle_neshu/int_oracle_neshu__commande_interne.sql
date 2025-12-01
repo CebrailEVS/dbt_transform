@@ -1,8 +1,7 @@
 {{ config(
     materialized='table',
     description='Table intermédiaire des mouvements internes (livraisons internes) avec source et destination enrichies. \
-    Dédupliquée sur task_product_id avec priorité au label_code = LIVRE.',
-    cluster_by=['company_id', 'product_id', 'task_status_code']
+    Dédupliquée sur task_product_id avec priorité au label_code = LIVRE.'
 ) }}
 
 with commande_interne_base as (

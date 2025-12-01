@@ -4,7 +4,6 @@
         unique_key='task_id',
         partition_by={'field': 'task_start_date', 'data_type': 'timestamp'},
         incremental_strategy='merge',
-        cluster_by=['company_id', 'device_id', 'task_status_code'],
         description='Table intermédiaire des passages approvisionneurs - avec enrichissement'
     )
 }}

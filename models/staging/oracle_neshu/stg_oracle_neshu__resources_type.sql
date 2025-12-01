@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idresources_type'],
         description='Resources_type nettoyés et enrichis depuis evs_resources_type'
     )
 }}

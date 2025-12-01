@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['company_id', 'product_id','task_status_code'],
         description='Table intermédiaire des tâches de bon de réception - avec enrichissement produit, destination, quantité et valorisation'
     )
 }}

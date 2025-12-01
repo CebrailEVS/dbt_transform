@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idlabel_family'],
         description='Label famille nettoyés et enrichis depuis evs_label_family'
     )
 }}

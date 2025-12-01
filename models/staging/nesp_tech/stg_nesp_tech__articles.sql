@@ -6,7 +6,6 @@
             "data_type": "date",
             "granularity": "day"
         },
-        cluster_by=['n_planning'],
         description='Articles consommées nettoyée depuis nespresso_technique_articles'
     )
 }}

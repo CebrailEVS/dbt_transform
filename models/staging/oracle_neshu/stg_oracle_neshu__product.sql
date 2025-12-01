@@ -1,7 +1,6 @@
 {{
     config(
         materialized='table',
-        cluster_by=['idproduct'],
         description='Product nettoyés et enrichis depuis evs_product'
     )
 }}
