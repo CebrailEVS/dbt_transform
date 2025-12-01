@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__reception_tasks`
       
     
-    cluster by company_id, product_id, task_status_code
+    
 
     
     OPTIONS(

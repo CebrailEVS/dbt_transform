@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_staging`.`stg_nesp_tech__articles`
       
     partition by date_intervention
-    cluster by n_planning
+    
 
     
     OPTIONS(

@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_yuman__demands_workorders_enriched`
       
     partition by timestamp_trunc(demand_created_at, day)
-    cluster by workorder_status, demand_status, partner_name
+    
 
     
     OPTIONS(

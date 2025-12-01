@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu_gcs__stock_theorique`
       
     partition by timestamp_trunc(date_system, day)
-    cluster by id_entity, resources_code
+    
 
     
     OPTIONS(

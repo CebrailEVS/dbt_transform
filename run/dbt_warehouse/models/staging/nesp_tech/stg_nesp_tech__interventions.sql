@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_staging`.`stg_nesp_tech__interventions`
       
     partition by timestamp_trunc(date_heure_fin, day)
-    cluster by n_planning
+    
 
     
     OPTIONS(

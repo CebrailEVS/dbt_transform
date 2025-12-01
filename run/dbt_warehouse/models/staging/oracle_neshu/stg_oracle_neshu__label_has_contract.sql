@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_contract`
       
     
-    cluster by idlabel, idcontract
+    
 
     
     OPTIONS(

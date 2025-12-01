@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__resources_type`
       
     
-    cluster by idresources_type
+    
 
     
     OPTIONS(

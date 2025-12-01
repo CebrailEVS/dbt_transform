@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_type`
       
     
-    cluster by idtask_type
+    
 
     
     OPTIONS(

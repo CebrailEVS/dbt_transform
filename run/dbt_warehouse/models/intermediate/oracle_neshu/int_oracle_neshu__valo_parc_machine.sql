@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__valo_parc_machine`
       
     
-    cluster by machine_modele
+    
 
     
     OPTIONS(
