@@ -40,8 +40,6 @@ jobs:
     steps:
       - name: 🧾 Checkout repo
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Fetch full history for better state comparison
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v4
@@ -55,6 +53,12 @@ jobs:
 
       - name: 🔑 Decode and write service account keyfile
         run: echo "${{ secrets.DBT_BIGQUERY_KEYFILE }}" | base64 -d > $GITHUB_WORKSPACE/keyfile.json
+
+      # --- Authenticate to GCP for GCS access ---
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.DBT_BIGQUERY_KEYFILE }}
 
       - name: 🌍 Export env variables for dbt
         run: |
@@ -72,23 +76,20 @@ jobs:
             echo "target=dev" >> $GITHUB_OUTPUT
           fi
 
-      # --- Restore cached manifest from master (PRs only) ---
-      - name: ⬇️ Restore master manifest from cache
-        id: cache_manifest
+      # --- Download manifest from GCS for PRs ---
+      - name: ⬇️ Download manifest from GCS (PR only)
         if: github.event_name == 'pull_request'
-        uses: actions/cache/restore@v3
-        with:
-          path: target/state/
-          key: dbt-manifest-${{ github.event.pull_request.base.sha }}
-          restore-keys: |
-            dbt-manifest-
+        continue-on-error: true
+        run: |
+          mkdir -p state/
+          gsutil cp gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json state/manifest.json || echo "No manifest found in GCS (first PR)"
 
-      # --- Check if manifest was restored successfully ---
+      # --- Check if manifest exists ---
       - name: 🔍 Check manifest availability
         id: check_manifest
         if: github.event_name == 'pull_request'
         run: |
-          if [[ -f "target/state/manifest.json" ]]; then
+          if [[ -f "state/manifest.json" ]]; then
             echo "manifest_exists=true" >> $GITHUB_OUTPUT
             echo "✅ Master manifest found - will run selective tests"
           else
@@ -96,7 +97,7 @@ jobs:
             echo "⚠️  No master manifest found - will run full tests (this is normal for first PR)"
           fi
 
-      # --- Run dbt commands with conditional selective/full runs ---
+      # --- Run dbt commands ---
       - name: 🧱 Run dbt commands
         run: |
           dbt deps
@@ -109,8 +110,8 @@ jobs:
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             if [[ "${{ steps.check_manifest.outputs.manifest_exists }}" == "true" ]]; then
               echo "🎯 Running SELECTIVE models and tests (state:modified+)..."
-              dbt run --target $TARGET --select state:modified+ --state target/state/
-              dbt test --target $TARGET --select state:modified+ --state target/state/
+              dbt run --target $TARGET --select state:modified+ --state state/
+              dbt test --target $TARGET --select state:modified+ --state state/
             else
               echo "🔄 Running FULL models and tests (no state comparison available)..."
               dbt run --target $TARGET
@@ -126,13 +127,12 @@ jobs:
           
           dbt docs generate --target $TARGET
 
-      # --- Save manifest to cache from master runs ---
-      - name: 💾 Save master manifest to cache
+      # --- Upload manifest to GCS (master only) ---
+      - name: 📤 Upload manifest to GCS (master only)
         if: github.ref == 'refs/heads/master'
-        uses: actions/cache/save@v3
-        with:
-          path: target/
-          key: dbt-manifest-${{ github.sha }}
+        run: |
+          gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/manifest.json
+          echo "✅ Manifest uploaded to GCS for future PR comparisons"
 
       # --- Upload docs artifacts ---
       - name: 📤 Upload docs artifacts
