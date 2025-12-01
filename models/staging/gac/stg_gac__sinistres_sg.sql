@@ -1,4 +1,4 @@
--- TEST SELECTIVE RUN
+-- TEST SELECTIVE RUN, fdp
 {{ 
   config(
     materialized='table',
