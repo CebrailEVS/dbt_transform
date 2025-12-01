@@ -1,0 +1,39 @@
+name: Test GCS Upload
+
+on:
+  workflow_dispatch:  # Permet de déclencher manuellement
+
+jobs:
+  test-gcs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v3
+
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.DBT_BIGQUERY_KEYFILE }}
+
+      - name: ☁️ Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: 🔍 Debug - Check authenticated account
+        run: gcloud auth list
+
+      - name: 📝 Create test manifest
+        run: |
+          mkdir -p target
+          echo '{"test": "manifest", "timestamp": "'$(date)'"}'  > target/manifest.json
+          cat target/manifest.json
+
+      - name: 📤 Upload test manifest to GCS
+        run: |
+          gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/test-manifest.json
+          echo "✅ Test manifest uploaded"
+
+      - name: ⬇️ Download and verify
+        run: |
+          gsutil cat gs://${{ secrets.DBT_STATE_BUCKET }}/test-manifest.json
+          echo "✅ Test manifest verified"

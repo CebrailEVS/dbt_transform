@@ -60,6 +60,10 @@ jobs:
         with:
           credentials_json: ${{ secrets.DBT_BIGQUERY_KEYFILE }}
 
+      # Ajoutez cette nouvelle étape
+      - name: ☁️ Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
       - name: 🌍 Export env variables for dbt
         run: |
           echo "DBT_BIGQUERY_PROJECT=${{ secrets.DBT_BIGQUERY_PROJECT }}" >> $GITHUB_ENV
