@@ -1,7 +1,7 @@
 {{ 
   config(
     materialized='table',
-    description='Table des sinistres véhicules EVS nettoyé depuis les données source envoyé par GAC',
+    description='Table des sinistres véhicules EVS nettoyé des données sources, récupéré via la source GAC envoyé dans le SFTP EVS',
   ) 
 }}
 
