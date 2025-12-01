@@ -1,60 +1,111 @@
-# models/_sg__sources.yml
 version: 2
 
 sources:
   - name: gac
     schema: "prod_raw"
-    description: "Données brutes extraites du fichiers suivi sinistres envoyé depuis GAC vers le FTP sg"  
+    description: "Données brutes extraites du fichier suivi des sinistres envoyé par GAC vers le FTP SG"
     tags: ['gac', 'source']
     tables:
       - name: gac_suivi_sinistres_sg
-        description: "Table des sinistres des véhicules extrait depuis GAC vers SFTP EVS"
+        description: "Table des sinistres des véhicules extraite depuis GAC vers SFTP EVS"
         columns:
           - name: date
             description: "Date du sinistre"
-          - name: immat
+          - name: immat_
             description: "Immatriculation du véhicule"
           - name: statut_actuel
-            description: "Statut actuel du vehicule"
+            description: "Statut actuel du sinistre"
           - name: n_de_sinistre
-            description: "Numéro de sinistre SG"
+            description: "Numéro de sinistre"
           - name: type
             description: "Type de sinistre"
           - name: circonstance
-            description: "Circonstance du sinistre"
+            description: "Circonstances du sinistre"
           - name: tiers
-            description: "Indique si un tiers est impliqué"
+            description: "Présence d'un tiers impliqué"
           - name: resp_
-            description: "Taux de responsabilite (nombre entre 0 et 100)"
+            description: "Responsabilité (0-100)"
           - name: matricule
-            description: "Matricule"
+            description: "Matricule du collaborateur"
           - name: nom
-            description: "Nom de l'assuré"
+            description: "Nom du collaborateur"
           - name: pr_nom
-            description: "Prénom de l'assuré"
-          - name: centre_de_couts
+            description: "Prénom du collaborateur"
+          - name: centre_de_co_ts
             description: "Centre de coûts"
-          - name: cout_assureur
-            description: "Coût de l'assureur"
+          - name: co_t_assureur
+            description: "Coût pris en charge par l'assureur"
           - name: auto_assurance
             description: "Auto assurance"
           - name: franchise
-            description: "Franchise de l'assuré"
-          - name: cout_global
+            description: "Montant de la franchise"
+          - name: co_t_global
             description: "Coût global du sinistre"
-          - name: cloture
-            description: "Indique si le sinistre est clôturé"
+          - name: cl_tur_
+            description: "Indicateur de clôture du sinistre"
           - name: description
             description: "Description du sinistre"
-          - name: date_de_creation
+          - name: date_de_cr_ation
             description: "Date de création du sinistre"
           - name: genre_fiscal
             description: "Genre fiscal du véhicule"
-          - name: entite_entite_1
+          - name: expert_pr_nom
+            description: "Prénom de l'expert"
+          - name: expert_nom
+            description: "Nom de l'expert"
+          - name: expert_t_l_phone
+            description: "Téléphone de l'expert"
+          - name: expert_email
+            description: "Email de l'expert"
+          - name: expert_jours_de_pr_sence
+            description: "Jours de présence de l'expert"
+          - name: expert_tablissements
+            description: "Établissements liés à l'expertise"
+          - name: date_de_passage_de_l_expert
+            description: "Date de passage de l'expert"
+          - name: remboursement
+            description: "Montant de remboursement"
+          - name: date_de_r_ception_du_constat
+            description: "Date de réception du constat"
+          - name: constat_envoy_l_assureur
+            description: "Indication si le constat a été envoyé à l'assureur"
+          - name: date_d_envoi_du_constat_l_assureur
+            description: "Date d'envoi du constat à l'assureur"
+          - name: franchise_sup_rieure_la_r_paration
+            description: "Indique si la franchise dépasse le coût de réparation"
+          - name: fournisseur
+            description: "Fournisseur / Garage"
+          - name: date_de_d_but_de_r_paration
+            description: "Date de début de réparation"
+          - name: date_de_fin_de_r_paration
+            description: "Date de fin de réparation"
+          - name: date_de_remise_du_v_hicule_au_collaborateur_apr_s_r_paration
+            description: "Date de remise du véhicule au collaborateur"
+          - name: date_de_rapport_d_expertise
+            description: "Date du rapport d'expertise"
+          - name: trajet_domicile_travail
+            description: "Indique si le sinistre s'est produit lors d'un trajet domicile-travail"
+          - name: accident_de_week_end
+            description: "Indique si le sinistre a eu lieu un week-end"
+          - name: lieu_du_sinistre
+            description: "Lieu du sinistre"
+          - name: date_de_cl_ture_du_sinistre
+            description: "Date de clôture du sinistre"
+          - name: cat_gorie_interne
+            description: "Catégorie interne du sinistre"
+          - name: r_f_rence_gac
+            description: "Référence GAC"
+          - name: co_t_client
+            description: "Coût facturé au client"
+          - name: entit_entit_1
             description: "Entité 1"
-          - name: entite_entite_2
+          - name: entit_entit_2
             description: "Entité 2"
-          - name: entite_entite_3
+          - name: entit_entit_3
             description: "Entité 3"
-          - name: entite_entite_4
+          - name: entit_entit_4
             description: "Entité 4"
+          - name: _sdc_source_file
+            description: "Nom du fichier source (Singer/Airbyte)"
+          - name: _sdc_source_lineno
+            description: "Numéro de ligne dans le fichier source"
