@@ -28,12 +28,17 @@ jobs:
           echo '{"test": "manifest", "timestamp": "'$(date)'"}'  > target/manifest.json
           cat target/manifest.json
 
-      - name: 📤 Upload test manifest to GCS
+      - name: 📤 Upload test manifest to GCS (same path as CI/CD)
         run: |
-          gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/test-manifest.json
-          echo "✅ Test manifest uploaded"
+          gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json
+          echo "✅ Test manifest uploaded to dbt-state/manifest.json"
 
       - name: ⬇️ Download and verify
         run: |
-          gsutil cat gs://${{ secrets.DBT_STATE_BUCKET }}/test-manifest.json
-          echo "✅ Test manifest verified"
+          gsutil cat gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json
+          echo "✅ Test manifest verified from dbt-state/manifest.json"
+
+      - name: 🧹 Cleanup - List files in dbt-state
+        run: |
+          echo "📁 Files in dbt-state folder:"
+          gsutil ls gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/

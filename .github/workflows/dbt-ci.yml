@@ -60,7 +60,6 @@ jobs:
         with:
           credentials_json: ${{ secrets.DBT_BIGQUERY_KEYFILE }}
 
-      # Ajoutez cette nouvelle étape
       - name: ☁️ Setup Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
 
@@ -135,7 +134,7 @@ jobs:
       - name: 📤 Upload manifest to GCS (master only)
         if: github.ref == 'refs/heads/master'
         run: |
-          gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/manifest.json
+          gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json
           echo "✅ Manifest uploaded to GCS for future PR comparisons"
 
       # --- Upload docs artifacts ---
