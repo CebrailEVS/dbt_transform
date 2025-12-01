@@ -40,6 +40,8 @@ jobs:
     steps:
       - name: 🧾 Checkout repo
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch full history for better state comparison
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v4
@@ -70,17 +72,18 @@ jobs:
             echo "target=dev" >> $GITHUB_OUTPUT
           fi
 
-      # --- Download master manifest for state comparison (PRs only) ---
-      - name: ⬇️ Download master manifest for state comparison
-        id: download_manifest
+      # --- Restore cached manifest from master (PRs only) ---
+      - name: ⬇️ Restore master manifest from cache
+        id: cache_manifest
         if: github.event_name == 'pull_request'
-        continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/cache/restore@v3
         with:
-          name: master-dbt-artifacts
           path: target/state/
+          key: dbt-manifest-${{ github.event.pull_request.base.sha }}
+          restore-keys: |
+            dbt-manifest-
 
-      # --- Check if manifest was downloaded successfully ---
+      # --- Check if manifest was restored successfully ---
       - name: 🔍 Check manifest availability
         id: check_manifest
         if: github.event_name == 'pull_request'
@@ -123,15 +126,15 @@ jobs:
           
           dbt docs generate --target $TARGET
 
-      # --- Upload dbt artifacts from master runs ---
-      - name: 📤 Upload dbt artifacts (manifest for state comparison)
+      # --- Save manifest to cache from master runs ---
+      - name: 💾 Save master manifest to cache
         if: github.ref == 'refs/heads/master'
-        uses: actions/upload-artifact@v4
+        uses: actions/cache/save@v3
         with:
-          name: master-dbt-artifacts
           path: target/
-          retention-days: 90
+          key: dbt-manifest-${{ github.sha }}
 
+      # --- Upload docs artifacts ---
       - name: 📤 Upload docs artifacts
         if: github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
