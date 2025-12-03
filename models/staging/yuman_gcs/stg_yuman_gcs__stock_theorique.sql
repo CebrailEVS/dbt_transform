@@ -17,9 +17,8 @@ cleaned as (
         trim(r_f_rence) as reference,
         trim(d_signation) as designation,
         
-        -- quantit_ is already INTEGER, but may be NULL if parsing failed
-        -- Convert to FLOAT to handle decimal values properly
-        cast(quantit_ as float64) as quantite,
+        -- Convert quantity to float, handling decimal commas
+        cast(replace(quantit_, ',', '.') as float64) as quantite,
         
         NULLIF(trim(nom_du_stock), '') as nom_du_stock,
         
