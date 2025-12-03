@@ -1,12 +1,10 @@
 {{ config(
     materialized = "table",
     schema='marts',
-    alias = "fct_gac_sinistres",
-    partition_by={},
-    cluster_by=[]
+    alias = "fct_gac__sinistres_sg"
 ) }}
 -- ============================================================================
--- MODEL: fct_gac_sinistres
+-- MODEL: fct_gac__sinistres
 -- PURPOSE: Table de faits sur les sinistres vehicules
 -- AUTHOR: Etienne BOULINIER
 -- ============================================================================
@@ -35,4 +33,4 @@ auto_assurance,
 franchise,
 cout_global,
 cout_client
- FROM ref('stg_gac__sinistres_sg')
+ FROM {{ ref('stg_gac__sinistres_sg') }}
