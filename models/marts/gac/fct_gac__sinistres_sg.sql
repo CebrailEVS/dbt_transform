@@ -4,7 +4,7 @@
     alias = "fct_gac__sinistres_sg"
 ) }}
 -- ============================================================================
--- MODEL: fct_gac__sinistres
+-- MODEL: fct_gac__sinistres_sg
 -- PURPOSE: Table de faits sur les sinistres vehicules
 -- AUTHOR: Etienne BOULINIER
 -- ============================================================================
