@@ -1,0 +1,126 @@
+code_inter,type_inter,machine_clean,key_facturation,prod_inter,tarif_inter
+1,Curative,Aguila 2,1 - Aguila 2,3,546
+1,Curative,Aguila 2 Montagne,1 - Aguila 2 - Montagne,3,726
+1,Curative,Aguila 4,1 - Aguila 4,3,546
+1,Curative,Aguila 4 Montagne,1 - Aguila 4 - Montagne,3,726
+1,Curative,Dispenser Gemini,1 - Dispenser Gemini,1,121
+1,Curative,Dispenser Mini Tower,1 - Dispenser Mini Tower,2,121
+1,Curative,Dispenser mini Tower Montagne,1 - Dispenser mini Tower Montagne,1,121
+1,Curative,Dispenser Side By Side,1 - Dispenser Side By Side,1,121
+1,Curative,Gemini,1 - Gemini,1,121
+1,Curative,MOMENTO 100,1 - MOMENTO 100,1,121
+1,Curative,MOMENTO 120,1 - MOMENTO 120,2,121
+1,Curative,MOMENTO 200,1 - MOMENTO 200,1,121
+1,Curative,Zenius,1 - Zenius,1,121
+2,Préventive,Aguila 2,2 - Aguila 2,4,491
+,,Aguila 2,2 - Aguila 2 - Miniprev,2,246
+2,Préventive,Aguila 2 Montagne,2 - Aguila 2 - Montagne,4,655
+,,Aguila 2,2 - Aguila 2 - Montagne - Miniprev,2,328
+2,Préventive,Aguila 4,2 - Aguila 4,6,655
+,,Aguila 4,2 - Aguila 4 - Miniprev,3,410
+2,Préventive,Aguila 4 Montagne,2 - Aguila 4 - Montagne,6,871
+,,Aguila 4,2 - Aguila 4 - Montagne - Miniprev,3,546
+2,Préventive,ES100,2 - ES100,1,90
+2,Préventive,Gemini,2 - Gemini,1,90
+2,Mini prev,Aguila 2,2 - Mini Prev Aguila 2 ,2,246
+2,Mini prev,Aguila 2,2 - Mini Prev Aguila 2 Montagne,2,328
+2,Mini prev,Aguila 4,2 - Mini Prev Aguila 4,3,410
+2,Mini prev,Aguila 4,2 - Mini Prev Aguila 4 - Montagne,3,546
+2,Préventive,MOMENTO 100,2 - MOMENTO 100,1,90
+2,Préventive,MOMENTO 120,2 - MOMENTO 120,4,491
+2,Préventive,MOMENTO 200,2 - MOMENTO 200,1,90
+2,Préventive,Module Momento,2 - Momento Module,1,90
+2,Préventive,Zenius,2 - Zenius,1,90
+3,Mise à jour,Dispenser Gemini,3 - Dispenser Gemini,1,IMPOSSIBLE
+3,Mise à jour,Dispenser Mini Tower,3 - Dispenser Mini Tower,1,121
+3,Mise à jour,Dispenser mini Tower Montagne,3 - Dispenser mini Tower Montagne,1,121
+3,Mise à jour,Dispenser Side By Side,3 - Dispenser Side By Side,1,121
+3,Mise à jour,Gemini,3 - Gemini,1,IMPOSSIBLE
+3,Mise à jour,MOMENTO 100,3 - MOMENTO 100,2,273
+3,Mise à jour,MOMENTO 120,3 - MOMENTO 120,2,273
+3,Mise à jour,MOMENTO 200,3 - MOMENTO 200,2,273
+3,Mise à jour,Zenius,3 - Zenius,1,IMPOSSIBLE
+5,Curative,Aguila 2,5 - Aguila 2,2,185
+5,Installation,Aguila 2 Montagne,5 - Aguila 2 - Installation - Montagne,3,508
+5,Curative,Aguila 2 Montagne,5 - Aguila 2 - Montagne,2,248
+5,Curative,Aguila 4,5 - Aguila 4,2,185
+5,Curative,Aguila 4 Montagne,5 - Aguila 4 - Montagne,2,248
+5,Curative,Dispenser Gemini,5 - Dispenser Gemini,1,121
+5,Curative,Dispenser Mini Tower,5 - Dispenser Mini Tower,1,121
+5,Curative,Dispenser mini Tower Montagne,5 - Dispenser mini Tower Montagne,1,121
+5,Curative,Dispenser Side By Side,5 - Dispenser Side By Side,1,121
+5,Curative,Gemini,5 - Gemini,1,121
+5,Installation,gemini,5 - Gemini - Installation,1,90
+5,Curative,MOMENTO 100,5 - MOMENTO 100,1,121
+5,Curative,MOMENTO 120,5 - MOMENTO 120,2,121
+5,Installation,MOMENTO 120,5 - MOMENTO 120 - Installation,2,179
+5,Curative,MOMENTO 200,5 - MOMENTO 200,1,121
+5,Installation,MOMENTO 200,5 - MOMENTO 200 - Installation,1,90
+5,Curative,Module Momento,5 - Momento Module,1,121
+5,Curative,Zenius,5 - Zenius,1,121
+7,Curative,Aguila 2,7 - Aguila 2,2,185
+7,Désinstallation,Aguila 2,7 - Aguila 2 - Desinstallation,1,185
+7,Désinstallation,Aguila 2 Montagne,7 - Aguila 2 - Desinstallation - Montagne,1,248
+7,Installation,Aguila 2,7 - Aguila 2 - Installation,3,382
+7,Installation,Aguila 2 Montagne,7 - Aguila 2 - Installation - Montagne,3,508
+7,Curative,Aguila 2 Montagne,7 - Aguila 2 - Montagne,2,248
+7,Curative,Aguila 4,7 - Aguila 4,2,185
+7,Désinstallation,Aguila 4,7 - Aguila 4 - Desinstallation,1,185
+7,Désinstallation,Aguila 4 Montagne,7 - Aguila 4 - Desinstallation - Montagne,1,248
+7,Installation,Aguila 4,7 - Aguila 4 - Installation,3,382
+7,Installation,Aguila 4 Montagne,7 - Aguila 4 - Installation - Montagne,3,508
+7,Curative,Aguila 4 Montagne,7 - Aguila 4 - Montagne,2,248
+7,Préventive,Dispenser Gemini,7 - Dispenser Gemini,1,90
+7,Désinstallation,Dispenser Gemini,7 - Dispenser Gemini - Desinstallation,1,90
+7,Installation,Dispenser Gemini,7 - Dispenser Gemini - Installation,1,90
+7,Préventive,Dispenser Mini Tower,7 - Dispenser Mini Tower,1,90
+7,Désinstallation,Dispenser Mini Tower,7 - Dispenser Mini Tower - Desinstallation,1,90
+7,Installation,Dispenser Mini Tower,7 - Dispenser Mini Tower - Installation,2,301
+7,Préventive,Dispenser mini Tower Montagne,7 - Dispenser mini Tower Montagne,1,90
+7,Désinstallation,Dispenser mini Tower Montagne,7 - Dispenser mini Tower Montagne - Desinstallation,1,90
+7,Installation,Dispenser mini Tower Montagne,7 - Dispenser mini Tower Montagne - Installation,2,366
+7,Préventive,Dispenser Side By Side,7 - Dispenser Side By Side,1,90
+7,Désinstallation,Dispenser Side By Side,7 - Dispenser Side By Side - Desinstallation,1,90
+7,Installation,Dispenser Side By Side,7 - Dispenser Side By Side - Installation,1,90
+7,Préventive,Gemini,7 - Gemini,1,90
+7,Désinstallation,Gemini,7 - Gemini - Desinstallation,1,90
+7,Installation,Gemini,7 - Gemini - Installation,1,90
+7,Préventive,MOMENTO 100,7 - MOMENTO 100,1,90
+7,Désinstallation,MOMENTO 100,7 - MOMENTO 100 - Desinstallation,1,90
+7,Installation,MOMENTO 100,7 - MOMENTO 100 - Installation,1,90
+7,Préventive,MOMENTO 120,7 - MOMENTO 120,4,491
+7,Désinstallation,MOMENTO 120,7 - MOMENTO 120 - Desinstallation,2,90
+7,Installation,MOMENTO 120,7 - MOMENTO 120 - Installation,2,179
+7,Préventive,MOMENTO 200,7 - MOMENTO 200,1,90
+7,Désinstallation,MOMENTO 200,7 - MOMENTO 200 - Desinstallation,1,90
+7,Installation,MOMENTO 200,7 - MOMENTO 200 - Installation,1,90
+7,Préventive,Zenius,7 - Zenius,1,90
+7,Désinstallation,Zenius,7 - Zenius - Desinstallation,1,90
+7,Installation,Zenius,7 - Zenius - Installation,1,90
+8,Installation,Aguila 2,8 - Aguila 2,3,382
+8,Installation,Aguila 2,8 - Aguila 2 - Installation,3,382
+8,Installation,Aguila 2 Montagne,8 - Aguila 2 - Installation - Montagne,3,508
+8,Installation,Aguila 2 Montagne,8 - Aguila 2 - Montagne,3,508
+8,Installation,Aguila 4,8 - Aguila 4,3,382
+8,Installation,Aguila 4,8 - Aguila 4 - Installation,3,382
+8,Installation,Aguila 4 Montagne,8 - Aguila 4 - Installation - Montagne,3,508
+8,Installation,Aguila 4 Montagne,8 - Aguila 4 - Montagne,3,508
+8,Installation,Dispenser Gemini,8 - Dispenser Gemini,1,90
+8,Installation,Dispenser Gemini,8 - Dispenser Gemini - Installation,1,90
+8,Installation,Dispenser Mini Tower,8 - Dispenser Mini Tower,2,301
+8,Installation,Dispenser Mini Tower,8 - Dispenser Mini Tower - Installation,2,301
+8,Installation,Dispenser mini Tower Montagne,8 - Dispenser Mini Tower - Montagne,2,366
+8,Installation,Dispenser mini Tower Montagne,8 - Dispenser mini Tower Montagne - Installation,2,366
+8,Installation,Dispenser Side By Side,8 - Dispenser Side By Side,1,90
+8,Installation,Dispenser Side By Side,8 - Dispenser Side By Side - Installation,1,90
+8,Installation,Gemini,8 - Gemini,1,90
+8,Installation,Gemini,8 - Gemini - Installation,1,90
+8,Installation,MOMENTO 100,8 - MOMENTO 100,1,90
+8,Installation,MOMENTO 100,8 - MOMENTO 100 - Installation,1,90
+8,Installation,MOMENTO 120,8 - MOMENTO 120,2,179
+8,Installation,MOMENTO 120,8 - MOMENTO 120 - Installation,2,179
+8,Installation,MOMENTO 200,8 - MOMENTO 200,1,90
+8,Installation,MOMENTO 200,8 - MOMENTO 200 - Installation,1,90
+8,Installation,Module Momento,8 - Momento Module - Installation,1,90
+8,Installation,Zenius,8 - Zenius,1,90
+8,Installation,Zenius,8 - Zenius - Installation,1,90
