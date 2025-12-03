@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: oracle_neshu_gcs
-    schema: "{{ target.name }}_raw"
+    schema: "prod_raw"
     tables:
       - name: ext_gcs_oracle_neshu__stock_theorique
         description: "External table pointing to nightly CSV extracts from Oracle Neshu"

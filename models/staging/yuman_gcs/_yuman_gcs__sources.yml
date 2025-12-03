@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: yuman_gcs
-    schema: "{{ target.name }}_raw"
+    schema: "prod_raw"
     tables:
       - name: ext_gcs_yuman__stock_theorique
         description: "External table pointing to JSON extracts from Yuman SFTP"
