@@ -76,4 +76,10 @@ models:
 
       - name: cout_client
         description: "Coût restant à charge pour le client"
+      
+      - name: dbt_updated_at
+        description: "Metadata DBT"
+
+      - name: dbt_invocation_id
+        description: "Metadata DBT"
 

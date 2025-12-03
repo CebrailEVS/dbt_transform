@@ -32,5 +32,8 @@ cout_assureur,
 auto_assurance,
 franchise,
 cout_global,
-cout_client
+cout_client,
+-- Métadonnées dbt
+CURRENT_TIMESTAMP() as dbt_updated_at,
+'{{ invocation_id }}' as dbt_invocation_id
  FROM {{ ref('stg_gac__sinistres_sg') }}
