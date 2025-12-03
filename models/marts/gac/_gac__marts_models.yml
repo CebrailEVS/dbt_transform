@@ -1,0 +1,85 @@
+# models/marts/gac/_gac__marts_models.yml
+version: 2
+
+models:
+  - name: fct_gac__sinistres_sg
+    description: "Données de sinistres issues du modèle stg_gac__sinistres_sg"
+    columns:
+      # Infos Sinistre
+      - name: n_de_sinistre
+        description: "Numéro unique du sinistre"
+        tests:
+          - unique
+
+      - name: date_sinistre
+        description: "Date de survenue du sinistre (extraite du timestamp)"
+        test : not_null
+
+      - name: date_de_creation
+        description: "Date de création du sinistre"
+
+      - name: circonstance
+        description: "Circonstances déclarées du sinistre"
+
+      - name: tiers
+        description: "Indique la présence d'un tiers impliqué"
+
+      - name: resp
+        description: "Responsabilité attribuée au sinistre"
+
+      - name: cloture
+        description: "Statut de clôture du sinistre"
+
+      # Infos Véhicule
+      - name: immat
+        description: "Immatriculation du véhicule"
+
+      - name: nom
+        description: "Nom du conducteur ou assuré associé au sinistre"
+
+      - name: prenom
+        description: "Prénom du conducteur ou assuré associé au sinistre"
+
+      - name: statut_actuel
+        description: "Statut actuel du sinistre ou du dossier"
+
+      - name: genre_fiscal
+        description: "Genre fiscal du véhicule"
+
+      - name: reference_gac
+        description: "Référence GAC du dossier sinistre"
+        tests:
+          - unique
+
+
+      - name: entite_entite_2
+        description: "Entité niveau 2 associée au véhicule ou au sinistre"
+
+      - name: entite_entite_3
+        description: "Entité niveau 3 associée au véhicule ou au sinistre"
+
+      # Coûts
+      - name: centre_de_couts
+        description: "Centre de coûts imputé au sinistre"
+
+      - name: cout_assureur
+        description: "Coût supporté par l'assureur"
+
+      - name: auto_assurance
+        description: "Montant d'auto-assurance"
+
+      - name: franchise
+        description: "Montant de la franchise appliquée"
+
+      - name: cout_global
+        description: "Coût total du sinistre"
+
+      - name: cout_client
+        description: "Coût restant à charge pour le client"
+      
+      - name: dbt_updated_at
+        description: "Metadata DBT"
+
+      - name: dbt_invocation_id
+        description: "Metadata DBT"
+
