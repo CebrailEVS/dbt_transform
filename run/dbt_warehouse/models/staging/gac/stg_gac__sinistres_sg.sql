@@ -50,11 +50,11 @@ cleaned as (
         nullif(trim(entit_entit_4), '') as entite_entite_4,
 
         -- Mesure
-        co_t_assureur as cout_assureur,
-        auto_assurance,
-        franchise,
-        co_t_global as cout_global,
-        co_t_client as cout_client,
+        CAST(co_t_assureur AS FLOAT64) AS cout_assureur,
+        CAST(auto_assurance AS FLOAT64) AS auto_assurance,
+        CAST(franchise AS FLOAT64) AS franchise,
+        CAST(co_t_global AS FLOAT64) AS cout_global,
+        CAST(co_t_client AS FLOAT64) AS cout_client,
 
         -- Date
         SAFE.PARSE_TIMESTAMP('%d/%m/%Y %H:%M:%S', NULLIF(TRIM(date), '')) AS date_sinistre,
