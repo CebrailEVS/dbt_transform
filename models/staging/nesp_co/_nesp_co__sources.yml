@@ -138,3 +138,28 @@ sources:
             description: "Nom du fichier source d'où proviennent les données"
           - name: file_date
             description: "Date du fichier source"
+
+      - name: nespresso_base_client
+        description: "Table des bases clients Nespresso EVS importé depuis le SFTP EVS du fichier Base - Clients"
+        columns:
+          - name: third
+            description: "Identifiant unique du client."
+          # Colonnes texte
+          - name: third_name
+            description: "Nom du client."
+          - name: third_adr_ln1
+            description: "Adresse du client - ligne 1."
+          - name: third_adr_ln2
+            description: "Adresse du client - ligne 2."
+          - name: third_post_code
+            description: "Code postal du client."
+          - name: third_city
+            description: "Ville du client."
+          - name: third_status_descr
+            description: "Description du statut du client."
+          - name: segmentation_hypercare
+            description: "Segmentation du client (SMALL MEDIUM GET)"
+          - name: categorie_client
+            description: "Catégorie du client."
+          - name: region
+            description: "Région du client."

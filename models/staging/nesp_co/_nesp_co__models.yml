@@ -138,3 +138,103 @@ models:
         description: "Nom du fichier source d'où proviennent les données"
       - name: file_date
         description: "Date du fichier source"
+
+  # CLIENT
+  - name: stg_nesp_co__client
+    description: "Table des bases clients Nespresso EVS nettoyée et filtrée sur les colonnes utiles."
+    columns:
+      - name: third
+        description: "Identifiant unique du client."
+        tests:
+          - not_null
+          - unique
+
+      # Colonnes texte
+      - name: third_name
+        description: "Nom du client."
+      - name: third_adr_ln1
+        description: "Adresse du client - ligne 1."
+      - name: third_adr_ln2
+        description: "Adresse du client - ligne 2."
+      - name: third_post_code
+        description: "Code postal du client."
+      - name: third_city
+        description: "Ville du client."
+      - name: third_status_descr
+        description: "Description du statut du client."
+      - name: segmentation_hypercare
+        description: "Segmentation du client (SMALL MEDIUM GET)"
+      - name: categorie_client
+        description: "Catégorie du client."
+      - name: region
+        description: "Région du client."
+      - name: secteur
+        description: "Secteur du client."
+      - name: code_lmb
+        description: "Code LMB du client."
+      - name: mb_descr
+        description: "Description MB."
+      - name: code_mb
+        description: "Code MB."
+      - name: siret
+        description: "Numéro SIRET du client."
+      - name: nb_salaries
+        description: "Nombre de salariés du client."
+      - name: order_placer_name
+        description: "Nom du placeur de commande."
+      - name: order_placer_adr_ln1
+        description: "Adresse du placeur de commande - ligne 1."
+      - name: order_placer_post_code
+        description: "Code postal du placeur de commande."
+      - name: order_placer_city
+        description: "Ville du placeur de commande."
+      - name: order_placer_phone
+        description: "Téléphone du placeur de commande."
+
+      # Dates
+      - name: club_dt_disp
+        description: "Date d'inscription au club."
+      - name: last_caps_ord_dt_disp
+        description: "Date du dernier achat de capsules."
+
+      # Mesures
+      - name: ns
+        description: "Score NS actuel."
+      - name: ns_n1
+        description: "Score NS annuel N-1."
+      - name: ns_n_nytd
+        description: "Score NS NYTD."
+      - name: ns_n1_nytd
+        description: "Score NS N-1 NYTD."
+      - name: caps
+        description: "Volume de capsules."
+      - name: caps_n1
+        description: "Volume de capsules N-1."
+      - name: caps_n_ytd
+        description: "Volume de capsules année en cours."
+      - name: caps_n1_ytd
+        description: "Volume de capsules N-1 année en cours."
+      - name: caps_b2b
+        description: "Volume capsules B2B."
+      - name: caps_b2c
+        description: "Volume capsules B2C."
+      - name: caps_b2c_ytd
+        description: "Volume capsules B2C année en cours."
+      - name: ez
+        description: "Volume EZ."
+      - name: ez_n_ytd
+        description: "Volume EZ année en cours."
+      - name: ez_n1
+        description: "Volume EZ N-1."
+
+      # Metadata
+      - name: _smart_source_bucket
+        description: "Bucket source du fichier initial."
+      - name: _smart_source_file
+        description: "Nom du fichier source."
+      - name: _smart_source_lineno
+        description: "Numéro de ligne dans le fichier source."
+      - name: _sdc_batched_at
+        description: "Timestamp de traitement batch."
+      - name: _sdc_received_at
+        description: "Timestamp de réception initiale par le système."
