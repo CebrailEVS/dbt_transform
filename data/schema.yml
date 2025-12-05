@@ -160,6 +160,34 @@ seeds:
         tests:
           - not_null
 
+  - name: ref_oracle_neshu__groupement_machine
+    description: "Mapping nom machine vers groupement machine pour valorisation parc"
+    columns:
+      - name: device_name
+        description: "Nom de la machine"
+        tests:
+          - not_null
+      - name: device_group
+        description: "Groupement machine associé."
+        tests:
+          - not_null
+
+  - name: ref_oracle_neshu__valo_machine_capacite
+    description: "Fichier de référence pour le groupe de machine animo grain modulo et la quantité maximal de produit associé"
+    columns:
+      - name: product_code
+        description: "Code produit"
+        tests:
+          - not_null
+      - name: quantite
+        description: "Quantité que peut contenir la machine pour le produit associé"
+        tests:
+          - not_null
+      - name: device_group
+        description: "Groupement machine associé."
+        tests:
+          - not_null
+
 #### REFERENCE POUR MODEL MSSQL SAGE  ####
 
   - name: ref_mssql_sage__code_analytique_bu
