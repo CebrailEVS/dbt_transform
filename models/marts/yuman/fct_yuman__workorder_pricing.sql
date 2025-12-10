@@ -2,9 +2,8 @@
     materialized = "table",
     schema='marts',
     alias = "fct_yuman__workorder_pricing",
-    partition_by={"field": "date_done", "data_type": "timestamp"},
-    cluster_by=['billing_validation_status','workorder_status','demand_status','partner_name']
-) }}
+    partition_by={"field": "date_done", "data_type": "timestamp"}
+    ) }}
 
 -- ============================================================================
 -- MODEL: fct_yuman__workorder_pricing

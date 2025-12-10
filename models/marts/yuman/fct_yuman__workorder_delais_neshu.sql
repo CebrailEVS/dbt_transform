@@ -2,9 +2,8 @@
     materialized = "table",
     schema='marts',
     alias = "fct_yuman__workorder_delais_neshu",
-    partition_by={"field": "date_done", "data_type": "timestamp"},
-    cluster_by=['workorder_type_clean','partner_name','workorder_status']
-) }}
+    partition_by={"field": "date_done", "data_type": "timestamp"}
+    ) }}
 
 -- ============================================================================
 -- MODEL: fct_yuman__workorder_delais_neshu
