@@ -2,7 +2,7 @@
   
     
 
-    create or replace table `evs-datastack-prod`.`prod_marts`.`fct_oracle_neshu_gcs__stock_theorique`
+    create or replace table `evs-datastack-prod`.`prod_marts`.`fct_oracle_neshu_gcs__stock_products`
       
     partition by timestamp_trunc(date_system, day)
     

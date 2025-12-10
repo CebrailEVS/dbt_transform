@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_delais_neshu`
       
     partition by timestamp_trunc(date_done, day)
-    cluster by workorder_type_clean, partner_name, workorder_status
+    
 
     
     OPTIONS(

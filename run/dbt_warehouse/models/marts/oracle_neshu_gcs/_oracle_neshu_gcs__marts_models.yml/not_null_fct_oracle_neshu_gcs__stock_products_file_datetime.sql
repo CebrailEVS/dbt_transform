@@ -12,9 +12,9 @@
 
 
 
-select date_system
-from `evs-datastack-prod`.`prod_marts`.`fct_oracle_neshu_gcs__stock_theorique`
-where date_system is null
+select file_datetime
+from `evs-datastack-prod`.`prod_marts`.`fct_oracle_neshu_gcs__stock_products`
+where file_datetime is null
 
 
 

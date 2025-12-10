@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_pricing`
       
     partition by timestamp_trunc(date_done, day)
-    cluster by billing_validation_status, workorder_status, demand_status, partner_name
+    
 
     
     OPTIONS(
@@ -18,7 +18,7 @@
 -- MODEL: fct_yuman__workorder_pricing
 -- PURPOSE: Determine automatic pricing for technical interventions from Yuman
 -- AUTHOR: Cebrail AKSOY
--- UPDATED: 2025-12-05 14:34:13.488022+00:00
+-- UPDATED: 2025-12-10 10:56:41.013965+00:00
 -- ============================================================================
 
 WITH 
