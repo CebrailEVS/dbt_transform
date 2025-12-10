@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: fct_oracle_neshu_gcs__stock_theorique
+  - name: fct_oracle_neshu_gcs__stock_products
     description: "Table marts des suivi inventaire théorique VEHICULE Actif + Dépôt quotidiens de stock théorique Oracle Neshu depuis la table staging"
     columns:
       - name: id_entity

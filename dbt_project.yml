@@ -80,11 +80,20 @@ models:
       yuman:
         +tags: ['marts', 'yuman']
 
+      yuman_gcs:
+        +tags: ['marts', 'yuman_gcs']
+
       oracle_neshu:
         +tags: ['marts', 'oracle_neshu']
 
+      oracle_neshu_gcs:
+        +tags: ['marts', 'oracle_neshu_gcs']
+
       mssql_sage:
         +tags: ['marts', 'mssql_sage']
+
+      gac:
+        +tags: ['marts', 'gac']
 
 
 # ✨ AJOUT de la section pour les seeds

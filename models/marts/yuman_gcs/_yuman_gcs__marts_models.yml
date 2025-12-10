@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: fct_yuman_gcs__stock_articles
+    description: "Table marts des suivi inventaire théorique des pièces/articles Yuman depuis la table staging afin de suivre l'évolution des stocks des techniciens et dépôts Yuman"
+    columns:
+      - name: reference
+        description: "reference de l'article"
+        tests:
+          - not_null
+      - name: designation
+        description: "Designation de l'article"
+      - name: nom_du_stock
+        description: "Nom du stock (dépôt ou technicien)"
+      - name: quantite
+        description: "Quantité de l'article dans le stock"
+      - name: stock_date
+        description: "Date du stock (TIMESTAMP)"
+        tests:
+          - not_null
