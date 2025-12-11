@@ -672,3 +672,42 @@ models:
       - name: gea_code
         description: "Code GEA rattaché au roadman, issu du modèle ref_oracle_neshu__roadman_gea."
 
+  - name: fct_oracle_neshu__chargement_vs_conso
+    description: >
+      Table intermédiaire calculant, pour chaque passage APPRO,
+      les quantités consommées (télémetries) et chargées,
+      en reconstruisant les intervalles de consommation entre deux passages.
+
+    config:
+      materialized: table
+
+    columns:
+      - name: device_id
+        description: "Identifiant du device ayant effectué le passage."
+        tests:
+          - not_null
+
+      - name: date_debut_passage_appro
+        description: "Date du passage APPRO (troncature à la journée)."
+        tests:
+          - not_null
+
+      - name: task_start_date_min
+        description: "Horodatage exact du passage APPRO."
+
+      - name: date_passage_precedent
+        description: "Date du passage APPRO précédent pour ce device."
+
+      - name: code_roadman
+        description: "Code du roadman ayant réalisé le passage."
+
+      - name: product_type
+        description: "Type de produit associé aux quantités consommées ou chargées."
+        tests:
+          - not_null
+
+      - name: q_consommee
+        description: "Quantité consommée entre le passage précédent et le passage actuel."
+
+      - name: q_chargee
+        description: "Quantité chargée lors du passage APPRO."
