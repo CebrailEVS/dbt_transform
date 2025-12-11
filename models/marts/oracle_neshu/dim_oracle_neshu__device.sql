@@ -1,7 +1,6 @@
 {{
   config(
     materialized='table',
-    cluster_by=['device_id'],
     description='Dimension device enrichie à partir des labels associés (état, statut, gamme, catégorie, marque, etc.)'
   )
 }}

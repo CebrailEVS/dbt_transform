@@ -1,7 +1,6 @@
 {{
   config(
     materialized='table',
-    cluster_by=['contract_id'],
     description='Dimension contrat : pivot des labels et sélection du contrat actif principal par client.'
   )
 }}

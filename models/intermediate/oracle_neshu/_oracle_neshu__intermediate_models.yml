@@ -1010,3 +1010,21 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+  - name: int_oracle_neshu__valorisation_parc_machines
+    description: >
+      Table intermédiaire de valorisation du parc machines NESHU par device_name et device_group en filtrant sur les clients actifs NESHU
+      et calculant la valorisation à partir des références de capacité et des prix d'achat des produits lié à chaque machine/groupe de machines.
+    columns:
+      - name: device_name
+        description: "Nom de la machine"
+        tests:
+          - not_null
+      - name: device_group
+        description: "Groupe de la machine (mapping avec référence)"
+        tests:
+          - not_null
+      - name: nombre_machines
+        description: "Nombre de machines"
+      - name: valorisation_totale_machine
+        description: "Valorisation totale du parc machines"

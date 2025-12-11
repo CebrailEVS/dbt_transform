@@ -4,7 +4,7 @@
         partition_by = {
         'field': 'consumption_date',
         'data_type': 'date'},
-        cluster_by=['company_id', 'consumption_date', 'product_type','data_source'],
+        cluster_by=['company_id','product_id','device_id'],
         description='Table de faits des consommations clients pour la BR Neshu - agrégation des données télémétrie, chargement et livraison - Application règles métiers'
     )
 }}
