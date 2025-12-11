@@ -632,3 +632,43 @@ models:
 
       - name: material_created_at
         description: Date de création de l'enregistrement matériel dans Yuman (utilisée pour la déduplication)
+
+  # marts/oracle_neshu/_oracle_neshu__marts_models.yml
+  - name: dim_oracle_neshu__vehicule_roadman
+    description: >
+      Dimension regroupant les véhicules et roadmen issus de la table
+      `stg_oracle_neshu__resources`, enrichie avec le code GEA provenant
+      de la référence `ref_oracle_neshu__roadman_gea`.
+
+    columns:
+      - name: id_res_vehicule
+        description: "Identifiant du véhicule (resource id) provenant d’Oracle."
+        tests:
+          - not_null
+          - unique
+
+      - name: code_vehicule
+        description: "Code du véhicule issu du champ resources.code."
+        tests:
+          - not_null
+          - unique
+
+      - name: id_res_roadman
+        description: "Id du roadman associé au vehicule."
+
+      - name: code_roadman
+        description: "Code du roadman correspondant."
+        tests:
+          - unique
+
+      - name: created_at
+        description: "Date de création de la ressource dans Oracle."
+        tests:
+          - not_null
+
+      - name: updated_at
+        description: "Date de dernière mise à jour de la ressource dans Oracle."
+
+      - name: gea_code
+        description: "Code GEA rattaché au roadman, issu du modèle ref_oracle_neshu__roadman_gea."
+
