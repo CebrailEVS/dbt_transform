@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company`
       
     
-    cluster by company_id
+    
 
     
     OPTIONS(
