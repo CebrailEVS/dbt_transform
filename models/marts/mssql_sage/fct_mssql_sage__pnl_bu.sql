@@ -4,8 +4,7 @@
     partition_by = {
         'field': 'date_facturation',
         'data_type': 'timestamp'
-    },
-    cluster_by = ['numero_compte_general', 'code_analytique']
+    }
 ) }}
 
 WITH ecritures_comptables AS (
@@ -22,6 +21,11 @@ WITH ecritures_comptables AS (
     updated_at
   FROM {{ ref('stg_mssql_sage__f_ecriturec') }}
   WHERE LEFT(CAST(cg_num AS STRING), 1) IN ('6', '7')
+),
+
+historic_mapping AS (
+    SELECT *
+    FROM {{ source('historic', 'update_mssql_sage__analytique_2024') }}
 ),
 
 ecritures_analytiques AS (
@@ -95,41 +99,73 @@ mapped_with_fallback AS (
     ON a.code_analytique = bu.code_analytique
   LEFT JOIN mapping_code_comptable__bu cbu
     ON CAST(c.numero_compte_general AS STRING) = cbu.code_comptable
+),
+
+updated_2024 AS (
+  SELECT 
+    f.numero_ecriture_comptable,
+    f.numero_plan_analytique,
+    f.numero_ligne_analytique,
+    f.code_analytique,
+    -- Remplace par le code_analytique_bu de la table de référence si disponible
+    COALESCE(u.code_analytique_bu, f.code_analytique_bu) AS code_analytique_bu,
+    f.numero_compte_general,
+    f.libelle_ecriture,
+    f.macro_categorie_pnl_bu,
+    f.sens_ecriture,
+    f.montant_analytique,
+    f.date_facturation,
+    f.date_ecriture_comptable,
+    f.date_periode_facturation,
+    f.jour_facturation,
+    f.is_missing_analytical,
+    f.created_at,
+    f.updated_at
+  FROM 
+    mapped_with_fallback f  -- ⚠️ Remplace par le nom de ta dernière CTE avant le SELECT final
+  LEFT JOIN
+    historic_mapping u
+    ON f.numero_ecriture_comptable = u.numero_ecriture_comptable
+    AND (
+      -- Cas 1: Jointure complète sur les 3 clés quand elles sont renseignées
+      (f.numero_plan_analytique IS NOT NULL 
+       AND f.numero_ligne_analytique IS NOT NULL
+       AND f.numero_plan_analytique = u.numero_plan_analytique
+       AND f.numero_ligne_analytique = u.numero_ligne_analytique)
+      OR
+      -- Cas 2: Jointure uniquement sur numero_ecriture_comptable si les autres sont vides
+      (f.numero_plan_analytique IS NULL OR f.numero_ligne_analytique IS NULL)
+    )
+    AND EXTRACT(YEAR FROM f.date_facturation) = 2024  -- ⚠️ Filtre uniquement l'année 2024
 )
 
--- ✅ Calcul des indicateurs qualité APRÈS jointure et fallback
+-- ✅ SELECT final (modifié pour utiliser updated_2024 au lieu de mapped_with_fallback)
 SELECT
   numero_ecriture_comptable,
   numero_plan_analytique,
   numero_ligne_analytique,
-
   code_analytique,
   code_analytique_bu,
-
   numero_compte_general,
   libelle_ecriture,
   macro_categorie_pnl_bu,
-
   sens_ecriture,
-
   montant_analytique,
 
   CASE
-  WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '6' AND sens_ecriture = 0 THEN -ABS(montant_analytique)  -- charge débitée → négatif
-  WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '6' AND sens_ecriture = 1 THEN ABS(montant_analytique)   -- charge créditée → positif (rare, extourne)
-  WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '7' AND sens_ecriture = 0 THEN -ABS(montant_analytique)  -- produit débité (rare, correction)
-  WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '7' AND sens_ecriture = 1 THEN ABS(montant_analytique)   -- produit crédité → positif
-  ELSE montant_analytique
+    WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '6' AND sens_ecriture = 0 THEN -ABS(montant_analytique)
+    WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '6' AND sens_ecriture = 1 THEN ABS(montant_analytique)
+    WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '7' AND sens_ecriture = 0 THEN -ABS(montant_analytique)
+    WHEN LEFT(CAST(numero_compte_general AS STRING), 1) = '7' AND sens_ecriture = 1 THEN ABS(montant_analytique)
+    ELSE montant_analytique
   END AS montant_analytique_signe,
 
   date_facturation,
   date_ecriture_comptable,
   date_periode_facturation,
   jour_facturation,
-
   is_missing_analytical,
   
-  -- ✅ Calcul des flags APRÈS le fallback
   CASE
     WHEN code_analytique_bu IS NULL AND is_missing_analytical = FALSE THEN TRUE
     ELSE FALSE
@@ -143,4 +179,4 @@ SELECT
   created_at,
   updated_at
   
-FROM mapped_with_fallback
+FROM updated_2024  -- ⚠️ Changé de mapped_with_fallback à updated_2024

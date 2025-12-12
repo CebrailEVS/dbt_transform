@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: historic
+    database: evs-datastack-prod
+    schema: historic
+    tables:
+      - name: update_mssql_sage__analytique_2024
+        description: "Table figée avec les codes analytiques corrigés pour 2024"
