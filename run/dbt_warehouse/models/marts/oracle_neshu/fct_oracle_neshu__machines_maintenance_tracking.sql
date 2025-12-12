@@ -240,6 +240,7 @@ di_data AS (
     SELECT 
         wd.material_id,
         wo.date_planned,
+        wd.created_at AS demand_created_at,  -- Récupérer la date de création
         CASE
             WHEN wd.demand_status = 'Open' THEN 'Ouvert'
             WHEN wo.workorder_status = 'Scheduled' THEN 'Planifie'
@@ -254,15 +255,15 @@ di_data AS (
         AND (wd.demand_status = 'Open' OR wo.workorder_status = 'Scheduled')
 ),
 
--- ENRICHISSEMENT FINAL AVEC STATUT DES INTERVENTIONS
-final AS (
+-- JOIN INTERMÉDIAIRE
+joined_data AS (
     SELECT
         rr.device_id,
         rr.device_code,
         rr.device_name,
         rr.company_code,
         rr.company_name,
-        rr.last_installation_date AS device_last_installation_date,
+        rr.last_installation_date,
         rr.material_id,
         rr.material_serial_number,
         rr.client_code,
@@ -272,17 +273,54 @@ final AS (
         rr.retard_bol,
         rr.retard_delai,
         rr.source_last_preventive,
-        COALESCE(di.status_inter, 'Aucune') AS status_inter,
-        di.date_planned,
         rr.material_created_at,
-
-        -- Métadonnées dbt
-        CURRENT_TIMESTAMP() as dbt_updated_at,
-        'ea1f52b4-b1c6-4f1c-8686-2248dc85468a' as dbt_invocation_id
-
+        di.status_inter,
+        di.date_planned,
+        di.demand_created_at
     FROM resultat_retard rr
     LEFT JOIN di_data di
         ON rr.material_id = di.material_id
+),
+
+-- DÉDUPLICATION PAR DEVICE_ID (garder la DI la plus récente)
+deduplicated AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY device_id
+            ORDER BY demand_created_at DESC NULLS LAST  -- Les plus récentes d'abord, NULL à la fin
+        ) AS rn
+    FROM joined_data
+),
+
+-- ENRICHISSEMENT FINAL
+final AS (
+    SELECT
+        device_id,
+        device_code,
+        device_name,
+        company_code,
+        company_name,
+        last_installation_date AS device_last_installation_date,
+        material_id,
+        material_serial_number,
+        client_code,
+        client_name,
+        client_category,
+        site_postal_code,
+        retard_bol,
+        retard_delai,
+        source_last_preventive,
+        COALESCE(status_inter, 'Aucune') AS status_inter,
+        date_planned,
+        material_created_at,
+
+        -- Métadonnées dbt
+        CURRENT_TIMESTAMP() as dbt_updated_at,
+        'a3ac52e5-bba3-4eea-bb71-696569a3e0a9' as dbt_invocation_id
+
+    FROM deduplicated
+    WHERE rn = 1  -- Ne garder qu'une ligne par device_id
 )
 
 SELECT * FROM final

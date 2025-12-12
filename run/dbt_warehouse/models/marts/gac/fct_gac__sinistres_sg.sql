@@ -45,7 +45,7 @@ cout_global,
 cout_client,
 -- Métadonnées dbt
 CURRENT_TIMESTAMP() as dbt_updated_at,
-'ea1f52b4-b1c6-4f1c-8686-2248dc85468a' as dbt_invocation_id
+'a3ac52e5-bba3-4eea-bb71-696569a3e0a9' as dbt_invocation_id
  FROM `evs-datastack-prod`.`prod_staging`.`stg_gac__sinistres_sg`
     );
   
