@@ -1028,3 +1028,54 @@ models:
         description: "Nombre de machines"
       - name: valorisation_totale_machine
         description: "Valorisation totale du parc machines"
+
+  - name: int_oracle_neshu__pointage
+    description: >
+      Table intermédiaire des tâches des pointages roadman sur les débuts de journées 
+      avec dédoublon sur un même jour et même roadman en prenant le premier pointage 
+      après 3h du matin de la journée. 
+      1 ligne = 1 tâche pointage roadman par jour.
+      Filtrée sur les tâches de type POINTAGE et FILTRER sur label START_DAY (idtask_type=194, idlabel=2685) 
+      avec code_status_record=1
+    columns:
+      - name: task_id
+        description: >
+          Identifiant unique de la tâche de pointage.
+          Correspond au premier pointage après 3h du matin pour un roadman donné sur une journée.
+        tests:
+          - not_null
+
+      - name: company_id
+        description: >
+          Identifiant de l'entreprise (idcompany_peer de la tâche).
+        tests:
+          - not_null
+
+      - name: resources_roadman_id
+        description: >
+          Identifiant de la ressource roadman (idresources_type=2) associée à la tâche.
+
+      - name: roadman_code
+        description: >
+          Code métier du roadman associé à la tâche.
+
+      - name: status_code
+        description: >
+          Code statut de la tâche (depuis task_status).
+
+      - name: label_code
+        description: >
+          Code du label de la tâche. Filtré sur START_DAY (idlabel=2685).
+
+      - name: date_pointage_jour
+        description: >
+          Date du jour du pointage (sans l'heure), extraite de real_start_date.
+        tests:
+          - not_null
+
+      - name: date_pointage
+        description: >
+          Timestamp du premier pointage après 3h du matin pour ce roadman sur cette journée.
+          Utilisé pour dédoublonner les pointages multiples d'un même roadman le même jour.
+        tests:
+          - not_null
