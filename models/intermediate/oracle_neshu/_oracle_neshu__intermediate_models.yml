@@ -1031,17 +1031,14 @@ models:
 
   - name: int_oracle_neshu__pointage
     description: >
-      Table intermédiaire des tâches des pointages roadman sur les débuts de journées 
-      avec dédoublon sur un même jour et même roadman en prenant le premier pointage 
-      après 3h du matin de la journée. 
-      1 ligne = 1 tâche pointage roadman par jour.
-      Filtrée sur les tâches de type POINTAGE et FILTRER sur label START_DAY (idtask_type=194, idlabel=2685) 
+      Table intermédiaire des tâches des pointages roadman sur les débuts et fin de journées 
+      1 ligne = 1 tâche pointage.
+      Filtrée sur les tâches de type POINTAGE et FILTRER sur label START_DAY (idtask_type=194, idlabel=2685,2686) et filtrage sur les tâches associé à des idresources
       avec code_status_record=1
     columns:
       - name: task_id
         description: >
           Identifiant unique de la tâche de pointage.
-          Correspond au premier pointage après 3h du matin pour un roadman donné sur une journée.
         tests:
           - not_null
 
@@ -1075,7 +1072,6 @@ models:
 
       - name: date_pointage
         description: >
-          Timestamp du premier pointage après 3h du matin pour ce roadman sur cette journée.
-          Utilisé pour dédoublonner les pointages multiples d'un même roadman le même jour.
+          Timestamp du pointage
         tests:
           - not_null
