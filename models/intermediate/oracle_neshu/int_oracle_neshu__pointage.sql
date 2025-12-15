@@ -47,7 +47,7 @@ pointage_resources AS (
     FROM pointage p
     LEFT JOIN resources_roadman r ON p.idtask = r.idtask
 )
-
+ 
 -- SELECT FINAL
 SELECT
     idtask as task_id,
