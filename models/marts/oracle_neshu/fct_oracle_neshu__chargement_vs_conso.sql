@@ -79,8 +79,8 @@ SELECT
   MIN(pa.date_passage_precedent) AS date_passage_precedent,
   MAX(pa.roadman_code) AS code_roadman,
   COALESCE(t.product_type, c.product_type) AS product_type,
-  COALESCE(t.q_consommee, 0) AS q_consommee,
-  COALESCE(c.q_chargee, 0) AS q_chargee
+  sum(COALESCE(t.q_consommee, 0)) AS q_consommee,
+  max(COALESCE(c.q_chargee, 0)) AS q_chargee
 FROM telemetry_agg t
 FULL JOIN chargement_agg c
   ON t.device_id = c.device_id
@@ -92,7 +92,5 @@ LEFT JOIN passage_avec_suivant pa
 GROUP BY
   device_id,
   date_debut_passage_appro,
-  product_type,
-  q_consommee,
-  q_chargee
+  product_type
 
