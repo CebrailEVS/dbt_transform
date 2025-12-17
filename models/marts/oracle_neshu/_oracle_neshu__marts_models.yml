@@ -641,22 +641,22 @@ models:
       de la référence `ref_oracle_neshu__roadman_gea`.
 
     columns:
-      - name: id_res_vehicule
+      - name: resources_vehicule_id
         description: "Identifiant du véhicule (resource id) provenant d’Oracle."
         tests:
           - not_null
           - unique
 
-      - name: code_vehicule
+      - name: vehicule_code
         description: "Code du véhicule issu du champ resources.code."
         tests:
           - not_null
           - unique
 
-      - name: id_res_roadman
+      - name: resources_roadman_id
         description: "Id du roadman associé au vehicule."
 
-      - name: code_roadman
+      - name: roadman_code
         description: "Code du roadman correspondant."
         tests:
           - unique
@@ -698,7 +698,7 @@ models:
       - name: date_passage_precedent
         description: "Date du passage APPRO précédent pour ce device."
 
-      - name: code_roadman
+      - name: roadman_code
         description: "Code du roadman ayant réalisé le passage."
 
       - name: product_type

@@ -6,10 +6,10 @@
 }}
 
 select 
-    r.idresources as id_res_vehicule,
-    r.code as code_vehicule,
-    r.resources_idresources as id_res_roadman, 
-    r.name as code_roadman,
+    r.idresources as resources_vehicule_id,
+    r.code as vehicule_code,
+    r.resources_idresources as resources_roadman_id, 
+    r.name as roadman_code,
     r.created_at,
     r.updated_at,
     g.gea_code 

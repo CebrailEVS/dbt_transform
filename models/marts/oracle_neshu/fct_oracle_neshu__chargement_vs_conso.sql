@@ -14,14 +14,14 @@ WITH passage_avec_suivant AS (
   SELECT 
     device_id,
     task_start_date,
-    rm.code_roadman AS roadman_code,
+    rm.roadman_code AS roadman_code,
     LAG(task_start_date) OVER (
       PARTITION BY device_id 
       ORDER BY task_start_date
     ) AS date_passage_precedent
   FROM {{ ref('int_oracle_neshu__appro_tasks') }} ta
   LEFT JOIN {{ ref('dim_oracle_neshu__vehicule_roadman') }} rm
-    ON rm.id_res_vehicule = ta.product_source_id
+    ON rm.resources_vehicule_id = ta.product_source_id
   WHERE task_start_date >= '2025-01-01'
     AND task_status_code = 'FAIT'
 ),
@@ -77,7 +77,7 @@ SELECT
   DATE(COALESCE(t.task_start_date, c.task_start_date)) AS date_debut_passage_appro,
   MIN(COALESCE(t.task_start_date, c.task_start_date)) AS task_start_date_min,
   MIN(pa.date_passage_precedent) AS date_passage_precedent,
-  MAX(pa.roadman_code) AS code_roadman,
+  MAX(pa.roadman_code) AS roadman_code,
   COALESCE(t.product_type, c.product_type) AS product_type,
   sum(COALESCE(t.q_consommee, 0)) AS q_consommee,
   max(COALESCE(c.q_chargee, 0)) AS q_chargee
