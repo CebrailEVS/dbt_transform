@@ -711,3 +711,33 @@ models:
 
       - name: q_chargee
         description: "Quantité chargée lors du passage APPRO."
+
+
+  - name: fct_oracle_neshu__chargement_par_quinzaine
+    description: >
+      Table de faits calculant les quantités chargées par type de produit,
+      société, année et quinzaine (périodes de 14 jours démarrant un lundi).
+
+    columns:
+      - name: product_type
+        description: Type de produit issu de la dimension produit
+        tests:
+          - not_null
+
+      - name: company_code
+        description: Code de la société
+        tests:
+          - not_null
+
+      - name: annee_chgt
+        description: Année de la date de démarrage de la tâche
+        tests:
+          - not_null
+
+      - name: quinzaine_chgt
+        description: Numéro de quinzaine calculé à partir du lundi de référence
+        tests:
+          - not_null
+
+      - name: quantite_chargee
+        description: Quantité totale chargée sur la période
