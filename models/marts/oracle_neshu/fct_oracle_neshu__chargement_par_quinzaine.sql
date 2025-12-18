@@ -24,7 +24,7 @@ WITH base AS (
     LEFT JOIN {{ ref('dim_oracle_neshu__product') }} p
         ON cm.product_id = p.product_id
     WHERE cm.task_start_date >= TIMESTAMP(
-        DATETIME_SUB(CURRENT_DATETIME(), INTERVAL 12 MONTH)
+        DATETIME_SUB(CURRENT_DATETIME(), INTERVAL 24 MONTH)
     )
 )
 SELECT
