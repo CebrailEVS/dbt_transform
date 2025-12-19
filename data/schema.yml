@@ -299,7 +299,7 @@ seeds:
           - not_null
 
 
-  - name: ref_nesp_tech__dpts_montagne_primes
+  - name: ref_nesp_tech__cps_montagne_primes
     description: "Codes postaux considérés comme zone montagne pour le calcul des primes"
     columns:
       - name: cp
