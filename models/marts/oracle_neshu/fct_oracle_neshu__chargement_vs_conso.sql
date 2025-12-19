@@ -80,7 +80,11 @@ SELECT
   MAX(pa.roadman_code) AS roadman_code,
   COALESCE(t.product_type, c.product_type) AS product_type,
   sum(COALESCE(t.q_consommee, 0)) AS q_consommee,
-  max(COALESCE(c.q_chargee, 0)) AS q_chargee
+  max(COALESCE(c.q_chargee, 0)) AS q_chargee,
+
+  -- Métadonnées dbt
+  CURRENT_TIMESTAMP() as dbt_updated_at,
+  '{{ invocation_id }}' as dbt_invocation_id
 FROM telemetry_agg t
 FULL JOIN chargement_agg c
   ON t.device_id = c.device_id

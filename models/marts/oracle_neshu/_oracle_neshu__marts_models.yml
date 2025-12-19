@@ -741,3 +741,128 @@ models:
 
       - name: quantite_chargee
         description: Quantité totale chargée sur la période
+
+
+  - name: fct_oracle_neshu__appro
+    description: >
+      Table de faits représentant les passages des roadmen,
+      enrichie avec des métriques journalières de temps de travail
+      et de performance (durée de passage, temps de travail quotidien, rang du passage).
+      Les statuts ENCOURS ont été reclassés comme FAIT suite à validation métier.
+
+    columns:
+
+      # =====================
+      # 1️⃣ IDs
+      # =====================
+
+      - name: task_id
+        description: Identifiant unique de la tâche de passage
+        tests:
+          - not_null
+          - unique
+
+      - name: device_id
+        description: Identifiant du device associé à la tâche
+
+      - name: company_id
+        description: Identifiant de l'entreprise cliente
+
+      - name: resources_roadman_id
+        description: Identifiant du roadman ayant effectué le passage
+        tests:
+          - not_null
+
+      # =====================
+      # 2️⃣ Attributs
+      # =====================
+
+      - name: company_info
+        description: Nom et code de l'entreprise (format "Nom - Code")
+
+      - name: device_info
+        description: Nom et code du device (format "Nom - Code")
+
+      - name: roadman_code
+        description: Code métier du roadman
+
+      - name: gea_code
+        description: Code GEA rattaché au roadman
+
+      - name: task_status_code
+        description: >
+          Statut métier de la tâche.
+          Les statuts ENCOURS sont reclassés comme FAIT suite à validation métier.
+
+      # =====================
+      # 3️⃣ Dates / Temps
+      # =====================
+
+      - name: date_pointage
+        description: Date et heure de pointage du roadman (si disponible)
+
+      - name: date_pointage_jour
+        description: Jour de pointage du roadman (date sans heure)
+
+      - name: task_start_date
+        description: Date et heure de début de la tâche
+
+      - name: task_end_date
+        description: Date et heure de fin de la tâche
+
+      - name: last_task_end_of_day
+        description: >
+          Dernière heure de fin de tâche (statut FAIT) du roadman pour la journée
+
+      - name: effective_work_start
+        description: >
+          Heure de début effective du travail pour la journée :
+          date de pointage si disponible, sinon première tâche de la journée
+
+      # =====================
+      # 4️⃣ Mesures / KPI
+      # =====================
+
+      - name: is_planned
+        description: Indicateur binaire indiquant si la tâche est planifiée (1) ou non (0)
+
+      - name: is_done
+        description: Indicateur binaire indiquant si la tâche est réalisée (1) ou non (0)
+
+      - name: passage_rank_of_day
+        description: Ordre du passage du roadman dans la journée (1 = premier passage)
+
+      - name: daily_task_count
+        description: Nombre total de passages réalisés par le roadman sur la journée
+
+      - name: avg_passage_duration_day
+        description: Durée moyenne d’un passage (en minutes) pour le roadman sur la journée
+
+      - name: passage_duration_min
+        description: Durée du passage en minutes (fin - début)
+
+      - name: work_duration_min_raw
+        description: >
+          Durée brute du temps de travail journalier en minutes
+          (différence entre la dernière fin de tâche et le début effectif)
+
+      - name: work_duration_min
+        description: >
+          Durée nette du temps de travail journalier en minutes,
+          après nettoyage des valeurs aberrantes (négatif ou > 12h)
+
+      # =====================
+      # 5️⃣ Métadonnées
+      # =====================
+
+      - name: created_at
+        description: Date de création de la tâche dans le système source
+
+      - name: updated_at
+        description: Date de dernière mise à jour de la tâche dans le système source
+
+      - name: dbt_updated_at
+        description: Horodatage de la dernière exécution du modèle dbt
+
+      - name: dbt_invocation_id
+        description: Identifiant unique de l'exécution dbt

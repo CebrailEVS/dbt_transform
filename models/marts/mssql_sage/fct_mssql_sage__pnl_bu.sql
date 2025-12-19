@@ -177,6 +177,10 @@ SELECT
   END AS is_missing_comptable_mapping,
 
   created_at,
-  updated_at
+  updated_at,
+
+  -- Métadonnées dbt
+  CURRENT_TIMESTAMP() as dbt_updated_at,
+  '{{ invocation_id }}' as dbt_invocation_id
   
 FROM updated_2024  -- ⚠️ Changé de mapped_with_fallback à updated_2024
