@@ -1,0 +1,11 @@
+type_code,repair_code_1,failure_code,mini_prev_bool,type_inter_libelle
+1,,,,Curative
+2,,,,Preventive
+3,,,,Mise a jour
+5,,,,Curative
+8,,,,Installation
+7,121,,,Installation
+7,770,,,Desinstallation
+7,,91,,Enlevement
+7,,,true,Mini preventive
+7,,,,Preventive
