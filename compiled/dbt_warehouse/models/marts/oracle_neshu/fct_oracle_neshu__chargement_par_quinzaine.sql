@@ -29,7 +29,10 @@ SELECT
     company_code,
     annee_chgt,
     quinzaine_chgt,
-    SUM(load_quantity) AS quantite_chargee
+    SUM(load_quantity) AS quantite_chargee,
+    -- Métadonnées dbt
+    CURRENT_TIMESTAMP() as dbt_updated_at,
+    'f63979de-4940-4cf0-af86-2ff6947df878' as dbt_invocation_id
 FROM base
 GROUP BY
     product_type,
