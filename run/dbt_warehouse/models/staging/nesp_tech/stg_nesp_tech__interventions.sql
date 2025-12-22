@@ -45,7 +45,11 @@ cleaned_data as (
         nullif(lower(trim(ville_client)), 'nan') as ville_client,
         nullif(lower(trim(nom_site)), 'nan') as nom_site,
         nullif(lower(trim(adresse_site)), 'nan') as adresse_site,
-        nullif(lower(trim(code_postal_site)), 'nan') as code_postal_site,
+        case
+            when regexp_contains(nullif(lower(trim(code_postal_site)), 'nan'), r'^\d{4}$')
+                then concat('0', nullif(lower(trim(code_postal_site)), 'nan'))
+            else nullif(lower(trim(code_postal_site)), 'nan')
+        end as code_postal_site,
         nullif(lower(trim(ville_site)), 'nan') as ville_site,
         nullif(lower(trim(code_machine)), 'nan') as code_machine,
         nullif(lower(trim(nom_machine)), 'nan') as nom_machine,
@@ -54,12 +58,24 @@ cleaned_data as (
         nullif(lower(trim(etat_inter)), 'nan') as etat_intervention,
         nullif(lower(trim(observations)), 'nan') as observations,
         nullif(lower(trim(agency)), 'nan') as agency,
-        nullif(lower(trim(repair_code_1)), 'nan') as repair_code_1,
-        nullif(lower(trim(repair_code_2)), 'nan') as repair_code_2,
-        nullif(lower(trim(repair_code_3)), 'nan') as repair_code_3,
+        regexp_replace(
+            nullif(lower(trim(repair_code_1)), 'nan'),
+            r'\.0$',
+            ''
+        ) as repair_code_1,
+        regexp_replace(
+            nullif(lower(trim(repair_code_2)), 'nan'),
+            r'\.0$',
+            ''
+        ) as repair_code_2,
+
+        regexp_replace(
+            nullif(lower(trim(repair_code_3)), 'nan'),
+            r'\.0$',
+            ''
+        ) as repair_code_3,
         nullif(lower(trim(failure_code)), 'nan') as failure_code,
         nullif(lower(trim(consignes)), 'nan') as consignes,
-
         -- Dates harmonisées (converties en TIMESTAMP, avec traitement "NaT" et dates invalides -> NULL)
         case 
             when lower(trim(date_heure_debut)) in ('nat', 'nan') then null
