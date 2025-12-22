@@ -42,9 +42,27 @@ cleaned_data as (
         nullif(lower(trim(nom_site)), 'nan') as nom_site,
         nullif(lower(trim(adresse_site)), 'nan') as adresse_site,
         case
-            when regexp_contains(nullif(lower(trim(code_postal_site)), 'nan'), r'^\d{4}$')
-                then concat('0', nullif(lower(trim(code_postal_site)), 'nan'))
-            else nullif(lower(trim(code_postal_site)), 'nan')
+            when regexp_contains(
+                regexp_replace(
+                    nullif(lower(trim(code_postal_site)), 'nan'),
+                    r'\.0$',
+                    ''
+                ),
+                r'^\d{4}$'
+            )
+                then concat(
+                    '0',
+                    regexp_replace(
+                        nullif(lower(trim(code_postal_site)), 'nan'),
+                        r'\.0$',
+                        ''
+                    )
+                )
+            else regexp_replace(
+                nullif(lower(trim(code_postal_site)), 'nan'),
+                r'\.0$',
+                ''
+            )
         end as code_postal_site,
         nullif(lower(trim(ville_site)), 'nan') as ville_site,
         nullif(lower(trim(code_machine)), 'nan') as code_machine,
