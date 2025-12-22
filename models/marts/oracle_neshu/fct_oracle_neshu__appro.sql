@@ -92,11 +92,28 @@ SELECT
   END AS task_status_code,
   p.date_pointage,
   p.date_pointage_jour,
+   DATE(task_start_date) AS start_date_day,
   pa.task_start_date,
   pa.task_end_date,
-  (pa.task_end_date - pa.task_start_date) AS passage_duration_min,
+  -- Durée brute (audit)
+  pa.task_end_date - pa.task_start_date AS passage_duration_interval,
+    -- Métrique BI
+    CASE 
+      WHEN pa.task_start_date IS NOT NULL 
+      AND pa.task_end_date IS NOT NULL
+      AND pa.task_status_code = 'FAIT'
+      THEN TIMESTAMP_DIFF(
+            pa.task_end_date,
+            pa.task_start_date,
+            SECOND
+          ) / 60.0
+    END AS passage_duration_min,
     CASE WHEN pa.task_status_code = 'FAIT' THEN 1 ELSE 0 END AS is_done,
     CASE WHEN pa.task_status_code IN ('PREVU', 'FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS is_planned,
+    CASE 
+      WHEN p.date_pointage IS NULL THEN 1
+      ELSE 0
+      END AS pointage_missing_flag,
   pa.created_at,
   pa.updated_at 
 FROM {{ ref('int_oracle_neshu__appro_tasks') }} pa
@@ -154,12 +171,39 @@ passage_with_metrics AS (
     ROW_NUMBER() OVER (
       PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
       ORDER BY pa.task_start_date
-    ) AS passage_rank_of_day
+    ) AS passage_rank_of_day,
+    
+    -- 📊 NOUVEAUX CALCULS DE TAUX --
+    
+    -- Compteurs pour le roadman ce jour
+    SUM(pa.is_done) OVER (
+      PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
+    ) AS done_count_roadman_day,
+    
+    SUM(pa.is_planned) OVER (
+      PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
+    ) AS planned_count_roadman_day,
+    
+    -- Taux de réalisation du roadman ce jour
+    SAFE_DIVIDE(
+      SUM(pa.is_done) OVER (
+        PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
+      ),
+      SUM(pa.is_planned) OVER (
+        PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
+      )
+    ) AS taux_realisation_roadman_day,
+    
+    -- Taux de réalisation global du jour (tous roadmen)
+    SAFE_DIVIDE(
+      SUM(pa.is_done) OVER (PARTITION BY DATE(pa.task_start_date)),
+      SUM(pa.is_planned) OVER (PARTITION BY DATE(pa.task_start_date))
+    ) AS taux_realisation_global_day
     
   FROM passage_appro pa
 ),
  -- Calcul de work_duration_min
- passage_work_duration AS (
+passage_work_duration AS (
 SELECT 
   *,
   -- Calcul du work_duration en minutes (brut)
@@ -192,6 +236,7 @@ SELECT
   -- 3️⃣ Dates / Temps
   date_pointage,
   date_pointage_jour,
+  start_date_day,
   task_start_date,
   task_end_date,
   last_task_end_of_day,
@@ -203,16 +248,24 @@ SELECT
   passage_rank_of_day,
   daily_task_count,
   avg_passage_duration_day,
+  passage_duration_interval,
   passage_duration_min,
   work_duration_min_raw,
   work_duration_min,
+  pointage_missing_flag,
+  
+  -- 📊 Nouveaux KPI taux de réalisation
+  done_count_roadman_day,
+  planned_count_roadman_day,
+  taux_realisation_roadman_day,
+  taux_realisation_global_day,
 
   -- 5️⃣ Métadonnées
   created_at,
   updated_at,
 
   -- Métadonnées dbt
-   CURRENT_TIMESTAMP() as dbt_updated_at,
+  CURRENT_TIMESTAMP() as dbt_updated_at,
   '{{ invocation_id }}' as dbt_invocation_id
 
 FROM passage_work_duration
