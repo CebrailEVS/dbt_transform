@@ -313,11 +313,10 @@ seeds:
         tests:
           - not_null
 
-
   - name: ref_nesp_tech__key_facturation
     description: "Clé de facturation des interventions techniques"
     columns:
-      - name: code_inter
+      - name: type_code
         description: "Code intervention"
 
       - name: type_inter
@@ -328,17 +327,25 @@ seeds:
         tests:
           - not_null
 
-      - name: key_facturation
+      - name: montagne_factu
+        description: "Suffixe potentiel selon montagne"
+
+      - name: key_ref_inter
         description: "Clé de facturation lisible"
         tests:
           - not_null
 
-      - name: prod_inter
-        description: "Code produit intervention"
+      - name: key_factu
+        description: "Clé de facturation lisible"
         tests:
           - not_null
 
-      - name: tarif_inter
+      - name: prod_factu
+        description: "Prod associee a l'intervention"
+        tests:
+          - not_null
+
+      - name: tarif_factu
         description: "Tarif de l'intervention"
         tests:
           - not_null
