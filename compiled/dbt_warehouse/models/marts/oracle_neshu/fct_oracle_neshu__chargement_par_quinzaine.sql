@@ -32,7 +32,7 @@ SELECT
     SUM(load_quantity) AS quantite_chargee,
     -- Métadonnées dbt
     CURRENT_TIMESTAMP() as dbt_updated_at,
-    'b4978a77-51cb-40e7-adb9-d9c9043b6e69' as dbt_invocation_id
+    '24e7395e-0fc1-4017-975f-681d06f8c53d' as dbt_invocation_id
 FROM base
 GROUP BY
     product_type,
