@@ -31,7 +31,7 @@ cleaned_data as (
             else CAST(CAST(n_site AS FLOAT64) AS INT64)
         end as n_site,
 
-        -- Colonnes texte (avec traitement "nan" -> NULL)
+        -- Colonnes texte
         nullif(lower(trim(n_tech)), 'nan') as n_tech,
         nullif(lower(trim(nom_tech)), 'nan') as nom_tech,
         nullif(lower(trim(prenom_tech)), 'nan') as prenom_tech,
@@ -46,7 +46,7 @@ cleaned_data as (
         -- Mesure
         cast(quantite as float64) as quantite_article,
 
-        -- Dates harmonisées (converties en DATES, avec traitement "NaT" -> NULL)
+        -- Dates harmonisées
         case 
             when lower(trim(date)) in ('nat', 'nan') then null
             else PARSE_DATE('%d/%m/%Y', date)
@@ -57,6 +57,20 @@ cleaned_data as (
         source_file
         
     from source_data
+),
+
+deduped as (
+    select *
+    from (
+        select *,
+               row_number() over (
+                   partition by n_planning, code_article, date_intervention
+                   order by extracted_at desc
+               ) as rn
+        from cleaned_data
+    )
+    where rn = 1
 )
 
-select * from cleaned_data
+select * 
+from deduped
