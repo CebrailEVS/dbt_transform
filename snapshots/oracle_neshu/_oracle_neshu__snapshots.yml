@@ -33,6 +33,104 @@ snapshots:
           - unique
           - not_null
 
+  - name: snap_oracle_neshu__valo_parc_machines
+    description: |
+      Historique mensuel de la valorisation du parc machines NESHU.
+      
+      Ce snapshot capture l'état de la valorisation des machines au 1er de chaque mois,
+      permettant ainsi des analyses d'évolution et de comparaison temporelle.
+      
+      **Fréquence d'exécution** : Quotidienne via `dbt snapshot`
+      **Fréquence de capture** : Mensuelle (un snapshot par mois automatiquement)
+      **Stratégie** : Timestamp sur snapshot_month
+      **Résistance** : Immune aux `dbt run --full-refresh` hebdomadaires
+      
+      **Cas d'usage** :
+      - Suivre l'évolution du nombre de machines par modèle
+      - Analyser les variations de valorisation mois par mois
+      - Identifier les tendances d'équipement par groupe de machines
+      - Comparer les performances entre périodes
+    
+    meta:
+      owner: "Votre équipe data"
+      contains_pii: false
+      refresh_frequency: "daily run, monthly capture"
+    
+    columns:
+      - name: snapshot_month
+        description: |
+          Premier jour du mois de capture (format DATE).
+          Clé de partitionnement temporel pour les analyses mensuelles.
+          Exemple : 2025-12-01, 2026-01-01
+        tests:
+          - not_null
+      
+      - name: device_name
+        description: |
+          Nom exact du modèle de machine tel qu'enregistré dans Oracle Neshu.
+          Exemples : 'OPTIBEAN X 12', 'TOWER OPTIBEAN X12 TS', 'FAS 750 EXCELLENCE'
+        tests:
+          - not_null
+      
+      - name: device_group
+        description: |
+          Groupe de machines auquel appartient le device_name.
+          Utilisé pour regrouper les machines similaires et appliquer les règles de valorisation.
+          Exemples : 'ANIMO GRAIN', 'ANIMO GRAIN + MODULO', 'FAS'
+        tests:
+          - not_null
+      
+      - name: nombre_machines
+        description: |
+          Nombre total de machines actives de ce modèle dans le parc NESHU
+          au moment du snapshot (clients actifs uniquement, code CN + 4 chiffres).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      
+      - name: valorisation_totale_machine
+        description: |
+          Valorisation totale du parc pour ce modèle de machine, en euros.
+          
+          Calculée en multipliant :
+          - Les quantités de produits/capacités associées au device_group
+          - Par les prix d'achat unitaires des produits
+          - Puis en sommant pour toutes les machines de ce modèle
+          
+          Arrondi à 2 décimales.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      
+      - name: dbt_valid_from
+        description: |
+          Timestamp de création de cet enregistrement dans le snapshot.
+          Correspond à la date du premier `dbt snapshot` pour ce mois.
+      
+      - name: dbt_valid_to
+        description: |
+          Timestamp de fin de validité de cet enregistrement.
+          - NULL = enregistrement toujours actif (dernier mois connu)
+          - Date = enregistrement historique remplacé par une version plus récente
+      
+      - name: dbt_scd_id
+        description: |
+          Identifiant unique généré par dbt pour chaque version d'enregistrement.
+          Utilisé pour le suivi des changements (Slowly Changing Dimension Type 2).
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - snapshot_month
+            - device_name
+            - device_group
+          where: "dbt_valid_to IS NULL"
+          severity: error
+          error_if: ">0"
+          warn_if: ">0"
+
   # Future snapshots can be added here:
   # - name: snap_oracle_neshu__company
   # - name: snap_oracle_neshu__contract
