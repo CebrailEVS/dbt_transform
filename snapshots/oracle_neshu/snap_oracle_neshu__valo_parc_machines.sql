@@ -22,7 +22,7 @@
 }}
 
 SELECT 
-  DATE_TRUNC(CURRENT_DATE(), MONTH) as snapshot_month,
+  TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH)) as snapshot_month,  -- ✅ Ajout de TIMESTAMP()
   device_name,
   device_group,
   nombre_machines,
