@@ -15,7 +15,6 @@
 
 {{
     config(
-      target_schema='snapshots',
       unique_key='device_id',
       strategy='check',
       check_cols=['device_economic_model', 'device_brand', 'company_code','device_location'],
