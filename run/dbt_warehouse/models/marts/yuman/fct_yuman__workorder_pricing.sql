@@ -18,7 +18,7 @@
 -- MODEL: fct_yuman__workorder_pricing
 -- PURPOSE: Determine automatic pricing for technical interventions from Yuman
 -- AUTHOR: Cebrail AKSOY
--- UPDATED: 2025-12-30 13:25:01.385228+00:00
+-- UPDATED: 2026-01-05 14:28:00.710392+00:00
 -- ============================================================================
 
 WITH 
