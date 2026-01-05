@@ -13,7 +13,6 @@
 
 {{
   config(
-    target_schema='snapshots',
     unique_key='snapshot_month || "|" || device_name || "|" || device_group',
     strategy='timestamp',
     updated_at='snapshot_month',

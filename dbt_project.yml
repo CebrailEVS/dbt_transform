@@ -199,3 +199,12 @@ seeds:
             code_comptable: STRING
             designation_compte: STRING
             macro_categorie_pnl_bu: STRING
+
+# Configuration des snapshots
+snapshots:
+  dbt_warehouse:
+    +target_schema: "{{ 'snapshots_dev' if target.name == 'dev' else 'snapshots' }}"
+    +tags: ['snapshots']
+    
+    oracle_neshu:
+      +tags: ['snapshots', 'oracle_neshu']
