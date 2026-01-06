@@ -260,6 +260,9 @@ seeds:
       - name: mini_prev_bool
         description: "Indique une mini préventive (TRUE/FALSE)"
 
+      - name: type_machine
+        description : "Categorie Machine"
+
       - name: type_inter_libelle
         description: "Libellé du type d'intervention"
         tests:
