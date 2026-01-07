@@ -174,6 +174,6 @@ SELECT
 
   -- Métadonnées dbt
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  'd029413d-8618-4d20-8fd2-458b964d1af5' as dbt_invocation_id
+  'd0936420-b38b-4fb8-81fc-5208b61c8f78' as dbt_invocation_id
   
 FROM updated_2024  -- ⚠️ Changé de mapped_with_fallback à updated_2024
