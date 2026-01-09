@@ -93,7 +93,7 @@ final AS (
         WHEN product_group = 'ACCESSOIRES' THEN 'ACCESSOIRES'
         WHEN product_group = 'BOISSONS FRAICHES' THEN 'BOISSONS FRAICHES'
         WHEN product_group = 'SNACKING' THEN 'SNACKING'
-        WHEN product_brand = 'VAN HOUTEN' AND product_code = 'VANHCHOC23' THEN 'CHOCOLATS VAN HOUTEN'
+        WHEN product_code = 'VANHCHOC23' THEN 'CHOCOLATS VAN HOUTEN'
         WHEN product_type_raw = 'BGOURMANDE' THEN 'BOISSONS GOURMANDES'
         ELSE NULL
       END,
