@@ -261,9 +261,12 @@ SELECT
   device_brand,
   device_economic_model,
 
-  -- Produit
+-- Produit
   product_name,
-  product_brand,
+  CASE
+    WHEN product_brand = 'BARRYCALLEBAUT' THEN 'VAN HOUTEN'
+    ELSE product_brand
+  END AS product_brand,
   product_family,
   product_group,
   product_type,
@@ -277,6 +280,6 @@ SELECT
 
   -- Métadonnées d'exécution
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  'd0936420-b38b-4fb8-81fc-5208b61c8f78' as dbt_invocation_id
+  'ddaec2b4-ed31-4184-9f8b-d35f085f4b63' as dbt_invocation_id
 
 FROM combined_and_filtered_data
