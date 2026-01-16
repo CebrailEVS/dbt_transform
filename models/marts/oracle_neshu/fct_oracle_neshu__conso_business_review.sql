@@ -270,9 +270,12 @@ SELECT
   device_brand,
   device_economic_model,
 
-  -- Produit
+-- Produit
   product_name,
-  product_brand,
+  CASE
+    WHEN product_brand = 'BARRYCALLEBAUT' THEN 'VAN HOUTEN'
+    ELSE product_brand
+  END AS product_brand,
   product_family,
   product_group,
   product_type,
