@@ -33,6 +33,42 @@ snapshots:
           - unique
           - not_null
 
+
+  - name: snap_oracle_neshu__company
+    description: |
+      Historical snapshot of company dimension tracking changes to:
+      - Company name (company_name)
+      - Company status (active/inactive)
+      
+      Uses check strategy to only capture changes to these specific fields.
+    
+    columns:
+      - name: company_id
+        description: "Unique company identifier (primary key)"
+        tests:
+          - not_null
+          
+      - name: company_code
+        description: "Code company"
+      
+      - name: company_name
+        description: "Company name - TRACKED for changes"
+      
+      - name: company_status
+        description: "Company status (active/inactive) - TRACKED for changes"
+      
+      - name: dbt_valid_from
+        description: "Timestamp when this version became active"
+      
+      - name: dbt_valid_to
+        description: "Timestamp when this version was superseded (NULL = current)"
+      
+      - name: dbt_scd_id
+        description: "Unique identifier for this snapshot record"
+        tests:
+          - unique
+          - not_null
+
   - name: snap_oracle_neshu__valo_parc_machines
     description: |
       Historique mensuel de la valorisation du parc machines NESHU.
