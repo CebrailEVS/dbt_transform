@@ -245,6 +245,12 @@ SELECT
   work_duration_min_raw,
   work_duration_min,
   pointage_missing_flag,
+    to_hex(md5(cast(coalesce(cast(company_id as string), '_dbt_utils_surrogate_key_null_') || '-' || coalesce(cast(start_date_day as string), '_dbt_utils_surrogate_key_null_') as string))) AS client_jour_key,
+
+  CASE
+    WHEN is_done = 1 THEN 1
+    ELSE 0
+  END AS passage_client_done,
   
   -- 📊 Nouveaux KPI taux de réalisation
   done_count_roadman_day,
@@ -258,6 +264,6 @@ SELECT
 
   -- Métadonnées dbt
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  'ddaec2b4-ed31-4184-9f8b-d35f085f4b63' as dbt_invocation_id
+  'aba307fb-74c9-4fcf-a3db-0207e92b8653' as dbt_invocation_id
 
 FROM passage_work_duration
