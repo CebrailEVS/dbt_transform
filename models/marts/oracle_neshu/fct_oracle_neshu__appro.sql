@@ -253,6 +253,15 @@ SELECT
   work_duration_min_raw,
   work_duration_min,
   pointage_missing_flag,
+    {{ dbt_utils.generate_surrogate_key([
+      'company_id',
+      'start_date_day'
+  ]) }} AS client_jour_key,
+
+  CASE
+    WHEN is_done = 1 THEN 1
+    ELSE 0
+  END AS passage_client_done,
   
   -- 📊 Nouveaux KPI taux de réalisation
   done_count_roadman_day,
