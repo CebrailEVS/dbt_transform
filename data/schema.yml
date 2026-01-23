@@ -352,3 +352,25 @@ seeds:
         description: "Tarif de l'intervention"
         tests:
           - not_null
+
+  - name: ref_nesp_tech__articles_prix
+    description: "Référentiel des articles techniques avec prix unitaires"
+    columns:
+      - name: article_ref_nomad
+        description: "Référence interne NOMAD de l'article"
+        tests:
+          - not_null
+          - unique
+
+      - name: article_desc
+        description: "Description de l'article"
+
+      - name: article_ref_cordon
+        description: "Référence CORDON associée à l'article"
+
+      - name: article_prix_unitaire
+        description: "Prix unitaire de l'article"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: " >= 0"
