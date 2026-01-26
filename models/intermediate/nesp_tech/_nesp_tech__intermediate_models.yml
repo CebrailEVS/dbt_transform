@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: int_nesp_tech__delais_interventions
+    description: >
+      Modèle intermediate calculant les délais ouvrés, heures ouvrées
+      et l éligibilité bonus des interventions techniques.
+
+    columns:
+      - name: n_planning
+        description: "Identifiant unique de l intervention"
+        tests:
+          - not_null
+
+      - name: type
+        description: "Type d intervention"
+
+      - name: code_machine
+        description: "Identifiant machine"
+
+      - name: delai_jours_debut
+        description: "Nombre de jours ouvrés jusqu au début"
+        tests:
+          - not_null
+
+      - name: delai_jours_fin
+        description: "Nombre de jours ouvrés jusqu à la fin"
+        tests:
+          - not_null
+
+      - name: delai_heures_debut
+        description: "Heures entre la pickup Date et le début de l'intervention"
+
+      - name: delai_heures_fin
+        description: "Heures entre la pickup Date et la fin de l'intervention"
+
+      - name: delai_traitement_jours
+        description: "Différence entre jours fin et jours début"
+
+      - name: type_delai_debut
+        description: "Classe SLA début (J+0 à J++) : Utile pour les primes "
+
+      - name: type_delai_fin
+        description: "Classe SLA fin (J+0 à J++) : Utile pour la facturation"
+
+      - name: delai_bonus_bool
+        description: "Indique si intervention éligible bonus"
+
+      - name: delai_bonus_valeur
+        description: "Montant du bonus calculé"
+
+
+  - name: int_nesp_tech__facturation_interventions
+    description: >
+      Modèle intermediate attribuant une clé de facturation aux interventions
+      en fonction du type, machine, zone montagne et règles métier.
+
+    columns:
+      - name: n_planning
+        description: "Identifiant unique de l’intervention"
+        tests:
+          - not_null
+
+      - name: type_inter_libelle
+        description: "Libellé métier du type d’intervention"
+
+      - name: key_factu
+        description: "Clé composite utilisée pour la facturation"
+
+      - name: prod_factu
+        description: "Produit de facturation associé"
+
+      - name: tarif_factu
+        description: "Tarif appliqué à l’intervention"
