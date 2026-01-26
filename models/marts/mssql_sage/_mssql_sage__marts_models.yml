@@ -20,17 +20,17 @@ models:
           - not_null
 
       - name: numero_plan_analytique
-        description: numero analytique(f_ecriturea)
+        description: Numéro analytique (f_ecriturea)
 
       - name: numero_ligne_analytique
-        description: Ligne du numero analytique
+        description: Ligne du numéro analytique
 
       - name: code_analytique
         description: Code de la section analytique (BU, projet, etc.)
 
       - name: code_analytique_bu
         description: Business Unit (BU) associée à la section analytique
-      
+
       - name: macro_categorie_pnl_bu
         description: Macro catégorie P&L associée au compte comptable
 
@@ -52,3 +52,74 @@ models:
 
       - name: is_missing_analytical
         description: Indique si l'écriture comptable n'a pas de ventilation analytique
+
+
+  - name: mssql_sage__pnl_bu_kpis
+    description: >
+      Table KPI P&L par Business Unit avec scénarios avec et sans provisions congés payés.
+      Inclut KPI mensuels, YTD, N-1, écarts, évolutions et pourcentages du chiffre d'affaires.
+
+    columns:
+      - name: scenario
+        description: >
+          Scénario financier appliqué aux données.
+          - AVEC_PROVISIONS_CP : inclut les provisions congés payés
+          - SANS_PROVISIONS_CP : exclut certains comptes généraux (ex. 645800, 641200)
+
+      - name: annee
+        description: Année comptable issue de la date de facturation
+        tests:
+          - not_null
+
+      - name: mois
+        description: Mois comptable (1–12)
+        tests:
+          - not_null
+
+      - name: bu
+        description: Business Unit analytique (ou BU_NON_RENSEIGNEE si absente)
+
+      - name: kpi
+        description: Type de KPI financier
+        tests:
+          - accepted_values:
+              values:
+                - CA
+                - CONSOMMATION_MP_SSTT
+                - MASSE_SALARIALE
+                - FRAIS_DIRECTS_AMORTISSEMENTS
+                - MARGE_BRUTE
+                - MARGE_NETTE
+
+      - name: valeur
+        description: Valeur mensuelle du KPI
+
+      - name: valeur_ytd
+        description: Valeur cumulée Year-To-Date du KPI
+
+      - name: valeur_n_1
+        description: Valeur du KPI pour la même période en année N-1
+
+      - name: valeur_ytd_n_1
+        description: Valeur cumulée YTD du KPI en année N-1
+
+      - name: pct_du_ca
+        description: Pourcentage du KPI par rapport au chiffre d'affaires du mois
+
+      - name: pct_du_ca_ytd
+        description: Pourcentage du KPI par rapport au chiffre d'affaires YTD
+
+      - name: pct_du_ca_n_1
+        description: Pourcentage du KPI par rapport au chiffre d'affaires N-1
+
+      - name: ecart_n_vs_n_1
+        description: Écart absolu entre l'année N et N-1 (mensuel)
+
+      - name: evolution_pct
+        description: Évolution en pourcentage entre N et N-1 (mensuel)
+
+      - name: ecart_n_vs_n_1_ytd
+        description: Écart absolu entre YTD N et YTD N-1
+
+      - name: evolution_pct_ytd
+        description: Évolution en pourcentage entre YTD N et YTD N-1
