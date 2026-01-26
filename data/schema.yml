@@ -239,3 +239,138 @@ seeds:
         description: "Nom du jour férié"
         tests:
           - not_null
+
+
+#### REFERENCE TECHNIQUE NESPRESSO (FACTURATION ET PRIMES)
+
+  - name: ref_nesp_tech__key_type_inter
+    description: "Table de référence des types d'intervention techniques"
+    columns:
+      - name: type_code
+        description: "Code du type d'intervention"
+        tests:
+          - not_null
+
+      - name: repair_code_1
+        description: "Code réparation (NULL = toutes valeurs)"
+
+      - name: failure_code
+        description: "Code panne (NULL = toutes valeurs)"
+
+      - name: mini_prev_bool
+        description: "Indique une mini préventive (TRUE/FALSE)"
+
+      - name: type_machine
+        description : "Categorie Machine"
+
+      - name: type_inter_libelle
+        description: "Libellé du type d'intervention"
+        tests:
+          - not_null
+
+
+  - name: ref_nesp_tech__machines_clean
+    description: "Table de normalisation des noms de machines"
+    columns:
+      - name: nom_machine
+        description: "Nom machine brut"
+        tests:
+          - not_null
+          - unique
+
+      - name: categorie_machine
+        description: "Catégorie de machine"
+
+      - name: machine_clean
+        description: "Nom machine standardisé"
+        tests:
+          - not_null
+
+
+  - name: ref_nesp_tech__dpts_montagne_factu
+    description: "Départements considérés comme zone montagne pour la facturation"
+    columns:
+      - name: dpt
+        description: "Code département"
+        tests:
+          - not_null
+          - unique
+
+      - name: montagne
+        description: "Indicateur zone montagne (1 = oui, 0 = non)"
+        tests:
+          - not_null
+
+
+  - name: ref_nesp_tech__cps_montagne_primes
+    description: "Codes postaux considérés comme zone montagne pour le calcul des primes"
+    columns:
+      - name: cp
+        description: "Code postal"
+        tests:
+          - not_null
+          - unique
+
+      - name: montagne
+        description: "Indicateur zone montagne (1 = oui, 0 = non)"
+        tests:
+          - not_null
+
+  - name: ref_nesp_tech__key_facturation
+    description: "Clé de facturation des interventions techniques"
+    columns:
+      - name: type_code
+        description: "Code intervention"
+
+      - name: type_inter
+        description: "Type d'intervention (Curative / Préventive)"
+
+      - name: machine_clean
+        description: "Machine normalisée"
+        tests:
+          - not_null
+
+      - name: montagne_factu
+        description: "Suffixe potentiel selon montagne"
+
+      - name: key_ref_inter
+        description: "Clé de facturation lisible"
+        tests:
+          - not_null
+
+      - name: key_factu
+        description: "Clé de facturation lisible"
+        tests:
+          - not_null
+
+      - name: prod_factu
+        description: "Prod associee a l'intervention"
+        tests:
+          - not_null
+
+      - name: tarif_factu
+        description: "Tarif de l'intervention"
+        tests:
+          - not_null
+
+  - name: ref_nesp_tech__articles_prix
+    description: "Référentiel des articles techniques avec prix unitaires"
+    columns:
+      - name: article_ref_nomad
+        description: "Référence interne NOMAD de l'article"
+        tests:
+          - not_null
+          - unique
+
+      - name: article_desc
+        description: "Description de l'article"
+
+      - name: article_ref_cordon
+        description: "Référence CORDON associée à l'article"
+
+      - name: article_prix_unitaire
+        description: "Prix unitaire de l'article"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: " >= 0"
