@@ -1,5 +1,6 @@
 {{ config(
-    materialized = 'table'
+    materialized = 'table',
+    description='Table avec aggregation par mois et année des différents KPIs (MS, CA, Charges, Marge Nette, MArge Brute...) utiles aux analyses P&L par BU - Table générée pour le BI P&L par BU'
 ) }}
 
 WITH scenarios AS (
