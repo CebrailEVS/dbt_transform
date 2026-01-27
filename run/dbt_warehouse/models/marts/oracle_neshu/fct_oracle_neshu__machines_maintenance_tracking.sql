@@ -317,7 +317,7 @@ final AS (
 
         -- Métadonnées dbt
         CURRENT_TIMESTAMP() as dbt_updated_at,
-        '8b0bba62-b8b3-4d22-b0a1-c2a7d49ccb48' as dbt_invocation_id
+        '4dd8bc2c-9f58-445f-b343-a24fd56a9eab' as dbt_invocation_id
 
     FROM deduplicated
     WHERE rn = 1  -- Ne garder qu'une ligne par device_id

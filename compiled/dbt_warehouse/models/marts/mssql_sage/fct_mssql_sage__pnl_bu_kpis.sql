@@ -154,8 +154,11 @@ SELECT
 
   -- KPI YTD
   l.valeur_ytd - l.valeur_ytd_n_1 AS ecart_n_vs_n_1_ytd,
-  SAFE_DIVIDE(l.valeur_ytd - l.valeur_ytd_n_1, l.valeur_ytd_n_1) AS evolution_pct_ytd
+  SAFE_DIVIDE(l.valeur_ytd - l.valeur_ytd_n_1, l.valeur_ytd_n_1) AS evolution_pct_ytd,
 
+  -- Métadonnées dbt
+  CURRENT_TIMESTAMP() as dbt_updated_at,
+  'b1b764c4-daf6-4fd1-afca-a4e0fa2179c1' as dbt_invocation_id
 FROM kpi_long l
 LEFT JOIN kpi_long ca
   ON  l.scenario = ca.scenario
