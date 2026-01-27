@@ -278,7 +278,7 @@ SELECT
 
   -- Métadonnées dbt
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  '89bebb8e-b322-4409-ab6c-2053fd1c2a64' as dbt_invocation_id
+  '8b0bba62-b8b3-4d22-b0a1-c2a7d49ccb48' as dbt_invocation_id
 
 FROM passage_work_duration
     );

@@ -34,7 +34,7 @@ SELECT
 
     -- Métadonnées dbt
     CURRENT_TIMESTAMP() as dbt_updated_at,
-    '89bebb8e-b322-4409-ab6c-2053fd1c2a64' as dbt_invocation_id
+    '8b0bba62-b8b3-4d22-b0a1-c2a7d49ccb48' as dbt_invocation_id
 
 FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_tasks` pa
 JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` d 
