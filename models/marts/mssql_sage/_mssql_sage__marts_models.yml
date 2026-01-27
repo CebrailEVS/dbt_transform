@@ -54,7 +54,7 @@ models:
         description: Indique si l'écriture comptable n'a pas de ventilation analytique
 
 
-  - name: mssql_sage__pnl_bu_kpis
+  - name: fct_mssql_sage__pnl_bu_kpis
     description: >
       Table KPI P&L par Business Unit avec scénarios avec et sans provisions congés payés.
       Inclut KPI mensuels, YTD, N-1, écarts, évolutions et pourcentages du chiffre d'affaires.
