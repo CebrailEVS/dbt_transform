@@ -40,8 +40,7 @@ WITH inter AS (
        AND art.code_article = 'miniprev'
 
     -- Filtrage temporel et métier
-    WHERE date_heure_fin BETWEEN '2025-12-01 00:00:01' AND '2025-12-31 23:59:59'
-      AND etat_intervention IN ('terminée signée','signature différée')
+    WHERE etat_intervention IN ('terminée signée','signature différée')
 ),
 
 machines_clean AS (
