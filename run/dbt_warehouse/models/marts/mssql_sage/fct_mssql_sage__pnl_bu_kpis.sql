@@ -2,7 +2,7 @@
   
     
 
-    create or replace table `evs-datastack-prod`.`prod_marts`.`mssql_sage__pnl_bu_kpis`
+    create or replace table `evs-datastack-prod`.`prod_marts`.`fct_mssql_sage__pnl_bu_kpis`
       
     
     

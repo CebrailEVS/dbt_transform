@@ -8,7 +8,7 @@ with all_values as (
         kpi as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_marts`.`mssql_sage__pnl_bu_kpis`
+    from `evs-datastack-prod`.`prod_marts`.`fct_mssql_sage__pnl_bu_kpis`
     group by kpi
 
 )
