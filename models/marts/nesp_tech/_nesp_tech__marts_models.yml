@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: fct_nesp_tech__pieces_detachees_pricing
+    description: >
+      Ce modèle combine les interventions terminées/signées issues des agences EVS 
+      avec les consommations d’articles techniques et leurs tarifs. 
+      Il permet de suivre les ventes d’articles par technicien, par jour et par intervention.
+
+    columns:
+      - name: n_planning
+        description: Identifiant unique de la planification de l’intervention.
+        tests:
+          - not_null
+
+      - name: date_fin
+        description: Date de fin de l'intervention
+        tests:
+          - not_null
+
+      - name: n_tech
+        description: Identifiant du technicien ayant réalisé l’intervention.
+        tests:
+          - not_null
+
+      - name: nom_tech
+        description: Nom du technicien.
+
+      - name: prenom_tech
+        description: Prénom du technicien.
+
+      - name: piece_ref_nomad
+        description: Référence de l’article tel que défini dans la base tarifaire Nomad.
+
+      - name: piece_desc
+        description: Description textuelle de l’article.
+
+      - name: piece_prix_unitaire
+        description: Prix unitaire de l’article selon la table de référence.
+
+      - name: piece_quantite
+        description: Nombre d’unités de l’article consommé sur l’intervention.
+
+      - name: montant_total
+        description: Montant total calculé pour cet article sur l’intervention (quantité × prix unitaire).
