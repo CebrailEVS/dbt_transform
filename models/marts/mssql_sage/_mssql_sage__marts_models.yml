@@ -65,6 +65,8 @@ models:
           Scénario financier appliqué aux données.
           - AVEC_PROVISIONS_CP : inclut les provisions congés payés
           - SANS_PROVISIONS_CP : exclut certains comptes généraux (ex. 645800, 641200)
+        tests:
+          - not_null
 
       - name: annee
         description: Année comptable issue de la date de facturation
@@ -78,6 +80,8 @@ models:
 
       - name: bu
         description: Business Unit analytique (ou BU_NON_RENSEIGNEE si absente)
+        tests:
+          - not_null
 
       - name: kpi
         description: Type de KPI financier

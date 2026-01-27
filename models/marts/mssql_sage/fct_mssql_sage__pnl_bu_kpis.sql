@@ -1,6 +1,6 @@
 {{ config(
     materialized = 'table',
-    description='Table avec aggregation par mois et année des différents KPIs (MS, CA, Charges, Marge Nette, MArge Brute...) utiles aux analyses P&L par BU - Table générée pour le BI P&L par BU'
+    description='Table avec aggregation par mois et année des différents KPIs (MS, CA, Charges, Marge Nette, Marge Brute...) utiles aux analyses P&L par BU - Table générée pour le BI P&L par BU'
 ) }}
 
 WITH scenarios AS (
@@ -156,8 +156,11 @@ SELECT
 
   -- ✅ NOUVEAUX KPI YTD
   l.valeur_ytd - l.valeur_ytd_n_1 AS ecart_n_vs_n_1_ytd,
-  SAFE_DIVIDE(l.valeur_ytd - l.valeur_ytd_n_1, l.valeur_ytd_n_1) AS evolution_pct_ytd
+  SAFE_DIVIDE(l.valeur_ytd - l.valeur_ytd_n_1, l.valeur_ytd_n_1) AS evolution_pct_ytd,
 
+  -- Métadonnées dbt
+  CURRENT_TIMESTAMP() as dbt_updated_at,
+  '{{ invocation_id }}' as dbt_invocation_id
 FROM kpi_long l
 LEFT JOIN kpi_long ca
   ON  l.scenario = ca.scenario

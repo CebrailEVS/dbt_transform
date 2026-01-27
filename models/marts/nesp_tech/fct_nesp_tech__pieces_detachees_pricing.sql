@@ -54,5 +54,8 @@ piece_desc,
 piece_prix_unitaire,
 piece_quantite,
 -- Montant a facturer
-montant_total
+montant_total,
+-- Métadonnées dbt
+CURRENT_TIMESTAMP() as dbt_updated_at,
+'{{ invocation_id }}' as dbt_invocation_id
 FROM final
