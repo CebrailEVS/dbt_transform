@@ -112,6 +112,9 @@ models:
       - name: pct_du_ca_n_1
         description: Pourcentage du KPI par rapport au chiffre d'affaires N-1
 
+      - name: pct_du_ca_n_1_ytd
+        description : Pourcentage du KPI par rapport au chiffre d'affaires N-1 YTD
+
       - name: ecart_n_vs_n_1
         description: Écart absolu entre l'année N et N-1 (mensuel)
 
