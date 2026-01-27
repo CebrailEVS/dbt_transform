@@ -160,12 +160,13 @@ SELECT
   SAFE_DIVIDE(l.valeur, ca.valeur) AS pct_du_ca,
   SAFE_DIVIDE(l.valeur_ytd, ca.valeur_ytd) AS pct_du_ca_ytd,
   SAFE_DIVIDE(l.valeur_n_1, ca.valeur_n_1) AS pct_du_ca_n_1,
+  SAFE_DIVIDE(l.valeur_ytd_n_1, ca.valeur_ytd_n_1) AS pct_du_ca_n_1_ytd,
 
   -- Écarts mensuels
   l.valeur - l.valeur_n_1 AS ecart_n_vs_n_1,
   SAFE_DIVIDE(l.valeur - l.valeur_n_1, l.valeur_n_1) AS evolution_pct,
 
-  -- ✅ NOUVEAUX KPI YTD
+  -- KPI YTD
   l.valeur_ytd - l.valeur_ytd_n_1 AS ecart_n_vs_n_1_ytd,
   SAFE_DIVIDE(l.valeur_ytd - l.valeur_ytd_n_1, l.valeur_ytd_n_1) AS evolution_pct_ytd
 
