@@ -171,9 +171,5 @@ SELECT
 
   created_at,
   updated_at,
-
-  -- Métadonnées dbt
-  CURRENT_TIMESTAMP() as dbt_updated_at,
-  'b1b764c4-daf6-4fd1-afca-a4e0fa2179c1' as dbt_invocation_id
   
 FROM updated_2024  -- ⚠️ Changé de mapped_with_fallback à updated_2024

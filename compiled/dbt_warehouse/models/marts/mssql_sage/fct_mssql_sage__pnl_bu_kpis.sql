@@ -15,7 +15,7 @@ base AS (
     f.macro_categorie_pnl_bu,
     f.numero_compte_general,
     f.montant_analytique_signe
-  FROM `evs-datastack-prod`.`prod_marts`.`fct_mssql_sage__pnl_bu` f
+  FROM `evs-datastack-prod`.`prod_intermediate`.`int_mssql_sage__pnl_bu` f
   CROSS JOIN scenarios s
   WHERE f.is_missing_analytical = FALSE
     AND EXTRACT(YEAR FROM f.date_facturation) >= 2023
@@ -158,7 +158,7 @@ SELECT
 
   -- Métadonnées dbt
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  'b1b764c4-daf6-4fd1-afca-a4e0fa2179c1' as dbt_invocation_id
+  '37e50fef-e37b-4a57-90b5-d709aef978e0' as dbt_invocation_id
 FROM kpi_long l
 LEFT JOIN kpi_long ca
   ON  l.scenario = ca.scenario

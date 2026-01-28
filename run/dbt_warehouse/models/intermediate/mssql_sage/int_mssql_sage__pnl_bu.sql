@@ -2,14 +2,14 @@
   
     
 
-    create or replace table `evs-datastack-prod`.`prod_marts`.`fct_mssql_sage__pnl_bu`
+    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_mssql_sage__pnl_bu`
       
     partition by timestamp_trunc(date_facturation, day)
     
 
     
     OPTIONS(
-      description="""Table de faits combinant \u00e9critures comptables et analytiques issues de SAGE pour la construction du P&L par Business Unit.\n"""
+      description=""""""
     )
     as (
       
@@ -185,10 +185,6 @@ SELECT
 
   created_at,
   updated_at,
-
-  -- Métadonnées dbt
-  CURRENT_TIMESTAMP() as dbt_updated_at,
-  '4dd8bc2c-9f58-445f-b343-a24fd56a9eab' as dbt_invocation_id
   
 FROM updated_2024  -- ⚠️ Changé de mapped_with_fallback à updated_2024
     );
