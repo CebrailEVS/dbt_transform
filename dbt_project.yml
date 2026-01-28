@@ -95,6 +95,9 @@ models:
       mssql_sage:
         +tags: ['marts', 'mssql_sage']
 
+      nesp_tech:  
+        +tags: ['marts', 'nesp_tech']
+
       gac:
         +tags: ['marts', 'gac']
 
