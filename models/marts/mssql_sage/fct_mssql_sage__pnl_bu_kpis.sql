@@ -18,7 +18,7 @@ base AS (
     f.macro_categorie_pnl_bu,
     f.numero_compte_general,
     f.montant_analytique_signe
-  FROM {{ ref('fct_mssql_sage__pnl_bu') }} f
+  FROM {{ ref('int_mssql_sage__pnl_bu') }} f
   CROSS JOIN scenarios s
   WHERE f.is_missing_analytical = FALSE
     AND EXTRACT(YEAR FROM f.date_facturation) >= 2023

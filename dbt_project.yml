@@ -72,6 +72,9 @@ models:
 
       mssql_sage:
         +tags: ['intermediate', 'mssql_sage']
+      
+      nesp_tech:
+        +tags: ['intermediate', 'nesp_tech']
 
     marts:
       +schema: marts

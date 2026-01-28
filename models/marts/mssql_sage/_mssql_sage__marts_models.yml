@@ -87,13 +87,14 @@ models:
         description: Type de KPI financier
         tests:
           - accepted_values:
-              values:
-                - CA
-                - CONSOMMATION_MP_SSTT
-                - MASSE_SALARIALE
-                - FRAIS_DIRECTS_AMORTISSEMENTS
-                - MARGE_BRUTE
-                - MARGE_NETTE
+              arguments:
+                values:
+                  - CA
+                  - CONSOMMATION_MP_SSTT
+                  - MASSE_SALARIALE
+                  - FRAIS_DIRECTS_AMORTISSEMENTS
+                  - MARGE_BRUTE
+                  - MARGE_NETTE
 
       - name: valeur
         description: Valeur mensuelle du KPI
