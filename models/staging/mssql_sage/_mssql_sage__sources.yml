@@ -5,11 +5,13 @@ sources:
   - name: mssql_sage
     description: "Source des données issues de Sage (MSSQL) — données brutes extraites vers BigQuery"
     schema: prod_raw
-    tags: ['mssql_sage', 'source']
+    config:
+      tags: ['mssql_sage', 'source']  # Déplacé dans config
     tables:
       - name: dbo_f_ecriturea
         description: "Table des écritures analytiques (f_ecriturea) — détail des montants et quantités analytiques par écriture comptable"
-        loaded_at_field: _sdc_received_at
+        config:  # ✅ Ajoutez cette section
+          loaded_at_field: _sdc_received_at
 
         columns:
           - name: ec_no
@@ -60,15 +62,17 @@ sources:
 
         tests:
           - dbt_utils.unique_combination_of_columns:
-              combination_of_columns:
-                - ec_no
-                - n_analytique
-                - ea_ligne
+              arguments:
+                combination_of_columns:
+                  - ec_no
+                  - n_analytique
+                  - ea_ligne
 
       # TABLE ECRITURE COMPTABLE
       - name: dbo_f_ecriturec
         description: "Table des écritures comptables (f_ecriturec) — enregistre les mouvements comptables avec leurs montants, comptes, dates et statuts"
-        loaded_at_field: _sdc_received_at
+        config:
+          loaded_at_field: _sdc_received_at
 
         columns:
           - name: ec_no

@@ -6,10 +6,11 @@ models:
     description: "Activite transformés et nettoyés depuis la source Nespresso Commerce Activite"
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - activity_id
-            - employee_responsible
-            - activity_type
+          arguments:
+            combination_of_columns:
+              - activity_id
+              - employee_responsible
+              - activity_type
     columns:
       - name: employee_responsible
         description: "Identifiant de l'employé responsable"
@@ -73,10 +74,11 @@ models:
     description: "Opportunités transformés et nettoyés depuis la source Nespresso Commerce Opportunite"
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - opportunity_id
-            - employee_responsible
-            - created_by
+          arguments:
+            combination_of_columns:
+              - opportunity_id
+              - employee_responsible
+              - created_by
     columns:
       - name: opportunity_id
         description: "Identifiant de l'opportunité commerciale"

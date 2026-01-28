@@ -86,11 +86,11 @@ snapshots:
       - Analyser les variations de valorisation mois par mois
       - Identifier les tendances d'équipement par groupe de machines
       - Comparer les performances entre périodes
-    
-    meta:
-      owner: "Votre équipe data"
-      contains_pii: false
-      refresh_frequency: "daily run, monthly capture"
+    config:
+      meta:
+        owner: "Votre équipe data"
+        contains_pii: false
+        refresh_frequency: "daily run, monthly capture"
     
     columns:
       - name: snapshot_month
@@ -123,7 +123,8 @@ snapshots:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
+              arguments:
+                min_value: 0
       
       - name: valorisation_totale_machine
         description: |
@@ -138,7 +139,8 @@ snapshots:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
+              arguments:
+                min_value: 0
       
       - name: dbt_valid_from
         description: |
@@ -158,10 +160,11 @@ snapshots:
 
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - snapshot_month
-            - device_name
-            - device_group
+          arguments:
+            combination_of_columns:
+              - snapshot_month
+              - device_name
+              - device_group
           where: "dbt_valid_to IS NULL"
           severity: error
           error_if: ">0"

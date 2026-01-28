@@ -13,7 +13,8 @@ models:
 
       - name: date_sinistre
         description: "Date de survenue du sinistre (extraite du timestamp)"
-        test : not_null
+        tests:
+          - not_null
 
       - name: date_de_creation
         description: "Date de création du sinistre"

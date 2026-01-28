@@ -5,7 +5,8 @@ sources:
   - name: nesp_co
     schema: "prod_raw"
     description: "Données brutes extraites des fichiers excel Activité et Opportunités Nespresso depuis le FTP nespresso commerce"  
-    tags: ['nesp_co', 'source']
+    config:
+      tags: ['nesp_co', 'source']
     tables:
       - name: nespresso_commerce_activite
         description: "Table des activites commerciales Nespresso"  

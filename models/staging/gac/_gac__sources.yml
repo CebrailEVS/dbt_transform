@@ -4,7 +4,8 @@ sources:
   - name: gac
     schema: "prod_raw"
     description: "Données brutes extraites du fichier suivi des sinistres envoyé par GAC vers le FTP SG"
-    tags: ['gac', 'source']
+    config:
+      tags: ['gac', 'source']
     tables:
       - name: gac_suivi_sinistres_sg
         description: "Table des sinistres des véhicules extraite depuis GAC vers SFTP EVS"

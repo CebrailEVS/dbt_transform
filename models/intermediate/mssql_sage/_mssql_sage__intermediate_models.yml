@@ -8,10 +8,11 @@ models:
 
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - numero_ecriture_comptable
-            - numero_plan_analytique
-            - numero_ligne_analytique
+          arguments:
+            combination_of_columns:
+              - numero_ecriture_comptable
+              - numero_plan_analytique
+              - numero_ligne_analytique
 
     columns:
       - name: numero_ecriture_comptable

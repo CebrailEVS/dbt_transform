@@ -8,13 +8,15 @@ models:
       de la source `nespresso_technique_interventions` (API Nomad Repair).
       Convertit les identifiants en entiers, harmonise les dates au format TIMESTAMP
       et nettoie les libellés et champs texte.
-    tags: ['nesp_tech', 'staging']
+    config:
+      tags: ['nesp_tech', 'staging']
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - n_planning
-            - etat_intervention
-            - date_heure_fin
+          arguments:
+            combination_of_columns:
+              - n_planning
+              - etat_intervention
+              - date_heure_fin
     columns:
       - name: n_planning
         description: "Identifiant unique d'intervention"
@@ -82,13 +84,15 @@ models:
       Modèle de staging nettoyant les données des articles consommés lors des
       interventions Nespresso issues de la table `nespresso_technique_articles`.
       Convertit les identifiants en entiers, harmonise les dates, et cast la quantité en float.
-    tags: ['nesp_tech', 'staging']
+    config:
+      tags: ['nesp_tech', 'staging']
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - n_planning
-            - code_article
-            - date_intervention
+          arguments:
+            combination_of_columns:
+              - n_planning
+              - code_article
+              - date_intervention
     columns:
       - name: n_planning
         description: "Identifiant de l'intervention associée"

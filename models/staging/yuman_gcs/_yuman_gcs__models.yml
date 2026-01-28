@@ -6,9 +6,10 @@ models:
 
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - export_date
-            - _sdc_source_lineno
+          arguments:
+            combination_of_columns:
+              - export_date
+              - _sdc_source_lineno
 
     columns:
       - name: reference

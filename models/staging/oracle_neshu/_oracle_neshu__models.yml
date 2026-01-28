@@ -17,8 +17,9 @@ models:
         description: "Link to COMPANY_TYPE"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__company_type')
-              field: idcompany_type
+              arguments:
+                to: ref('stg_oracle_neshu__company_type')
+                field: idcompany_type
       - name: created_at
         description: "Date creation de la ligne"
       - name: updated_at
@@ -37,15 +38,17 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__location')
-              field: idlocation
+              arguments:
+                to: ref('stg_oracle_neshu__location')
+                field: idlocation
       - name: idcompany
         description: "Identifiant de l'entreprise"
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
       - name: idlocation_type
         description: "Type de localisation (ex: siège, agence)"
         tests:
@@ -75,8 +78,9 @@ models:
         description: "Link to IDCOMPANY"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
 
   # CONTRACT
   - name: stg_oracle_neshu__contract
@@ -91,8 +95,9 @@ models:
         description: "Link to IDCOMPANY for peer"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
       - name: idcontract_type
         description: "ATTENTION : link to LABEL from label_family.code = CONTRACT_TYPE" 
       - name: code
@@ -127,26 +132,30 @@ models:
         description: "Link to LOCATION"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__location')
-              field: idlocation
+              arguments:
+                to: ref('stg_oracle_neshu__location')
+                field: idlocation
       - name: idcompany_customer
         description: "Link to IDCOMPANY for customer"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
       - name: idcompany_supplier
         description: "Link to IDCOMPANY for supplier"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
       - name: idcompany_owner
         description: "Link to IDCOMPANY for owner"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
       - name: code
         description: "Code device (Numéro de serie AS/MA)"
       - name: name
@@ -184,15 +193,17 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__label')
-              field: idlabel
+              arguments:
+                to: ref('stg_oracle_neshu__label')
+                field: idlabel
       - name: idcompany
         description: "Identifiant de l'entreprise"
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
 
   - name: stg_oracle_neshu__label_has_contract
     description: "Association entre les labels et les contrats"
@@ -202,15 +213,17 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__label')
-              field: idlabel
+              arguments:
+                to: ref('stg_oracle_neshu__label')
+                field: idlabel
       - name: idcontract
         description: "Identifiant du contract"
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__contract')
-              field: idcontract
+              arguments:
+                to: ref('stg_oracle_neshu__contract')
+                field: idcontract
 
   - name: stg_oracle_neshu__label_has_device
     description: "Association entre les labels et les devices"
@@ -220,15 +233,17 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__label')
-              field: idlabel
+              arguments:
+                to: ref('stg_oracle_neshu__label')
+                field: idlabel
       - name: iddevice
         description: "Identifiant du device"
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__device')
-              field: iddevice
+              arguments:
+                to: ref('stg_oracle_neshu__device')
+                field: iddevice
 
   - name: stg_oracle_neshu__label_has_product
     description: "Association entre les labels et les produits"
@@ -238,16 +253,18 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__label')
-              field: idlabel
+              arguments:
+                to: ref('stg_oracle_neshu__label')
+                field: idlabel
 
       - name: idproduct
         description: "Identifiant du produit"
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__product')
-              field: idproduct
+              arguments:
+                to: ref('stg_oracle_neshu__product')
+                field: idproduct
 
   - name: stg_oracle_neshu__label_has_resources
     description: "Association entre les labels et les ressources"
@@ -256,15 +273,17 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__label')
-              field: idlabel
+              arguments:
+                to: ref('stg_oracle_neshu__label')
+                field: idlabel
         description: "Identifiant du label"
       - name: idresources
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__resources')
-              field: idresources
+              arguments:
+                to: ref('stg_oracle_neshu__resources')
+                field: idresources
         description: "Identifiant du resources"
 
   - name: stg_oracle_neshu__label_has_task
@@ -272,14 +291,18 @@ models:
       - name: idlabel
         tests:
           - not_null
-        relationships:
-          to: ref('stg_oracle_neshu__label')
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__label')
+                field: idlabel
         description: "Identifiant du label"
       - name: idtask
         tests:
           - not_null
-        relationships:
-          to: ref('stg_oracle_neshu__task')
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__task')
+                field: idtask
         description: "Identifiant du task"
 
 
@@ -308,8 +331,9 @@ models:
         description: "Link to PRODUCT_TYPE"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__product_type')
-              field: idproduct_type
+              arguments:
+                to: ref('stg_oracle_neshu__product_type')
+                field: idproduct_type
       - name: code
         description: "Code produit"
       - name: name
@@ -341,22 +365,25 @@ models:
         description: "Link to COMPANY"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
       - name: idlocation
         description: "Link to LOCATION"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__location')
-              field: idlocation
+              arguments:
+                to: ref('stg_oracle_neshu__location')
+                field: idlocation
       - name: RESOURCES_IDRESOURCES
         description: "Link to RESOURCES peer"
       - name: idresources_type
         description: "Link to RESOURCES_TYPE"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__resources_type')
-              field: idresources_type
+              arguments:
+                to: ref('stg_oracle_neshu__resources_type')
+                field: idresources_type
       - name: code
         description: "Code resource"
       - name: name
@@ -386,38 +413,44 @@ models:
         description: "Référence vers l'entreprise propriétaire"
         tests:  
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
       - name: idtask_type
         description: "link to TASK_TYPE"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__task_type')
-              field: idtask_type
+              arguments:
+                to: ref('stg_oracle_neshu__task_type')
+                field: idtask_type
       - name: idtask_status
         description: "link to TASK_STATUS"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__task_status')
-              field: idtask_status
+              arguments:
+                to: ref('stg_oracle_neshu__task_status')
+                field: idtask_status
       - name: iddevice
         description: "Link to DEVICE"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__device')
-              field: iddevice
+              arguments:
+                to: ref('stg_oracle_neshu__device')
+                field: iddevice
       - name: idcontact
         description: "Link to CONTACT"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__contact')
-              field: idcontact
+              arguments:
+                to: ref('stg_oracle_neshu__contact')
+                field: idcontact
       - name: idlocation
         description: "Link to LOCATION"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__location')
-              field: idlocation
+              arguments:
+                to: ref('stg_oracle_neshu__location')
+                field: idlocation
       - name: IDPRODUCT_SOURCE
         description: "ID de la source (IDDEVICE/IDCOMPANY etc)"
       - name: IDPRODUCT_DESTINATION
@@ -445,20 +478,23 @@ models:
         description: "link to task"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__task')
-              field: idtask
+              arguments:
+                to: ref('stg_oracle_neshu__task')
+                field: idtask
       - name: idproduct
         description: "ID du produit"
         tests:
           - relationships:
-              to: ref('stg_oracle_neshu__product')
-              field: idproduct
+              arguments:
+                to: ref('stg_oracle_neshu__product')
+                field: idproduct
       - name: idcompany_peer
         description: "Référence vers l'entreprise propriétaire"
         tests:  
           - relationships:
-              to: ref('stg_oracle_neshu__company')
-              field: idcompany
+              arguments:
+                to: ref('stg_oracle_neshu__company')
+                field: idcompany
       - name: IDPRODUCT_SOURCE
         description: "ID de la source (IDDEVICE/IDCOMPANY etc)"
       - name: IDPRODUCT_DESTINATION
@@ -483,15 +519,17 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__task')
-              field: idtask
+              arguments:
+                to: ref('stg_oracle_neshu__task')
+                field: idtask
         description: "Identifiant de la tâche"
       - name: idresources
         tests:
           - not_null
           - relationships:
-              to: ref('stg_oracle_neshu__resources')
-              field: idresources
+              arguments:
+                to: ref('stg_oracle_neshu__resources')
+                field: idresources
         description: "Identifiant de la resources"
 
   - name: stg_oracle_neshu__task_status
@@ -513,6 +551,3 @@ models:
           - unique 
           - not_null
         description: "Identifiant unique du type de tâche"
-
-
-

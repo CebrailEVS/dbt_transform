@@ -172,8 +172,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_oracle_neshu__company')
-              field: company_id
+              arguments:
+                to: ref('dim_oracle_neshu__company')
+                field: company_id
 
       - name: location_id
         description: "Identifiant de localisation"
@@ -231,15 +232,17 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_oracle_neshu__company')
-              field: company_id
+              arguments:
+                to: ref('dim_oracle_neshu__company')
+                field: company_id
 
       - name: device_id
         description: "Identifiant de la machine (NULL pour les livraisons directes)"
         tests:
           - relationships:
-              to: ref('dim_oracle_neshu__device')
-              field: device_id
+              arguments:
+                to: ref('dim_oracle_neshu__device')
+                field: device_id
 
       - name: location_id
         description: "Identifiant de localisation (NULL pour les livraisons)"
@@ -249,8 +252,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_oracle_neshu__product')
-              field: product_id
+              arguments:
+                to: ref('dim_oracle_neshu__product')
+                field: product_id
 
       # === COMPANY ===
       - name: company_code
@@ -300,16 +304,17 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: 
-                - 'THE'
-                - 'CAFE CAPS'
-                - 'CHOCOLATS VAN HOUTEN'
-                - 'BOISSONS GOURMANDES'
-                - 'ACCESSOIRES'
-                - 'CAFENOIR'
-                - 'INDEFINI'
-                - 'SNACKING'
-                - 'BOISSONS FRAICHES'
+              arguments:
+                values: 
+                  - 'THE'
+                  - 'CAFE CAPS'
+                  - 'CHOCOLATS VAN HOUTEN'
+                  - 'BOISSONS GOURMANDES'
+                  - 'ACCESSOIRES'
+                  - 'CAFENOIR'
+                  - 'INDEFINI'
+                  - 'SNACKING'
+                  - 'BOISSONS FRAICHES'
 
       # === CONTEXTE ===
       - name: consumption_date
@@ -317,15 +322,17 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: "'2020-01-01'"
-              max_value: "current_date()"
+              arguments:
+                min_value: "'2020-01-01'"
+                max_value: "current_date()"
 
       - name: data_source
         description: "Source des données de consommation"
         tests:
           - not_null
           - accepted_values:
-              values: ['TELEMETRIE', 'CHARGEMENT', 'LIVRAISON']
+              arguments:
+                values: ['TELEMETRIE', 'CHARGEMENT', 'LIVRAISON']
 
       # === MESURES ===
       - name: quantity
@@ -350,19 +357,21 @@ models:
     tests:
       # Test d'unicité sur la combinaison clé
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - company_id
-            - device_id
-            - product_id
-            - location_id
-            - location
-            - consumption_date
-            - data_source
+          arguments:
+            combination_of_columns:
+              - company_id
+              - device_id
+              - product_id
+              - location_id
+              - location
+              - consumption_date
+              - data_source
           name: unique_consumption_record
 
       # Test de cohérence : pas de device_id NULL sauf pour LIVRAISON
       - dbt_utils.expression_is_true:
-          expression: "(device_id IS NOT NULL) OR (data_source = 'LIVRAISON')"
+          arguments:
+            expression: "(device_id IS NOT NULL) OR (data_source = 'LIVRAISON')"
           name: device_id_required_except_livraison
 
 # FACT PASSAGES APPRO BUSINESS REVIEW
@@ -395,8 +404,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_oracle_neshu__device')
-              field: device_id
+              arguments:  # ✅ Ajoutez cette ligne
+                to: ref('dim_oracle_neshu__device')
+                field: device_id
 
       - name: device_info
         description: "Concaténation de la marque et du code machine"
@@ -507,8 +517,9 @@ models:
     
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - company_id
+          arguments:
+            combination_of_columns:
+              - company_id
           config:
             severity: warn
             error_if: ">1"
@@ -614,7 +625,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['yuman', 'dlog', 'aucune']
+              arguments:
+                values: ['yuman', 'dlog', 'aucune']
 
       - name: status_inter
         description: |
@@ -625,7 +637,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Ouvert', 'Planifie', 'Aucune']
+              arguments:
+                values: ['Ouvert', 'Planifie', 'Aucune']
 
       - name: date_planned
         description: Date planifiée de l'intervention préventive (si status_inter = 'Planifie')

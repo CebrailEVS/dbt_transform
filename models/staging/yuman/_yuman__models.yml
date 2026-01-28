@@ -32,8 +32,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_yuman__clients')
-              field: client_id
+              arguments:
+                to: ref('stg_yuman__clients')
+                field: client_id
 
   - name: stg_yuman__materials
     description: "Matériaux transformés et nettoyés depuis l'API Yuman"
@@ -48,14 +49,16 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_yuman__sites')
-              field: site_id
+              arguments:
+                to: ref('stg_yuman__sites')
+                field: site_id
       - name: category_id
         description: "Référence vers la catégorie du matériau"
         tests:
           - relationships:
-              to: ref('stg_yuman__materials_categories')
-              field: category_id
+              arguments:
+                to: ref('stg_yuman__materials_categories')
+                field: category_id
 
   - name: stg_yuman__products
     description: "Produits transformés et nettoyés depuis l'API Yuman"
@@ -96,34 +99,39 @@ models:
         description: "Référence vers le client propriétaire"
         tests:
           - relationships:
-              to: ref('stg_yuman__clients')
-              field: client_id
+              arguments:
+                to: ref('stg_yuman__clients')
+                field: client_id
       - name: workorder_id
         description: "Référence vers l'intervention"
       - name: site_id
         description: "Référence vers le site propriétaire"
         tests:
           - relationships:
-              to: ref('stg_yuman__sites')
-              field: site_id
+              arguments:
+                to: ref('stg_yuman__sites')
+                field: site_id
       - name: material_id
         description: "Référence vers la machine propriétaire"
         tests:
           - relationships:
-              to: ref('stg_yuman__materials')
-              field: material_id
+              arguments:
+                to: ref('stg_yuman__materials')
+                field: material_id
       - name: user_id
         description: "Référence vers l'utilisateur qui a créé la demande"
         tests:
           - relationships:
-              to: ref('stg_yuman__users')
-              field: user_id
+              arguments:
+                to: ref('stg_yuman__users')
+                field: user_id
       - name: demand_category_id
         description: "Référence vers la catégorie de la demande"
         tests:
           - relationships:
-              to: ref('stg_yuman__workorder_demands_categories')
-              field: demand_category_id
+              arguments:
+                to: ref('stg_yuman__workorder_demands_categories')
+                field: demand_category_id
 
   - name: stg_yuman__workorders
     description: "Interventions transformées et nettoyées depuis l'API Yuman"
@@ -137,20 +145,23 @@ models:
         description: "Référence vers le client propriétaire"
         tests:
           - relationships:
-              to: ref('stg_yuman__clients')
-              field: client_id
+              arguments:
+                to: ref('stg_yuman__clients')
+                field: client_id
       - name: site_id
         description: "Référence vers le site propriétaire"
         tests:
           - relationships:
-              to: ref('stg_yuman__sites')
-              field: site_id
+              arguments:
+                to: ref('stg_yuman__sites')
+                field: site_id
       - name: category_id
         description: "Référence vers la catégorie de l'intervention"
         tests:
           - relationships:
-              to: ref('stg_yuman__workorders_categories')
-              field: category_id
+              arguments:
+                to: ref('stg_yuman__workorders_categories')
+                field: category_id
       - name: workorder_number
         description: "Numéro de l'intervention"
       - name: contact_id
@@ -225,8 +236,9 @@ models:
         description: "Référence vers le produit commandé"
         tests:
           - relationships:
-              to: ref('stg_yuman__products')   # ou ton modèle produit
-              field: product_id
+              arguments:
+                to: ref('stg_yuman__products')   # ou ton modèle produit
+                field: product_id
 
       - name: supplier_id
         description: "Référence vers le fournisseur (lié à un client ou supplier)"
@@ -267,7 +279,7 @@ models:
       - name: line_reference
         description: "Référence du produit dans la ligne"
       - name: line_description
-        description: "Description de l’article de la ligne"
+        description: "Description de l'article de la ligne"
       - name: quantity
         description: "Quantité commandée"
       - name: unit
@@ -293,7 +305,7 @@ models:
       - name: extracted_at
         description: "Date d'extraction depuis la source (Singer/Meltano)"
       - name: sdc_sequence
-        description: "Numéro de séquence pour suivi d’update via Meltano"
+        description: "Numéro de séquence pour suivi d'update via Meltano"
 
   # --- Table de faits dépliée des produits utilisés dans les interventions (workorders) ---
   - name: stg_yuman__workorder_products
@@ -310,16 +322,18 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_yuman__workorders')
-              field: workorder_id
+              arguments:
+                to: ref('stg_yuman__workorders')
+                field: workorder_id
 
       - name: product_id
         description: "Identifiant du produit (clé étrangère vers stg_yuman__products)"
         tests:
           - not_null
           - relationships:
-              to: ref('stg_yuman__products')
-              field: product_id
+              arguments:
+                to: ref('stg_yuman__products')
+                field: product_id
 
       - name: product_reference
         description: "Référence du produit (ex: EVS_NESPRESSO_0042605)"
@@ -346,4 +360,3 @@ models:
         tests:
           - unique
           - not_null
-    

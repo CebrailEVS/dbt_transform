@@ -5,7 +5,8 @@ sources:
   - name: yuman_api
     schema: "prod_raw"
     description: "Données brutes extraites de l'API Yuman"  
-    tags: ['yuman', 'source']
+    config:
+      tags: ['yuman', 'source']
     tables:
       - name: yuman_clients
         description: "Table des clients Yuman"  

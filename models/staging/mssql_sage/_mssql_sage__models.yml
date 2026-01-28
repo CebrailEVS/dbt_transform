@@ -14,8 +14,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_mssql_sage__f_ecriturec') 
-              field: ec_no                             
+              arguments:
+                to: ref('stg_mssql_sage__f_ecriturec') 
+                field: ec_no                             
       - name: ea_ligne
         description: "Numéro de la ligne dans l'écriture analytique"
       - name: ca_num
@@ -186,9 +187,11 @@ models:
           - not_null
       - name: cbco_no
         description: "Code du collaborateur associé à la vente"
-        relationships:
-          - to: ref('stg_mssql_sage__f_collaborateur')
-            field: co_no
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_collaborateur')
+                field: co_no
       - name: ct_num
         description: "Code du compte client associé"
       - name: do_piece

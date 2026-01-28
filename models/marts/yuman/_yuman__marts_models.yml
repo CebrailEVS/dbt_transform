@@ -46,8 +46,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_yuman__clients')
-              field: client_id
+              arguments:
+                to: ref('dim_yuman__clients')
+                field: client_id
 
       - name: agency_id
         description: "Identifiant de l'agence associée au site"
@@ -85,8 +86,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_yuman__sites')
-              field: site_id
+              arguments:
+                to: ref('dim_yuman__sites')
+                field: site_id
 
       - name: material_description
         description: "Description de la machine"
@@ -196,20 +198,23 @@ models:
         description: Identifiant du matériel concerné.
         tests:
           - relationships:
-              to: ref('dim_yuman__materials')
-              field: material_id
+              arguments:
+                to: ref('dim_yuman__materials')
+                field: material_id
       - name: site_id
         description: Identifiant du site client.
         tests:
           - relationships:
-              to: ref('dim_yuman__sites')
-              field: site_id
+              arguments:
+                to: ref('dim_yuman__sites')
+                field: site_id
       - name: client_id
         description: Identifiant du client.
         tests:
           - relationships:
-              to: ref('dim_yuman__clients')
-              field: client_id
+              arguments:
+                to: ref('dim_yuman__clients')
+                field: client_id
       - name: technician_id
         description: Identifiant du technicien associé.
       - name: manager_id
@@ -328,20 +333,23 @@ models:
         description: Identifiant du matériel concerné.
         tests:
           - relationships:
-              to: ref('dim_yuman__materials')
-              field: material_id
+              arguments:
+                to: ref('dim_yuman__materials')
+                field: material_id
       - name: site_id
         description: Identifiant du site client.
         tests:
           - relationships:
-              to: ref('dim_yuman__sites')
-              field: site_id
+              arguments:
+                to: ref('dim_yuman__sites')
+                field: site_id
       - name: client_id
         description: Identifiant du client.
         tests:
           - relationships:
-              to: ref('dim_yuman__clients')
-              field: client_id
+              arguments:
+                to: ref('dim_yuman__clients')
+                field: client_id
       - name: technician_id
         description: Identifiant du technicien associé.
       - name: manager_id

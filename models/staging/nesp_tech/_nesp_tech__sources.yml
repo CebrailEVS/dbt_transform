@@ -5,7 +5,8 @@ sources:
   - name: nesp_tech
     schema: "prod_raw"
     description: "Données brutes extraites du fichier excel depuis l'API Arbiter Nomad Repair afin de récupérer les interventions et les articles consommées"  
-    tags: ['nesp_tech', 'source']
+    config:
+      tags: ['nesp_tech', 'source']
     tables:
       - name: nespresso_technique_articles
         description: "Table des activites commerciales Nespresso"  

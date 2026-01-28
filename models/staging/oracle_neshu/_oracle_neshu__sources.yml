@@ -5,7 +5,8 @@ sources:
   - name: oracle_neshu
     schema: "prod_raw"
     description: "Données brutes extraites de l'ERP Oracle Neshu"  
-    tags: ['oracle_neshu', 'source']
+    config:
+      tags: ['oracle_neshu', 'source']
     tables:
       # COMPANY
       - name: evs_company

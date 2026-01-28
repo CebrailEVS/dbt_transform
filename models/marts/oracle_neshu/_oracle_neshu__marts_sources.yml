@@ -19,7 +19,8 @@ sources:
       - Permettre les tests de qualité via dbt test
       - Assurer la visibilité dans dbt docs
       - Permettre les références dans d'autres modèles dbt
-    tags: ['marts', 'oracle_neshu', 'external_source']
+    config:
+      tags: ['marts', 'oracle_neshu', 'external_source']
     database: evs-datastack-prod
     schema: prod_marts
     
@@ -56,16 +57,16 @@ sources:
           ⚠️ **ATTENTION :**
           Ne pas modifier cette table via dbt ! Toute modification doit se faire
           dans le script Python ou la requête SQL source.
-          
-        meta:
-          owner: "Data Engineering"
-          refresh_frequency: "hourly"
-          refresh_schedule: "0 6-15 * * *"
-          data_retention_days: 15
-          external_pipeline: true
-          pipeline_type: "Python ETL"
-          
-        loaded_at_field: loaded_at
+
+        config:  
+          meta:
+            owner: "Data Engineering"
+            refresh_frequency: "hourly"
+            refresh_schedule: "0 6-15 * * *"
+            data_retention_days: 15
+            external_pipeline: true
+            pipeline_type: "Python ETL"
+          loaded_at_field: loaded_at
         
         columns:
           - name: task_id
@@ -112,9 +113,10 @@ sources:
             tests:
               - not_null
               - dbt_utils.expression_is_true:
-                  expression: "<= passage_end_datetime"
-                  config:
-                    severity: warn
+                  arguments:
+                    expression: "<= passage_end_datetime"
+                    config:
+                      severity: warn
           
           - name: passage_start_date
             description: |
@@ -150,9 +152,10 @@ sources:
             data_type: float
             tests:
               - dbt_utils.expression_is_true:
-                  expression: ">= 0 OR passage_duration_min IS NULL"
-                  config:
-                    severity: warn
+                  arguments:
+                    expression: ">= 0 OR passage_duration_min IS NULL"
+                    config:
+                      severity: warn
           
           - name: is_done
             description: |
@@ -186,8 +189,9 @@ sources:
         tests:
           # Vérifier qu'il n'y a pas de doublons sur task_id + roadman_code
           - dbt_utils.unique_combination_of_columns:
-              combination_of_columns:
-                - task_id
-                - roadman_code
-              config:
-                severity: error
+              arguments:
+                combination_of_columns:
+                  - task_id
+                  - roadman_code
+                config:
+                  severity: error
