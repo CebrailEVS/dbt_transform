@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description=""""""
+      description="""Table intermediaire de faits combinant \u00e9critures comptables et analytiques issues de SAGE pour la construction du P&L par Business Unit.\n"""
     )
     as (
       
