@@ -114,7 +114,7 @@ SELECT
             SECOND
           ) / 60.0
     END AS passage_duration_min,
-    CASE WHEN pa.task_status_code = 'FAIT' THEN 1 ELSE 0 END AS is_done,
+    CASE WHEN pa.task_status_code in ('FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS is_done,
     CASE WHEN pa.task_status_code IN ('PREVU', 'FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS is_planned,
     CASE 
       WHEN p.date_pointage IS NULL THEN 1
@@ -278,7 +278,7 @@ SELECT
 
   -- Métadonnées dbt
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  '134e6390-c090-4e75-8096-0c82dd21fc2a' as dbt_invocation_id
+  'c028ff8a-e115-47e5-8e38-f967d38a80eb' as dbt_invocation_id
 
 FROM passage_work_duration
     );
