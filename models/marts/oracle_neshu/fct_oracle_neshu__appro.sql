@@ -108,7 +108,7 @@ SELECT
             SECOND
           ) / 60.0
     END AS passage_duration_min,
-    CASE WHEN pa.task_status_code = 'FAIT' THEN 1 ELSE 0 END AS is_done,
+    CASE WHEN pa.task_status_code in ('FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS is_done,
     CASE WHEN pa.task_status_code IN ('PREVU', 'FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS is_planned,
     CASE 
       WHEN p.date_pointage IS NULL THEN 1
