@@ -92,7 +92,7 @@ SELECT
 
   -- Métadonnées dbt
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  'd578308e-7653-4e2b-9c1b-67eb0395033e' as dbt_invocation_id
+  'd63a96a1-f5f7-400f-afcf-82cc9d00cc15' as dbt_invocation_id
 FROM telemetry_agg t
 FULL JOIN chargement_agg c
   ON t.device_id = c.device_id

@@ -16,6 +16,13 @@ cleaned_data as (
         timestamp(_sdc_deleted_at) as deleted_at
         
     from source_data
+),
+
+filtered_data as (
+    select lht.*
+    from cleaned_data lht
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` t
+        on lht.idtask = t.idtask
 )
 
-select * from cleaned_data
+select * from filtered_data
