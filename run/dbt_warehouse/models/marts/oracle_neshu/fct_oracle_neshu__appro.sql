@@ -114,6 +114,16 @@ SELECT
             SECOND
           ) / 60.0
     END AS passage_duration_min,
+    CASE 
+      WHEN pa.task_start_date IS NOT NULL 
+      AND pa.task_end_date IS NOT NULL
+      AND pa.task_status_code = 'FAIT'
+      THEN TIMESTAMP_DIFF(
+            pa.task_end_date,
+            pa.task_start_date,
+            SECOND
+          ) / 3600.0
+    END AS passage_duration_hours,
     CASE WHEN pa.task_status_code in ('FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS is_done,
     CASE WHEN pa.task_status_code IN ('PREVU', 'FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS is_planned,
     CASE 
@@ -256,6 +266,7 @@ SELECT
   avg_passage_duration_day,
   passage_duration_interval,
   passage_duration_min,
+  passage_duration_hours,
   work_duration_min_raw,
   work_duration_min,
   pointage_missing_flag,
@@ -278,7 +289,7 @@ SELECT
 
   -- Métadonnées dbt
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  'd63a96a1-f5f7-400f-afcf-82cc9d00cc15' as dbt_invocation_id
+  'cce6d84f-ebb0-4d30-9722-85d1e2f53ad2' as dbt_invocation_id
 
 FROM passage_work_duration
     );
