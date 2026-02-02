@@ -4,80 +4,43 @@ version: 2
 sources:
   - name: yuman_api
     schema: "prod_raw"
-    description: "Données brutes extraites de l'API Yuman"  
+    description: "Données brutes extraites de l'API Yuman (full refresh quotidien)"
+
     config:
       tags: ['yuman', 'source']
+
+      # Freshness: column containing extraction timestamp
+      loaded_at_field: _sdc_extracted_at
+      
+      # Freshness thresholds for daily full refresh
+      freshness:
+        warn_after: {count: 26, period: hour}   # Warn if > 26h (buffer for load delays)
+        error_after: {count: 36, period: hour}  # Error if missed a full day
+
     tables:
-      - name: yuman_clients
-        description: "Table des clients Yuman"  
+      # ═══════════════════════════════════════════════════════════════════
+      # FACT-LIKE TABLES (transactions, events) - Use source default
+      # ═══════════════════════════════════════════════════════════════════
+      - name: yuman_workorders
+        description: "Table des interventions Yuman - CRITIQUE pour facturation"
         columns:
           - name: id
             tests:
               - unique
               - not_null
-            description: "Identifiant unique du client"
-
-      - name: yuman_sites
-        description: "Table des sites Yuman"
-        columns:
-          - name: id
-            tests:
-              - unique 
-              - not_null
-            description: "Identifiant unique du site"
+            description: "Identifiant unique de l'intervention"
           - name: client_id
-            tests:
-              - not_null
-            description: "Référence vers le client propriétaire"  
-
-      - name: yuman_materials
-        description: "Table des machines Yuman"
-        columns:
-          - name: id
-            tests:
-              - unique 
-              - not_null
-            description: "Identifiant unique de la machine"
+            description: "Identifiant du client"
           - name: site_id
-            tests:
-              - not_null
-            description: "Référence vers le site propriétaire"
-
-      - name: yuman_material_categories
-        description: "Table des catégories de machines Yuman pour mapper les machines aux catégories"
-        columns:
-          - name: id
-            tests:
-              - unique 
-              - not_null
-            description: "Identifiant unique de la catégorie machine"
-
-      - name: yuman_products
-        description: "Table des produits Yuman"
-        columns:
-          - name: id
-            tests:
-              - unique 
-              - not_null
-            description: "Identifiant unique du produit/articles"
-
-      - name: yuman_users
-        description: "Table des users Yuman"
-        columns:
-          - name: id
-            tests:
-              - unique 
-              - not_null
-            description: "Identifiant unique de l'utilisateur"
-
-      - name: yuman_workorder_demands_categories
-        description: "Table des catégories de demandes d'intervention Yuman"
-        columns:
-          - name: id
-            tests:
-              - unique 
-              - not_null
-            description: "Identifiant unique de la catégorie de demande"
+            description: "Identifiant du site"
+          - name: contact_id
+            description: "Identifiant du contact"
+          - name: technician_id
+            description: "Identifiant du technicien"
+          - name: manager_id
+            description: "Identifiant du manager"
+          - name: category_id
+            description: "Identifiant de la catégorie de l'intervention"
 
       - name: yuman_workorder_demands
         description: "Table des demandes d'intervention Yuman"
@@ -104,50 +67,116 @@ sources:
           - name: status
             description: "Statut de la demande"
 
-      - name: yuman_workorders
-        description: "Table des interventions Yuman"
-        columns:
-          - name: id
-            tests:
-              - unique 
-              - not_null
-            description: "Identifiant unique de l'intervention"
-          - name: client_id
-            description: "Identifiant du client"
-          - name: site_id
-            description: "Identifiant du site"
-          - name: contact_id
-            description: "Identifiant du contact"
-          - name: technician_id
-            description: "Identifiant du technicien"
-          - name: manager_id
-            description: "Identifiant du manager"
-          - name: category_id
-            description: "Identifiant de la catégorie de l'intervention"
-
-      - name: yuman_workorder_categories
-        description: "Table des catégories d'intervention Yuman"
-        columns:
-          - name: id
-            tests:
-              - unique 
-              - not_null
-            description: "Identifiant unique de la catégorie de demande"
-
       - name: yuman_purchase_orders
         description: "Table des commandes d'achat Yuman"
         columns:
           - name: id
             tests:
-              - unique 
+              - unique
               - not_null
             description: "Identifiant unique du bon de commande"
 
-      - name: yuman_storehouses
-        description: "Table des storehouses Yuman"
+      # ═══════════════════════════════════════════════════════════════════
+      # DIMENSION TABLES (entities) - Use source default
+      # ═══════════════════════════════════════════════════════════════════
+      - name: yuman_clients
+        description: "Table des clients Yuman"
         columns:
           - name: id
             tests:
-              - unique 
+              - unique
+              - not_null
+            description: "Identifiant unique du client"
+
+      - name: yuman_sites
+        description: "Table des sites Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du site"
+          - name: client_id
+            tests:
+              - not_null
+            description: "Référence vers le client propriétaire"
+
+      - name: yuman_materials
+        description: "Table des machines Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de la machine"
+          - name: site_id
+            tests:
+              - not_null
+            description: "Référence vers le site propriétaire"
+
+      - name: yuman_users
+        description: "Table des users Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de l'utilisateur"
+
+      # ═══════════════════════════════════════════════════════════════════
+      # REFERENCE TABLES (rarely change) - Freshness disabled
+      # ═══════════════════════════════════════════════════════════════════
+      - name: yuman_products
+        description: "Table des produits Yuman - référentiel, rarement modifié"
+        config:
+          freshness: null
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du produit/articles"
+
+      - name: yuman_material_categories
+        description: "Table des catégories de machines Yuman - référentiel stable"
+        config:
+          freshness: null
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de la catégorie machine"
+
+      - name: yuman_workorder_categories
+        description: "Table des catégories d'intervention Yuman - référentiel stable"
+        config:
+          freshness: null
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de la catégorie de demande"
+
+      - name: yuman_workorder_demands_categories
+        description: "Table des catégories de demandes d'intervention Yuman - référentiel stable"
+        config:
+          freshness: null
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de la catégorie de demande"
+
+      - name: yuman_storehouses
+        description: "Table des storehouses Yuman - référentiel stable"
+        config:
+          freshness: null
+        columns:
+          - name: id
+            tests:
+              - unique
               - not_null
             description: "Identifiant unique du bon du storehouses"
