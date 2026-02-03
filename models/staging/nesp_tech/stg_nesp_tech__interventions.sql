@@ -122,6 +122,19 @@ cleaned_data as (
         source_file
         
     from source_data
+),
+
+deduplicated_data as (
+    select * from (
+        select 
+            *,
+            row_number() over (
+                partition by n_planning, etat_intervention, date_heure_fin 
+                order by extracted_at desc
+            ) as rn
+        from cleaned_data
+    )
+    where rn = 1
 )
 
-select * from cleaned_data
+select * from deduplicated_data
