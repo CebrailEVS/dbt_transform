@@ -7,6 +7,15 @@ sources:
     schema: prod_raw
     config:
       tags: ['mssql_sage', 'source']  # Déplacé dans config
+
+      # Freshness: column containing extraction timestamp
+      loaded_at_field: _sdc_extracted_at
+
+      # Default freshness thresholds for all tables
+      freshness:
+        warn_after: {count: 26, period: hour}    # Warn if > 26h old
+        error_after: {count: 36, period: hour}  # Error before next business day
+        
     tables:
       - name: dbo_f_ecriturea
         description: "Table des écritures analytiques (f_ecriturea) — détail des montants et quantités analytiques par écriture comptable"
