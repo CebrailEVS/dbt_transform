@@ -52,6 +52,9 @@ models:
       oracle_neshu:
         +tags: ['staging', 'oracle_neshu']
 
+      oracle_lcdp:
+        +tags: ['staging', 'oracle_lcdp']
+
       oracle_neshu_gcs:
         +tags: ['staging', 'oracle_neshu_gcs']
 
