@@ -1,360 +1,367 @@
-# 🧱 EVS Data Transformation (dbt)
+# EVS Data Warehouse - dbt Project
 
-Transformations de données dbt pour **EVS Professionnelle France** dans une stack ELT moderne orchestrée via Airflow.
+Projet dbt de transformation de donnees pour **EVS Professionnelle France**.
+Pipeline ELT moderne : extraction via Meltano, transformation via dbt, orchestration via Airflow, visualisation via Power BI.
 
-## 📚 Documentation
+**[Documentation dbt generee](https://cebrailevs.github.io/dbt_transform/)**
 
-**[🔗 Voir la documentation dbt complète](https://cebrailevs.github.io/dbt_transform/)**
+---
 
-## 📋 Vue d'ensemble
+## Stack technique
 
-### Stack Technique
+| Composant          | Role                                     |
+|--------------------|------------------------------------------|
+| **Meltano**        | Extraction et chargement vers BigQuery   |
+| **BigQuery**       | Data Lake (prod_raw) + Data Warehouse    |
+| **dbt**            | Transformation et modelisation           |
+| **Airflow**        | Orchestration production                 |
+| **GitHub Actions** | CI/CD automatisee                        |
+| **Power BI**       | Visualisation et reporting               |
 
-| Composant       | Rôle                                    |
-|-----------------|----------------------------------------|
-| **Meltano**     | Extraction et chargement vers BigQuery |
-| **BigQuery**    | Data Lake + Data Warehouse             |
-| **dbt**         | Transformation et modélisation         |
-| **Airflow**     | Orchestration production               |
-| **GitHub Actions** | CI/CD automatisée                   |
-| **Power BI**    | Visualisation et reporting             |
+---
 
-### Architecture des Modèles
+## Sources de donnees
+
+Le projet integre **9 sources** couvrant l'ensemble des operations EVS :
+
+| Source | Systeme | Description | Nb staging models |
+|--------|---------|-------------|-------------------|
+| **oracle_neshu** | Oracle ERP (NESHU) | ERP principal : clients, machines, produits, taches (appro, conso, chargement, livraison, telemetrie) | 24 |
+| **oracle_lcdp** | Oracle ERP (LCDP) | ERP secondaire : meme schema qu'oracle_neshu, base de donnees differente | 24 |
+| **yuman** | Yuman API | Plateforme de gestion des interventions terrain : clients, sites, materiels, bons de travail | 11 |
+| **nesp_tech** | Nomad Repair API | Interventions techniques Nespresso : reparations, pieces detachees, delais SLA | 2 |
+| **nesp_co** | Excel / Nespresso | Donnees commerciales Nespresso : activites, opportunites, base clients (WIP - staging uniquement) | 3 |
+| **mssql_sage** | MSSQL Sage | Comptabilite : ecritures comptables/analytiques, comptes tiers, collaborateurs | 5 |
+| **gac** | SFTP CSV | Assurance flotte : suivi des sinistres vehicules | 1 |
+| **yuman_gcs** | GCS / SFTP JSON | Stock theorique Yuman (extraction externe) | 1 |
+| **oracle_neshu_gcs** | GCS / CSV | Stock theorique Oracle (extraction nightly) | 1 |
+
+---
+
+## Architecture des modeles
 
 ```
 models/
-├── staging/              # 🔄 Nettoyage et standardisation des données sources
-│   ├── mssql_sage/
-│   ├── nesp_co/
-│   ├── nesp_tech/
-│   ├── oracle_neshu/
-│   ├── oracle_neshu_gcs/
-│   └── yuman/
+├── staging/                  Nettoyage, typage, standardisation des sources brutes
+│   ├── oracle_neshu/         (24 modeles)
+│   ├── oracle_lcdp/          (24 modeles)
+│   ├── yuman/                (11 modeles)
+│   ├── mssql_sage/           (5 modeles)
+│   ├── nesp_co/              (3 modeles) [WIP]
+│   ├── nesp_tech/            (2 modeles)
+│   ├── gac/                  (1 modele)
+│   ├── yuman_gcs/            (1 modele)
+│   └── oracle_neshu_gcs/     (1 modele)
 │
-├── intermediate/
-    ├── mssql_sage/          # ⚙️ Tables intermédiaires — logique métier ou enrichissement multi-sources
-│   ├── oracle_neshu/
-│   └── yuman/
+├── intermediate/             Logique metier, enrichissement, aggregations par type de tache
+│   ├── oracle_neshu/         (14 modeles : appro, chargement, telemetrie, pointage, etc.)
+│   ├── yuman/                (1 modele : demands + workorders enrichis)
+│   ├── nesp_tech/            (2 modeles : delais + facturation interventions)
+│   └── mssql_sage/           (1 modele : P&L par BU)
 │
-└── marts/                 # 📊 Modèles finaux orientés business (dimensions + facts)
-    ├── mssql_sage/
-    ├── oracle_neshu/
-    └── yuman/
-
+└── marts/                    Tables finales dimensions + facts pour Power BI
+    ├── oracle_neshu/         (9 modeles : dims company/device/product + facts conso/appro)
+    ├── yuman/                (6 modeles : dims clients/sites/materials + facts pricing/delais)
+    ├── mssql_sage/           (1 modele : KPIs P&L par BU)
+    ├── nesp_tech/            (1 modele : pricing pieces detachees)
+    ├── gac/                  (1 modele : sinistres)
+    ├── oracle_neshu_gcs/     (1 modele : stock produits)
+    └── yuman_gcs/            (1 modele : stock articles)
 ```
 
-### Données de Références (Seeds)
+---
+
+## Domaines metier et modeles marts
+
+Les rapports Power BI sont organises par domaine metier. Voici la correspondance entre domaines et modeles dbt :
+
+### Operations & Approvisionnement
+*Source principale : oracle_neshu*
+
+| Modele | Description |
+|--------|-------------|
+| `dim_oracle_neshu__company` | Dimension clients enrichie (region, secteur, statut, KA, modele economique) via 23 familles de labels |
+| `dim_oracle_neshu__device` | Dimension machines (marque, gamme, categorie, statut actif) |
+| `dim_oracle_neshu__product` | Dimension produits (famille, groupe, marque, proprietaire, BIO) |
+| `dim_oracle_neshu__contract` | Dimension contrats (engagement, nombre collaborateurs, dates) |
+| `dim_oracle_neshu__vehicule_roadman` | Dimension vehicules et roadmen (code GEA) |
+| `fct_oracle_neshu__conso_business_review` | Consommation unifiee : telemetrie + chargement + livraison |
+| `fct_oracle_neshu__pa_business_review` | Passages approvisionneurs (missions prevues/faites) |
+| `fct_oracle_neshu__appro` | Detail passages avec metriques temps (duree, rang journalier, pointage) |
+| `fct_oracle_neshu__chargement_par_quinzaine` | Chargements agreges par quinzaine |
+| `fct_oracle_neshu__chargement_vs_conso` | Reconciliation chargement vs consommation par machine |
+
+### Service Technique & Interventions Terrain
+*Sources : yuman, nesp_tech*
+
+| Modele | Description |
+|--------|-------------|
+| `dim_yuman__clients` | Dimension clients Yuman (code, categorie, partenaire) |
+| `dim_yuman__sites` | Dimension sites avec agence |
+| `dim_yuman__materials` | Dimension materiels avec categorie |
+| `dim_yuman__materials_clients` | Vue denormalisee client + site + materiel |
+| `fct_yuman__workorder_pricing` | Tarification interventions (lookup type x machine x zone x partenaire) |
+| `fct_yuman__workorder_delais_neshu` | Suivi SLA interventions avec metriques delais |
+| `fct_nesp_tech__pieces_detachees_pricing` | Facturation pieces detachees par intervention |
+
+### Maintenance Equipements
+*Sources : oracle_neshu + yuman (croisement)*
+
+| Modele | Description |
+|--------|-------------|
+| `fct_oracle_neshu__machines_maintenance_tracking` | Suivi maintenance preventive : retard, delais, derniere intervention |
+
+### Finance & Comptabilite
+*Source : mssql_sage*
+
+| Modele | Description |
+|--------|-------------|
+| `fct_mssql_sage__pnl_bu_kpis` | KPIs P&L par BU : CA, marge brute/nette, masse salariale (mensuel, YTD, N-1, evolution %) |
+
+### Flotte & Assurance
+*Source : gac*
+
+| Modele | Description |
+|--------|-------------|
+| `fct_gac__sinistres_sg` | Suivi sinistres vehicules : couts (assureur, auto-assurance, franchise, client) |
+
+### Inventaire & Stock
+*Sources : yuman_gcs, oracle_neshu_gcs*
+
+| Modele | Description |
+|--------|-------------|
+| `fct_yuman_gcs__stock_articles` | Stock theorique articles Yuman |
+| `fct_oracle_neshu_gcs__stock_products` | Stock quotidien produits Oracle (ruptures, prix achat, derniere date inventaire) |
+
+### Commercial Nespresso [WIP]
+*Source : nesp_co (staging uniquement, marts a venir)*
+
+| Modele staging | Description |
+|----------------|-------------|
+| `stg_nesp_co__activite` | Activites commerciales (appels, RDV) |
+| `stg_nesp_co__opportunite` | Pipeline opportunites |
+| `stg_nesp_co__client` | Base clients (volumes capsules, scores NES) |
+
+---
+
+## Donnees de reference (seeds)
 
 ```
-data/
-├── reference_data/        # 📚 Données statiques et tables de correspondance
-│   ├── mssql_sage/
-│   ├── oracle_neshu/
-│   └── yuman/
-└── schema.yml
+data/reference_data/
+├── general/
+│   └── ref_general__feries_metropole.csv       Calendrier jours feries
+├── yuman/                                       14 fichiers
+│   ├── ref_yuman__tarification_clean.csv        Matrice tarifs (type x machine x zone)
+│   ├── ref_yuman__technicien_clean.csv          Referentiel techniciens
+│   ├── ref_yuman__tech_agence.csv               Mapping technicien -> agence
+│   ├── ref_yuman__cp_metropole.csv              Code postal -> metropole
+│   └── ...                                      Machine, marque, type inter (nettoyage)
+├── nesp_tech/                                   6 fichiers
+│   ├── ref_nesp_tech__articles_prix.csv         Prix unitaires pieces
+│   ├── ref_nesp_tech__key_facturation.csv       Cles de facturation
+│   └── ...                                      Machines, type inter, zones montagne
+├── oracle_neshu/                                3 fichiers
+│   ├── ref_oracle_neshu__roadman_gea.csv        Mapping roadman -> code GEA
+│   └── ref_oracle_neshu__valo_*.csv             Valorisation parc machines
+└── mssql_sage/                                  2 fichiers
+    ├── ref_mssql_sage__code_analytique_bu.csv   Code analytique -> BU
+    └── ref_mssql_sage__code_comptable_bu.csv    Compte comptable -> categorie P&L
 ```
 
-### Snapshots
+---
 
+## Snapshots (historisation)
+
+Suivi des changements via strategie `check` :
+
+| Snapshot | Colonnes suivies | Usage |
+|----------|-----------------|-------|
+| `snap_oracle_neshu__company` | proadman, modele_economique, is_active | Historique changements clients |
+| `snap_oracle_neshu__device` | Configuration machines | Historique equipements |
+| `snap_oracle_neshu__valo_parc_machines` | Valorisation parc | Evolution valeur parc |
+
+---
+
+## Conventions de nommage
+
+### Modeles
 ```
-snapshots/
-├── mssql_sage/            # 🧱 Historisation de certaines tables
-├── oracle_neshu/          
-└── yuman/                 
-
+stg_<source>__<entite>              Staging (ex: stg_oracle_neshu__company)
+int_<source>__<entite>              Intermediate (ex: int_oracle_neshu__appro_tasks)
+dim_<source>__<entite>              Dimension mart (ex: dim_oracle_neshu__company)
+fct_<source>__<entite>              Fact mart (ex: fct_oracle_neshu__conso_business_review)
+snap_<source>__<entite>             Snapshot (ex: snap_oracle_neshu__company)
+ref_<source>__<entite>              Seed (ex: ref_oracle_neshu__roadman_gea)
 ```
 
-## 🚀 Installation & Configuration
+### Colonnes standardisees
+```
+id<entite>                          Cle primaire (ex: idcompany, idtask)
+id<entite_fk>                       Cle etrangere (ex: idcompany_peer, iddevice)
+created_at                          Date de creation
+updated_at                          Date de modification (COALESCE avec creation_date)
+extracted_at                        Timestamp d'extraction Meltano (_sdc_extracted_at)
+deleted_at                          Soft delete (_sdc_deleted_at)
+code_status_record                  Statut enregistrement (1=actif, 0/-1=inactif)
+```
 
-### Prérequis
+### Branches Git
+```
+feature/<domaine>-<description>     Ex: feature/modelisation-oracle-lcdp
+fix/<description>                   Ex: fix/telemetry-join-orphelins
+docs/<description>                  Ex: docs/update-readme
+```
 
-- Python 3.10.13
-- Accès BigQuery avec permissions appropriées
-- Clé de service GCP configurée
+### Commits (Conventional Commits)
+```
+feat: add dim_oracle_neshu__product model
+fix: correct join logic in staging task
+docs: update model documentation
+```
+
+---
+
+## Freshness monitoring
+
+| Tier | Tables | Seuils | Exemple |
+|------|--------|--------|---------|
+| **Fact tables** | Taches, produits, ressources | warn 26h / error 36h | evs_task, lcdp_task |
+| **Dimensions operationnelles** | Clients, machines, contrats | warn 26h / error 36h | evs_company, evs_device |
+| **Referentiels stables** | Types, labels, familles | Freshness desactivee | evs_task_type, evs_label |
+
+Champ timestamp : `_sdc_extracted_at` (convention Meltano/Singer)
+
+---
+
+## Installation et configuration
+
+### Prerequis
+
+- Python 3.10+
+- Acces BigQuery avec permissions appropriees
+- Cle de service GCP configuree
 
 ### Installation
 
 ```bash
-# 1. Cloner le repository
+# Cloner le repository
 git clone https://github.com/CebrailEVS/dbt_transform.git
 cd dbt_transform
 
-# 2. Environnement virtuel (recommandé)
+# Environnement virtuel
 python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou venv\Scripts\activate  # Windows
+source venv/bin/activate
 
-# 3. Installer dbt
+# Installer dbt
 pip install dbt-bigquery
 
-# 4. Configurer les variables d'environnement
-cp .env.example .env  # Ajuster les valeurs selon votre environnement
+# Configurer les variables d'environnement
+cp .env.example .env  # Ajuster les valeurs
 
-# 5. Charger les variables (OBLIGATOIRE avant chaque session dbt)
+# Charger les variables (OBLIGATOIRE avant chaque session dbt)
 set -a && source .env && set +a
 
-# 6. Tester la configuration
+# Installer les dependances dbt
+dbt deps
+
+# Tester la configuration
 dbt debug
 ```
 
-### Configuration des Variables
+### Variables d'environnement (.env)
 
-Fichier `.env` :
 ```bash
-# Environment cible
-DBT_TARGET=dev 
-
-# Configuration BigQuery
+DBT_TARGET=dev
 DBT_BIGQUERY_PROJECT=evs-datastack-prod
 DBT_BIGQUERY_KEYFILE=/chemin/vers/votre/cle.json
-
-# Datasets
 DBT_BIGQUERY_DATASET_DEV=dev
 DBT_BIGQUERY_DATASET_PROD=prod
 ```
 
-## 🌍 Gestion des Environnements
+---
 
-### Répartition des Environnements
+## Environnements
 
-| Environnement | Utilisateur    | Dataset BigQuery | Usage                    |
-|---------------|----------------|------------------|--------------------------|
-| `dev`         | Data Engineer,Anlyst  | `dev`           | Développement principal  |
-| `prod`        | Airflow        | `prod`          | Production automatisée   |
+| Environnement | Utilisateur | Dataset BigQuery | Usage |
+|---------------|-------------|------------------|-------|
+| `dev` | Data Engineer / Analyst | `dev` | Developpement et tests |
+| `prod` | Airflow | `prod` | Production automatisee |
 
-### Zones de Responsabilité
+---
 
-- **👤 Zone Data Engineer** (`raw/`, `staging/`, `intermediate/` ) : Data source quality
-- **📊 Zone Data Analyst** (`intermediate/`,`marts/`) : Analytics et reporting
-
-## 💻 Utilisation Quotidienne
-
-### Commandes Essentielles
+## Commandes courantes
 
 ```bash
-# ⚠️ TOUJOURS commencer par charger les variables
+# Charger les variables (toujours en premier)
 set -a && source .env && set +a
 
-# Installation des dépendances
-dbt deps
+# Executer tous les modeles
+dbt run
 
-# Exécution des modèles
-dbt run                              # Tous les modèles
-dbt run --select stg_yuman__clients  # Modèle spécifique
-dbt run --select staging.yuman      # Tous les modèles d'une source
+# Executer par source
+dbt run --select tag:oracle_neshu
+dbt run --select tag:oracle_lcdp
+dbt run --select tag:yuman
 
-# Tests de qualité
-dbt test                             # Tous les tests
-dbt test --select stg_yuman__clients # Tests d'un modèle
+# Executer par couche
+dbt run --select tag:staging
+dbt run --select tag:intermediate
+dbt run --select tag:marts
+
+# Executer un modele et ses dependances amont
+dbt run --select +fct_oracle_neshu__conso_business_review
+
+# Tests
+dbt test
+dbt test --select tag:oracle_neshu
+
+# Freshness
+dbt source freshness
+
+# Seeds
+dbt seed
+
+# Snapshots
+dbt snapshot
 
 # Documentation
 dbt docs generate && dbt docs serve
 ```
 
-## 🤝 Workflow Collaboratif
+---
 
-### Démarrage de Journée
+## CI/CD
 
-```bash
-# 1. Récupérer les dernières modifications
-git checkout master && git pull origin master
-
-# 2. Travailler sur votre branche
-git checkout feature/votre-branche
-# ou créer une nouvelle branche
-git checkout -b feature/nouvelle-fonctionnalite
-
-# 3. Si votre branche est ancienne, synchroniser
-git rebase master
-```
-
-### Cycle de Développement
-
-```bash
-# 1. Charger l'environnement
-set -a && source .env && set +a
-
-# 2. Développer et tester
-dbt run --target votre_environnement
-dbt test --target votre_environnement
-
-# 3. Commits réguliers
-git add .
-git commit -m "feat: add dim_oracle_neshu__product model"
-
-# 4. Push quand la fonctionnalité est prête
-git push origin feature/votre-branche
-```
-
-### Processus de Pull Request
-
-1. **Synchronisation finale avec master**
-   ```bash
-   git checkout master && git pull origin master
-   git checkout feature/votre-branche && git rebase master
-   ```
-
-2. **Tests complets**
-   ```bash
-   dbt run --target votre_environnement
-   dbt test --target votre_environnement
-   ```
-
-3. **Push et création de la PR**
-   ```bash
-   git push origin feature/votre-branche --force-with-lease
-   ```
-
-4. **Review** : Le Data Engineer review les PR du Data Analyst et vice versa
-
-## 🔄 Workflow de développement
-
-### 1. Créer une branche et faire une PR
-
-```bash
-# 1. Se mettre sur master et mettre à jour
-git checkout master
-git pull origin master
-
-# 2. Créer une nouvelle branche
-git checkout -b feature/nom-de-ma-feature
-
-# 3. Faire vos modifications dans dbt
-# - Modifier des modèles dans models/
-# - Ajouter des tests dans tests/
-# - etc.
-
-# 4. Commit et push
-git add .
-git commit -m "feat: description de mes changements"
-git push origin feature/nom-de-ma-feature
-
-# 5. Créer une Pull Request sur GitHub
-# → Allez sur https://github.com/CebrailEVS/dbt_transform/pulls
-# → Cliquez sur "New Pull Request"
-# → Sélectionnez votre branche
-```
-
-### 2. Après l'approbation de la PR
-
-```bash
-# 1. Merger la PR sur GitHub (bouton "Merge pull request")
-# → La branche est automatiquement supprimée sur GitHub ✨
-
-# 2. Revenir sur master et mettre à jour
-git checkout master
-git pull origin master
-
-# 3. Nettoyer les références obsolètes
-git fetch --prune
-
-# 4. Supprimer la branche locale
-git branch -d feature/nom-de-ma-feature
-```
-
-### Conventions de Nommage
-
-```bash
-# Branches
-feature/modelisation-oracle_neshu
-feature/analytics-yuman-workorders
-feature/fix-telemetry-join
-
-# Commits
-feat: add new dimension model
-fix: correct join logic in staging
-docs: update model documentation
-```
-
-## 🧪 Tests et Qualité
-
-Les tests dbt incluent :
-- Tests d'unicité et de non-nullité
-- Tests de référence entre modèles
-- Tests personnalisés métier
-
-Configuration dans les fichiers `*_models.yml` :
-```yaml
-models:
-  - name: stg_yuman__clients
-    tests:
-      - unique:
-          column_name: client_id
-      - not_null:
-          column_name: client_id
-```
-
-## 🚦 Règles de Collaboration
-
-### ✅ Bonnes Pratiques
-
-- Toujours partir de `master` à jour
-- Tester localement avant de push
-- Communiquer avant de modifier les zones partagées
-- Utiliser des messages de commit descriptifs
-- Créer des PR pour toute modification
-
-### ❌ À Éviter
-
-- Push direct sur `master`
-- Modifier des modèles sans coordination
-- Merger ses propres PR sans review
-- Ignorer les tests qui échouent
-
-### Communication Requise
-
-Prévenez-vous mutuellement avant de modifier :
-- `dbt_project.yml`
-- les modèles DBT qui ont un impacte important
-- `*_sources.yml` (définitions des sources)
-- Macros partagées
-
-## 🔄 CI/CD Automatique
-
-Le workflow GitHub Actions se déclenche automatiquement :
-
-- **Push vers `master`** → Déploiement automatique en production
-- **Push vers `feature/**`** → Tests de validation en dev
-- **Pull Request** → Tests complets avant merge
-
-## 📖 Documentation
-
-La documentation est générée automatiquement et inclut :
-- Lineage des modèles
-- Description des colonnes
-- Tests appliqués
-- Métriques de qualité
-
-Accès via `dbt docs serve` après `dbt docs generate`.
-
-## 🆘 Dépannage
-
-### Problèmes Courants
-
-```bash
-# Variables d'environnement non chargées
-dbt debug  # Vérifier la configuration
-
-# Conflits Git complexes
-git rebase --abort  # Annuler et demander de l'aide
-
-# Tests qui échouent
-dbt test --select fail  # Voir uniquement les tests en échec
-```
-
-### Support
-
-En cas de problème :
-1. Utiliser `git status` pour comprendre l'état actuel
-2. Faire `git rebase --abort` si nécessaire
-3. Demander de l'aide avant de forcer des opérations
-
-## 🔗 Ressources
-
-- [Documentation dbt](https://docs.getdbt.com/)
-- [dbt BigQuery Adapter](https://docs.getdbt.com/docs/core/connect-data-platform/bigquery-setup)
-- [Repository GitHub](https://github.com/CebrailEVS/dbt_transform)
+| Evenement | Action |
+|-----------|--------|
+| Push vers `master` | Deploiement automatique en production |
+| Push vers `feature/**` | Tests de validation en dev |
+| Pull Request | Tests complets avant merge |
 
 ---
 
-**Développé par l'équipe Data EVS ❤️**
+## Depannage
+
+```bash
+# Verifier la configuration
+dbt debug
+
+# Variables non chargees
+set -a && source .env && set +a
+
+# Conflit Git
+git rebase --abort  # Annuler si necessaire
+
+# Voir les tests en echec
+dbt test --select tag:oracle_neshu  # Cibler par source
+```
+
+---
+
+## Dependances
+
+- `dbt-utils 1.1.1` : Tests avances (unique_combination_of_columns, accepted_range, expression_is_true)
+
+---
+
+Developpe et maintenu par l'equipe Data EVS.
