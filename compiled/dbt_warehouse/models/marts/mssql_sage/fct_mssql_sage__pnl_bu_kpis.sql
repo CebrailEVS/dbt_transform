@@ -158,7 +158,7 @@ SELECT
 
   -- Métadonnées dbt
   CURRENT_TIMESTAMP() as dbt_updated_at,
-  'eab639ed-0d14-4602-bbe2-5c93320fa625' as dbt_invocation_id
+  'ea4d8be6-666f-45c2-a1cd-701198274b47' as dbt_invocation_id
 FROM kpi_long l
 LEFT JOIN kpi_long ca
   ON  l.scenario = ca.scenario
