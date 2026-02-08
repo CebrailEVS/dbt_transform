@@ -8,7 +8,7 @@
 SELECT 
 -- Informations Client 
 client_id,
-partner_name
+partner_name,
 client_code,
 client_name,
 client_category,

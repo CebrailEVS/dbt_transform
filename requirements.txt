@@ -1,0 +1,7 @@
+# dbt + BigQuery adapter
+dbt-core==1.11.3
+dbt-bigquery==1.11.0
+
+# SQL linting
+sqlfluff==4.0.0
+sqlfluff-templater-dbt==4.0.0

@@ -16,6 +16,7 @@ Pipeline ELT moderne : extraction via Meltano, transformation via dbt, orchestra
 | **dbt**            | Transformation et modelisation           |
 | **Airflow**        | Orchestration production                 |
 | **GitHub Actions** | CI/CD automatisee                        |
+| **SQLFluff**       | Linting et formatage SQL                 |
 | **Power BI**       | Visualisation et reporting               |
 
 ---
@@ -237,7 +238,7 @@ Champ timestamp : `_sdc_extracted_at` (convention Meltano/Singer)
 
 ### Prerequis
 
-- Python 3.10+
+- Python 3.11+ (gere automatiquement via `pyenv` et `.python-version`)
 - Acces BigQuery avec permissions appropriees
 - Cle de service GCP configuree
 
@@ -248,12 +249,10 @@ Champ timestamp : `_sdc_extracted_at` (convention Meltano/Singer)
 git clone https://github.com/CebrailEVS/dbt_transform.git
 cd dbt_transform
 
-# Environnement virtuel
-python3 -m venv venv
-source venv/bin/activate
+# pyenv detecte automatiquement Python 3.11.4 via .python-version
 
-# Installer dbt
-pip install dbt-bigquery
+# Installer les dependances (dbt, dbt-bigquery, sqlfluff)
+pip install -r requirements.txt
 
 # Configurer les variables d'environnement
 cp .env.example .env  # Ajuster les valeurs
@@ -261,7 +260,7 @@ cp .env.example .env  # Ajuster les valeurs
 # Charger les variables (OBLIGATOIRE avant chaque session dbt)
 set -a && source .env && set +a
 
-# Installer les dependances dbt
+# Installer les packages dbt (dbt_utils)
 dbt deps
 
 # Tester la configuration
@@ -330,6 +329,34 @@ dbt docs generate && dbt docs serve
 
 ---
 
+## Linting SQL (SQLFluff)
+
+Le projet utilise [SQLFluff](https://sqlfluff.com/) pour garantir un style SQL homogene. La configuration est dans `.sqlfluff`.
+
+**Conventions appliquees :**
+- Mots-cles en minuscules (`select`, `from`, `left join`)
+- Indentation de 4 espaces
+- Alias explicites avec `AS` (`FROM table AS t`)
+- Longueur max de ligne : 120 caracteres
+
+```bash
+# Analyser un fichier
+sqlfluff lint models/staging/oracle_neshu/stg_oracle_neshu__company.sql
+
+# Analyser un repertoire
+sqlfluff lint models/staging/
+
+# Corriger automatiquement un fichier
+sqlfluff fix models/staging/oracle_neshu/stg_oracle_neshu__company.sql
+
+# Corriger un repertoire entier
+sqlfluff fix models/staging/
+```
+
+Apres chaque `sqlfluff fix`, toujours verifier les changements avec `git diff` avant de committer.
+
+---
+
 ## CI/CD
 
 | Evenement | Action |
@@ -360,7 +387,20 @@ dbt test --select tag:oracle_neshu  # Cibler par source
 
 ## Dependances
 
-- `dbt-utils 1.1.1` : Tests avances (unique_combination_of_columns, accepted_range, expression_is_true)
+### Python (`requirements.txt`)
+
+| Package | Version | Role |
+|---------|---------|------|
+| `dbt-core` | 1.11.3 | Framework de transformation |
+| `dbt-bigquery` | 1.11.0 | Adaptateur BigQuery |
+| `sqlfluff` | 4.0.0 | Linter SQL |
+| `sqlfluff-templater-dbt` | 4.0.0 | Support Jinja/dbt pour SQLFluff |
+
+### dbt packages (`packages.yml`)
+
+| Package | Version | Role |
+|---------|---------|------|
+| `dbt-utils` | 1.1.1 | Tests avances (unique_combination_of_columns, accepted_range, expression_is_true) |
 
 ---
 
