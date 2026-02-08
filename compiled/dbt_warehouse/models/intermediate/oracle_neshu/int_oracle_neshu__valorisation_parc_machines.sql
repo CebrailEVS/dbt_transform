@@ -106,5 +106,5 @@ SELECT
     valorisation_totale_machine,
     -- Métadonnées d'exécution
     CURRENT_TIMESTAMP() as dbt_updated_at,
-    'ea4d8be6-666f-45c2-a1cd-701198274b47' as dbt_invocation_id
+    '0fbc7f4b-d307-4e3a-a127-a4c2734a681d' as dbt_invocation_id
 FROM final_result

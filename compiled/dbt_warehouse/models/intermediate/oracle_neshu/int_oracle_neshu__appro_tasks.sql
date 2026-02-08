@@ -28,12 +28,13 @@ with passage_appro_base as (
         t.created_at,
         t.extracted_at
 
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` t
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` c on c.idcompany = t.idcompany_peer
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_status` ts on t.idtask_status = ts.idtask_status
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__location` l on l.idlocation = t.idlocation
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` as t
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` as c on t.idcompany_peer = c.idcompany
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_status` as ts on t.idtask_status = ts.idtask_status
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__location` as l on t.idlocation = l.idlocation
 
-    where 1=1
+    where
+        1 = 1
         and t.idtask_type = 32 -- PASSAGE APPROVISIONNEURS
         and t.code_status_record = '1'
         and t.real_start_date is not null
@@ -74,7 +75,7 @@ select
 from passage_appro_base
 
 
-  where updated_at >= (
-      select max(updated_at) - interval 1 day
-      from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_tasks`
-  )
+    where passage_appro_base.updated_at >= (
+        select max(updated_at) - interval 1 day  -- noqa: RF02
+        from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_tasks`
+    )

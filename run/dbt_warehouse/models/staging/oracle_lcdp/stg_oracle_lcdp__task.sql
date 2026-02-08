@@ -1,18 +1,18 @@
-
+-- back compat for old kwarg name
   
+  
+        
+            
+	    
+	    
+            
+        
     
 
-    create or replace table `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task`
-      
-    partition by timestamp_trunc(real_start_date, day)
-    cluster by idtask_type, idtask_status, idcompany_peer, iddevice
-
     
-    OPTIONS(
-      description="""TASK transform\u00e9s et nettoy\u00e9s depuis la base Oracle LCDP"""
-    )
-    as (
-      
+
+    merge into `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` as DBT_INTERNAL_DEST
+        using (
 
 with source_data as (
     select *
@@ -58,5 +58,27 @@ cleaned_data as (
 
 SELECT * FROM cleaned_data
 
-    );
-  
+WHERE
+    (
+        updated_at > (
+            SELECT MAX(updated_at)
+            FROM `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task`
+        )
+        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+    )
+
+        ) as DBT_INTERNAL_SOURCE
+        on ((DBT_INTERNAL_SOURCE.idtask = DBT_INTERNAL_DEST.idtask))
+
+    
+    when matched then update set
+        `idtask` = DBT_INTERNAL_SOURCE.`idtask`,`task_idtask` = DBT_INTERNAL_SOURCE.`task_idtask`,`idtask_type` = DBT_INTERNAL_SOURCE.`idtask_type`,`idtask_status` = DBT_INTERNAL_SOURCE.`idtask_status`,`iddevice` = DBT_INTERNAL_SOURCE.`iddevice`,`idcompany_peer` = DBT_INTERNAL_SOURCE.`idcompany_peer`,`idlocation` = DBT_INTERNAL_SOURCE.`idlocation`,`idcontact` = DBT_INTERNAL_SOURCE.`idcontact`,`idproduct_source` = DBT_INTERNAL_SOURCE.`idproduct_source`,`idproduct_destination` = DBT_INTERNAL_SOURCE.`idproduct_destination`,`type_product_source` = DBT_INTERNAL_SOURCE.`type_product_source`,`type_product_destination` = DBT_INTERNAL_SOURCE.`type_product_destination`,`spantime` = DBT_INTERNAL_SOURCE.`spantime`,`code_status_record` = DBT_INTERNAL_SOURCE.`code_status_record`,`real_start_date` = DBT_INTERNAL_SOURCE.`real_start_date`,`real_end_date` = DBT_INTERNAL_SOURCE.`real_end_date`,`planed_start_date` = DBT_INTERNAL_SOURCE.`planed_start_date`,`planed_end_date` = DBT_INTERNAL_SOURCE.`planed_end_date`,`created_at` = DBT_INTERNAL_SOURCE.`created_at`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`,`deleted_at` = DBT_INTERNAL_SOURCE.`deleted_at`
+    
+
+    when not matched then insert
+        (`idtask`, `task_idtask`, `idtask_type`, `idtask_status`, `iddevice`, `idcompany_peer`, `idlocation`, `idcontact`, `idproduct_source`, `idproduct_destination`, `type_product_source`, `type_product_destination`, `spantime`, `code_status_record`, `real_start_date`, `real_end_date`, `planed_start_date`, `planed_end_date`, `created_at`, `updated_at`, `extracted_at`, `deleted_at`)
+    values
+        (`idtask`, `task_idtask`, `idtask_type`, `idtask_status`, `iddevice`, `idcompany_peer`, `idlocation`, `idcontact`, `idproduct_source`, `idproduct_destination`, `type_product_source`, `type_product_destination`, `spantime`, `code_status_record`, `real_start_date`, `real_end_date`, `planed_start_date`, `planed_end_date`, `created_at`, `updated_at`, `extracted_at`, `deleted_at`)
+
+
+    
