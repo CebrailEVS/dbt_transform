@@ -5,6 +5,13 @@ models:
   # COMPANY
   - name: stg_oracle_neshu__company
     description: "Clients transformés et nettoyés depuis la base Oracle"
+    tests:
+      # dbt_expectations: alerte si le nombre de lignes sort de la plage attendue
+      # (detecte les loads vides ou les duplications massives)
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 100
+            max_value: 100000
     columns:
       - name: idcompany
         description: "Identifiant unique de l'entreprise"
