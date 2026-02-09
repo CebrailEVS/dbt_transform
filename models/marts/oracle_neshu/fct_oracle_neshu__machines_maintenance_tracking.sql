@@ -93,9 +93,10 @@ calcul_retard as (
                     or demand_category_name = 'PREVENTIVE PROG - NESHU'
                 )
                 and workorder_status = 'Closed'
-                then date_done
+                    then date_done
             end
-        ) over (partition by material_id) as derniere_preventive_source1,
+        ) over (partition by material_id)
+            as derniere_preventive_source1,
 
         -- Récupérer la préventive externe (source 2 - DLOG)
         max(last_preventive_date) over (
@@ -129,17 +130,18 @@ retard_final as (
 
         -- CAS 1: Machine installée depuis moins de 13 mois
         case
-            when last_installation_date
-                > timestamp_sub(today, interval 395 day)
+            when
+                last_installation_date > timestamp_sub(today, interval 395 day)
                 then false
 
             -- CAS 2: Machine ancienne sans aucune préventive
-            when derniere_preventive_source1 is null
+            when
+                derniere_preventive_source1 is null
                 and derniere_preventive_source2 is null
                 then true
 
             -- CAS 3: Machine avec préventives - vérifier si retard > 365 jours
-            when  -- noqa: ST04
+            when
                 greatest(
                     coalesce(
                         derniere_preventive_source1,
@@ -157,29 +159,32 @@ retard_final as (
         -- CALCUL DU DÉLAI
         case
             -- CAS 1: Machine récente (< 13 mois)
-            when last_installation_date
-                > timestamp_sub(today, interval 395 day)
-                then timestamp_diff(
-                    timestamp_add(
-                        last_installation_date, interval 395 day
-                    ),
-                    today,
-                    day
-                )
+            when
+                last_installation_date > timestamp_sub(today, interval 395 day)
+                then
+                    timestamp_diff(
+                        timestamp_add(
+                            last_installation_date, interval 395 day
+                        ),
+                        today,
+                        day
+                    )
 
             -- CAS 2: Aucune préventive
-            when derniere_preventive_source1 is null
+            when
+                derniere_preventive_source1 is null
                 and derniere_preventive_source2 is null
-                then -timestamp_diff(
-                    today,
-                    timestamp_add(
-                        last_installation_date, interval 365 day
-                    ),
-                    day
-                )
+                then
+                    -timestamp_diff(
+                        today,
+                        timestamp_add(
+                            last_installation_date, interval 365 day
+                        ),
+                        day
+                    )
 
             -- CAS 3: Avec préventives
-            when  -- noqa: ST04
+            when
                 timestamp_diff(
                     today,
                     greatest(
@@ -194,22 +199,23 @@ retard_final as (
                     ),
                     day
                 ) > 365
-                then -(
-                    timestamp_diff(
-                        today,
-                        greatest(
-                            coalesce(
-                                derniere_preventive_source1,
-                                timestamp('1900-01-01')
+                then
+                    -(
+                        timestamp_diff(
+                            today,
+                            greatest(
+                                coalesce(
+                                    derniere_preventive_source1,
+                                    timestamp('1900-01-01')
+                                ),
+                                coalesce(
+                                    derniere_preventive_source2,
+                                    timestamp('1900-01-01')
+                                )
                             ),
-                            coalesce(
-                                derniere_preventive_source2,
-                                timestamp('1900-01-01')
-                            )
-                        ),
-                        day
-                    ) - 365
-                )
+                            day
+                        ) - 365
+                    )
             else
                 365 - timestamp_diff(
                     today,
@@ -229,17 +235,18 @@ retard_final as (
 
         -- SOURCE DE LA DERNIÈRE PRÉVENTIVE
         case
-            when last_installation_date
-                > timestamp_sub(today, interval 395 day)
+            when
+                last_installation_date > timestamp_sub(today, interval 395 day)
                 then 'aucune'
-            when derniere_preventive_source1 is null
+            when
+                derniere_preventive_source1 is null
                 and derniere_preventive_source2 is null
                 then 'aucune'
-            when derniere_preventive_source2 is null
+            when
+                derniere_preventive_source2 is null
                 or (
                     derniere_preventive_source1 is not null
-                    and derniere_preventive_source1
-                        > derniere_preventive_source2
+                    and derniere_preventive_source1 > derniere_preventive_source2
                 )
                 then 'yuman'
             else

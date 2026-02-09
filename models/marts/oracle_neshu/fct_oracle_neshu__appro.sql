@@ -154,8 +154,8 @@ passage_appro as (
 
     left join pointage_final_table as p
         on
-            p.date_pointage_jour = date(pa.task_start_date)
-            and p.resources_roadman_id = r.resources_roadman_id
+            date(pa.task_start_date) = p.date_pointage_jour
+            and r.resources_roadman_id = p.resources_roadman_id
 
     where r.resources_roadman_id is not null
 ),
@@ -169,7 +169,8 @@ passage_with_metrics as (
                 partition by pa.resources_roadman_id, date(pa.task_start_date)
                 order by pa.task_end_date
                 rows between unbounded preceding and unbounded following
-            ) as last_task_end_of_day,
+            )
+            as last_task_end_of_day,
 
         -- Utilise date_pointage si disponible, sinon première task_start_date du jour
         coalesce(
@@ -242,8 +243,10 @@ passage_work_duration as (
             when timestamp_diff(
                 last_task_end_of_day, effective_work_start, minute
             ) < 0 then null    -- négatif = erreur
-            when last_task_end_of_day is null
-                or effective_work_start is null then null
+            when
+                last_task_end_of_day is null
+                or effective_work_start is null
+                then null
             else timestamp_diff(
                 last_task_end_of_day, effective_work_start, minute
             )

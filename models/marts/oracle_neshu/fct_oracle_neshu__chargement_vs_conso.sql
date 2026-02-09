@@ -1,7 +1,7 @@
 {{
     config(
         materialized='table',
-        cluster_by=['product_type','device_id'],
+        cluster_by=['device_id'],
         description='Table de faits des chargement et consommation (telemetrie) par type de produit, par machine et date de passage appro - Utilisée pour les BI de taux d ecoulement et Suivi des chargements machines gratuités'
     )
 }}
@@ -43,8 +43,7 @@ telemetry_agg as (
         on
             pa.device_id = t.device_id
             and t.task_start_date
-                between coalesce(pa.date_passage_precedent, timestamp('2024-12-30 00:00:00'))
-                and pa.task_start_date
+            between coalesce(pa.date_passage_precedent, timestamp('2024-12-30 00:00:00')) and pa.task_start_date
     left join {{ ref('dim_oracle_neshu__product') }} as p
         on t.product_id = p.product_id
     group by 1, 2, 3
@@ -70,36 +69,51 @@ chargement_agg as (
         on cm.product_id = p.product_id
     group by 1, 2, 3
     having p.product_type is not null or sum(cm.load_quantity) > 0
+),
+
+-- -----------------------------------------------------------------------------------
+-- CTE 4 : Fusion telemetry + chargement via FULL JOIN
+-- On récupère aussi roadman & date passage précédent depuis la CTE initiale.
+-- -----------------------------------------------------------------------------------
+fusion_telemetry_chargement as (
+    select
+        coalesce(t.device_id, c.device_id) as device_id,
+        date(coalesce(t.task_start_date, c.task_start_date)) as date_debut_passage_appro,
+        min(coalesce(t.task_start_date, c.task_start_date)) as task_start_date_min,
+        min(pa.date_passage_precedent) as date_passage_precedent,
+        max(pa.roadman_code) as roadman_code,
+        coalesce(t.product_type, c.product_type) as product_type,
+        sum(coalesce(t.q_consommee, 0)) as q_consommee,
+        max(coalesce(c.q_chargee, 0)) as q_chargee
+    from telemetry_agg as t
+    full join chargement_agg as c
+        on
+            t.device_id = c.device_id
+            and t.task_start_date = c.task_start_date
+            and t.product_type = c.product_type
+    left join passage_avec_suivant as pa
+        on
+            pa.device_id = coalesce(t.device_id, c.device_id)
+            and pa.task_start_date = coalesce(t.task_start_date, c.task_start_date)
+    group by
+        1, 2, 6
 )
 
 -- -----------------------------------------------------------------------------------
--- Final : Fusion telemetry + chargement via FULL JOIN
--- On récupère aussi roadman & date passage précédent depuis la CTE initiale.
+-- Final : Sélection finale avec métadonnées dbt
 -- -----------------------------------------------------------------------------------
 select
-    coalesce(t.device_id, c.device_id) as device_id,
-    date(coalesce(t.task_start_date, c.task_start_date)) as date_debut_passage_appro,
-    min(coalesce(t.task_start_date, c.task_start_date)) as task_start_date_min,
-    min(pa.date_passage_precedent) as date_passage_precedent,
-    max(pa.roadman_code) as roadman_code,
-    coalesce(t.product_type, c.product_type) as product_type,
-    sum(coalesce(t.q_consommee, 0)) as q_consommee,
-    max(coalesce(c.q_chargee, 0)) as q_chargee,
+    device_id,
+    date_debut_passage_appro,
+    task_start_date_min,
+    date_passage_precedent,
+    roadman_code,
+    product_type,
+    q_consommee,
+    q_chargee,
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
     '{{ invocation_id }}' as dbt_invocation_id  -- noqa: TMP
-from telemetry_agg as t
-full join chargement_agg as c
-    on
-        t.device_id = c.device_id
-        and t.task_start_date = c.task_start_date
-        and t.product_type = c.product_type
-left join passage_avec_suivant as pa
-    on
-        pa.device_id = coalesce(t.device_id, c.device_id)
-        and pa.task_start_date = coalesce(t.task_start_date, c.task_start_date)
-group by
-    device_id,  -- noqa: RF02, AM06
-    date_debut_passage_appro,
-    product_type  -- noqa: RF02
+
+from fusion_telemetry_chargement
