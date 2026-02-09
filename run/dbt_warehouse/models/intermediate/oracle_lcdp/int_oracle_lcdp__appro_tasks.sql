@@ -90,8 +90,8 @@ from passage_appro_base
 
 
     where passage_appro_base.updated_at >= (
-        select max(updated_at) - interval 1 day  -- noqa: RF02
-        from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__appro_tasks`
+        select max(t.updated_at) - interval 1 day
+        from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__appro_tasks` as t
     )
 
         ) as DBT_INTERNAL_SOURCE

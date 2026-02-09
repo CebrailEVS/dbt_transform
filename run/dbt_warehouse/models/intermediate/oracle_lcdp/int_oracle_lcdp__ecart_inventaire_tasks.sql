@@ -52,22 +52,25 @@ with ecart_inventaire_base as (
         t.created_at,
         t.extracted_at
 
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` t
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_product` thp on thp.idtask = t.idtask
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__product` p on p.idproduct = thp.idproduct
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_status` ts on t.idtask_status = ts.idtask_status
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` as t
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_product` as thp on t.idtask = thp.idtask
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__product` as p on thp.idproduct = p.idproduct
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_status` as ts on t.idtask_status = ts.idtask_status
 
     -- jointure company pour la source si COMPANY
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` cs
-        on t.idproduct_source = cs.idcompany
-       and t.type_product_source = 'COMPANY'
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` as cs
+        on
+            t.idproduct_source = cs.idcompany
+            and t.type_product_source = 'COMPANY'
 
     -- jointure resources pour la source si RESOURCES
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` r
-        on t.idproduct_source = r.idresources
-       and t.type_product_source = 'RESOURCES'
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` as r
+        on
+            t.idproduct_source = r.idresources
+            and t.type_product_source = 'RESOURCES'
 
-    where 1=1
+    where
+        1 = 1
         and t.idtask_status in (1, 4, 3)  -- FAIT, VALIDE, ANNULE
         and t.code_status_record = '1'
         and t.idtask_type = 163 -- ECART INVENTAIRE

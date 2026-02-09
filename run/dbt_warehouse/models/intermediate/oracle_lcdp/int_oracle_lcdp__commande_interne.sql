@@ -60,43 +60,48 @@ with commande_interne_base as (
         t.created_at,
         t.extracted_at
 
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` t
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_product` thp
-        on thp.idtask = t.idtask
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__product` p
-        on p.idproduct = thp.idproduct
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_status` ts
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` as t
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_product` as thp
+        on t.idtask = thp.idtask
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__product` as p
+        on thp.idproduct = p.idproduct
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_status` as ts
         on t.idtask_status = ts.idtask_status
 
     -- Source = COMPANY
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` cs
-        on t.idproduct_source = cs.idcompany
-       and t.type_product_source = 'COMPANY'
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` as cs
+        on
+            t.idproduct_source = cs.idcompany
+            and t.type_product_source = 'COMPANY'
 
     -- Source = RESOURCES
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` rs
-        on t.idproduct_source = rs.idresources
-       and t.type_product_source = 'RESOURCES'
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` as rs
+        on
+            t.idproduct_source = rs.idresources
+            and t.type_product_source = 'RESOURCES'
 
     -- Destination = COMPANY
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` cd
-        on t.idproduct_destination = cd.idcompany
-       and t.type_product_destination = 'COMPANY'
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` as cd
+        on
+            t.idproduct_destination = cd.idcompany
+            and t.type_product_destination = 'COMPANY'
 
     -- Destination = RESOURCES
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` rd
-        on t.idproduct_destination = rd.idresources
-       and t.type_product_destination = 'RESOURCES'
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` as rd
+        on
+            t.idproduct_destination = rd.idresources
+            and t.type_product_destination = 'RESOURCES'
 
     -- Jointures pour le filtrage sur labels télémétrie
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` lht
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` as lht
         on t.idtask = lht.idtask
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` la
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` as la
         on lht.idlabel = la.idlabel
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_family` lf
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_family` as lf
         on la.idlabel_family = lf.idlabel_family
 
-    where 1=1
+    where
+        1 = 1
         and t.idtask_status in (1, 4, 3)  -- FAIT, VALIDE, ANNULE
         and t.code_status_record = '1'
         and t.idtask_type = 132  -- LIVRAISON INTERNE
@@ -172,8 +177,9 @@ select
     extracted_at
 
 from dedup
-where rn = 1
-  and source_code is not null
-  and destination_code is not null
+where
+    rn = 1
+    and source_code is not null
+    and destination_code is not null
     );
   
