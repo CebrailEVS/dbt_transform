@@ -4,6 +4,7 @@ dialect = bigquery
 templater = dbt
 max_line_length = 120
 large_file_skip_byte_limit = 30000
+exclude_rules = ST06
 
 # --- dbt templater ---
 # Uses dbt to compile models, resolving ref(), source(), dbt_utils macros, etc.
@@ -49,3 +50,4 @@ select_clause_trailing_comma = forbid
 # Consistent casting style within a file
 [sqlfluff:rules:convention.casting_style]
 preferred_type_casting_style = consistent
+

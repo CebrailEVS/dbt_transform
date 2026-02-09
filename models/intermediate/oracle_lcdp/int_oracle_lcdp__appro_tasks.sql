@@ -84,7 +84,7 @@ from passage_appro_base
 
 {% if is_incremental() %}
     where passage_appro_base.updated_at >= (
-        select max(updated_at) - interval 1 day  -- noqa: RF02
-        from {{ this }}
+        select max(t.updated_at) - interval 1 day
+        from {{ this }} as t
     )
 {% endif %}
