@@ -96,6 +96,9 @@ models:
       oracle_neshu:
         +tags: ['marts', 'oracle_neshu']
 
+      oracle_lcdp:
+        +tags: ['marts', 'oracle_lcdp']
+
       oracle_neshu_gcs:
         +tags: ['marts', 'oracle_neshu_gcs']
 
