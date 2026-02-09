@@ -1,18 +1,18 @@
-
+-- back compat for old kwarg name
   
+  
+        
+            
+	    
+	    
+            
+        
     
 
-    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__appro_tasks`
-      
-    partition by timestamp_trunc(task_start_date, day)
     
 
-    
-    OPTIONS(
-      description="""Table interm\u00e9diaire des passages approvisionneurs. Filtr\u00e9e sur les t\u00e2ches de type PASSAGE APPRO (idtask_type=32) avec statut actif (code_status_record=1) et enrichie avec ressources (roadman, v\u00e9hicule).\n"""
-    )
-    as (
-      
+    merge into `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__appro_tasks` as DBT_INTERNAL_DEST
+        using (
 
 with passage_appro_base as (
 
@@ -89,5 +89,23 @@ select
 from passage_appro_base
 
 
-    );
-  
+    where passage_appro_base.updated_at >= (
+        select max(updated_at) - interval 1 day  -- noqa: RF02
+        from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__appro_tasks`
+    )
+
+        ) as DBT_INTERNAL_SOURCE
+        on ((DBT_INTERNAL_SOURCE.task_id = DBT_INTERNAL_DEST.task_id))
+
+    
+    when matched then update set
+        `task_id` = DBT_INTERNAL_SOURCE.`task_id`,`device_id` = DBT_INTERNAL_SOURCE.`device_id`,`company_id` = DBT_INTERNAL_SOURCE.`company_id`,`product_source_id` = DBT_INTERNAL_SOURCE.`product_source_id`,`product_destination_id` = DBT_INTERNAL_SOURCE.`product_destination_id`,`company_code` = DBT_INTERNAL_SOURCE.`company_code`,`product_source_type` = DBT_INTERNAL_SOURCE.`product_source_type`,`product_destination_type` = DBT_INTERNAL_SOURCE.`product_destination_type`,`task_location_info` = DBT_INTERNAL_SOURCE.`task_location_info`,`task_status_code` = DBT_INTERNAL_SOURCE.`task_status_code`,`task_start_date` = DBT_INTERNAL_SOURCE.`task_start_date`,`task_end_date` = DBT_INTERNAL_SOURCE.`task_end_date`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`created_at` = DBT_INTERNAL_SOURCE.`created_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`
+    
+
+    when not matched then insert
+        (`task_id`, `device_id`, `company_id`, `product_source_id`, `product_destination_id`, `company_code`, `product_source_type`, `product_destination_type`, `task_location_info`, `task_status_code`, `task_start_date`, `task_end_date`, `updated_at`, `created_at`, `extracted_at`)
+    values
+        (`task_id`, `device_id`, `company_id`, `product_source_id`, `product_destination_id`, `company_code`, `product_source_type`, `product_destination_type`, `task_location_info`, `task_status_code`, `task_start_date`, `task_end_date`, `updated_at`, `created_at`, `extracted_at`)
+
+
+    

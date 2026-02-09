@@ -1,18 +1,18 @@
-
+-- back compat for old kwarg name
   
+  
+        
+            
+	    
+	    
+            
+        
     
 
-    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__chargement_tasks`
-      
-    partition by timestamp_trunc(task_start_date, day)
     
 
-    
-    OPTIONS(
-      description="""Table interm\u00e9diaire des t\u00e2ches de chargement machine. Filtr\u00e9e sur les t\u00e2ches de type CHARGEMENT (idtask_type=13) avec statut FAIT/VALIDE/ANNULE et label du chargement (LOADING / REMOVING).\n"""
-    )
-    as (
-      
+    merge into `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__chargement_tasks` as DBT_INTERNAL_DEST
+        using (
 
 with chargement_base as (
 
@@ -168,5 +168,23 @@ select
 from chargement_enrichi
 
 
-    );
-  
+  where updated_at >= (
+      select max(updated_at) - interval 1 day
+      from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__chargement_tasks`
+  )
+
+        ) as DBT_INTERNAL_SOURCE
+        on ((DBT_INTERNAL_SOURCE.task_product_id = DBT_INTERNAL_DEST.task_product_id))
+
+    
+    when matched then update set
+        `task_product_id` = DBT_INTERNAL_SOURCE.`task_product_id`,`task_id` = DBT_INTERNAL_SOURCE.`task_id`,`device_id` = DBT_INTERNAL_SOURCE.`device_id`,`company_id` = DBT_INTERNAL_SOURCE.`company_id`,`product_id` = DBT_INTERNAL_SOURCE.`product_id`,`location_id` = DBT_INTERNAL_SOURCE.`location_id`,`product_source_id` = DBT_INTERNAL_SOURCE.`product_source_id`,`product_destination_id` = DBT_INTERNAL_SOURCE.`product_destination_id`,`roadman_id` = DBT_INTERNAL_SOURCE.`roadman_id`,`vehicle_id` = DBT_INTERNAL_SOURCE.`vehicle_id`,`company_code` = DBT_INTERNAL_SOURCE.`company_code`,`device_code` = DBT_INTERNAL_SOURCE.`device_code`,`product_code` = DBT_INTERNAL_SOURCE.`product_code`,`roadman_code` = DBT_INTERNAL_SOURCE.`roadman_code`,`vehicle_code` = DBT_INTERNAL_SOURCE.`vehicle_code`,`task_status_code` = DBT_INTERNAL_SOURCE.`task_status_code`,`load_type_code` = DBT_INTERNAL_SOURCE.`load_type_code`,`product_source_type` = DBT_INTERNAL_SOURCE.`product_source_type`,`product_destination_type` = DBT_INTERNAL_SOURCE.`product_destination_type`,`task_location_info` = DBT_INTERNAL_SOURCE.`task_location_info`,`task_start_date` = DBT_INTERNAL_SOURCE.`task_start_date`,`unit_coeff_multi` = DBT_INTERNAL_SOURCE.`unit_coeff_multi`,`unit_coeff_div` = DBT_INTERNAL_SOURCE.`unit_coeff_div`,`base_unit_quantity` = DBT_INTERNAL_SOURCE.`base_unit_quantity`,`product_unit_price_task` = DBT_INTERNAL_SOURCE.`product_unit_price_task`,`product_unit_price_latest` = DBT_INTERNAL_SOURCE.`product_unit_price_latest`,`load_quantity` = DBT_INTERNAL_SOURCE.`load_quantity`,`load_valuation` = DBT_INTERNAL_SOURCE.`load_valuation`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`created_at` = DBT_INTERNAL_SOURCE.`created_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`
+    
+
+    when not matched then insert
+        (`task_product_id`, `task_id`, `device_id`, `company_id`, `product_id`, `location_id`, `product_source_id`, `product_destination_id`, `roadman_id`, `vehicle_id`, `company_code`, `device_code`, `product_code`, `roadman_code`, `vehicle_code`, `task_status_code`, `load_type_code`, `product_source_type`, `product_destination_type`, `task_location_info`, `task_start_date`, `unit_coeff_multi`, `unit_coeff_div`, `base_unit_quantity`, `product_unit_price_task`, `product_unit_price_latest`, `load_quantity`, `load_valuation`, `updated_at`, `created_at`, `extracted_at`)
+    values
+        (`task_product_id`, `task_id`, `device_id`, `company_id`, `product_id`, `location_id`, `product_source_id`, `product_destination_id`, `roadman_id`, `vehicle_id`, `company_code`, `device_code`, `product_code`, `roadman_code`, `vehicle_code`, `task_status_code`, `load_type_code`, `product_source_type`, `product_destination_type`, `task_location_info`, `task_start_date`, `unit_coeff_multi`, `unit_coeff_div`, `base_unit_quantity`, `product_unit_price_task`, `product_unit_price_latest`, `load_quantity`, `load_valuation`, `updated_at`, `created_at`, `extracted_at`)
+
+
+    
