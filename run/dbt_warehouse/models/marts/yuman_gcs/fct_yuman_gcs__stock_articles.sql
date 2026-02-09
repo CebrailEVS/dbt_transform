@@ -40,7 +40,7 @@ SELECT
 
     -- Métadonnées d'exécution
     CURRENT_TIMESTAMP() as dbt_updated_at,
-    'c000d561-a3b4-4256-9ba8-32f84a757315' as dbt_invocation_id
+    '9bf27b3e-6955-4c3a-9f8b-ec789b1a827d' as dbt_invocation_id
 
     FROM `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique`
     WHERE reference is not null and nom_du_stock is not null
