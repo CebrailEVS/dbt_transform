@@ -19,14 +19,14 @@ cleaned_data as (
         -- Timestamps harmonisés
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
-        
+
     from source_data
 ),
 
 filtered_data as (
     select lht.*
-    from cleaned_data lht
-    inner join {{ ref('stg_oracle_neshu__task') }} t
+    from cleaned_data as lht
+    inner join {{ ref('stg_oracle_neshu__task') }} as t
         on lht.idtask = t.idtask
 )
 
