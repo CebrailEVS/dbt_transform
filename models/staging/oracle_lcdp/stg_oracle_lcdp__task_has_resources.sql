@@ -27,9 +27,9 @@ cleaned_data as (
 -- Synchro avec la table des tâches pour éviter les orphelins
 filtered_data as (
     select cr.*
-    from cleaned_data cr
-    inner join {{ ref('stg_oracle_lcdp__task') }} t
-      on cr.idtask = t.idtask
+    from cleaned_data as cr
+    inner join {{ ref('stg_oracle_lcdp__task') }} as t
+        on cr.idtask = t.idtask
 )
 
 select * from filtered_data
