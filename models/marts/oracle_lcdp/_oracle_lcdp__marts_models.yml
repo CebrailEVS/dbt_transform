@@ -1,0 +1,230 @@
+# models/marts/oracle_lcdp/_oracle_lcdp__marts_models.yml
+version: 2
+
+models:
+  # COMPANY
+  - name: dim_oracle_lcdp__company
+    description: >
+      Dimension client/company enrichie à partir des labels associés (zone géo, domaine activité, modèles, etc.)
+      et des informations de localisation.
+    columns:
+      - name: company_id
+        description: "Identifiant unique de la société"
+        tests:
+          - not_null
+          - unique
+
+      - name: company_type_id
+        description: "ID Type de société (ex : client, fournisseur...)"
+
+      - name: company_code
+        description: "Code client"
+
+      - name: company_name
+        description: "Nom de la société"
+
+      - name: geo_zone
+        description: "Zone géographique de la société (label ZGEO)"
+
+      - name: activity_domain
+        description: "Domaine d'activité (label DOMACT)"
+
+      - name: business_model
+        description: "Modèle business (label BUSMOD)"
+
+      - name: key_account
+        description: "Grand compte (label GC)"
+
+      - name: is_active
+        description: >
+          Indique si la société est active (label ISACTIVE).
+          TRUE si 'yes', sinon FALSE.
+
+      - name: model_horeca
+        description: "Modèle HORECA (label MODEH)"
+
+      - name: model_office
+        description: "Modèle Office (label MODEOF)"
+
+      - name: model_revendeur
+        description: "Modèle Revendeur (label MODER)"
+
+      - name: owner
+        description: "Propriétaire de la société (label PROPRIO)"
+
+      - name: representative
+        description: "Représentant commercial (label REPRES)"
+
+      - name: bl_group
+        description: "Groupe de bon de livraison (label BL_GRP)"
+
+      - name: invoice_delivery_mode
+        description: "Mode d'envoi de facture (label MEF)"
+
+      - name: remainder_management
+        description: "Gestion du reliquat (label Gestion reliquat)"
+
+      - name: address1
+        description: "Adresse principale (ligne 1)"
+
+      - name: address2
+        description: "Adresse complémentaire (ligne 2)"
+
+      - name: city
+        description: "Ville"
+
+      - name: postal_code
+        description: "Code postal"
+
+      - name: country
+        description: "Pays"
+
+      - name: created_at
+        description: "Date de création de la société"
+
+      - name: updated_at
+        description: "Date de dernière modification"
+
+  # PRODUCT
+  - name: dim_oracle_lcdp__product
+    description: >
+      Dimension produit enrichie à partir des labels associés (famille, groupe, marque, bio, etc.)
+      filtré sur les produits de type 1 (produit) et 5 (Ligne de prix).
+    columns:
+      - name: product_id
+        description: "Identifiant unique du produit"
+        tests:
+          - not_null
+          - unique
+
+      - name: product_type_id
+        description: "ID Type de produit (1=produit, 5=ligne de prix)"
+
+      - name: product_code
+        description: "Code métier du produit"
+
+      - name: product_name
+        description: "Nom du produit"
+
+      - name: purchase_unit_price
+        description: "Prix d'achat unitaire hors taxe"
+
+      - name: product_family
+        description: "Famille du produit (label FAMIPRO)"
+
+      - name: product_group
+        description: "Groupe du produit (label GROUPRO)"
+
+      - name: product_brand
+        description: "Marque du produit (label MARQPRO)"
+
+      - name: product_bio
+        description: "Indicateur produit bio (label BIO)"
+
+      - name: is_active
+        description: >
+          Indique si le produit est actif (label ISACTIVE).
+          TRUE si 'yes', sinon FALSE.
+
+      - name: created_at
+        description: "Date de création du produit"
+
+      - name: updated_at
+        description: "Date de dernière modification"
+
+  # DEVICE
+  - name: dim_oracle_lcdp__device
+    description: >
+      Dimension device enrichie à partir des labels associés (catégorie, état, statut, marque, types, etc.)
+    columns:
+      - name: device_id
+        description: "Identifiant unique du device"
+        tests:
+          - not_null
+          - unique
+
+      - name: device_iddevice
+        description: "ID du device parent (hiérarchie)"
+
+      - name: device_type_id
+        description: "ID Type de device"
+
+      - name: company_id
+        description: "ID de l'entreprise cliente"
+
+      - name: location_id
+        description: "ID de la localisation"
+
+      - name: device_code
+        description: "Code métier du device"
+
+      - name: device_name
+        description: "Nom du device"
+
+      - name: company_code
+        description: "Code de l'entreprise cliente"
+
+      - name: company_name
+        description: "Nom de l'entreprise cliente"
+
+      - name: device_category
+        description: "Catégorie de la machine (label CATMACH)"
+
+      - name: device_brand
+        description: "Marque du device (label MARQUE)"
+
+      - name: device_state
+        description: "État de la machine (label ETAT_MACHINE)"
+
+      - name: device_material_status
+        description: "Statut du matériel (label STATUT_MATERIEL)"
+
+      - name: audit_type
+        description: "Type d'audit - cashless, télémétrie nayax, etc. (label TYPEAUDIT)"
+
+      - name: typology_da
+        description: "Typologie DA (label TYDA)"
+
+      - name: currency_mode
+        description: "Mode monnaie - avec ou sans (label LCDPMON)"
+
+      - name: fountain_type
+        description: "Type de fontaine (label TYPFONT)"
+
+      - name: grinder_type
+        description: "Type de broyeur (label TYPBROY)"
+
+      - name: percolator_type
+        description: "Type de percolateur (label TYPPERCO)"
+
+      - name: type_sp
+        description: "Type SP (label TYPSP)"
+
+      - name: type_dasa
+        description: "Type DASA (label TYPDASA)"
+
+      - name: model_sp
+        description: "Modèle SP (label MODSP)"
+
+      - name: brand_sp
+        description: "Marque SP (label MARQSP)"
+
+      - name: badge
+        description: "Badge (label BADGE)"
+
+      - name: device_location
+        description: "Informations d'accès de la localisation"
+
+      - name: is_active
+        description: >
+          Indique si le device est actif (label ISACTIVE).
+          TRUE si 'yes', sinon FALSE.
+
+      - name: last_installation_date
+        description: "Dernière date d'installation"
+
+      - name: created_at
+        description: "Date de création"
+
+      - name: updated_at
+        description: "Date de dernière modification"
