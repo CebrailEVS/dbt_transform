@@ -18,11 +18,11 @@ with commande_interne_base as (
         t.type_product_destination as product_destination_type,
 
         -- Codes (source et destination)
-        case 
+        case
             when t.type_product_source = 'COMPANY' then cs.code
             when t.type_product_source = 'RESOURCES' then rs.code
         end as source_code,
-        case 
+        case
             when t.type_product_destination = 'COMPANY' then cd.code
             when t.type_product_destination = 'RESOURCES' then rd.code
         end as destination_code,
@@ -50,43 +50,48 @@ with commande_interne_base as (
         t.created_at,
         t.extracted_at
 
-    from {{ ref('stg_oracle_neshu__task') }} t
-    inner join {{ ref('stg_oracle_neshu__task_has_product') }} thp 
-        on thp.idtask = t.idtask
-    left join {{ ref('stg_oracle_neshu__product') }} p 
-        on p.idproduct = thp.idproduct
-    left join {{ ref('stg_oracle_neshu__task_status') }} ts 
+    from {{ ref('stg_oracle_neshu__task') }} as t
+    inner join {{ ref('stg_oracle_neshu__task_has_product') }} as thp
+        on t.idtask = thp.idtask
+    left join {{ ref('stg_oracle_neshu__product') }} as p
+        on thp.idproduct = p.idproduct
+    left join {{ ref('stg_oracle_neshu__task_status') }} as ts
         on t.idtask_status = ts.idtask_status
 
     -- Source = COMPANY
-    left join {{ ref('stg_oracle_neshu__company') }} cs 
-        on t.idproduct_source = cs.idcompany 
-       and t.type_product_source = 'COMPANY'
+    left join {{ ref('stg_oracle_neshu__company') }} as cs
+        on
+            t.idproduct_source = cs.idcompany
+            and t.type_product_source = 'COMPANY'
 
     -- Source = RESOURCES
-    left join {{ ref('stg_oracle_neshu__resources') }} rs 
-        on t.idproduct_source = rs.idresources
-       and t.type_product_source = 'RESOURCES'
+    left join {{ ref('stg_oracle_neshu__resources') }} as rs
+        on
+            t.idproduct_source = rs.idresources
+            and t.type_product_source = 'RESOURCES'
 
     -- Destination = COMPANY
-    left join {{ ref('stg_oracle_neshu__company') }} cd 
-        on t.idproduct_destination = cd.idcompany 
-       and t.type_product_destination = 'COMPANY'
+    left join {{ ref('stg_oracle_neshu__company') }} as cd
+        on
+            t.idproduct_destination = cd.idcompany
+            and t.type_product_destination = 'COMPANY'
 
     -- Destination = RESOURCES
-    left join {{ ref('stg_oracle_neshu__resources') }} rd 
-        on t.idproduct_destination = rd.idresources
-       and t.type_product_destination = 'RESOURCES'
+    left join {{ ref('stg_oracle_neshu__resources') }} as rd
+        on
+            t.idproduct_destination = rd.idresources
+            and t.type_product_destination = 'RESOURCES'
 
     -- Jointures pour le filtrage sur labels télémétrie
-    left join {{ ref('stg_oracle_neshu__label_has_task') }} lht
-        on t.idtask = lht.idtask   
-    left join {{ ref('stg_oracle_neshu__label') }} la
-        on lht.idlabel = la.idlabel  
-    left join {{ ref('stg_oracle_neshu__label_family') }} lf
+    left join {{ ref('stg_oracle_neshu__label_has_task') }} as lht
+        on t.idtask = lht.idtask
+    left join {{ ref('stg_oracle_neshu__label') }} as la
+        on lht.idlabel = la.idlabel
+    left join {{ ref('stg_oracle_neshu__label_family') }} as lf
         on la.idlabel_family = lf.idlabel_family
 
-    where 1=1
+    where
+        1 = 1
         and t.idtask_status in (1, 4, 3)  -- FAIT, VALIDE, ANNULE
         and t.code_status_record = '1'
         and t.idtask_type = 132  -- LIVRAISON INTERNE
@@ -94,13 +99,13 @@ with commande_interne_base as (
         and t.real_start_date is not null
 
     group by
-        thp.idtask_has_product, 
-        t.idtask, 
+        thp.idtask_has_product,
+        t.idtask,
         t.idcompany_peer,
-        thp.idproduct, 
-        t.idproduct_source, 
+        thp.idproduct,
+        t.idproduct_source,
         t.type_product_source,
-        t.idproduct_destination, 
+        t.idproduct_destination,
         t.type_product_destination,
         cs.code, rs.code, cd.code, rd.code,
         p.code, ts.code, la.code,
@@ -118,7 +123,7 @@ dedup as (
         *,
         row_number() over (
             partition by task_product_id
-            order by 
+            order by
                 case when label_code = 'LIVRE' then 1 else 2 end
         ) as rn
     from commande_interne_base
@@ -162,6 +167,7 @@ select
     extracted_at
 
 from dedup
-where rn = 1
-  and source_code is not null
-  and destination_code is not null
+where
+    rn = 1
+    and source_code is not null
+    and destination_code is not null

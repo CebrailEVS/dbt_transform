@@ -50,17 +50,18 @@ with chargement_base as (
         t.created_at,
         t.extracted_at
 
-    from {{ ref('stg_oracle_neshu__task') }} t
-    inner join {{ ref('stg_oracle_neshu__task_has_product') }} thp on thp.idtask = t.idtask
-    left join {{ ref('stg_oracle_neshu__company') }} c on c.idcompany = t.idcompany_peer
-    left join {{ ref('stg_oracle_neshu__device') }} d on d.iddevice = t.iddevice
-    left join {{ ref('stg_oracle_neshu__product') }} p on p.idproduct = thp.idproduct
-    left join {{ ref('stg_oracle_neshu__location') }} l on l.idlocation = t.idlocation
-    left join {{ ref('stg_oracle_neshu__label_has_task') }} lht on t.idtask = lht.idtask
-    left join {{ ref('stg_oracle_neshu__label') }} la on lht.idlabel = la.idlabel
-    left join {{ ref('stg_oracle_neshu__task_status') }} ts on t.idtask_status = ts.idtask_status
+    from {{ ref('stg_oracle_neshu__task') }} as t
+    inner join {{ ref('stg_oracle_neshu__task_has_product') }} as thp on t.idtask = thp.idtask
+    left join {{ ref('stg_oracle_neshu__company') }} as c on t.idcompany_peer = c.idcompany
+    left join {{ ref('stg_oracle_neshu__device') }} as d on t.iddevice = d.iddevice
+    left join {{ ref('stg_oracle_neshu__product') }} as p on thp.idproduct = p.idproduct
+    left join {{ ref('stg_oracle_neshu__location') }} as l on t.idlocation = l.idlocation
+    left join {{ ref('stg_oracle_neshu__label_has_task') }} as lht on t.idtask = lht.idtask
+    left join {{ ref('stg_oracle_neshu__label') }} as la on lht.idlabel = la.idlabel
+    left join {{ ref('stg_oracle_neshu__task_status') }} as ts on t.idtask_status = ts.idtask_status
 
-    where 1=1
+    where
+        1 = 1
         and t.idtask_status in (1, 4, 3)  -- FAIT, VALIDE, ANNULE
         and t.code_status_record = '1'
         and t.idtask_type = 13 -- CHARGEMENT MACHINE
@@ -83,37 +84,37 @@ with chargement_base as (
 ),
 
 ressources_roadman as (
-    select 
-        thr.idtask, 
+    select
+        thr.idtask,
         min(r.idresources) as roadman_id,
         min(r.code) as roadman_code
-    from {{ ref('stg_oracle_neshu__task_has_resources') }} thr
-    join {{ ref('stg_oracle_neshu__resources') }} r on r.idresources = thr.idresources
+    from {{ ref('stg_oracle_neshu__task_has_resources') }} as thr
+    inner join {{ ref('stg_oracle_neshu__resources') }} as r on thr.idresources = r.idresources
     where r.idresources_type = 2
     group by thr.idtask
 ),
 
 ressources_vehicle as (
-    select 
-        thr.idtask, 
+    select
+        thr.idtask,
         min(r.idresources) as vehicle_id,
         min(r.code) as vehicle_code
-    from {{ ref('stg_oracle_neshu__task_has_resources') }} thr
-    join {{ ref('stg_oracle_neshu__resources') }} r on r.idresources = thr.idresources
+    from {{ ref('stg_oracle_neshu__task_has_resources') }} as thr
+    inner join {{ ref('stg_oracle_neshu__resources') }} as r on thr.idresources = r.idresources
     where r.idresources_type = 3
     group by thr.idtask
 ),
 
 chargement_enrichi as (
-    select 
+    select
         cb.*,
         rr.roadman_id,
         rr.roadman_code,
         rv.vehicle_id,
         rv.vehicle_code
-    from chargement_base cb
-    left join ressources_roadman rr on cb.task_id = rr.idtask
-    left join ressources_vehicle rv on cb.task_id = rv.idtask
+    from chargement_base as cb
+    left join ressources_roadman as rr on cb.task_id = rr.idtask
+    left join ressources_vehicle as rv on cb.task_id = rv.idtask
 )
 
 select
@@ -162,8 +163,8 @@ select
 from chargement_enrichi
 
 {% if is_incremental() %}
-  where updated_at >= (
-      select max(updated_at) - interval 1 day
-      from {{ this }}
-  )
+    where chargement_enrichi.updated_at >= (
+        select max(t.updated_at) - interval 1 day
+        from {{ this }} as t
+    )
 {% endif %}
