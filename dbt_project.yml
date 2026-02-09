@@ -74,9 +74,12 @@ models:
       oracle_neshu:
         +tags: ['intermediate', 'oracle_neshu']
 
+      oracle_lcdp:
+        +tags: ['intermediate', 'oracle_lcdp']
+
       mssql_sage:
         +tags: ['intermediate', 'mssql_sage']
-      
+
       nesp_tech:
         +tags: ['intermediate', 'nesp_tech']
 
