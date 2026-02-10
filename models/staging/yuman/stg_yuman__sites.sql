@@ -1,27 +1,32 @@
 {{
-  config(
-    materialized='table',
-    description='Sites nettoyés avec référence client validée',
-  )
+    config(
+        materialized = 'table',
+        description = 'Sites nettoyés avec référence client validée'
+    )
 }}
 
 with source_data as (
-    select * from {{ source('yuman_api', 'yuman_sites') }}
+
+    select *
+    from {{ source('yuman_api', 'yuman_sites') }}
+
 ),
 
 extracted_postal_code as (
+
     select
-        *,
+        sd.*,
         (
-            select JSON_EXTRACT_SCALAR(value, '$.value')
-            from unnest(JSON_EXTRACT_ARRAY(_embed_fields)) as value
-            where JSON_EXTRACT_SCALAR(value, '$.name') = 'CODE POSTAL'
-            limit 1
+            select json_extract_scalar(elem, '$.value')
+            from unnest(json_extract_array(sd._embed_fields)) as elem
+            where json_extract_scalar(elem, '$.name') = 'CODE POSTAL'
         ) as raw_code_postal
-    from source_data
+    from source_data as sd
+
 ),
 
 cleaned as (
+
     select
         id as site_id,
         client_id,
@@ -29,13 +34,15 @@ cleaned as (
         code as site_code,
         name as site_name,
         address as site_address,
-        -- Nettoyage du code postal : suppression du ".0", puis cast en texte
+        -- nettoyage du code postal : suppression du '.0'
         regexp_replace(raw_code_postal, r'\.0$', '') as site_postal_code,
-        cast(created_at as timestamp) as created_at,
-        cast(updated_at as timestamp) as updated_at,
-        cast(_sdc_extracted_at as timestamp) as extracted_at,
-        cast(_sdc_deleted_at as timestamp) as deleted_at
+        timestamp(created_at) as created_at,
+        timestamp(updated_at) as updated_at,
+        timestamp(_sdc_extracted_at) as extracted_at,
+        timestamp(_sdc_deleted_at) as deleted_at
     from extracted_postal_code
+
 )
 
-select * from cleaned
+select *
+from cleaned
