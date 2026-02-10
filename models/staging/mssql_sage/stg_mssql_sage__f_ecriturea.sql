@@ -36,10 +36,11 @@ cleaned_data as (
 
         -- Timestamps harmonisés
         timestamp(cb_creation) as created_at,
-        timestamp(coalesce(cb_modification, cb_creation)) as updated_at, -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
+        -- Fallback to cb_creation when cb_modification is null
+        timestamp(coalesce(cb_modification, cb_creation)) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
-        
+
     from source_data
 )
 

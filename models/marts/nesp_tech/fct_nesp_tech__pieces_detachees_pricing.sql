@@ -28,10 +28,10 @@ final as (
         art_conso.quantite_article as piece_quantite,
         art_pricing.article_prix_unitaire as piece_prix_unitaire,
         (art_conso.quantite_article * art_pricing.article_prix_unitaire) as montant_total
-    from {{ ref('stg_nesp_tech__articles') }} art_conso
-    left join {{ ref('ref_nesp_tech__articles_prix') }} art_pricing
+    from {{ ref('stg_nesp_tech__articles') }} as art_conso
+    left join {{ ref('ref_nesp_tech__articles_prix') }} as art_pricing
         on art_conso.code_article = lower(art_pricing.article_ref_nomad)
-    inner join inters i
+    inner join inters as i
         on art_conso.n_planning = i.n_planning
 )
 

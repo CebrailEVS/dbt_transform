@@ -63,7 +63,7 @@ joined as (
             if(dm.dpt is not null, ' - Montagne', '')
         ) as key_factu,
         i.n_planning,
-        i.type,
+        i.intervention_type,
         i.code_machine,
         i.nom_machine,
         i.repair_code_1,
@@ -87,7 +87,7 @@ joined as (
         on lower(i.nom_machine) = ma.nom_machine
     left join ref_type_inter as r
         on
-            i.type = r.type_code
+            i.intervention_type = r.type_code
             and (i.repair_code_1 = r.repair_code_1 or r.repair_code_1 is null)
             and (i.failure_code = r.failure_code or r.failure_code is null)
             and (i.mini_prev_bool = r.mini_prev_bool or r.mini_prev_bool is null)

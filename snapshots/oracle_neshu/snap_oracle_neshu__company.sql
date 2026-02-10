@@ -23,55 +23,55 @@
     )
 }}
 
-WITH source_table AS (
+    with source_table as (
 
-    SELECT *
-    FROM {{ ref('dim_oracle_neshu__company') }}
+        select *
+        from {{ ref('dim_oracle_neshu__company') }}
 
-)
+    )
 
-SELECT
-    -- Identité
-    company_id,
-    company_type_id,
-    company_code,
-    company_name,
-    company_type,
+    select
+        -- Identité
+        company_id,
+        company_type_id,
+        company_code,
+        company_name,
+        company_type,
 
-    -- Organisation / classification
-    region,
-    sector,
-    sector_code,
-    activity_sector,
-    employee_range,
+        -- Organisation / classification
+        region,
+        sector,
+        sector_code,
+        activity_sector,
+        employee_range,
 
-    -- Modèle économique & relation client
-    company_economic_model,
-    client_status,
-    key_account,
+        -- Modèle économique & relation client
+        company_economic_model,
+        client_status,
+        key_account,
 
-    -- Offres / options
-    katiers,
-    remote_work,
-    proadman,
-    gsm,
-    badge,
-    recycling,
+        -- Offres / options
+        katiers,
+        remote_work,
+        proadman,
+        gsm,
+        badge,
+        recycling,
 
-    -- Statut
-    is_active,
+        -- Statut
+        is_active,
 
-    -- Localisation
-    address1,
-    address2,
-    city,
-    postal_code,
-    country,
+        -- Localisation
+        address1,
+        address2,
+        city,
+        postal_code,
+        country,
 
-    -- Métadonnées source
-    created_at,
-    updated_at
+        -- Métadonnées source
+        created_at,
+        updated_at
 
-FROM source_table
+    from source_table
 
 {% endsnapshot %}

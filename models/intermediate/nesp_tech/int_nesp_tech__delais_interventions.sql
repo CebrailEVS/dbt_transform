@@ -24,7 +24,7 @@ feries as (
 exploded as (
     select
         i.n_planning,
-        i.type,
+        i.intervention_type,
         i.code_machine,
         i.date_creation_delai,
         i.date_heure_debut,
@@ -46,7 +46,7 @@ exploded as (
 delais as (
     select
         n_planning,
-        type,
+        intervention_type,
         code_machine,
 
         -- Jours ouvres avant debut
@@ -100,7 +100,7 @@ delais as (
         end) as delai_heures_fin
 
     from exploded
-    group by n_planning, type, code_machine
+    group by n_planning, intervention_type, code_machine
 ),
 
 final as (
@@ -130,7 +130,7 @@ final as (
         -- Flag bonus
         (
             delai_jours_fin <= 2
-            and type = '5'
+            and intervention_type = '5'
             and code_machine not like 'ag%'
         ) as delai_bonus_bool,
 
@@ -138,7 +138,7 @@ final as (
         case
             when
                 delai_jours_fin <= 2
-                and type = '5'
+                and intervention_type = '5'
                 and code_machine not like 'ag%'
                 then 15
             else 0
@@ -150,7 +150,7 @@ final as (
 select
     -- Info Intervention
     n_planning,
-    type,
+    intervention_type,
     code_machine,
 
     -- Info delais debut
