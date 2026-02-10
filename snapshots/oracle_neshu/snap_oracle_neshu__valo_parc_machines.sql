@@ -20,12 +20,12 @@
   )
 }}
 
-SELECT 
-  TIMESTAMP(DATE_TRUNC(CURRENT_DATE(), MONTH)) as snapshot_month,  -- ✅ Ajout de TIMESTAMP()
-  device_name,
-  device_group,
-  nombre_machines,
-  valorisation_totale_machine
-FROM {{ ref('int_oracle_neshu__valorisation_parc_machines') }}
+    select
+        timestamp(date_trunc(current_date(), month)) as snapshot_month,
+        device_name,
+        device_group,
+        nombre_machines,
+        valorisation_totale_machine
+    from {{ ref('int_oracle_neshu__valorisation_parc_machines') }}
 
 {% endsnapshot %}

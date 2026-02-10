@@ -4,32 +4,32 @@
     description = "Table de faits du suivi des maintenances préventives des machines NESHU (Oracle + Yuman)."
 ) }}
 
-WITH machines_base AS (
-    SELECT * FROM {{ ref('int_oracle_neshu__machines_yuman_maintenance_base') }}
+with machines_base as (
+    select * from {{ ref('int_oracle_neshu__machines_yuman_maintenance_base') }}
 ),
 
 -- INTERVENTIONS YUMAN (toutes, pas de filtre ici)
-all_workorders AS (
-    SELECT 
-        wd.demand_id, 
+all_workorders as (
+    select
+        wd.demand_id,
         wd.workorder_id,
-        wd.material_id, 
+        wd.material_id,
         wd.demand_status,
-        wdc.demand_category_name, 
+        wdc.demand_category_name,
         wo.date_planned,
-        wo.date_done, 
-        wo.workorder_type, 
+        wo.date_done,
+        wo.workorder_type,
         wo.workorder_status
-    FROM {{ ref('stg_yuman__workorder_demands') }} wd
-    LEFT JOIN {{ ref('stg_yuman__workorder_demands_categories') }} wdc
-        ON wd.demand_category_id = wdc.demand_category_id
-    LEFT JOIN {{ ref('stg_yuman__workorders') }} wo
-        ON wd.workorder_id = wo.workorder_id
+    from {{ ref('stg_yuman__workorder_demands') }} as wd
+    left join {{ ref('stg_yuman__workorder_demands_categories') }} as wdc
+        on wd.demand_category_id = wdc.demand_category_id
+    left join {{ ref('stg_yuman__workorders') }} as wo
+        on wd.workorder_id = wo.workorder_id
 ),
 
 -- ENRICHISSEMENT : Ajouter les interventions AUX machines (LEFT JOIN)
-workorder_enrichi AS (
-    SELECT 
+workorder_enrichi as (
+    select
         mb.*,
         wo.demand_id,
         wo.workorder_id,
@@ -39,35 +39,36 @@ workorder_enrichi AS (
         wo.date_done,
         wo.workorder_type,
         wo.workorder_status
-    FROM machines_base mb
-    LEFT JOIN all_workorders wo
-        ON mb.material_id = wo.material_id
+    from machines_base as mb
+    left join all_workorders as wo
+        on mb.material_id = wo.material_id
 ),
 
 -- LISTE INTERVENTION PREV DLOG
-intervention_prev_dlog AS (
-    SELECT 
-        CONCAT('NESH_', device_code) AS device_code, 
-        MAX(task_end_date) AS last_preventive_date
-    FROM {{ ref('int_oracle_neshu__inter_techinique_tasks') }}
-    WHERE dc04 = 'DC0402'
-        AND task_status_code = 'FAIT'
-    GROUP BY device_code
+intervention_prev_dlog as (
+    select
+        concat('NESH_', device_code) as device_code,
+        max(task_end_date) as last_preventive_date
+    from {{ ref('int_oracle_neshu__inter_techinique_tasks') }}
+    where
+        dc04 = 'DC0402'
+        and task_status_code = 'FAIT'
+    group by device_code
 ),
 
 -- AJOUT PREV DLOG DANS LA LISTE DES INTERVENTION YUMAN
-material_enrichi AS (
-    SELECT 
-        we.*, 
-        ipd.last_preventive_date 
-    FROM workorder_enrichi we
-    LEFT JOIN intervention_prev_dlog ipd
-        ON we.material_serial_number = ipd.device_code
+material_enrichi as (
+    select
+        we.*,
+        ipd.last_preventive_date
+    from workorder_enrichi as we
+    left join intervention_prev_dlog as ipd
+        on we.material_serial_number = ipd.device_code
 ),
 
 -- CALCUL DU RETARD PAR MACHINE
-calcul_retard AS (
-    SELECT
+calcul_retard as (
+    select
         device_id,
         material_id,
         device_code,
@@ -83,27 +84,34 @@ calcul_retard AS (
         demand_status,
         date_planned,
         material_created_at,
-        
+
         -- Déterminer la dernière préventive de la source 1 (Yuman)
-        MAX(CASE 
-            WHEN (workorder_type = 'Preventive' OR demand_category_name = 'PREVENTIVE PROG - NESHU') 
-                AND workorder_status = 'Closed' 
-            THEN date_done 
-            ELSE NULL 
-        END) OVER (PARTITION BY material_id) AS derniere_preventive_source1,
-        
+        max(
+            case
+                when (
+                    workorder_type = 'Preventive'
+                    or demand_category_name = 'PREVENTIVE PROG - NESHU'
+                )
+                and workorder_status = 'Closed'
+                    then date_done
+            end
+        ) over (partition by material_id)
+            as derniere_preventive_source1,
+
         -- Récupérer la préventive externe (source 2 - DLOG)
-        MAX(last_preventive_date) OVER (PARTITION BY material_id) AS derniere_preventive_source2,
-        
+        max(last_preventive_date) over (
+            partition by material_id
+        ) as derniere_preventive_source2,
+
         -- Date du jour
-        CURRENT_TIMESTAMP() AS today
-        
-    FROM material_enrichi
+        current_timestamp() as today
+
+    from material_enrichi
 ),
 
 -- LOGIQUE PRINCIPALE DE CALCUL
-retard_final AS (
-    SELECT DISTINCT
+retard_final as (
+    select distinct
         device_id,
         material_id,
         device_code,
@@ -119,91 +127,154 @@ retard_final AS (
         demand_status,
         date_planned,
         material_created_at,
-        
+
         -- CAS 1: Machine installée depuis moins de 13 mois
-        CASE
-            WHEN last_installation_date > TIMESTAMP_SUB(today, INTERVAL 395 DAY) THEN
-                FALSE
-            
+        case
+            when
+                last_installation_date > timestamp_sub(today, interval 395 day)
+                then false
+
             -- CAS 2: Machine ancienne sans aucune préventive
-            WHEN derniere_preventive_source1 IS NULL AND derniere_preventive_source2 IS NULL THEN
-                TRUE
-            
+            when
+                derniere_preventive_source1 is null
+                and derniere_preventive_source2 is null
+                then true
+
             -- CAS 3: Machine avec préventives - vérifier si retard > 365 jours
-            ELSE
-                CASE
-                    WHEN GREATEST(
-                        COALESCE(derniere_preventive_source1, TIMESTAMP('1900-01-01')),
-                        COALESCE(derniere_preventive_source2, TIMESTAMP('1900-01-01'))
-                    ) < TIMESTAMP_SUB(today, INTERVAL 365 DAY)
-                    THEN TRUE
-                    ELSE FALSE
-                END
-        END AS retard_bol,
-        
+            when
+                greatest(
+                    coalesce(
+                        derniere_preventive_source1,
+                        timestamp('1900-01-01')
+                    ),
+                    coalesce(
+                        derniere_preventive_source2,
+                        timestamp('1900-01-01')
+                    )
+                ) < timestamp_sub(today, interval 365 day)
+                then true
+            else false
+        end as retard_bol,
+
         -- CALCUL DU DÉLAI
-        CASE
+        case
             -- CAS 1: Machine récente (< 13 mois)
-            WHEN last_installation_date > TIMESTAMP_SUB(today, INTERVAL 395 DAY) THEN
-                TIMESTAMP_DIFF(TIMESTAMP_ADD(last_installation_date, INTERVAL 395 DAY), today, DAY)
-            
+            when
+                last_installation_date > timestamp_sub(today, interval 395 day)
+                then
+                    timestamp_diff(
+                        timestamp_add(
+                            last_installation_date, interval 395 day
+                        ),
+                        today,
+                        day
+                    )
+
             -- CAS 2: Aucune préventive
-            WHEN derniere_preventive_source1 IS NULL AND derniere_preventive_source2 IS NULL THEN
-                -TIMESTAMP_DIFF(today, TIMESTAMP_ADD(last_installation_date, INTERVAL 365 DAY), DAY)
-            
+            when
+                derniere_preventive_source1 is null
+                and derniere_preventive_source2 is null
+                then
+                    -timestamp_diff(
+                        today,
+                        timestamp_add(
+                            last_installation_date, interval 365 day
+                        ),
+                        day
+                    )
+
             -- CAS 3: Avec préventives
-            ELSE
-                CASE
-                    WHEN TIMESTAMP_DIFF(today, GREATEST(
-                        COALESCE(derniere_preventive_source1, TIMESTAMP('1900-01-01')),
-                        COALESCE(derniere_preventive_source2, TIMESTAMP('1900-01-01'))
-                    ), DAY) > 365
-                    THEN -(TIMESTAMP_DIFF(today, GREATEST(
-                        COALESCE(derniere_preventive_source1, TIMESTAMP('1900-01-01')),
-                        COALESCE(derniere_preventive_source2, TIMESTAMP('1900-01-01'))
-                    ), DAY) - 365)
-                    ELSE 365 - TIMESTAMP_DIFF(today, GREATEST(
-                        COALESCE(derniere_preventive_source1, TIMESTAMP('1900-01-01')),
-                        COALESCE(derniere_preventive_source2, TIMESTAMP('1900-01-01'))
-                    ), DAY)
-                END
-        END AS retard_delai,
-        
+            when
+                timestamp_diff(
+                    today,
+                    greatest(
+                        coalesce(
+                            derniere_preventive_source1,
+                            timestamp('1900-01-01')
+                        ),
+                        coalesce(
+                            derniere_preventive_source2,
+                            timestamp('1900-01-01')
+                        )
+                    ),
+                    day
+                ) > 365
+                then
+                    -(
+                        timestamp_diff(
+                            today,
+                            greatest(
+                                coalesce(
+                                    derniere_preventive_source1,
+                                    timestamp('1900-01-01')
+                                ),
+                                coalesce(
+                                    derniere_preventive_source2,
+                                    timestamp('1900-01-01')
+                                )
+                            ),
+                            day
+                        ) - 365
+                    )
+            else
+                365 - timestamp_diff(
+                    today,
+                    greatest(
+                        coalesce(
+                            derniere_preventive_source1,
+                            timestamp('1900-01-01')
+                        ),
+                        coalesce(
+                            derniere_preventive_source2,
+                            timestamp('1900-01-01')
+                        )
+                    ),
+                    day
+                )
+        end as retard_delai,
+
         -- SOURCE DE LA DERNIÈRE PRÉVENTIVE
-        CASE
-            WHEN last_installation_date > TIMESTAMP_SUB(today, INTERVAL 395 DAY) THEN
-                'aucune'
-            WHEN derniere_preventive_source1 IS NULL AND derniere_preventive_source2 IS NULL THEN
-                'aucune'
-            WHEN derniere_preventive_source2 IS NULL OR 
-                (derniere_preventive_source1 IS NOT NULL AND derniere_preventive_source1 > derniere_preventive_source2) THEN
-                'yuman'
-            ELSE
+        case
+            when
+                last_installation_date > timestamp_sub(today, interval 395 day)
+                then 'aucune'
+            when
+                derniere_preventive_source1 is null
+                and derniere_preventive_source2 is null
+                then 'aucune'
+            when
+                derniere_preventive_source2 is null
+                or (
+                    derniere_preventive_source1 is not null
+                    and derniere_preventive_source1 > derniere_preventive_source2
+                )
+                then 'yuman'
+            else
                 'dlog'
-        END AS source_last_preventive,
-        
+        end as source_last_preventive,
+
         today
-        
-    FROM calcul_retard
+
+    from calcul_retard
 ),
 
 -- DÉDUPLICATION: Garder une seule ligne par machine
-deduplique AS (
-    SELECT
-        * EXCEPT(today),
-        ROW_NUMBER() OVER (
-            PARTITION BY material_serial_number 
-            ORDER BY 
-                retard_bol ASC,                -- Les machines non en retard d'abord (FALSE avant TRUE)
-                material_created_at DESC,      -- Si les 2 non en retard : la plus récente
-                retard_delai ASC               -- Si les 2 en retard : le plus grand délai (négatif donc ASC)
-        ) AS rn
-    FROM retard_final
+deduplique as (
+    select
+        * except (today),
+        row_number() over (
+            partition by material_serial_number
+            order by
+                retard_bol asc,                -- Les machines non en retard d'abord (FALSE avant TRUE)
+                material_created_at desc,      -- Si les 2 non en retard : la plus récente
+                retard_delai asc               -- Si les 2 en retard : le plus grand délai (négatif donc ASC)
+        ) as rn
+    from retard_final
 ),
 
 -- RÉSULTAT RETARD DEDUPLIQUÉ
-resultat_retard AS (
-    SELECT
+resultat_retard as (
+    select
         device_id,
         material_id,
         device_code,
@@ -220,33 +291,37 @@ resultat_retard AS (
         retard_delai,
         source_last_preventive,
         material_created_at
-    FROM deduplique
-    WHERE rn = 1
+    from deduplique
+    where rn = 1
 ),
 
 -- DEMANDES D'INTERVENTION YUMAN OUVERTES & PLANIFIÉES
-di_data AS (
-    SELECT 
+di_data as (
+    select
         wd.material_id,
         wo.date_planned,
-        wd.created_at AS demand_created_at,  -- Récupérer la date de création
-        CASE
-            WHEN wd.demand_status = 'Open' THEN 'Ouvert'
-            WHEN wo.workorder_status = 'Scheduled' THEN 'Planifie'
-            ELSE 'Aucune'
-        END AS status_inter
-    FROM {{ ref('stg_yuman__workorder_demands') }} wd
-    LEFT JOIN {{ ref('stg_yuman__workorder_demands_categories') }} wdc
-        ON wd.demand_category_id = wdc.demand_category_id
-    LEFT JOIN {{ ref('stg_yuman__workorders') }} wo
-        ON wd.workorder_id = wo.workorder_id
-    WHERE wdc.demand_category_name = 'PREVENTIVE PROG - NESHU' 
-        AND (wd.demand_status = 'Open' OR wo.workorder_status = 'Scheduled')
+        wd.created_at as demand_created_at,  -- Récupérer la date de création
+        case
+            when wd.demand_status = 'Open' then 'Ouvert'
+            when wo.workorder_status = 'Scheduled' then 'Planifie'
+            else 'Aucune'
+        end as status_inter
+    from {{ ref('stg_yuman__workorder_demands') }} as wd
+    left join {{ ref('stg_yuman__workorder_demands_categories') }} as wdc
+        on wd.demand_category_id = wdc.demand_category_id
+    left join {{ ref('stg_yuman__workorders') }} as wo
+        on wd.workorder_id = wo.workorder_id
+    where
+        wdc.demand_category_name = 'PREVENTIVE PROG - NESHU'
+        and (
+            wd.demand_status = 'Open'
+            or wo.workorder_status = 'Scheduled'
+        )
 ),
 
 -- JOIN INTERMÉDIAIRE
-joined_data AS (
-    SELECT
+joined_data as (
+    select
         rr.device_id,
         rr.device_code,
         rr.device_name,
@@ -266,31 +341,31 @@ joined_data AS (
         di.status_inter,
         di.date_planned,
         di.demand_created_at
-    FROM resultat_retard rr
-    LEFT JOIN di_data di
-        ON rr.material_id = di.material_id
+    from resultat_retard as rr
+    left join di_data as di
+        on rr.material_id = di.material_id
 ),
 
 -- DÉDUPLICATION PAR DEVICE_ID (garder la DI la plus récente)
-deduplicated AS (
-    SELECT
+deduplicated as (
+    select
         *,
-        ROW_NUMBER() OVER (
-            PARTITION BY device_id
-            ORDER BY demand_created_at DESC NULLS LAST  -- Les plus récentes d'abord, NULL à la fin
-        ) AS rn
-    FROM joined_data
+        row_number() over (
+            partition by device_id
+            order by demand_created_at desc nulls last  -- Les plus récentes d'abord, NULL à la fin
+        ) as rn
+    from joined_data
 ),
 
 -- ENRICHISSEMENT FINAL
-final AS (
-    SELECT
+final as (
+    select
         device_id,
         device_code,
         device_name,
         company_code,
         company_name,
-        last_installation_date AS device_last_installation_date,
+        last_installation_date as device_last_installation_date,
         material_id,
         material_serial_number,
         client_code,
@@ -300,16 +375,16 @@ final AS (
         retard_bol,
         retard_delai,
         source_last_preventive,
-        COALESCE(status_inter, 'Aucune') AS status_inter,
+        coalesce(status_inter, 'Aucune') as status_inter,
         date_planned,
         material_created_at,
 
         -- Métadonnées dbt
-        CURRENT_TIMESTAMP() as dbt_updated_at,
-        '{{ invocation_id }}' as dbt_invocation_id
+        current_timestamp() as dbt_updated_at,
+        '{{ invocation_id }}' as dbt_invocation_id  -- noqa: TMP
 
-    FROM deduplicated
-    WHERE rn = 1  -- Ne garder qu'une ligne par device_id
+    from deduplicated
+    where rn = 1  -- Ne garder qu'une ligne par device_id
 )
 
-SELECT * FROM final
+select * from final

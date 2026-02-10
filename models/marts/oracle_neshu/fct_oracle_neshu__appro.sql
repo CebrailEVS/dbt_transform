@@ -9,283 +9,309 @@
 ) }}
 
 -- Un seul pointage par jour et par roadman
-WITH pointage_unique_par_jour AS (
-    SELECT
+with pointage_unique_par_jour as (
+    select
         task_id,
         company_id,
         resources_roadman_id,
         roadman_code,
         status_code,
         label_code,
-        DATE(date_pointage) AS date_jour,
+        date(date_pointage) as date_jour,
         created_at,
         updated_at,
         extracted_at,
-        MIN(CASE 
-            WHEN FORMAT_TIMESTAMP('%H:%M:%S', date_pointage) >= '03:00:00' THEN date_pointage
-        END) AS premier_pointage
-    FROM {{ ref('int_oracle_neshu__pointage') }}
-    WHERE label_code = 'START_DAY'
-    GROUP BY task_id, company_id, resources_roadman_id, roadman_code, status_code, label_code, DATE(date_pointage), created_at, updated_at, extracted_at 
+        min(case
+            when format_timestamp('%H:%M:%S', date_pointage) >= '03:00:00' then date_pointage
+        end) as premier_pointage
+    from {{ ref('int_oracle_neshu__pointage') }}
+    where label_code = 'START_DAY'
+    group by
+        task_id, company_id, resources_roadman_id, roadman_code,
+        status_code, label_code, date(date_pointage),
+        created_at, updated_at, extracted_at
 ),
-pointage_min_par_jour AS (
-    SELECT
+
+pointage_min_par_jour as (
+    select
         p.*,
-        ROW_NUMBER() OVER (
-            PARTITION BY
+        row_number() over (
+            partition by
                 p.resources_roadman_id,
                 p.date_jour
-            ORDER BY
+            order by
                 p.premier_pointage
-        ) AS rn
-    FROM pointage_unique_par_jour p
+        ) as rn
+    from pointage_unique_par_jour as p
 ),
-Pointage_final_table as (
-SELECT
-    task_id as task_id,
-    company_id as company_id,
-    resources_roadman_id as resources_roadman_id,
-    roadman_code as roadman_code,
-    status_code,
-    label_code,
-    date_jour as date_pointage_jour,
-    premier_pointage as date_pointage,
+
+pointage_final_table as (
+    select
+        task_id,
+        company_id,
+        resources_roadman_id,
+        roadman_code,
+        status_code,
+        label_code,
+        date_jour as date_pointage_jour,
+        premier_pointage as date_pointage,
+        created_at,
+        updated_at,
+        extracted_at
+    from pointage_min_par_jour
+    where rn = 1 and resources_roadman_id is not null
+),
+
+resources_roadman as (
+    select
+        thr.idtask,
+        min(r.idresources) as resources_roadman_id,
+        min(r.code) as roadman_code
+    from {{ ref('stg_oracle_neshu__task_has_resources') }} as thr
+    inner join {{ ref('stg_oracle_neshu__resources') }} as r
+        on
+            thr.idresources = r.idresources
+            and r.idresources_type = 2
+    group by thr.idtask
+),
+
+passage_appro as (
+    select
+        pa.task_id,
+        pa.device_id,
+        pa.company_id,
+        pa.product_source_id,
+        r.resources_roadman_id,
+        pa.product_destination_id,
+        pa.product_source_type,
+        pa.product_destination_type,
+        pa.company_code,
+        c.name as company_name,
+        c.name || ' - ' || pa.company_code as company_info,
+        d.code as device_code,
+        d.name as device_name,
+        d.name || ' - ' || d.code as device_info,
+        g.gea_code,
+        r.roadman_code,
+        pa.task_location_info,
+        case
+            when pa.task_status_code in ('FAIT', 'ENCOURS') then 'FAIT'
+            else pa.task_status_code
+        end as task_status_code,
+        p.date_pointage,
+        p.date_pointage_jour,
+        date(pa.task_start_date) as start_date_day,
+        pa.task_start_date,
+        pa.task_end_date,
+        -- Durée brute (audit)
+        pa.task_end_date - pa.task_start_date as passage_duration_interval,
+        -- Métrique BI
+        case
+            when
+                pa.task_start_date is not null
+                and pa.task_end_date is not null
+                and pa.task_status_code = 'FAIT'
+                then
+                    timestamp_diff(
+                        pa.task_end_date,
+                        pa.task_start_date,
+                        second
+                    ) / 60.0
+        end as passage_duration_min,
+        case
+            when
+                pa.task_start_date is not null
+                and pa.task_end_date is not null
+                and pa.task_status_code = 'FAIT'
+                then
+                    timestamp_diff(
+                        pa.task_end_date,
+                        pa.task_start_date,
+                        second
+                    ) / 3600.0
+        end as passage_duration_hours,
+        case when pa.task_status_code in ('FAIT', 'ENCOURS') then 1 else 0 end as is_done,
+        case when pa.task_status_code in ('PREVU', 'FAIT', 'ENCOURS') then 1 else 0 end as is_planned,
+        case
+            when p.date_pointage is null then 1
+            else 0
+        end as pointage_missing_flag,
+        pa.created_at,
+        pa.updated_at
+    from {{ ref('int_oracle_neshu__appro_tasks') }} as pa
+
+    left join resources_roadman as r
+        on pa.task_id = r.idtask
+
+    left join {{ ref('ref_oracle_neshu__roadman_gea') }} as g
+        on r.roadman_code = g.roadman_code
+
+    left join {{ ref('stg_oracle_neshu__company') }} as c
+        on pa.company_id = c.idcompany
+
+    left join {{ ref('stg_oracle_neshu__device') }} as d
+        on pa.device_id = d.iddevice
+
+    left join pointage_final_table as p
+        on
+            date(pa.task_start_date) = p.date_pointage_jour
+            and r.resources_roadman_id = p.resources_roadman_id
+
+    where r.resources_roadman_id is not null
+),
+
+passage_with_metrics as (
+    select
+        pa.*,
+        -- Dernière task_end_date du roadman pour ce jour (statut FAIT uniquement)
+        max(case when pa.task_status_code = 'FAIT' then pa.task_end_date end)
+            over (
+                partition by pa.resources_roadman_id, date(pa.task_start_date)
+                order by pa.task_end_date
+                rows between unbounded preceding and unbounded following
+            )
+            as last_task_end_of_day,
+
+        -- Utilise date_pointage si disponible, sinon première task_start_date du jour
+        coalesce(
+            pa.date_pointage,
+            first_value(pa.task_start_date) over (
+                partition by pa.resources_roadman_id, date(pa.task_start_date)
+                order by pa.task_start_date
+                rows between unbounded preceding and unbounded following
+            )
+        ) as effective_work_start,
+
+        -- Nombre de passages du roadman ce jour
+        count(*) over (
+            partition by pa.resources_roadman_id, date(pa.task_start_date)
+        ) as daily_task_count,
+
+        -- Temps moyen par passage du roadman ce jour
+        avg(timestamp_diff(pa.task_end_date, pa.task_start_date, minute)) over (
+            partition by pa.resources_roadman_id, date(pa.task_start_date)
+        ) as avg_passage_duration_day,
+
+        -- Numéro de passage dans la journée
+        row_number() over (
+            partition by pa.resources_roadman_id, date(pa.task_start_date)
+            order by pa.task_start_date
+        ) as passage_rank_of_day,
+
+        -- 📊 NOUVEAUX CALCULS DE TAUX --
+
+        -- Compteurs pour le roadman ce jour
+        sum(pa.is_done) over (
+            partition by pa.resources_roadman_id, date(pa.task_start_date)
+        ) as done_count_roadman_day,
+
+        sum(pa.is_planned) over (
+            partition by pa.resources_roadman_id, date(pa.task_start_date)
+        ) as planned_count_roadman_day,
+
+        -- Taux de réalisation du roadman ce jour
+        safe_divide(
+            sum(pa.is_done) over (
+                partition by pa.resources_roadman_id, date(pa.task_start_date)
+            ),
+            sum(pa.is_planned) over (
+                partition by pa.resources_roadman_id, date(pa.task_start_date)
+            )
+        ) as taux_realisation_roadman_day,
+
+        -- Taux de réalisation global du jour (tous roadmen)
+        safe_divide(
+            sum(pa.is_done) over (partition by date(pa.task_start_date)),
+            sum(pa.is_planned) over (partition by date(pa.task_start_date))
+        ) as taux_realisation_global_day
+
+    from passage_appro as pa
+),
+
+-- Calcul de work_duration_min
+passage_work_duration as (
+    select
+        *,
+        -- Calcul du work_duration en minutes (brut)
+        timestamp_diff(last_task_end_of_day, effective_work_start, minute) as work_duration_min_raw,
+
+        -- Calcul du work_duration en minutes (nettoyé)
+        case
+            when timestamp_diff(
+                last_task_end_of_day, effective_work_start, minute
+            ) > 720 then null  -- > 12h = suspect
+            when timestamp_diff(
+                last_task_end_of_day, effective_work_start, minute
+            ) < 0 then null    -- négatif = erreur
+            when
+                last_task_end_of_day is null
+                or effective_work_start is null
+                then null
+            else timestamp_diff(
+                last_task_end_of_day, effective_work_start, minute
+            )
+        end as work_duration_min
+    from passage_with_metrics
+)
+
+-- Final table
+select
+    -- 1️⃣ IDs
+    task_id,
+    device_id,
+    company_id,
+    resources_roadman_id,
+
+    -- 2️⃣ Attributs
+    company_info,
+    device_info,
+    roadman_code,
+    gea_code,
+    task_status_code,
+
+    -- 3️⃣ Dates / Temps
+    date_pointage,
+    date_pointage_jour,
+    start_date_day,
+    task_start_date,
+    task_end_date,
+    last_task_end_of_day,
+    effective_work_start,
+
+    -- 4️⃣ Mesures / KPI
+    is_planned,
+    is_done,
+    passage_rank_of_day,
+    daily_task_count,
+    avg_passage_duration_day,
+    passage_duration_interval,
+    passage_duration_min,
+    passage_duration_hours,
+    work_duration_min_raw,
+    work_duration_min,
+    pointage_missing_flag,
+    {{ dbt_utils.generate_surrogate_key([
+        'company_id',
+        'start_date_day'
+    ]) }} as client_jour_key,  -- noqa: TMP
+
+    case
+        when is_done = 1 then 1
+        else 0
+    end as passage_client_done,
+
+    -- 📊 Nouveaux KPI taux de réalisation
+    done_count_roadman_day,
+    planned_count_roadman_day,
+    taux_realisation_roadman_day,
+    taux_realisation_global_day,
+
+    -- 5️⃣ Métadonnées
     created_at,
     updated_at,
-    extracted_at
-FROM pointage_min_par_jour
-WHERE rn = 1 and resources_roadman_id IS NOT NULL
-),
-resources_roadman AS (
-    SELECT 
-        thr.idtask, 
-        MIN(r.idresources) AS resources_roadman_id, 
-        MIN(r.code) AS roadman_code
-    FROM {{ ref('stg_oracle_neshu__task_has_resources') }} thr
-    JOIN {{ ref('stg_oracle_neshu__resources') }} r 
-        ON thr.IDRESOURCES = r.IDRESOURCES 
-       AND r.IDRESOURCES_TYPE = 2
-    GROUP BY thr.IDTASK
-),
-passage_appro as (
-SELECT 
-  pa.task_id,
-  pa.device_id,
-  pa.company_id,
-  pa.product_source_id,
-  r.resources_roadman_id,
-  pa.product_destination_id,
-  pa.product_source_type,
-  pa.product_destination_type,
-  pa.company_code,
-  c.name as company_name,
-  c.name || ' - ' || pa.company_code AS company_info,
-  d.code as device_code,
-  d.name as device_name,
-  d.name || ' - ' || d.code AS device_info,
-  g.gea_code,
-  r.roadman_code,
-  pa.task_location_info,
-  CASE 
-    WHEN pa.task_status_code IN ('FAIT', 'ENCOURS') THEN 'FAIT'
-    ELSE pa.task_status_code
-  END AS task_status_code,
-  p.date_pointage,
-  p.date_pointage_jour,
-   DATE(task_start_date) AS start_date_day,
-  pa.task_start_date,
-  pa.task_end_date,
-  -- Durée brute (audit)
-  pa.task_end_date - pa.task_start_date AS passage_duration_interval,
-    -- Métrique BI
-    CASE 
-      WHEN pa.task_start_date IS NOT NULL 
-      AND pa.task_end_date IS NOT NULL
-      AND pa.task_status_code = 'FAIT'
-      THEN TIMESTAMP_DIFF(
-            pa.task_end_date,
-            pa.task_start_date,
-            SECOND
-          ) / 60.0
-    END AS passage_duration_min,
-    CASE 
-      WHEN pa.task_start_date IS NOT NULL 
-      AND pa.task_end_date IS NOT NULL
-      AND pa.task_status_code = 'FAIT'
-      THEN TIMESTAMP_DIFF(
-            pa.task_end_date,
-            pa.task_start_date,
-            SECOND
-          ) / 3600.0
-    END AS passage_duration_hours,
-    CASE WHEN pa.task_status_code in ('FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS is_done,
-    CASE WHEN pa.task_status_code IN ('PREVU', 'FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS is_planned,
-    CASE 
-      WHEN p.date_pointage IS NULL THEN 1
-      ELSE 0
-      END AS pointage_missing_flag,
-  pa.created_at,
-  pa.updated_at 
-FROM {{ ref('int_oracle_neshu__appro_tasks') }} pa
 
-LEFT JOIN resources_roadman r 
-  ON pa.task_id = r.idtask
+    -- Métadonnées dbt
+    current_timestamp() as dbt_updated_at,
+    '{{ invocation_id }}' as dbt_invocation_id  -- noqa: TMP
 
-LEFT JOIN {{ ref('ref_oracle_neshu__roadman_gea')}} g 
-  ON g.roadman_code = r.roadman_code
-
-LEFT JOIN {{ ref('stg_oracle_neshu__company') }} c 
-  ON pa.company_id = c.idcompany
-
-LEFT JOIN {{ ref('stg_oracle_neshu__device') }} d 
-  ON pa.device_id = d.iddevice
-
-LEFT JOIN Pointage_final_table p 
-  ON p.date_pointage_jour = DATE(pa.task_start_date) 
- AND p.resources_roadman_id = r.resources_roadman_id
-
-WHERE r.resources_roadman_id is not null
-),
-passage_with_metrics AS (
-  SELECT 
-    pa.*,
-    -- Dernière task_end_date du roadman pour ce jour (statut FAIT uniquement)
-    MAX(CASE WHEN pa.task_status_code = 'FAIT' THEN pa.task_end_date END) 
-      OVER (
-        PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
-        ORDER BY pa.task_end_date
-        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-      ) AS last_task_end_of_day,
-    
-    -- Utilise date_pointage si disponible, sinon première task_start_date du jour
-    COALESCE(
-      pa.date_pointage,
-      FIRST_VALUE(pa.task_start_date) OVER (
-        PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
-        ORDER BY pa.task_start_date
-        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-      )
-    ) AS effective_work_start,
-    
-    -- Nombre de passages du roadman ce jour
-    COUNT(*) OVER (
-      PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
-    ) AS daily_task_count,
-    
-    -- Temps moyen par passage du roadman ce jour
-    AVG(TIMESTAMP_DIFF(pa.task_end_date, pa.task_start_date, MINUTE)) OVER (
-      PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
-    ) AS avg_passage_duration_day,
-    
-    -- Numéro de passage dans la journée
-    ROW_NUMBER() OVER (
-      PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
-      ORDER BY pa.task_start_date
-    ) AS passage_rank_of_day,
-    
-    -- 📊 NOUVEAUX CALCULS DE TAUX --
-    
-    -- Compteurs pour le roadman ce jour
-    SUM(pa.is_done) OVER (
-      PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
-    ) AS done_count_roadman_day,
-    
-    SUM(pa.is_planned) OVER (
-      PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
-    ) AS planned_count_roadman_day,
-    
-    -- Taux de réalisation du roadman ce jour
-    SAFE_DIVIDE(
-      SUM(pa.is_done) OVER (
-        PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
-      ),
-      SUM(pa.is_planned) OVER (
-        PARTITION BY pa.resources_roadman_id, DATE(pa.task_start_date)
-      )
-    ) AS taux_realisation_roadman_day,
-    
-    -- Taux de réalisation global du jour (tous roadmen)
-    SAFE_DIVIDE(
-      SUM(pa.is_done) OVER (PARTITION BY DATE(pa.task_start_date)),
-      SUM(pa.is_planned) OVER (PARTITION BY DATE(pa.task_start_date))
-    ) AS taux_realisation_global_day
-    
-  FROM passage_appro pa
-),
- -- Calcul de work_duration_min
-passage_work_duration AS (
-SELECT 
-  *,
-  -- Calcul du work_duration en minutes (brut)
-  TIMESTAMP_DIFF(last_task_end_of_day, effective_work_start, MINUTE) AS work_duration_min_raw,
-  
-  -- Calcul du work_duration en minutes (nettoyé)
-  CASE 
-    WHEN TIMESTAMP_DIFF(last_task_end_of_day, effective_work_start, MINUTE) > 720 THEN NULL  -- > 12h = suspect
-    WHEN TIMESTAMP_DIFF(last_task_end_of_day, effective_work_start, MINUTE) < 0 THEN NULL    -- négatif = erreur
-    WHEN last_task_end_of_day IS NULL OR effective_work_start IS NULL THEN NULL
-    ELSE TIMESTAMP_DIFF(last_task_end_of_day, effective_work_start, MINUTE)
-  END AS work_duration_min
-FROM passage_with_metrics
-)
--- Final table
-SELECT
-  -- 1️⃣ IDs
-  task_id,
-  device_id,
-  company_id,
-  resources_roadman_id,
-
-  -- 2️⃣ Attributs
-  company_info,
-  device_info,
-  roadman_code,
-  gea_code,
-  task_status_code,
-
-  -- 3️⃣ Dates / Temps
-  date_pointage,
-  date_pointage_jour,
-  start_date_day,
-  task_start_date,
-  task_end_date,
-  last_task_end_of_day,
-  effective_work_start,
-
-  -- 4️⃣ Mesures / KPI
-  is_planned,
-  is_done,
-  passage_rank_of_day,
-  daily_task_count,
-  avg_passage_duration_day,
-  passage_duration_interval,
-  passage_duration_min,
-  passage_duration_hours,
-  work_duration_min_raw,
-  work_duration_min,
-  pointage_missing_flag,
-    {{ dbt_utils.generate_surrogate_key([
-      'company_id',
-      'start_date_day'
-  ]) }} AS client_jour_key,
-
-  CASE
-    WHEN is_done = 1 THEN 1
-    ELSE 0
-  END AS passage_client_done,
-  
-  -- 📊 Nouveaux KPI taux de réalisation
-  done_count_roadman_day,
-  planned_count_roadman_day,
-  taux_realisation_roadman_day,
-  taux_realisation_global_day,
-
-  -- 5️⃣ Métadonnées
-  created_at,
-  updated_at,
-
-  -- Métadonnées dbt
-  CURRENT_TIMESTAMP() as dbt_updated_at,
-  '{{ invocation_id }}' as dbt_invocation_id
-
-FROM passage_work_duration
+from passage_work_duration

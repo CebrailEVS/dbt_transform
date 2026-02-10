@@ -1,34 +1,37 @@
 {{
     config(
-        materialized='table',
-        partition_by={
+        materialized = 'table',
+        partition_by = {
             "field": "date_intervention",
             "data_type": "date",
             "granularity": "day"
         },
-        description='Articles consommées nettoyée depuis nespresso_technique_articles'
+        description = 'Articles consommées nettoyée depuis nespresso_technique_articles'
     )
 }}
 
 with source_data as (
+
     select *
     from {{ source('nesp_tech', 'nespresso_technique_articles') }}
+
 ),
 
 cleaned_data as (
+
     select
         -- IDs convertis en BIGINT (avec traitement des nan)
-        case 
+        case
             when lower(trim(cast(n_planning as string))) = 'nan' then null
             else cast(n_planning as int64)
         end as n_planning,
-        case 
+        case
             when lower(trim(cast(n_client as string))) = 'nan' then null
             else cast(n_client as int64)
         end as n_client,
-        case 
+        case
             when lower(trim(cast(n_site as string))) = 'nan' then null
-            else CAST(CAST(n_site AS FLOAT64) AS INT64)
+            else cast(cast(n_site as float64) as int64)
         end as n_site,
 
         -- Colonnes texte
@@ -47,30 +50,34 @@ cleaned_data as (
         cast(quantite as float64) as quantite_article,
 
         -- Dates harmonisées
-        case 
+        case
             when lower(trim(date)) in ('nat', 'nan') then null
-            else PARSE_DATE('%d/%m/%Y', date)
+            else parse_date('%d/%m/%Y', date)
         end as date_intervention,
 
         -- Metadata
         timestamp(extracted_at) as extracted_at,
         source_file
-        
+
     from source_data
+
 ),
 
 deduped as (
+
     select *
     from (
-        select *,
-               row_number() over (
-                   partition by n_planning, code_article, date_intervention
-                   order by extracted_at desc
-               ) as rn
+        select
+            *,
+            row_number() over (
+                partition by n_planning, code_article, date_intervention
+                order by extracted_at desc
+            ) as rn
         from cleaned_data
     )
     where rn = 1
+
 )
 
-select * 
+select *
 from deduped

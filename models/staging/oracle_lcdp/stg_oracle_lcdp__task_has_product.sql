@@ -63,19 +63,19 @@ cleaned_data as (
 -- Sécurité de jointure pour éviter les orphelins
 filtered_data as (
     select c.*
-    from cleaned_data c
-    inner join {{ ref('stg_oracle_lcdp__task') }} t
+    from cleaned_data as c
+    inner join {{ ref('stg_oracle_lcdp__task') }} as t
         on c.idtask = t.idtask
 )
 
-SELECT * FROM filtered_data
+select * from filtered_data
 {% if is_incremental() %}
-WHERE
-    (
-        updated_at > (
-            SELECT MAX(updated_at)
-            FROM {{ this }}
+    where
+        (
+            updated_at > (
+                select max(t.updated_at)
+                from {{ this }} as t
+            )
+            or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
         )
-        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
-    )
 {% endif %}

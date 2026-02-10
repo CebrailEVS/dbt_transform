@@ -1,90 +1,69 @@
-{{
-    config(
-        materialized='table',
-        description='Modèle intermediate construisant la clé de facturation des interventions techniques selon typologie, machine, mini-prev et zone montagne'
-    )
-}}
+{{ config(
+    materialized='table',
+    description='Modèle intermediate construisant la clé de facturation des interventions techniques selon typologie, machine, mini-prev et zone montagne'
+) }}
 
-WITH inter AS (
-    -- Préparation des interventions :
-    -- - Ajout du flag mini_prev_bool
-    -- - Calcul du département site à partir du code postal
-    SELECT
-        int.*,
-
-        -- Flag indiquant si un article "miniprev" est présent
-        IF(art.code_article IS NULL, FALSE, TRUE) AS mini_prev_bool,
-
-        -- Extraction du département depuis le code postal
-        CAST(
-            SUBSTR(
-                LPAD(CAST(code_postal_site AS STRING), 5, '0'),
+with inter as (
+    select
+        intv.*,
+        (art.code_article is not null) as mini_prev_bool,
+        cast(
+            substr(
+                lpad(cast(intv.code_postal_site as string), 5, '0'),
                 1,
                 2
-            ) AS INT64
-        ) AS dpt_site
-
-    FROM {{ ref('stg_nesp_tech__interventions') }} int
-
-    LEFT JOIN {{ ref('stg_nesp_tech__articles') }} art
-        ON int.n_planning = art.n_planning
-       AND art.code_article = 'miniprev'
-
-    -- Filtrage temporel et métier
-    WHERE etat_intervention IN ('terminée signée','signature différée')
+            ) as int64
+        ) as dpt_site
+    from {{ ref('stg_nesp_tech__interventions') }} as intv
+    left join {{ ref('stg_nesp_tech__articles') }} as art
+        on
+            intv.n_planning = art.n_planning
+            and art.code_article = 'miniprev'
+    where
+        intv.etat_intervention in ('terminée signée', 'signature différée')
 ),
 
-machines_clean AS (
-    -- Référentiel machines normalisées
-    SELECT
-        LOWER(nom_machine) AS nom_machine,
+machines_clean as (
+    select
+        lower(nom_machine) as nom_machine,
         categorie_machine,
         machine_clean
-    FROM {{ ref('ref_nesp_tech__machines_clean') }}
+    from {{ ref('ref_nesp_tech__machines_clean') }}
 ),
 
-departements_montagne AS (
-    -- Liste des départements facturés en zone montagne
-    SELECT
-        CAST(dpt AS INT64) AS dpt
-    FROM {{ ref('ref_nesp_tech__dpts_montagne_factu') }}
-    WHERE montagne = 1
+departements_montagne as (
+    select cast(dpt as int64) as dpt
+    from {{ ref('ref_nesp_tech__dpts_montagne_factu') }}
+    where montagne = 1
 ),
 
-ref_type_inter AS (
-    -- Référentiel de typologie d’intervention (clé métier)
-    SELECT
-        CAST(type_code AS STRING) AS type_code,
-        CAST(repair_code_1 AS STRING) AS repair_code_1,
-        CAST(failure_code AS STRING) AS failure_code,
+ref_type_inter as (
+    select
+        cast(type_code as string) as type_code,
+        cast(repair_code_1 as string) as repair_code_1,
+        cast(failure_code as string) as failure_code,
         mini_prev_bool,
         type_machine,
         type_inter_libelle
-    FROM {{ ref('ref_nesp_tech__key_type_inter') }}
+    from {{ ref('ref_nesp_tech__key_type_inter') }}
 ),
 
-joined AS (
-    -- Jointure centrale : attribution d’un type d’intervention facturable
-    SELECT
+joined as (
+    select
         ma.machine_clean,
         r.type_inter_libelle,
         r.type_code,
-
-        -- Ajout d’un suffixe Montagne si applicable
-        IF(dm.dpt IS NOT NULL, ' - Montagne', '') AS montagne_factu,
-
-        -- Construction de la clé de facturation
-        CONCAT(
+        if(dm.dpt is not null, ' - Montagne', '') as montagne_factu,
+        concat(
             r.type_code,
             ' - ',
             r.type_inter_libelle,
             ' - ',
             ma.machine_clean,
-            IF(dm.dpt IS NOT NULL, ' - Montagne', '')
-        ) AS key_factu,
-
+            if(dm.dpt is not null, ' - Montagne', '')
+        ) as key_factu,
         i.n_planning,
-        i.type,
+        i.intervention_type,
         i.code_machine,
         i.nom_machine,
         i.repair_code_1,
@@ -93,57 +72,48 @@ joined AS (
         i.dpt_site,
         i.date_heure_fin,
 
-        -- Priorisation des règles de mapping via scoring
-        ROW_NUMBER() OVER (
-            PARTITION BY i.n_planning
-            ORDER BY
-                (CASE WHEN r.repair_code_1 IS NOT NULL THEN 16 ELSE 0 END) +
-                (CASE WHEN r.failure_code  IS NOT NULL THEN 8  ELSE 0 END) +
-                (CASE WHEN r.mini_prev_bool IS NOT NULL THEN 4 ELSE 0 END) +
-                (CASE WHEN r.type_machine  IS NOT NULL THEN 2 ELSE 0 END)
-            DESC
-        ) AS rn
+        row_number() over (
+            partition by i.n_planning
+            order by
+                (case when r.repair_code_1 is not null then 16 else 0 end)
+                + (case when r.failure_code is not null then 8 else 0 end)
+                + (case when r.mini_prev_bool is not null then 4 else 0 end)
+                + (case when r.type_machine is not null then 2 else 0 end)
+                desc
+        ) as rn
 
-    FROM inter i
-
-    LEFT JOIN machines_clean ma
-        ON LOWER(i.nom_machine) = ma.nom_machine
-
-    LEFT JOIN ref_type_inter r
-        ON i.type = r.type_code
-       AND (i.repair_code_1 = r.repair_code_1 OR r.repair_code_1 IS NULL)
-       AND (i.failure_code = r.failure_code OR r.failure_code IS NULL)
-       AND (i.mini_prev_bool = r.mini_prev_bool OR r.mini_prev_bool IS NULL)
-       AND (ma.categorie_machine = r.type_machine OR r.type_machine IS NULL)
-
-    LEFT JOIN departements_montagne dm
-        ON i.dpt_site = dm.dpt
+    from inter as i
+    left join machines_clean as ma
+        on lower(i.nom_machine) = ma.nom_machine
+    left join ref_type_inter as r
+        on
+            i.intervention_type = r.type_code
+            and (i.repair_code_1 = r.repair_code_1 or r.repair_code_1 is null)
+            and (i.failure_code = r.failure_code or r.failure_code is null)
+            and (i.mini_prev_bool = r.mini_prev_bool or r.mini_prev_bool is null)
+            and (ma.categorie_machine = r.type_machine or r.type_machine is null)
+    left join departements_montagne as dm
+        on i.dpt_site = dm.dpt
 ),
 
-final AS (
-    -- Jointure avec la table de correspondance facturation
-    SELECT
+final as (
+    select
         j.n_planning,
         j.type_inter_libelle,
         j.key_factu,
         kf.prod_factu,
         kf.tarif_factu
-    FROM joined j
-
-    LEFT JOIN {{ ref('ref_nesp_tech__key_facturation') }} kf
-        ON kf.key_ref_inter = j.key_factu
-
-    -- Sélection de la règle la plus prioritaire
-    WHERE j.rn = 1
+    from joined as j
+    left join {{ ref('ref_nesp_tech__key_facturation') }} as kf
+        on j.key_factu = kf.key_ref_inter
+    where j.rn = 1
 )
 
--- ============================
--- SELECT FINAL EXPLICITE
--- ============================
-SELECT
+select
     n_planning,
     type_inter_libelle,
     key_factu,
     prod_factu,
     tarif_factu
-FROM final
+
+from final

@@ -1,16 +1,19 @@
-{{ 
-  config(
-    materialized='table',
-    description='Demande dintervention nettoyés et enrichis depuis yuman_workorder_demands',
-  ) 
+{{
+    config(
+        materialized = 'table',
+        description = 'Demande dintervention nettoyés et enrichis depuis yuman_workorder_demands'
+    )
 }}
 
 with source_data as (
-    select * 
+
+    select *
     from {{ source('yuman_api', 'yuman_workorder_demands') }}
+
 ),
 
-cleaned_workorder_demdands as (
+cleaned_workorder_demands as (
+
     select
         id as demand_id,
         workorder_id,
@@ -23,12 +26,14 @@ cleaned_workorder_demdands as (
         description as demand_description,
         status as demand_status,
         reject_comment as demand_reject_comment,
-        TIMESTAMP(created_at) as created_at,
-        TIMESTAMP(updated_at) as updated_at,
-        TIMESTAMP(_sdc_extracted_at) as extracted_at,
-        TIMESTAMP(_sdc_deleted_at) as deleted_at
+        timestamp(created_at) as created_at,
+        timestamp(updated_at) as updated_at,
+        timestamp(_sdc_extracted_at) as extracted_at,
+        timestamp(_sdc_deleted_at) as deleted_at
     from source_data
     where id is not null
+
 )
 
-select * from cleaned_workorder_demdands
+select *
+from cleaned_workorder_demands

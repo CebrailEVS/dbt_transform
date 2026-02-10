@@ -11,48 +11,48 @@
     )
 }}
 
-WITH source_data AS (
-    SELECT *
-    FROM {{ source('mssql_sage', 'dbo_f_docligne') }}
+with source_data as (
+    select *
+    from {{ source('mssql_sage', 'dbo_f_docligne') }}
 ),
 
-cleaned_data AS (
-    SELECT
+cleaned_data as (
+    select
         -- Identifiant unique de la ligne
-        CAST(JSON_VALUE(data, '$.DL_No') AS INT64) AS dl_no, -- PK
-        CAST(JSON_VALUE(data, '$.cbCO_No') AS INT64) AS cbco_no, -- FK pour table collaborateur
+        cast(json_value(data, '$.DL_No') as int64) as dl_no, -- PK
+        cast(json_value(data, '$.cbCO_No') as int64) as cbco_no, -- FK pour table collaborateur
 
         -- Champs principaux
-        JSON_VALUE(data, '$.CT_Num') AS ct_num,
-        JSON_VALUE(data, '$.DO_Piece') AS do_piece,
-        JSON_VALUE(data, '$.DL_Design') AS dl_design,
-        JSON_VALUE(data, '$.AR_Ref') AS ar_ref,
+        json_value(data, '$.CT_Num') as ct_num,
+        json_value(data, '$.DO_Piece') as do_piece,
+        json_value(data, '$.DL_Design') as dl_design,
+        json_value(data, '$.AR_Ref') as ar_ref,
 
         -- Dates & montants
-        TIMESTAMP(JSON_VALUE(data, '$.DO_Date')) AS do_date,
-        CAST(JSON_VALUE(data, '$.DL_Qte') AS FLOAT64) AS dl_qte,
-        CAST(JSON_VALUE(data, '$.DL_MontantHT') AS FLOAT64) AS dl_montant_ht,
-        CAST(JSON_VALUE(data, '$.DL_MontantTTC') AS FLOAT64) AS dl_montant_ttc,
-        CAST(JSON_VALUE(data, '$.DL_PrixUnitaire') AS FLOAT64) AS dl_prix_unitaire,
+        timestamp(json_value(data, '$.DO_Date')) as do_date,
+        cast(json_value(data, '$.DL_Qte') as float64) as dl_qte,
+        cast(json_value(data, '$.DL_MontantHT') as float64) as dl_montant_ht,
+        cast(json_value(data, '$.DL_MontantTTC') as float64) as dl_montant_ttc,
+        cast(json_value(data, '$.DL_PrixUnitaire') as float64) as dl_prix_unitaire,
 
         -- Metadata
-        TIMESTAMP(JSON_VALUE(data, '$.cbCreation')) AS created_at,
-        TIMESTAMP(JSON_VALUE(data, '$.cbModification')) AS updated_at,
-        _sdc_extracted_at AS extracted_at
-    FROM source_data
+        timestamp(json_value(data, '$.cbCreation')) as created_at,
+        timestamp(json_value(data, '$.cbModification')) as updated_at,
+        _sdc_extracted_at as extracted_at
+    from source_data
 )
 
-SELECT *
-FROM cleaned_data
+select *
+from cleaned_data
 
 
 {% if is_incremental() %}
-WHERE
+where
     (
         updated_at > (
-            SELECT MAX(updated_at)
-            FROM {{ this }}
+            select max(updated_at)
+            from {{ this }}
         )
-        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+        or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
     )
 {% endif %}

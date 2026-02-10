@@ -1,28 +1,31 @@
-{{ 
-  config(
-    materialized='table',
-    description='Table des bases clients Nespresso EVS nettoyée et filtrée sur les colonnes utiles.'
-  ) 
+{{
+    config(
+        materialized = 'table',
+        description = 'Table des bases clients Nespresso EVS nettoyée et filtrée sur les colonnes utiles.'
+    )
 }}
 
 with source_data as (
+
     select *
     from {{ source('nesp_co', 'nespresso_base_client') }}
     where third is not null
+
 ),
 
 base_client as (
+
     select
-        -- IDs convertis en BIGINT
+        -- ids convertis en bigint
         cast(third as int64) as third,
 
-        -- Colonnes texte
+        -- colonnes texte
         third_name,
         third_adr_ln1,
         third_adr_ln2,
         third_post_code,
         third_city,
-        third_status_descr, 
+        third_status_descr,
         segmentation_hypercare,
         categorie_client,
         region,
@@ -38,11 +41,11 @@ base_client as (
         order_placer_city,
         order_placer_phone,
 
-        -- Dates
+        -- dates
         safe_cast(club_dt_disp as timestamp) as club_dt_disp,
         safe_cast(last_caps_ord_dt_disp as timestamp) as last_caps_ord_dt_disp,
 
-        -- Mesures
+        -- mesures
         ns,
         ns_n1,
         ns_n_ytd,
@@ -58,7 +61,7 @@ base_client as (
         cast(ez_n_ytd as int64) as ez_n_ytd,
         cast(ez_n1 as int64) as ez_n1,
 
-        -- Metadata
+        -- metadata
         _smart_source_bucket,
         _smart_source_file,
         _smart_source_lineno,
@@ -66,6 +69,8 @@ base_client as (
         _sdc_received_at
 
     from source_data
+
 )
 
-select * from base_client
+select *
+from base_client

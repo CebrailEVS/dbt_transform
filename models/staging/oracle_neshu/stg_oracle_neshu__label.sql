@@ -15,7 +15,7 @@ cleaned_data as (
         -- IDs convertis en BIGINT
         cast(idlabel as int64) as idlabel,
         cast(idlabel_family as int64) as idlabel_family,
-        
+
         -- Colonnes texte
         code,
 
@@ -27,7 +27,7 @@ cleaned_data as (
         timestamp(modification_date) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
-        
+
     from source_data
 )
 
