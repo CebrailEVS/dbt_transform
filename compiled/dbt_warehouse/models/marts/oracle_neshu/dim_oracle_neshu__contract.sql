@@ -1,110 +1,108 @@
 
 
-WITH contract_labels AS (
-  SELECT 
-    c.idcontract as contract_id,
-    c.idcompany_peer as company_id,
-    c.code AS contract_code,
-    c.engagement_raw,
-    c.engagement_clean,
-    c.nombre_collab,
-    l.code AS label_code,
-    lf.code AS label_family_code,
-    c.original_start_date,
-    c.original_end_date,
-    c.current_end_date,
-    c.termination_date,
-    c.created_at,
-    c.updated_at
-  FROM `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__contract` c
-  LEFT JOIN `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_contract` lhc 
-    ON lhc.idcontract = c.idcontract AND lhc.idlabel IS NOT NULL
-  LEFT JOIN `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label` l 
-    ON l.idlabel = lhc.idlabel
-  LEFT JOIN `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_family` lf 
-    ON lf.idlabel_family = l.idlabel_family
+with contract_labels as (
+    select
+        c.idcontract as contract_id,
+        c.idcompany_peer as company_id,
+        c.code as contract_code,
+        c.engagement_raw,
+        c.engagement_clean,
+        c.nombre_collab,
+        l.code as label_code,
+        lf.code as label_family_code,
+        c.original_start_date,
+        c.original_end_date,
+        c.current_end_date,
+        c.termination_date,
+        c.created_at,
+        c.updated_at
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__contract` as c
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_contract` as lhc
+        on c.idcontract = lhc.idcontract and lhc.idlabel is not null
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label` as l
+        on lhc.idlabel = l.idlabel
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_family` as lf
+        on l.idlabel_family = lf.idlabel_family
 ),
 
-aggregated_labels AS ( 
-  SELECT
-    contract_id,
-    company_id,
-    contract_code,
-    engagement_raw,
-    engagement_clean,
-    nombre_collab,
-    original_start_date,
-    original_end_date,
-    current_end_date,
-    termination_date,
-    created_at,
-    updated_at,
+aggregated_labels as (
+    select
+        contract_id,
+        company_id,
+        contract_code,
+        engagement_raw,
+        engagement_clean,
+        nombre_collab,
+        original_start_date,
+        original_end_date,
+        current_end_date,
+        termination_date,
+        created_at,
+        updated_at,
 
-    -- pivot des familles de labels
-    MAX(CASE WHEN label_family_code = 'TRANCHE_COLLAB' THEN label_code END) AS employee_range,
-    MAX(CASE WHEN label_family_code = 'PROADMAN' THEN label_code END) AS proadman,
-    MAX(CASE WHEN label_family_code = 'REGION' THEN label_code END) AS region,
-    MAX(CASE WHEN label_family_code = 'TELETRAVAIL' THEN label_code END) AS teletravail,
-    MAX(CASE WHEN label_family_code = 'ISACTIVE' THEN label_code END) AS is_active
+        -- pivot des familles de labels
+        MAX(case when label_family_code = 'TRANCHE_COLLAB' then label_code end) as employee_range,
+        MAX(case when label_family_code = 'PROADMAN' then label_code end) as proadman,
+        MAX(case when label_family_code = 'REGION' then label_code end) as region,
+        MAX(case when label_family_code = 'TELETRAVAIL' then label_code end) as teletravail,
+        MAX(case when label_family_code = 'ISACTIVE' then label_code end) as is_active
 
-  FROM contract_labels
-  GROUP BY
-    contract_id,
-    company_id,
-    contract_code,
-    engagement_raw,
-    engagement_clean,
-    nombre_collab,
-    original_start_date,
-    original_end_date,
-    current_end_date,
-    termination_date,
-    created_at,
-    updated_at
+    from contract_labels
+    group by
+        contract_id,
+        company_id,
+        contract_code,
+        engagement_raw,
+        engagement_clean,
+        nombre_collab,
+        original_start_date,
+        original_end_date,
+        current_end_date,
+        termination_date,
+        created_at,
+        updated_at
 ),
 
 aggreated_contract as (
-  SELECT
+    select
+        contract_id,
+        company_id,
+        contract_code,
+        engagement_raw,
+        engagement_clean,
+        nombre_collab,
+        COALESCE(LOWER(is_active) = 'yes', false) as is_active,
+        original_start_date,
+        original_end_date,
+        current_end_date,
+        termination_date,
+        created_at,
+        updated_at
+    from aggregated_labels
+)
+
+select
     contract_id,
     company_id,
     contract_code,
     engagement_raw,
     engagement_clean,
     nombre_collab,
-    CASE
-      WHEN LOWER(is_active) = 'yes' THEN TRUE
-      ELSE FALSE
-    END AS is_active,
+    is_active,
     original_start_date,
     original_end_date,
     current_end_date,
     termination_date,
     created_at,
     updated_at
-  FROM aggregated_labels
-)
-
-SELECT
-  contract_id,
-  company_id,
-  contract_code,
-  engagement_raw,
-  engagement_clean,
-  nombre_collab,
-  is_active,
-  original_start_date,
-  original_end_date,
-  current_end_date,
-  termination_date,
-  created_at,
-  updated_at
-FROM (
-    SELECT *,
-           ROW_NUMBER() OVER (
-               PARTITION BY company_id
-               ORDER BY current_end_date DESC, original_start_date DESC, contract_id
-           ) as rn
-    FROM aggreated_contract
-    WHERE is_active = TRUE
-) subq
-WHERE rn = 1
+from (
+    select
+        *,
+        ROW_NUMBER() over (
+            partition by company_id
+            order by current_end_date desc, original_start_date desc, contract_id asc
+        ) as rn
+    from aggreated_contract
+    where is_active = true
+) as subq
+where rn = 1

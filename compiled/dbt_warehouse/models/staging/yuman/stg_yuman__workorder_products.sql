@@ -1,11 +1,14 @@
 
 
 with source_data as (
-    select * 
+
+    select *
     from `evs-datastack-prod`.`prod_raw`.`yuman_workorders`
+
 ),
 
 workorder_products_unnested as (
+
     select
         wo.id as workorder_id,
         cast(json_extract_scalar(product, '$.id') as int64) as workorder_product_id,
@@ -15,11 +18,13 @@ workorder_products_unnested as (
         cast(json_extract_scalar(product, '$.quantity') as float64) as product_quantity,
         timestamp(json_extract_scalar(product, '$.created_at')) as product_created_at,
         timestamp(json_extract_scalar(product, '$.updated_at')) as product_updated_at
-    from source_data wo,
-    unnest(json_extract_array(wo._embed_products)) as product
+    from source_data as wo
+    cross join unnest(json_extract_array(wo._embed_products)) as product
+
 ),
 
 final as (
+
     select
         workorder_product_id,
         workorder_id,
@@ -30,6 +35,8 @@ final as (
         product_created_at,
         product_updated_at
     from workorder_products_unnested
+
 )
 
-select * from final
+select *
+from final

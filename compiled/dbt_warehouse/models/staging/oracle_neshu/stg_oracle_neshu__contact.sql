@@ -10,7 +10,7 @@ cleaned_data as (
         -- IDs convertis en BIGINT
         cast(idcontact as int64) as idcontact,
         cast(idcompany as int64) as idcompany,
-        
+
         -- Colonnes texte
         code,
         first_name,
@@ -26,7 +26,7 @@ cleaned_data as (
         timestamp(modification_date) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
-        
+
     from source_data
 )
 

@@ -50,24 +50,35 @@ cleaned as (
         nullif(trim(entit_entit_4), '') as entite_entite_4,
 
         -- Mesure
-        CAST(co_t_assureur AS FLOAT64) AS cout_assureur,
-        CAST(auto_assurance AS FLOAT64) AS auto_assurance,
-        CAST(franchise AS FLOAT64) AS franchise,
-        CAST(co_t_global AS FLOAT64) AS cout_global,
-        CAST(co_t_client AS FLOAT64) AS cout_client,
+        cast(co_t_assureur as float64) as cout_assureur,
+        cast(auto_assurance as float64) as auto_assurance,
+        cast(franchise as float64) as franchise,
+        cast(co_t_global as float64) as cout_global,
+        cast(co_t_client as float64) as cout_client,
 
         -- Date
-        SAFE.PARSE_TIMESTAMP('%d/%m/%Y %H:%M:%S', NULLIF(TRIM(date), '')) AS date_sinistre,
-        SAFE.PARSE_TIMESTAMP('%d/%m/%Y %H:%M:%S', NULLIF(TRIM(date_de_cr_ation), '')) AS date_de_creation,
+        safe.parse_timestamp('%d/%m/%Y %H:%M:%S', nullif(trim(date), '')) as date_sinistre,
+        safe.parse_timestamp('%d/%m/%Y %H:%M:%S', nullif(trim(date_de_cr_ation), '')) as date_de_creation,
 
         -- Date annexe
-        SAFE.PARSE_DATE('%d/%m/%Y', NULLIF(TRIM(date_de_passage_de_l_expert), '')) AS date_passage_expert,
-        SAFE.PARSE_DATE('%d/%m/%Y', NULLIF(TRIM(date_de_r_ception_du_constat), '')) AS date_reception_constat,
-        SAFE.PARSE_DATE('%d/%m/%Y', NULLIF(TRIM(date_d_envoi_du_constat_l_assureur), '')) AS date_envoie_constat_assureur,
-        SAFE.PARSE_DATE('%d/%m/%Y', NULLIF(TRIM(date_de_d_but_de_r_paration), '')) AS date_debut_reparation,
-        SAFE.PARSE_DATE('%d/%m/%Y', NULLIF(TRIM(date_de_fin_de_r_paration), '')) AS date_fin_reparation,
-        SAFE.PARSE_DATE('%d/%m/%Y', NULLIF(TRIM(date_de_remise_du_v_hicule_au_collaborateur_apr_s_r_paration), '')) AS date_remise_vehicule_collaborateur,
-        SAFE.PARSE_DATE('%d/%m/%Y', NULLIF(TRIM(date_de_cl_ture_du_sinistre), '')) AS date_cloture_sinistre,
+        safe.parse_date('%d/%m/%Y', nullif(trim(date_de_passage_de_l_expert), '')) as date_passage_expert,
+        safe.parse_date('%d/%m/%Y', nullif(trim(date_de_r_ception_du_constat), '')) as date_reception_constat,
+        safe.parse_date(
+            '%d/%m/%Y', nullif(trim(date_d_envoi_du_constat_l_assureur), '')
+        ) as date_envoie_constat_assureur,
+        safe.parse_date(
+            '%d/%m/%Y', nullif(trim(date_de_d_but_de_r_paration), '')
+        ) as date_debut_reparation,
+        safe.parse_date(
+            '%d/%m/%Y', nullif(trim(date_de_fin_de_r_paration), '')
+        ) as date_fin_reparation,
+        safe.parse_date(
+            '%d/%m/%Y',
+            nullif(trim(date_de_remise_du_v_hicule_au_collaborateur_apr_s_r_paration), '')
+        ) as date_remise_vehicule_collaborateur,
+        safe.parse_date(
+            '%d/%m/%Y', nullif(trim(date_de_cl_ture_du_sinistre), '')
+        ) as date_cloture_sinistre,
 
         -- Métadonnées Meltano
         _sdc_source_file,
@@ -75,7 +86,7 @@ cleaned as (
         _sdc_received_at,
         _sdc_batched_at,
         _sdc_sequence
-        
+
     from source
 )
 

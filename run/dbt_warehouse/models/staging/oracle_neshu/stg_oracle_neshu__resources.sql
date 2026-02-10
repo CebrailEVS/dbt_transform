@@ -31,7 +31,7 @@ cleaned_data as (
         cast(idcontact as int64) as idcontact,
         cast(idcontact_creation as int64) as idcontact_creation,
         cast(idcontact_modification as int64) as idcontact_modification,
-        
+
         -- Colonnes texte
         code,
         name,
@@ -39,17 +39,18 @@ cleaned_data as (
 
         -- Colonnes numériques
         cast(cost as float64) as cost,
-    
+
         -- Timestamps harmonisés
         timestamp(arrival) as arrival,
         timestamp(departure) as departure,
 
         -- Timestamps harmonisés
         timestamp(creation_date) as created_at,
-        timestamp(coalesce(modification_date, creation_date)) as updated_at, -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
+        -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
+        timestamp(coalesce(modification_date, creation_date)) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
-        
+
     from source_data
 )
 

@@ -24,11 +24,10 @@ with source_data as (
     from `evs-datastack-prod`.`prod_raw`.`evs_contract`
 ),
 
-
 parsed_data as (
     select
         cast(idcontract as int64) as idcontract,
-        
+
         -- nombre_collab → conversion en entier
         cast(nullif(trim(nombre_collab), '') as int64) as nombre_collab,
 
@@ -57,7 +56,7 @@ cleaned_data as (
         cast(c.idcompany_peer as int64) as idcompany_peer,
         cast(c.idcontact_creation as int64) as idcontact_creation,
         cast(c.idcontact_modification as int64) as idcontact_modification,
-        
+
         c.code,
         c.name,
         c.code_status_record,
@@ -75,10 +74,10 @@ cleaned_data as (
         timestamp(c.creation_date) as created_at,
         timestamp(coalesce(c.modification_date, c.creation_date)) as updated_at,
         timestamp(c._sdc_extracted_at) as extracted_at,
-        timestamp(c._sdc_deleted_at) as deleted_at,
+        timestamp(c._sdc_deleted_at) as deleted_at
 
-    from source_data c
-    left join parsed_data p using (idcontract)
+    from source_data as c
+    left join parsed_data as p on c.idcontract = p.idcontract
 )
 
 select * from cleaned_data

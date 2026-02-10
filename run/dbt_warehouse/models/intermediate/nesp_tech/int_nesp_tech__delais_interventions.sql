@@ -14,197 +14,171 @@
     as (
       
 
-WITH inter AS (
-    -- Préparation des interventions éligibles
-    -- + définition de la date de référence pour le calcul des délais
-    SELECT
+with inter as (
+    select
         *,
-        CASE
-            -- Si pickup avant création, on prend création comme point de départ
-            WHEN pickup_date < creation_date THEN creation_date
-            ELSE pickup_date
-        END AS date_creation_delai
-
-    FROM `evs-datastack-prod`.`prod_staging`.`stg_nesp_tech__interventions`
-
-    -- Filtrage des interventions traitées uniquement
-    WHERE etat_intervention IN ('terminée signée', 'signature différée')
-      AND agency IN ('evs idf', 'evs', 'evs paris', 'evs paris 2')
+        case
+            when pickup_date < creation_date then creation_date
+            else pickup_date
+        end as date_creation_delai
+    from `evs-datastack-prod`.`prod_staging`.`stg_nesp_tech__interventions`
+    where
+        etat_intervention in ('terminée signée', 'signature différée')
+        and agency in ('evs idf', 'evs', 'evs paris', 'evs paris 2')
 ),
 
-feries AS (
-    -- Table de référence des jours fériés France métropole
-    SELECT 
-        CAST(date_ferie AS DATE) AS date_ferie
-    FROM `evs-datastack-prod`.`prod_reference`.`ref_general__feries_metropole`
+feries as (
+    select cast(date_ferie as date) as date_ferie
+    from `evs-datastack-prod`.`prod_reference`.`ref_general__feries_metropole`
 ),
 
-exploded AS (
-    -- Expansion journalière : 1 ligne par jour entre création et fin
-    -- Permet un calcul précis des jours et heures ouvrées
-    SELECT
+exploded as (
+    select
         i.n_planning,
-        i.type,
+        i.intervention_type,
         i.code_machine,
         i.date_creation_delai,
         i.date_heure_debut,
         i.date_heure_fin,
-
-        -- Date calendrier générée
-        d AS cal_date,
-
-        -- Indique si le jour est férié
+        d as cal_date,
         f.date_ferie
-
-    FROM inter i
-
-    CROSS JOIN UNNEST(
-        GENERATE_DATE_ARRAY(
-            LEAST(DATE(i.date_creation_delai), DATE(i.date_heure_debut)),
-            DATE(i.date_heure_fin)
-        )
-    ) AS d
-
-    LEFT JOIN feries f
-        ON d = f.date_ferie
+    from inter as i
+    cross join
+        unnest(
+            generate_date_array(
+                least(date(i.date_creation_delai), date(i.date_heure_debut)),
+                date(i.date_heure_fin)
+            )
+        ) as d
+    left join feries as f
+        on d = f.date_ferie
 ),
 
-delais AS (
-    -- Agrégation des délais par intervention
-    SELECT
+delais as (
+    select
         n_planning,
-        type,
+        intervention_type,
         code_machine,
 
-        /* ============================
-           JOURS OUVRÉS AVANT DÉBUT
-           ============================ */
-        COUNTIF(
-            EXTRACT(DAYOFWEEK FROM cal_date) NOT IN (1,7)
-            AND date_ferie IS NULL
-            AND cal_date <= DATE(date_heure_debut)
-        ) AS delai_jours_debut,
+        -- Jours ouvres avant debut
+        countif(
+            extract(dayofweek from cal_date) not in (1, 7)
+            and date_ferie is null
+            and cal_date <= date(date_heure_debut)
+        ) as delai_jours_debut,
 
-        /* ============================
-           JOURS OUVRÉS AVANT FIN
-           ============================ */
-        COUNTIF(
-            EXTRACT(DAYOFWEEK FROM cal_date) NOT IN (1,7)
-            AND date_ferie IS NULL
-            AND cal_date <= DATE(date_heure_fin)
-        ) AS delai_jours_fin,
+        -- Jours ouvres avant fin
+        countif(
+            extract(dayofweek from cal_date) not in (1, 7)
+            and date_ferie is null
+            and cal_date <= date(date_heure_fin)
+        ) as delai_jours_fin,
 
-        /* ============================
-           HEURES OUVRÉES JUSQU’AU DÉBUT
-           ============================ */
-        SUM(
-            CASE
-                WHEN EXTRACT(DAYOFWEEK FROM cal_date) IN (1,7)
-                     OR date_ferie IS NOT NULL
-                     OR cal_date > DATE(date_heure_debut)
-                THEN 0
-                ELSE TIMESTAMP_DIFF(
-                    LEAST(
+        -- Heures ouvrees jusqu'au debut
+        sum(case
+            when
+                extract(dayofweek from cal_date) in (1, 7)
+                or date_ferie is not null
+                or cal_date > date(date_heure_debut)
+                then 0
+            else
+                timestamp_diff(
+                    least(
                         date_heure_debut,
-                        TIMESTAMP_ADD(TIMESTAMP(cal_date), INTERVAL 1 DAY)
+                        timestamp_add(timestamp(cal_date), interval 1 day)
                     ),
-                    GREATEST(date_creation_delai, TIMESTAMP(cal_date)),
-                    SECOND
+                    greatest(date_creation_delai, timestamp(cal_date)),
+                    second
                 ) / 3600
-            END
-        ) AS delai_heures_debut,
+        end) as delai_heures_debut,
 
-        /* ============================
-           HEURES OUVRÉES JUSQU’A LA FIN
-           ============================ */
-        SUM(
-            CASE
-                WHEN EXTRACT(DAYOFWEEK FROM cal_date) IN (1,7)
-                     OR date_ferie IS NOT NULL
-                     OR cal_date > DATE(date_heure_fin)
-                THEN 0
-                ELSE TIMESTAMP_DIFF(
-                    LEAST(
+        -- Heures ouvrees jusqu'a la fin
+        sum(case
+            when
+                extract(dayofweek from cal_date) in (1, 7)
+                or date_ferie is not null
+                or cal_date > date(date_heure_fin)
+                then 0
+            else
+                timestamp_diff(
+                    least(
                         date_heure_fin,
-                        TIMESTAMP_ADD(TIMESTAMP(cal_date), INTERVAL 1 DAY)
+                        timestamp_add(timestamp(cal_date), interval 1 day)
                     ),
-                    GREATEST(date_creation_delai, TIMESTAMP(cal_date)),
-                    SECOND
+                    greatest(date_creation_delai, timestamp(cal_date)),
+                    second
                 ) / 3600
-            END
-        ) AS delai_heures_fin
+        end) as delai_heures_fin
 
-    FROM exploded
-    GROUP BY n_planning, type, code_machine
+    from exploded
+    group by n_planning, intervention_type, code_machine
 ),
 
-final AS (
-    -- Calcul des attributs métiers intermédiaires
-    SELECT
+final as (
+    select
         *,
 
-        -- Délai total de traitement (jours ouvrés)
-        delai_jours_fin - delai_jours_debut AS delai_traitement_jours,
+        delai_jours_fin - delai_jours_debut as delai_traitement_jours,
 
-        -- Catégorisation SLA fin
-        CASE
-            WHEN delai_jours_fin <= 1 THEN 'J+0'
-            WHEN delai_jours_fin = 2 THEN 'J+1'
-            WHEN delai_jours_fin = 3 THEN 'J+2'
-            WHEN delai_jours_fin = 4 THEN 'J+3'
-            ELSE 'J++'
-        END AS type_delai_fin,
+        -- Categorisation SLA fin
+        case
+            when delai_jours_fin <= 1 then 'J+0'
+            when delai_jours_fin = 2 then 'J+1'
+            when delai_jours_fin = 3 then 'J+2'
+            when delai_jours_fin = 4 then 'J+3'
+            else 'J++'
+        end as type_delai_fin,
 
-        -- Catégorisation SLA début
-        CASE
-            WHEN delai_jours_debut <= 1 THEN 'J+0'
-            WHEN delai_jours_debut = 2 THEN 'J+1'
-            WHEN delai_jours_debut = 3 THEN 'J+2'
-            WHEN delai_jours_debut = 4 THEN 'J+3'
-            ELSE 'J++'
-        END AS type_delai_debut,
+        -- Categorisation SLA debut
+        case
+            when delai_jours_debut <= 1 then 'J+0'
+            when delai_jours_debut = 2 then 'J+1'
+            when delai_jours_debut = 3 then 'J+2'
+            when delai_jours_debut = 4 then 'J+3'
+            else 'J++'
+        end as type_delai_debut,
 
-        -- Flag bonus (logique métier intermédiaire)
-        CASE
-            WHEN delai_jours_fin <= 2
-                 AND type = '5'
-                 AND code_machine NOT LIKE 'ag%'
-            THEN TRUE
-            ELSE FALSE
-        END AS delai_bonus_bool,
+        -- Flag bonus
+        (
+            delai_jours_fin <= 2
+            and intervention_type = '5'
+            and code_machine not like 'ag%'
+        ) as delai_bonus_bool,
 
-        -- Montant bonus calculé
-        CASE
-            WHEN delai_jours_fin <= 2
-                 AND type = '5'
-                 AND code_machine NOT LIKE 'ag%'
-            THEN 15
-            ELSE 0
-        END AS delai_bonus_valeur
+        -- Montant bonus
+        case
+            when
+                delai_jours_fin <= 2
+                and intervention_type = '5'
+                and code_machine not like 'ag%'
+                then 15
+            else 0
+        end as delai_bonus_valeur
 
-    FROM delais
+    from delais
 )
 
--- ============================
--- SORTIE INTERMEDIATE
--- ============================
-SELECT
+select
     -- Info Intervention
     n_planning,
-    type,
+    intervention_type,
     code_machine,
-    -- Info delais debut (utile primes)
+
+    -- Info delais debut
     delai_jours_debut,
     delai_heures_debut,
     type_delai_debut,
-    -- Info delais fin (utiles facturation)
+
+    -- Info delais fin
     delai_jours_fin,
     delai_heures_fin,
     type_delai_fin,
     delai_traitement_jours,
+
     -- Info Bonus Curative
     delai_bonus_bool,
     delai_bonus_valeur
-FROM final
+
+from final
     );
   

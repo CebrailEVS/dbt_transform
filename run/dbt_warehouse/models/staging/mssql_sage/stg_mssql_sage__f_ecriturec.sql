@@ -43,9 +43,9 @@ cleaned_data as (
         timestamp(ec_date) as ec_date,
         timestamp(jm_date) as jm_date,
         ec_jour,
-        case when ec_echeance = '1753-01-01' then NULL else timestamp(ec_echeance) end as ec_echeance,
-        case when ec_date_rappro = '1753-01-01' then NULL else timestamp(ec_date_rappro) end as ec_date_rappro,
-        case when ec_date_regle = '1753-01-01' then NULL else timestamp(ec_date_regle) end as ec_date_regle,
+        case when ec_echeance = '1753-01-01' then null else timestamp(ec_echeance) end as ec_echeance,
+        case when ec_date_rappro = '1753-01-01' then null else timestamp(ec_date_rappro) end as ec_date_rappro,
+        case when ec_date_regle = '1753-01-01' then null else timestamp(ec_date_regle) end as ec_date_regle,
 
         -- Métadonnées
         cb_createur,

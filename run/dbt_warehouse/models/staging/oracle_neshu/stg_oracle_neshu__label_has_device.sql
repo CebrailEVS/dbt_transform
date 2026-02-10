@@ -28,7 +28,7 @@ cleaned_data as (
         -- Timestamps harmonisés
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
-        
+
     from source_data
 )
 

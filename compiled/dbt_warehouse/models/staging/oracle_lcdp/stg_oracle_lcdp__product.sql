@@ -26,7 +26,8 @@ cleaned_data as (
 
         -- Timestamps harmonisés
         timestamp(creation_date) as created_at,
-        timestamp(coalesce(modification_date, creation_date)) as updated_at, -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
+        -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
+        timestamp(coalesce(modification_date, creation_date)) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
 

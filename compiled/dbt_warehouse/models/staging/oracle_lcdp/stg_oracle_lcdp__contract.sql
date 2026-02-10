@@ -46,7 +46,7 @@ cleaned_data as (
         timestamp(creation_date) as created_at,
         timestamp(coalesce(modification_date, creation_date)) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at,
+        timestamp(_sdc_deleted_at) as deleted_at
 
     from source_data
 )

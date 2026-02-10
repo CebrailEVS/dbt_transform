@@ -68,21 +68,21 @@ cleaned_data as (
 -- ⚠️ Sécurité de jointure pour éviter les orphelins
 filtered_data as (
     select c.*
-    from cleaned_data c
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` t
+    from cleaned_data as c
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` as t
         on c.idtask = t.idtask
 )
 
-SELECT * FROM filtered_data
+select * from filtered_data
 
-WHERE
-    (
-        updated_at > (
-            SELECT MAX(updated_at)
-            FROM `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_product`
+    where
+        (
+            updated_at > (
+                select max(t.updated_at)
+                from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_product` as t
+            )
+            or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
         )
-        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
-    )
 
         ) as DBT_INTERNAL_SOURCE
         on ((DBT_INTERNAL_SOURCE.idtask_has_product = DBT_INTERNAL_DEST.idtask_has_product))

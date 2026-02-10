@@ -15,16 +15,16 @@ cleaned_data as (
         -- Timestamps harmonisés
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
-        
+
     from source_data
 ),
 
 -- Synchro avec la table des tâches pour éviter les orphelins
 filtered_data as (
     select cr.*
-    from cleaned_data cr
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` t
-      on cr.idtask = t.idtask
+    from cleaned_data as cr
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` as t
+        on cr.idtask = t.idtask
 )
 
 select * from filtered_data

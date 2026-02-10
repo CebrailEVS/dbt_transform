@@ -14,39 +14,30 @@
     as (
       
 
--- ============================================================================
--- MODEL: fct_yuman__stocks
--- PURPOSE: Suivis des stocks pièces Yuman par stock technicien et dépôt journaliers
--- AUTHOR: Cebrail AKSOY
--- ============================================================================
+with filtered_stocks as (
+    select
+        -- Attributs metier
+        reference,
+        designation,
+        nom_du_stock as stock,
 
-WITH 
--- ============================================================================
--- 1. BASE DATA EXTRACTION
--- ============================================================================
-filtered_stocks as (
+        -- Mesure
+        quantite,
 
-SELECT
-    -- Attributs métier 
-    reference, 
-    designation, 
-    nom_du_stock as stock,
+        -- Date
+        date(export_date) as stock_date,
 
-    -- Mesure
-    quantite, 
+        -- Metadonnees dbt
+        current_timestamp() as dbt_updated_at,
+        '2c49c569-b4fc-4f29-9309-0a459bd137af' as dbt_invocation_id
 
-    -- Date
-    DATE(export_date) as stock_date,
-
-    -- Métadonnées d'exécution
-    CURRENT_TIMESTAMP() as dbt_updated_at,
-    '15a963fc-e2ec-4a0c-a29b-f2695bfa964e' as dbt_invocation_id
-
-    FROM `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique`
-    WHERE reference is not null and nom_du_stock is not null
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique`
+    where
+        reference is not null
+        and nom_du_stock is not null
 )
 
-SELECT * 
-FROM filtered_stocks
+select *
+from filtered_stocks
     );
   

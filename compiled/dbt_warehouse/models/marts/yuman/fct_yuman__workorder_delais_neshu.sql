@@ -1,93 +1,107 @@
 
 
--- ============================================================================
--- MODEL: fct_yuman__workorder_delais_neshu
--- PURPOSE: Determiner les delais des inter (notamment curative) pas partenaire
--- AUTHOR: Etienne BOULINIER
--- ============================================================================
-
-WITH adjusted_dates AS (
-    -- Calculer la date de référence (ajouter 1 jour si l'heure dépasse 16h)
+with adjusted_dates as (
     select
-    	sfp.workorder_id as sfp_numero,
-        coalesce(TIMESTAMP(sfp.workorder_date_creation),sfp.demand_created_at) as date_creation_initial,
+        sfp.workorder_id as sfp_numero,
+        coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at) as date_creation_initial,
         sfp.date_done as date_fin,
-        CASE
-          WHEN EXTRACT(TIME FROM COALESCE(TIMESTAMP(sfp.workorder_date_creation), sfp.demand_created_at)) > '16:00:00'
-            THEN TIMESTAMP(DATE(COALESCE(TIMESTAMP(sfp.workorder_date_creation), sfp.demand_created_at)) + 1)
-          ELSE COALESCE(TIMESTAMP(sfp.workorder_date_creation), sfp.demand_created_at)
-        END AS date_creation_ref
-    FROM `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_pricing` sfp
+        case
+            when extract(time from coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at)) > '16:00:00'
+                then timestamp(date(coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at)) + 1)
+            else coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at)
+        end as date_creation_ref
+    from `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_pricing` as sfp
 ),
-dates_range AS (
-  SELECT
-    ad.sfp_numero,
-    ad.date_creation_initial,
-    ad.date_fin,
-    ad.date_creation_ref,
-    date_jour
-  FROM adjusted_dates ad,
-  UNNEST(
-    GENERATE_DATE_ARRAY(
-      DATE(ad.date_creation_ref),
-      DATE(ad.date_fin),
-      INTERVAL 1 DAY
-    )
-  ) AS date_jour
-),
-jours_feries as (
-select * from `evs-datastack-prod`.`prod_reference`.`ref_general__feries_metropole`  
-),
-famille_machine as (
-select 
-  Machine_Brut,
-  MACHINE,
-  famille_neshu
-from `evs-datastack-prod`.`prod_reference`.`ref_yuman__machine_clean`
-),
-jours_ouvrables AS (
-    -- Filtrer les jours ouvrés (exclure week-ends et jours fériés)
+
+dates_range as (
     select
-    	dr.sfp_numero,
+        ad.sfp_numero,
+        ad.date_creation_initial,
+        ad.date_fin,
+        ad.date_creation_ref,
+        date_jour
+    from adjusted_dates as ad,
+        unnest(
+            generate_date_array(
+                date(ad.date_creation_ref),
+                date(ad.date_fin),
+                interval 1 day
+            )
+        ) as date_jour
+),
+
+jours_feries as (
+    select *
+    from `evs-datastack-prod`.`prod_reference`.`ref_general__feries_metropole`
+),
+
+famille_machine as (
+    select
+        machine_brut,
+        machine,
+        famille_neshu
+    from `evs-datastack-prod`.`prod_reference`.`ref_yuman__machine_clean`
+),
+
+jours_ouvrables as (
+    select
+        dr.sfp_numero,
         dr.date_creation_initial,
         dr.date_fin,
         dr.date_creation_ref,
         dr.date_jour,
         jf.date_ferie
-    FROM
-        dates_range dr
-    LEFT JOIN jours_feries jf ON dr.date_jour = jf.date_ferie
-    WHERE
-        EXTRACT(DAYOFWEEK FROM dr.date_jour) NOT IN (1, 7)-- Exclure samedi (7) et dimanche (1)
-        AND jf.date_ferie IS null -- Exclure jours fériés
+    from dates_range as dr
+    left join jours_feries as jf
+        on dr.date_jour = jf.date_ferie
+    where
+        extract(dayofweek from dr.date_jour) not in (1, 7)
+        and jf.date_ferie is null
 ),
-delai_calcul AS (
-    -- Calculer le nombre total de jours ouvrés entre date_creation_ref et date_fin
+
+delai_calcul as (
     select
-    	jo.sfp_numero,
+        jo.sfp_numero,
         jo.date_creation_initial,
         jo.date_fin,
         jo.date_creation_ref,
-        COUNT(jo.date_jour)-1 AS delai_jours_ouvres
-    FROM
-        jours_ouvrables jo
-    GROUP BY
-        jo.sfp_numero,jo.date_creation_initial, jo.date_fin, jo.date_creation_ref
+        count(jo.date_jour) - 1 as delai_jours_ouvres
+    from jours_ouvrables as jo
+    group by
+        jo.sfp_numero,
+        jo.date_creation_initial,
+        jo.date_fin,
+        jo.date_creation_ref
 ),
--- Résultat final CTE
+
 final_table as (
-  select sfp.*,dc.date_creation_ref,dc.delai_jours_ouvres,
-    (case when dc.delai_jours_ouvres = 0 then 'J+0,5'
-    	  when dc.delai_jours_ouvres = 1 and extract(time from date_creation_ref) > '12:00:00' and extract(time from date_fin) < '12:00:00' then 'J+0,5'
-    	  when dc.delai_jours_ouvres = 1 then 'J+1'
-    	  when dc.delai_jours_ouvres = 2 then 'J+2'
-    	  when dc.delai_jours_ouvres > 2 then 'J++'
-    	  else 'ERREUR'
-   	END) as type_delai,
-  fm.famille_neshu
-from `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_pricing` sfp
-left join delai_calcul dc on dc.sfp_numero = sfp.workorder_id
-left join famille_machine fm on fm.Machine_Brut = sfp.machine_raw)
---where extract(month from sfp.date_done) = 11 and extract(year from sfp.date_done) = 2025)
--- SELECT REQUETE GLOBALE
-select * from final_table
+    select
+        sfp.*,
+        dc.date_creation_ref,
+        dc.delai_jours_ouvres,
+        case
+            when dc.delai_jours_ouvres = 0
+                then 'J+0,5'
+            when
+                dc.delai_jours_ouvres = 1
+                and extract(time from dc.date_creation_ref) > '12:00:00'
+                and extract(time from dc.date_fin) < '12:00:00'
+                then 'J+0,5'
+            when dc.delai_jours_ouvres = 1
+                then 'J+1'
+            when dc.delai_jours_ouvres = 2
+                then 'J+2'
+            when dc.delai_jours_ouvres > 2
+                then 'J++'
+            else 'ERREUR'
+        end as type_delai,
+        fm.famille_neshu
+    from `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_pricing` as sfp
+    left join delai_calcul as dc
+        on sfp.workorder_id = dc.sfp_numero
+    left join famille_machine as fm
+        on sfp.machine_raw = fm.machine_brut
+)
+
+select *
+from final_table

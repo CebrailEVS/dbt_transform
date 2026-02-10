@@ -14,18 +14,6 @@
     as (
       
 
--- =====================================================================
--- Model: int_yuman__demands_workorders_enriched
--- Description:
---   Vue unifiée des demandes d'intervention et des interventions
---   enrichie avec les informations clients, sites, matériels et utilisateurs.
---   Ce modèle sert de base intermédiaire (int) entre les données staging
---   et les modèles marts métier.
--- =====================================================================
-
--- =======================
--- CTE 1 : Demandes d'intervention
--- =======================
 with workorder_demands as (
     select
         demand_id,
@@ -43,9 +31,6 @@ with workorder_demands as (
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman__workorder_demands`
 ),
 
--- =======================
--- CTE 2 : Catégories de demandes
--- =======================
 workorder_demands_categories as (
     select
         demand_category_id,
@@ -53,9 +38,6 @@ workorder_demands_categories as (
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman__workorder_demands_categories`
 ),
 
--- =======================
--- CTE 3 : Interventions (workorders)
--- =======================
 workorders as (
     select
         workorder_id,
@@ -81,9 +63,6 @@ workorders as (
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman__workorders`
 ),
 
--- =======================
--- CTE 4 : Clients
--- =======================
 clients as (
     select
         client_id,
@@ -95,9 +74,6 @@ clients as (
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman__clients`
 ),
 
--- =======================
--- CTE 5 : Sites
--- =======================
 sites as (
     select
         site_id,
@@ -108,9 +84,6 @@ sites as (
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman__sites`
 ),
 
--- =======================
--- CTE 6 : Matériels
--- =======================
 materials as (
     select
         material_id,
@@ -123,9 +96,6 @@ materials as (
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman__materials`
 ),
 
--- =======================
--- CTE 7 : Catégories de matériels
--- =======================
 materials_categories as (
     select
         category_id,
@@ -133,9 +103,6 @@ materials_categories as (
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman__materials_categories`
 ),
 
--- =======================
--- CTE 8 : Utilisateurs
--- =======================
 users as (
     select
         user_id,
@@ -146,9 +113,6 @@ users as (
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman__users`
 ),
 
--- =======================
--- CTE 9 : Mapping techniciens - agences
--- =======================
 tech_agence_mapping as (
     select
         nom,
@@ -158,11 +122,8 @@ tech_agence_mapping as (
     from `evs-datastack-prod`.`prod_reference`.`ref_yuman__tech_agence`
 )
 
--- =======================
--- FINAL SELECT : Assemblage des données
--- =======================
 select
-    -- === Demandes d'intervention ===
+    -- Demandes d'intervention
     wd.demand_id,
     wd.workorder_id,
     wd.material_id,
@@ -175,10 +136,10 @@ select
     wd.demand_created_at,
     wd.demand_updated_at,
 
-    -- === Catégorie demande ===
+    -- Categorie demande
     wdc.demand_category_name,
 
-    -- === Interventions ===
+    -- Interventions
     wo.technician_id,
     wo.workorder_number,
     wo.workorder_category,
@@ -199,63 +160,57 @@ select
     wo.date_started,
     wo.date_done,
 
-    -- === Clients ===
+    -- Clients
     cl.partner_name,
     cl.client_code,
     cl.client_name,
     cl.client_category,
     cl.client_is_active,
 
-    -- === Sites ===
+    -- Sites
     s.site_code,
     s.site_name,
     s.site_address,
     s.site_postal_code,
 
-    -- === Matériels ===
+    -- Materiels
     m.material_name,
     m.material_serial_number,
     m.material_brand,
     m.material_description,
     m.material_in_service_date,
 
-    -- === Catégories de matériels ===
+    -- Categories de materiels
     mc.material_category,
 
-    -- === Utilisateurs ===
+    -- Utilisateurs
     u.manager_id,
     u.user_name,
     u.user_type,
     u.is_manager_as_technician,
 
-    -- === Agence du technicien (via mapping) ===
+    -- Agence du technicien (via mapping)
     tam.agence as technician_agency_stock,
     tam.equipe as technician_equipe
 
-from workorder_demands wd
-left join workorder_demands_categories wdc
+from workorder_demands as wd
+left join workorder_demands_categories as wdc
     on wd.demand_category_id = wdc.demand_category_id
-
-full join workorders wo
+full join workorders as wo
     on wd.workorder_id = wo.workorder_id
-
-left join clients cl
+left join clients as cl
     on wd.client_id = cl.client_id
-
-left join sites s
+left join sites as s
     on wd.site_id = s.site_id
-
-left join materials m
+left join materials as m
     on wd.material_id = m.material_id
-
-left join materials_categories mc
+left join materials_categories as mc
     on m.category_id = mc.category_id
-
-left join users u
+left join users as u
     on wd.user_id = u.user_id
-
-left join tech_agence_mapping tam
-    on UPPER(TRIM(REGEXP_REPLACE(wo.workorder_technician_name, r'\[INACTIF\]\s*', ''))) = 
-       UPPER(TRIM(tam.nom || ' ' || tam.prenom))
+left join tech_agence_mapping as tam
+    on
+        upper(trim(regexp_replace(wo.workorder_technician_name, r'\[INACTIF\]\s*', '')))
+        = upper(trim(tam.nom || ' ' || tam.prenom))
     );
   

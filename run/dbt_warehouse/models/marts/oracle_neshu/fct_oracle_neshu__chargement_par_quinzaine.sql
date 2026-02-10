@@ -15,45 +15,46 @@
       -- models/fct_chargement_quinzaine.sql
 
 
-WITH base AS (
-    SELECT
+with base as (
+    select
         p.product_type,
         cm.company_code,
-        EXTRACT(YEAR FROM cm.task_start_date) AS annee_chgt,
-        FLOOR(
-            DATE_DIFF(
-                DATE(cm.task_start_date),
-                DATE_TRUNC(
-                    DATE_TRUNC(DATE(cm.task_start_date), YEAR),
-                    WEEK(MONDAY)
+        extract(year from cm.task_start_date) as annee_chgt,
+        floor(
+            date_diff(
+                date(cm.task_start_date),
+                date_trunc(
+                    date_trunc(date(cm.task_start_date), year),
+                    week (monday)
                 ),
-                DAY
+                day
             ) / 14
-        ) + 1 AS quinzaine_chgt,
+        ) + 1 as quinzaine_chgt,
         cm.load_quantity
-    FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__chargement_tasks` cm
-    LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` p
-        ON cm.product_id = p.product_id
-    WHERE cm.task_start_date >= TIMESTAMP(
-        DATETIME_SUB(CURRENT_DATETIME(), INTERVAL 24 MONTH)
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__chargement_tasks` as cm
+    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` as p
+        on cm.product_id = p.product_id
+    where cm.task_start_date >= timestamp(
+        datetime_sub(current_datetime(), interval 24 month)
     )
 )
-SELECT
+
+select
     product_type,
     company_code,
     annee_chgt,
     quinzaine_chgt,
-    SUM(load_quantity) AS quantite_chargee,
+    sum(load_quantity) as quantite_chargee,
     -- Métadonnées dbt
-    CURRENT_TIMESTAMP() as dbt_updated_at,
-    '15a963fc-e2ec-4a0c-a29b-f2695bfa964e' as dbt_invocation_id
-FROM base
-GROUP BY
+    current_timestamp() as dbt_updated_at,
+    '2c49c569-b4fc-4f29-9309-0a459bd137af' as dbt_invocation_id  -- noqa: TMP
+from base
+group by
     product_type,
     company_code,
     annee_chgt,
     quinzaine_chgt
-ORDER BY
+order by
     product_type,
     company_code,
     annee_chgt,

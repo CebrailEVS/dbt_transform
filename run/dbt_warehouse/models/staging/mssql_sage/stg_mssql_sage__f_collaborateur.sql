@@ -14,28 +14,28 @@
     as (
       
 
-WITH source_data AS (
-    SELECT *
-    FROM `evs-datastack-prod`.`prod_raw`.`dbo_f_collaborateur`
+with source_data as (
+    select *
+    from `evs-datastack-prod`.`prod_raw`.`dbo_f_collaborateur`
 ),
 
-cleaned_data AS (
-    SELECT
+cleaned_data as (
+    select
         -- Champs principaux
-        CAST(JSON_VALUE(data, '$.CO_No') as INT64) AS co_no,
-        JSON_VALUE(data, '$.CO_Nom') AS co_nom,
-        JSON_VALUE(data, '$.CO_Prenom') AS co_prenom,
-        JSON_VALUE(data, '$.CO_Fonction') AS co_fonction,
+        cast(json_value(data, '$.CO_No') as int64) as co_no,
+        json_value(data, '$.CO_Nom') as co_nom,
+        json_value(data, '$.CO_Prenom') as co_prenom,
+        json_value(data, '$.CO_Fonction') as co_fonction,
 
         -- Metadata
-        TIMESTAMP(JSON_VALUE(data, '$.cbCreation')) AS created_at,
-        TIMESTAMP(JSON_VALUE(data, '$.cbModification')) AS updated_at,
-        _sdc_extracted_at AS extracted_at
+        timestamp(json_value(data, '$.cbCreation')) as created_at,
+        timestamp(json_value(data, '$.cbModification')) as updated_at,
+        _sdc_extracted_at as extracted_at
 
-    FROM source_data
+    from source_data
 )
 
-SELECT *
-FROM cleaned_data
+select *
+from cleaned_data
     );
   

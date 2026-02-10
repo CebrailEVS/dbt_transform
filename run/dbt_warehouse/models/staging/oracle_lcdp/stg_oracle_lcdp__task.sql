@@ -38,8 +38,9 @@ cleaned_data as (
         type_product_destination,
 
         -- Colonne numérique
-        spantime as spantime, -- durée de la tâche en minute
-        CAST(code_status_record AS STRING) as code_status_record, -- status record (1 = validé, 0 ou -1 possiblement inactif/desactivé : à confirmer)
+        spantime, -- durée de la tâche en minute
+        -- status record (1 = validé, 0 ou -1 possiblement inactif/desactivé : à confirmer)
+        cast(code_status_record as string) as code_status_record,
 
         -- Date de la tache
         timestamp(real_start_date) as real_start_date,
@@ -49,23 +50,24 @@ cleaned_data as (
 
         -- Timestamps harmonisés
         timestamp(creation_date) as created_at,
-        timestamp(coalesce(modification_date, creation_date)) as updated_at, -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
+        -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
+        timestamp(coalesce(modification_date, creation_date)) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
 
     from source_data
 )
 
-SELECT * FROM cleaned_data
+select * from cleaned_data
 
-WHERE
-    (
-        updated_at > (
-            SELECT MAX(updated_at)
-            FROM `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task`
+    where
+        (
+            updated_at > (
+                select max(t.updated_at)
+                from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` as t
+            )
+            or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
         )
-        OR updated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
-    )
 
         ) as DBT_INTERNAL_SOURCE
         on ((DBT_INTERNAL_SOURCE.idtask = DBT_INTERNAL_DEST.idtask))

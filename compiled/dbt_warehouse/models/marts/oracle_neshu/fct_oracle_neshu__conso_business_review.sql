@@ -1,285 +1,335 @@
 
 
-WITH telemetry_data AS (
-  SELECT 
-    -- IDs
-    t.company_id,
-    t.device_id,
-    t.location_id,
-    t.product_id,
-    
-    -- Company
-    c.company_code,
-    c.company_name,
+with telemetry_data as (
+    select
+        -- IDs
+        t.company_id,
+        t.device_id,
+        t.location_id,
+        t.product_id,
 
-    -- Localisation
-    COALESCE(NULLIF(t.task_location_info, ''), d.device_location) AS location,
+        -- Company
+        c.company_code,
+        c.company_name,
 
-    -- Machine
-    d.device_code AS device_serial_number,
-    d.device_name,
-    d.device_brand,
-    d.device_economic_model,
+        -- Localisation
+        coalesce(nullif(t.task_location_info, ''), d.device_location) as location,
 
-    -- Produit
-    p.product_name,
-    p.product_brand,
-    p.product_family,
-    p.product_group,
-    p.product_type,
+        -- Machine
+        d.device_code as device_serial_number,
+        d.device_name,
+        d.device_brand,
+        d.device_economic_model,
 
-    -- Contexte
-    DATE(t.task_start_date) AS consumption_date,
-    'TELEMETRIE' AS data_source,
+        -- Produit
+        p.product_name,
+        p.product_brand,
+        p.product_family,
+        p.product_group,
+        p.product_type,
 
-    -- Mesure
-    SUM(t.telemetry_quantity) AS quantity
-    
-  FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__telemetry_tasks` t
-  LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` d 
-    ON t.device_id = d.device_id
-  LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` p 
-    ON t.product_id = p.product_id
-  LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` c
-    ON t.company_id = c.company_id
-  GROUP BY 
-    t.company_id, t.device_id, t.location_id, t.product_id,
-    c.company_code, c.company_name,
-    COALESCE(NULLIF(t.task_location_info, ''), d.device_location),
-    d.device_code, d.device_name, d.device_brand, d.device_economic_model,
-    p.product_name, p.product_brand, p.product_family, p.product_group, p.product_type,
-    DATE(t.task_start_date)
+        -- Contexte
+        date(t.task_start_date) as consumption_date,
+        'TELEMETRIE' as data_source,
+
+        -- Mesure
+        sum(t.telemetry_quantity) as quantity
+
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__telemetry_tasks` as t
+    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` as d
+        on t.device_id = d.device_id
+    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` as p
+        on t.product_id = p.product_id
+    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` as c
+        on t.company_id = c.company_id
+    group by
+        t.company_id, t.device_id, t.location_id, t.product_id,
+        c.company_code, c.company_name,
+        coalesce(nullif(t.task_location_info, ''), d.device_location),
+        d.device_code, d.device_name, d.device_brand,
+        d.device_economic_model,
+        p.product_name, p.product_brand, p.product_family,
+        p.product_group, p.product_type,
+        date(t.task_start_date)
 ),
-chargement_data AS (
-  SELECT 
-    -- IDs
-    l.company_id,
-    l.device_id,
-    l.location_id,
-    l.product_id,
-    
-    -- Company
-    c.company_code,
-    c.company_name,
 
-    -- Localisation
-    COALESCE(NULLIF(l.task_location_info, ''), d.device_location) AS location,
+chargement_data as (
+    select
+        -- IDs
+        l.company_id,
+        l.device_id,
+        l.location_id,
+        l.product_id,
 
-    -- Machine
-    d.device_code AS device_serial_number,
-    d.device_name,
-    d.device_brand,
-    d.device_economic_model,
+        -- Company
+        c.company_code,
+        c.company_name,
 
-    -- Produit
-    p.product_name,
-    p.product_brand,
-    p.product_family,
-    p.product_group,
-    p.product_type,
+        -- Localisation
+        coalesce(nullif(l.task_location_info, ''), d.device_location) as location,
 
-    -- Contexte
-    DATE(l.task_start_date) AS consumption_date,
-    'CHARGEMENT' AS data_source,
+        -- Machine
+        d.device_code as device_serial_number,
+        d.device_name,
+        d.device_brand,
+        d.device_economic_model,
 
-    -- Quantité (ajustée selon le produit)
-    SUM(
-      CASE
-        WHEN p.product_name LIKE '%GOBELET%RAME 50%' THEN l.load_quantity * 50
-        WHEN p.product_name LIKE '%GOBELET%RAME DE 30%' THEN l.load_quantity * 30
-        WHEN p.product_name LIKE '%GOBELET%RAME 35%' THEN l.load_quantity * 35
-        WHEN p.product_name LIKE '%MELANG%BTE 200%' THEN l.load_quantity * 200
-        WHEN p.product_name LIKE '%MELANGEUR%BTE 200%' THEN l.load_quantity * 200
-        WHEN p.product_name LIKE '%MELANGEUR%BTE 100%' THEN l.load_quantity * 100
-        WHEN p.product_name LIKE '%BEGHIN SAY 300%' THEN l.load_quantity * 300
-        WHEN p.product_name LIKE '%CARTON DE 500%' THEN l.load_quantity * 500
-        WHEN p.product_name LIKE '%DISTRIBUTEUR 300 SUCRES%' THEN l.load_quantity * 300
-        WHEN p.product_name LIKE '%SUCRE BATONNET 100%' THEN l.load_quantity * 100
-        WHEN p.product_name LIKE '%SUCRE BTE 300%' THEN l.load_quantity * 300
-        WHEN p.product_name LIKE '%NESPRESSO MELANGEURS EN BAMBOU INDI%' THEN l.load_quantity * 100
-        ELSE l.load_quantity
-      END
-    ) AS quantity
+        -- Produit
+        p.product_name,
+        p.product_brand,
+        p.product_family,
+        p.product_group,
+        p.product_type,
 
-  FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__chargement_tasks` l
-  INNER JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` d 
-    ON l.device_id = d.device_id
-  LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` p 
-    ON l.product_id = p.product_id
-  LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` c
-    ON l.company_id = c.company_id
-  WHERE l.task_status_code in ('FAIT','VALIDE')
-  GROUP BY 
-    l.company_id, l.device_id, l.location_id, l.product_id,
-    COALESCE(NULLIF(l.task_location_info, ''), d.device_location), c.company_code, c.company_name,
-    d.device_code, d.device_name, d.device_brand, d.device_economic_model,
-    p.product_name, p.product_brand, p.product_family, p.product_group, p.product_type,
-    DATE(l.task_start_date)
+        -- Contexte
+        date(l.task_start_date) as consumption_date,
+        'CHARGEMENT' as data_source,
+
+        -- Quantité (ajustée selon le produit)
+        sum(
+            case
+                when p.product_name like '%GOBELET%RAME 50%' then l.load_quantity * 50
+                when p.product_name like '%GOBELET%RAME DE 30%' then l.load_quantity * 30
+                when p.product_name like '%GOBELET%RAME 35%' then l.load_quantity * 35
+                when p.product_name like '%MELANG%BTE 200%' then l.load_quantity * 200
+                when p.product_name like '%MELANGEUR%BTE 200%' then l.load_quantity * 200
+                when p.product_name like '%MELANGEUR%BTE 100%' then l.load_quantity * 100
+                when p.product_name like '%BEGHIN SAY 300%' then l.load_quantity * 300
+                when p.product_name like '%CARTON DE 500%' then l.load_quantity * 500
+                when p.product_name like '%DISTRIBUTEUR 300 SUCRES%'
+                    then l.load_quantity * 300
+                when p.product_name like '%SUCRE BATONNET 100%' then l.load_quantity * 100
+                when p.product_name like '%SUCRE BTE 300%' then l.load_quantity * 300
+                when p.product_name like '%NESPRESSO MELANGEURS EN BAMBOU INDI%'
+                    then l.load_quantity * 100
+                else l.load_quantity
+            end
+        ) as quantity
+
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__chargement_tasks` as l
+    inner join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` as d
+        on l.device_id = d.device_id
+    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` as p
+        on l.product_id = p.product_id
+    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` as c
+        on l.company_id = c.company_id
+    where l.task_status_code in ('FAIT', 'VALIDE')
+    group by
+        l.company_id, l.device_id, l.location_id, l.product_id,
+        coalesce(nullif(l.task_location_info, ''), d.device_location),
+        c.company_code, c.company_name,
+        d.device_code, d.device_name, d.device_brand,
+        d.device_economic_model,
+        p.product_name, p.product_brand, p.product_family,
+        p.product_group, p.product_type,
+        date(l.task_start_date)
 ),
-livraison_data AS (
-  SELECT
-    -- IDs
-    lt.company_id,
-    NULL AS device_id,
-    NULL AS location_id,
-    lt.product_id,
 
-    -- Company
-    c.company_code,
-    c.company_name,
+livraison_data as (
+    select
+        -- IDs
+        lt.company_id,
+        null as device_id,
+        null as location_id,
+        lt.product_id,
 
-    -- Localisation (fixe)
-    'LIVRAISON' AS location,
+        -- Company
+        c.company_code,
+        c.company_name,
 
-    -- Machine (fixe)
-    'LIVRAISON' AS device_serial_number,
-    'LIVRAISON' AS device_name,
-    'LIVRAISON' AS device_brand,
-    'LIVRAISON' AS device_economic_model,
+        -- Localisation (fixe)
+        'LIVRAISON' as location,
 
-    -- Produit
-    p.product_name,
-    p.product_brand,
-    p.product_family,
-    p.product_group,
-    p.product_type,
+        -- Machine (fixe)
+        'LIVRAISON' as device_serial_number,
+        'LIVRAISON' as device_name,
+        'LIVRAISON' as device_brand,
+        'LIVRAISON' as device_economic_model,
 
-    -- Contexte
-    DATE(lt.task_start_date) AS consumption_date,
-    'LIVRAISON' AS data_source,
+        -- Produit
+        p.product_name,
+        p.product_brand,
+        p.product_family,
+        p.product_group,
+        p.product_type,
 
-    -- Quantité (ajustée selon le produit)
-    SUM(
-      CASE
-        WHEN p.product_name LIKE '%GOBELET%RAME 50%' THEN lt.quantity * 50
-        WHEN p.product_name LIKE '%GOBELET%RAME DE 30%' THEN lt.quantity * 30
-        WHEN p.product_name LIKE '%GOBELET%RAME 35%' THEN lt.quantity * 35
-        WHEN p.product_name LIKE '%MELANG%BTE 200%' THEN lt.quantity * 200
-        WHEN p.product_name LIKE '%MELANGEUR%BTE 200%' THEN lt.quantity * 200
-        WHEN p.product_name LIKE '%MELANGEUR%BTE 100%' THEN lt.quantity * 100
-        WHEN p.product_name LIKE '%BEGHIN SAY 300%' THEN lt.quantity * 300
-        WHEN p.product_name LIKE '%CARTON DE 500%' THEN lt.quantity * 500
-        WHEN p.product_name LIKE '%DISTRIBUTEUR 300 SUCRES%' THEN lt.quantity * 300
-        WHEN p.product_name LIKE '%SUCRE BATONNET 100%' THEN lt.quantity * 100
-        WHEN p.product_name LIKE '%SUCRE BTE 300%' THEN lt.quantity * 300
-        WHEN p.product_name LIKE '%NESPRESSO MELANGEURS EN BAMBOU INDI%' THEN lt.quantity * 100
-        ELSE lt.quantity
-      END
-    ) AS quantity
+        -- Contexte
+        date(lt.task_start_date) as consumption_date,
+        'LIVRAISON' as data_source,
 
-  FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__livraison_tasks` lt
-  LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` p 
-    ON lt.product_id = p.product_id
-  LEFT JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` c
-    ON lt.company_id = c.company_id
-  WHERE lt.task_status_code in ('FAIT','VALIDE')
-  AND p.product_type in ('THE','CAFE CAPS','CHOCOLATS VAN HOUTEN','BOISSONS GOURMANDES','ACCESSOIRES')
-  GROUP BY 
-    lt.company_id, lt.product_id,
-    p.product_name, p.product_brand, p.product_family, p.product_group, p.product_type, c.company_code, c.company_name,
-    DATE(lt.task_start_date)
+        -- Quantité (ajustée selon le produit)
+        sum(
+            case
+                when p.product_name like '%GOBELET%RAME 50%' then lt.quantity * 50
+                when p.product_name like '%GOBELET%RAME DE 30%' then lt.quantity * 30
+                when p.product_name like '%GOBELET%RAME 35%' then lt.quantity * 35
+                when p.product_name like '%MELANG%BTE 200%' then lt.quantity * 200
+                when p.product_name like '%MELANGEUR%BTE 200%' then lt.quantity * 200
+                when p.product_name like '%MELANGEUR%BTE 100%' then lt.quantity * 100
+                when p.product_name like '%BEGHIN SAY 300%' then lt.quantity * 300
+                when p.product_name like '%CARTON DE 500%' then lt.quantity * 500
+                when p.product_name like '%DISTRIBUTEUR 300 SUCRES%'
+                    then lt.quantity * 300
+                when p.product_name like '%SUCRE BATONNET 100%' then lt.quantity * 100
+                when p.product_name like '%SUCRE BTE 300%' then lt.quantity * 300
+                when p.product_name like '%NESPRESSO MELANGEURS EN BAMBOU INDI%'
+                    then lt.quantity * 100
+                else lt.quantity
+            end
+        ) as quantity
+
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__livraison_tasks` as lt
+    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` as p
+        on lt.product_id = p.product_id
+    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` as c
+        on lt.company_id = c.company_id
+    where
+        lt.task_status_code in ('FAIT', 'VALIDE')
+        and p.product_type in (
+            'THE', 'CAFE CAPS', 'CHOCOLATS VAN HOUTEN',
+            'BOISSONS GOURMANDES', 'ACCESSOIRES'
+        )
+    group by
+        lt.company_id, lt.product_id,
+        p.product_name, p.product_brand, p.product_family,
+        p.product_group, p.product_type,
+        c.company_code, c.company_name,
+        date(lt.task_start_date)
 ),
+
 -- Version optimisée : remplace combined_data + donnees_filtrees
-combined_and_filtered_data AS (
+combined_and_filtered_data as (
 
-  -- Cas particulier : machine AS00446 chez CN1046
-  SELECT *
-  FROM chargement_data
-  WHERE device_serial_number = 'AS00446'
-    AND company_code = 'CN1046'
-    AND consumption_date < '2025-08-28'
-    AND product_type IN ('THE','CAFE CAPS','CHOCOLATS VAN HOUTEN')
+    -- Cas particulier : machine AS00446 chez CN1046
+    select *
+    from chargement_data
+    where
+        device_serial_number = 'AS00446'
+        and company_code = 'CN1046'
+        and consumption_date < '2025-08-28'
+        and product_type in ('THE', 'CAFE CAPS', 'CHOCOLATS VAN HOUTEN')
 
-  UNION ALL
+    union all
 
-  SELECT *
-  FROM telemetry_data
-  WHERE device_serial_number = 'AS00446'
-    AND company_code = 'CN1046'
-    AND consumption_date >= '2025-08-28'
+    select *
+    from telemetry_data
+    where
+        device_serial_number = 'AS00446'
+        and company_code = 'CN1046'
+        and consumption_date >= '2025-08-28'
 
-  UNION ALL
+    union all
 
-  -- TELEMETRIE avec filtres
-  SELECT *
-  FROM telemetry_data
-  WHERE product_type IN ('BOISSONS GOURMANDES', 'CAFE CAPS', 'CAFENOIR', 'INDEFINI', 'THE', 'SNACKING', 'BOISSONS FRAICHES', 'CHOCOLATS VAN HOUTEN')
-    AND NOT (
-      device_brand IN ('NESTLE','ANIMO')
-      AND (device_economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR device_economic_model IS NULL)
-      AND product_type = 'THE'
+    -- TELEMETRIE avec filtres
+    select *
+    from telemetry_data
+    where
+        product_type in (
+            'BOISSONS GOURMANDES', 'CAFE CAPS', 'CAFENOIR', 'INDEFINI',
+            'THE', 'SNACKING', 'BOISSONS FRAICHES', 'CHOCOLATS VAN HOUTEN'
+        )
+        and not (
+            device_brand in ('NESTLE', 'ANIMO')
+            and (
+                device_economic_model not in (
+                    'Participatif valeurs', 'Participatif unités', 'Payant'
+                )
+                or device_economic_model is null
+            )
+            and product_type = 'THE'
+        )
+        and not (company_code = 'CN1071' and product_type = 'THE')
+        and not (
+            device_serial_number = 'AS00446' and company_code = 'CN1046'
+        )
+
+    union all
+
+    -- CHARGEMENT avec tous les filtres consolidés
+    select *
+    from chargement_data
+    where (
+        (
+            device_brand = 'NESPRESSO'
+            and (
+                device_economic_model not in (
+                    'Participatif valeurs', 'Participatif unités', 'Payant'
+                )
+                or device_economic_model is null
+            )
+            and product_type in ('THE', 'CAFE CAPS')
+            and (
+                company_code <> 'CN1070'
+                or consumption_date >= '2025-03-01'
+            )
+        )
+        or (
+            device_brand in ('NESTLE', 'ANIMO')
+            and (
+                device_economic_model not in (
+                    'Participatif valeurs', 'Participatif unités', 'Payant'
+                )
+                or device_economic_model is null
+            )
+            and product_type = 'THE'
+        )
+        or (
+            device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
+            and product_type = 'CHOCOLATS VAN HOUTEN'
+        )
+        or (product_type = 'ACCESSOIRES')
+        or (company_code = 'CN1071' and product_type = 'THE')
+        and not (
+            device_serial_number = 'AS00446' and company_code = 'CN1046'
+        )
     )
-    AND NOT (company_code = 'CN1071' AND product_type = 'THE')
-    AND NOT (device_serial_number = 'AS00446' AND company_code = 'CN1046') 
 
+    union all
 
-  UNION ALL
-
-  -- CHARGEMENT avec tous les filtres consolidés
-  SELECT *
-  FROM chargement_data
-  WHERE (
-    (device_brand = 'NESPRESSO'
-     AND (device_economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR device_economic_model IS NULL)
-     AND product_type IN ('THE','CAFE CAPS')
-     AND (company_code <> 'CN1070' OR consumption_date >= '2025-03-01'))
-    OR (device_brand IN ('NESTLE','ANIMO')
-        AND (device_economic_model NOT IN ('Participatif valeurs','Participatif unités','Payant') OR device_economic_model IS NULL)
-        AND product_type = 'THE')
-    OR (device_brand IN ('NESPRESSO','NESTLE','ANIMO')
-        AND product_type = 'CHOCOLATS VAN HOUTEN')
-    OR (product_type = 'ACCESSOIRES')
-    OR (company_code = 'CN1071' AND product_type = 'THE')
-    AND NOT (device_serial_number = 'AS00446' AND company_code = 'CN1046') 
-  )
-
-  UNION ALL
-
-  -- LIVRAISON (tous les enregistrements)
-  SELECT *
-  FROM livraison_data
+    -- LIVRAISON (tous les enregistrements)
+    select *
+    from livraison_data
 )
 
+select
+    -- Identifiants
+    company_id,
+    device_id,
+    location_id,
+    product_id,
 
-SELECT 
-  -- Identifiants
-  company_id,
-  device_id,
-  location_id,
-  product_id,
-  
-  -- Company
-  company_code,
-  company_name,
+    -- Company
+    company_code,
+    company_name,
 
-  -- Localisation
-  location,
+    -- Localisation
+    location,
 
-  -- Machine
-  device_serial_number,
-  device_name,
-  device_brand,
-  device_economic_model,
+    -- Machine
+    device_serial_number,
+    device_name,
+    device_brand,
+    device_economic_model,
 
--- Produit
-  product_name,
-  CASE
-    WHEN product_brand = 'BARRYCALLEBAUT' THEN 'VAN HOUTEN'
-    ELSE product_brand
-  END AS product_brand,
-  product_family,
-  product_group,
-  product_type,
+    -- Produit
+    product_name,
+    case
+        when product_brand = 'BARRYCALLEBAUT' then 'VAN HOUTEN'
+        else product_brand
+    end as product_brand,
+    product_family,
+    product_group,
+    product_type,
 
-  -- Contexte
-  consumption_date,
-  data_source,
+    -- Contexte
+    consumption_date,
+    data_source,
 
-  -- Mesure
-  quantity,
+    -- Mesure
+    quantity,
 
-  -- Métadonnées d'exécution
-  CURRENT_TIMESTAMP() as dbt_updated_at,
-  '7fcf98ed-a780-40c7-9d82-0f7e0c415116' as dbt_invocation_id
+    -- Métadonnées d'exécution
+    current_timestamp() as dbt_updated_at,
+    'eb82eb03-a49c-455b-9cc1-4228c086eee1' as dbt_invocation_id  -- noqa: TMP
 
-FROM combined_and_filtered_data
+from combined_and_filtered_data

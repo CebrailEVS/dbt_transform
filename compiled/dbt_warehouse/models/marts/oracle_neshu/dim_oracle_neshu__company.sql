@@ -1,128 +1,128 @@
 
 
-WITH company_labels AS (
-  SELECT 
-    c.idcompany as company_id,
-    c.code AS company_code,
-    c.idcompany_type as company_type_id,
-    c.name AS company_name,
-    c.created_at,
-    c.updated_at,
-    l.code AS label_code,
-    lf.code AS label_family_code,
-    loc.address1,
-    loc.address2,
-    loc.city,
-    loc.postal AS postal_code,
-    loc.country
-  FROM `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` c
-  LEFT JOIN `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_company` lhc 
-    ON lhc.idcompany = c.idcompany AND lhc.idlabel IS NOT NULL
-  LEFT JOIN `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label` l 
-    ON l.idlabel = lhc.idlabel
-  LEFT JOIN `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_family` lf 
-    ON lf.idlabel_family = l.idlabel_family
-  LEFT JOIN `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company_has_location` chl
-    ON chl.idcompany = c.idcompany AND chl.idlocation_type = 1
-  LEFT JOIN `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__location` loc
-    ON loc.idlocation = chl.idlocation
-  WHERE ((c.idcompany_type IN (1,2,4,6))
-)),
-aggregated_labels AS (
-  SELECT
+with company_labels as (
+    select
+        c.idcompany as company_id,
+        c.code as company_code,
+        c.idcompany_type as company_type_id,
+        c.name as company_name,
+        c.created_at,
+        c.updated_at,
+        l.code as label_code,
+        lf.code as label_family_code,
+        loc.address1,
+        loc.address2,
+        loc.city,
+        loc.postal as postal_code,
+        loc.country
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` as c
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_company` as lhc
+        on c.idcompany = lhc.idcompany and lhc.idlabel is not null
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label` as l
+        on lhc.idlabel = l.idlabel
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_family` as lf
+        on l.idlabel_family = lf.idlabel_family
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company_has_location` as chl
+        on c.idcompany = chl.idcompany and chl.idlocation_type = 1
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__location` as loc
+        on chl.idlocation = loc.idlocation
+    where
+        ((c.idcompany_type in (1, 2, 4, 6))
+        )
+),
+
+aggregated_labels as (
+    select
+        company_id,
+        company_type_id,
+        company_code,
+        company_name,
+        created_at,
+        updated_at,
+        address1,
+        address2,
+        city,
+        postal_code,
+        country,
+        MAX(case when label_family_code = 'TRANCHE_COLLAB' then label_code end) as employee_range,
+        MAX(case when label_family_code = 'PROADMAN' then label_code end) as proadman,
+        MAX(case when label_family_code = 'REGION' then label_code end) as region,
+        MAX(case when label_family_code = 'TELETRAVAIL' then label_code end) as remote_work,
+        MAX(case when label_family_code = 'SECTEUR_ACTVITE' then label_code end) as sector,
+        MAX(case when label_family_code = 'SECTEUR_DACTIVITE' then label_code end) as activity_sector,
+        MAX(case when label_family_code = 'RCOMM' then label_code end) as commercial_rep,
+        MAX(case when label_family_code = 'HORECA' then label_code end) as horeca,
+        MAX(case when label_family_code = 'GSM_TERRAIN' then label_code end) as gsm,
+        MAX(case when label_family_code = 'KATIERS' then label_code end) as katiers,
+        MAX(case when label_family_code = 'ISACTIVE' then label_code end) as is_active,
+        MAX(case when label_family_code = 'CODE_SECTEUR' then label_code end) as sector_code,
+        MAX(case when label_family_code = 'STATUT_CLIENT' then label_code end) as client_status,
+        MAX(case when label_family_code = 'Gestion reliquat' then label_code end) as remainder_management,
+        MAX(case when label_family_code = 'MODEENVOIFACTURE' then label_code end) as invoice_delivery_mode,
+        MAX(case when label_family_code = 'BADGE' then label_code end) as badge,
+        MAX(case when label_family_code = 'RECYCLAGE' then label_code end) as recycling,
+        MAX(case when label_family_code = 'TYPECOMPAGNIE' then label_code end) as company_type,
+        MAX(case when label_family_code = 'MODELEECOCLIENT' then label_code end) as company_economic_model,
+        MAX(case when label_family_code = 'BL_GRP' then label_code end) as bl_group,
+        MAX(case when label_family_code = 'KA' then label_code end) as key_account
+    from company_labels
+    group by
+        company_id,
+        company_type_id,
+        company_code,
+        company_name,
+        created_at,
+        updated_at,
+        address1,
+        address2,
+        city,
+        postal_code,
+        country
+)
+
+select
+    -- 🔑 Identifiants
     company_id,
     company_type_id,
+
+    -- 📇 Codes et noms
     company_code,
     company_name,
-    created_at,
-    updated_at,
+
+    -- 🏢 Caractéristiques entreprise
+    region,
+    sector,
+    sector_code,
+    activity_sector,
+    employee_range,
+    company_type,
+    company_economic_model,
+    client_status,
+
+    COALESCE(LOWER(is_active) = 'yes', false) as is_active,
+
+    -- 👥 Gestion commerciale
+    key_account,
+    katiers,
+
+    -- 🏨 Spécificités métier  
+    remote_work,
+
+    -- 🔧 Services et options
+    proadman,
+    gsm,
+    badge,
+    recycling,
+
+    -- 📍 Adresse
     address1,
     address2,
     city,
     postal_code,
     country,
-    MAX(CASE WHEN label_family_code = 'TRANCHE_COLLAB' THEN label_code END) AS employee_range,
-    MAX(CASE WHEN label_family_code = 'PROADMAN' THEN label_code END) AS proadman,
-    MAX(CASE WHEN label_family_code = 'REGION' THEN label_code END) AS region,
-    MAX(CASE WHEN label_family_code = 'TELETRAVAIL' THEN label_code END) AS remote_work,
-    MAX(CASE WHEN label_family_code = 'SECTEUR_ACTVITE' THEN label_code END) AS sector,
-    MAX(CASE WHEN label_family_code = 'SECTEUR_DACTIVITE' THEN label_code END) AS activity_sector,
-    MAX(CASE WHEN label_family_code = 'RCOMM' THEN label_code END) AS commercial_rep,
-    MAX(CASE WHEN label_family_code = 'HORECA' THEN label_code END) AS horeca,
-    MAX(CASE WHEN label_family_code = 'GSM_TERRAIN' THEN label_code END) AS gsm,
-    MAX(CASE WHEN label_family_code = 'KATIERS' THEN label_code END) AS katiers,
-    MAX(CASE WHEN label_family_code = 'ISACTIVE' THEN label_code END) AS is_active,
-    MAX(CASE WHEN label_family_code = 'CODE_SECTEUR' THEN label_code END) AS sector_code,
-    MAX(CASE WHEN label_family_code = 'STATUT_CLIENT' THEN label_code END) AS client_status,
-    MAX(CASE WHEN label_family_code = 'Gestion reliquat' THEN label_code END) AS remainder_management,
-    MAX(CASE WHEN label_family_code = 'MODEENVOIFACTURE' THEN label_code END) AS invoice_delivery_mode,
-    MAX(CASE WHEN label_family_code = 'BADGE' THEN label_code END) AS badge,
-    MAX(CASE WHEN label_family_code = 'RECYCLAGE' THEN label_code END) AS recycling,
-    MAX(CASE WHEN label_family_code = 'TYPECOMPAGNIE' THEN label_code END) AS company_type,
-    MAX(CASE WHEN label_family_code = 'MODELEECOCLIENT' THEN label_code END) AS company_economic_model,
-    MAX(CASE WHEN label_family_code = 'BL_GRP' THEN label_code END) AS bl_group,
-    MAX(CASE WHEN label_family_code = 'KA' THEN label_code END) AS key_account
-  FROM company_labels
-  GROUP BY
-    company_id,
-    company_type_id,
-    company_code,
-    company_name,
+
+    -- 🕒 Dates
     created_at,
-    updated_at,
-    address1,
-    address2,
-    city,
-    postal_code,
-    country
-)
+    updated_at
 
-SELECT
-  -- 🔑 Identifiants
-  company_id,
-  company_type_id,
-
-  -- 📇 Codes et noms
-  company_code,
-  company_name,
-
-  -- 🏢 Caractéristiques entreprise
-  region,
-  sector,
-  sector_code,
-  activity_sector,
-  employee_range,
-  company_type,
-  company_economic_model,
-  client_status,
-  
-  CASE
-    WHEN LOWER(is_active) = 'yes' THEN TRUE
-    ELSE FALSE
-  END AS is_active,
-
-  -- 👥 Gestion commerciale
-  key_account,
-  katiers,
-
-  -- 🏨 Spécificités métier  
-  remote_work,
-
-  -- 🔧 Services et options
-  proadman,
-  gsm,
-  badge,
-  recycling,
-
-  -- 📍 Adresse
-  address1,
-  address2,
-  city,
-  postal_code,
-  country,
-
-  -- 🕒 Dates
-  created_at,
-  updated_at
-
-FROM aggregated_labels
+from aggregated_labels

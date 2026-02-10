@@ -1,6 +1,6 @@
 
 
-SELECT
+select
     -- Identifiants
     pa.task_id,
     pa.company_id,
@@ -9,31 +9,32 @@ SELECT
 
     -- Company
     c.company_name,
-    CONCAT(c.company_name, ' - ', pa.company_code) AS company_info,
+    concat(c.company_name, ' - ', pa.company_code) as company_info,
 
     -- Device
     d.device_brand,
     d.device_code,
-    CONCAT(d.device_brand, ' - ', d.device_code) AS device_info,
+    concat(d.device_brand, ' - ', d.device_code) as device_info,
 
     -- Contexte temporel
     pa.task_start_date,
-    DATE(pa.task_start_date) AS task_start_date_day,
+    date(pa.task_start_date) as task_start_date_day,
     pa.task_end_date,
 
     -- Statut
     pa.task_status_code,
-    CASE WHEN pa.task_status_code = 'FAIT' THEN 1 ELSE 0 END AS mission_faite,
-    CASE WHEN pa.task_status_code IN ('PREVU', 'FAIT', 'ENCOURS') THEN 1 ELSE 0 END AS mission_prevue,
+    case when pa.task_status_code = 'FAIT' then 1 else 0 end as mission_faite,
+    case when pa.task_status_code in ('PREVU', 'FAIT', 'ENCOURS') then 1 else 0 end as mission_prevue,
 
     -- Métadonnées dbt
-    CURRENT_TIMESTAMP() as dbt_updated_at,
-    '7fcf98ed-a780-40c7-9d82-0f7e0c415116' as dbt_invocation_id
+    current_timestamp() as dbt_updated_at,
+    'eb82eb03-a49c-455b-9cc1-4228c086eee1' as dbt_invocation_id  -- noqa: TMP
 
-FROM `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_tasks` pa
-JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` d 
-    ON pa.device_id = d.device_id
-JOIN `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` c 
-    ON pa.company_id = c.company_id
-WHERE DATE(pa.task_start_date) >= '2025-01-01'
-    AND pa.task_status_code != 'ANNULE'
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_tasks` as pa
+inner join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` as d
+    on pa.device_id = d.device_id
+inner join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` as c
+    on pa.company_id = c.company_id
+where
+    date(pa.task_start_date) >= '2025-01-01'
+    and pa.task_status_code != 'ANNULE'

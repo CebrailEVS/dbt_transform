@@ -26,17 +26,18 @@ with inter_base as (
         t.created_at,
         t.extracted_at
 
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` t
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_product` thp on thp.idtask = t.idtask
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` c on c.idcompany = t.idcompany_peer
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__device` d on d.iddevice = t.iddevice
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__product` p on p.idproduct = thp.idproduct
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_task` lht on t.idtask = lht.idtask
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label` la on lht.idlabel = la.idlabel
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_family` lf on la.idlabel_family = lf.idlabel_family
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_status` ts on t.idtask_status = ts.idtask_status
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` as t
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_product` as thp on t.idtask = thp.idtask
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` as c on t.idcompany_peer = c.idcompany
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__device` as d on t.iddevice = d.iddevice
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__product` as p on thp.idproduct = p.idproduct
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_task` as lht on t.idtask = lht.idtask
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label` as la on lht.idlabel = la.idlabel
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_family` as lf on la.idlabel_family = lf.idlabel_family
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_status` as ts on t.idtask_status = ts.idtask_status
 
-    where 1=1
+    where
+        1 = 1
         and t.idtask_status in (1, 4, 3)  -- FAIT, VALIDE, ANNULE
         and t.code_status_record = '1'
         and t.idtask_type = 131 -- INTERVENTION TECHNIQUE
@@ -76,4 +77,4 @@ group by
     task_id, device_id, company_id, product_id,
     company_code, device_code, product_code, task_status_code,
     task_start_date, task_end_date, updated_at, created_at, extracted_at
-HAVING MAX(CASE WHEN label_family_code = 'Objet intervent' THEN label_code END) = 'OC04'
+having max(case when label_family_code = 'Objet intervent' then label_code end) = 'OC04'

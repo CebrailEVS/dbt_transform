@@ -34,8 +34,8 @@ cleaned_data as (
 
 filtered_data as (
     select lht.*
-    from cleaned_data lht
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` t
+    from cleaned_data as lht
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` as t
         on lht.idtask = t.idtask
 )
 

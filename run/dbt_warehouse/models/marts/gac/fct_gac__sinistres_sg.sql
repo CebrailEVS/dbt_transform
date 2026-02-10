@@ -13,39 +13,39 @@
     )
     as (
       
--- ============================================================================
--- MODEL: fct_gac__sinistres_sg
--- PURPOSE: Table de faits sur les sinistres vehicules
--- AUTHOR: Etienne BOULINIER
--- ============================================================================
-SELECT 
--- Infos Sinistre
-n_de_sinistre,
-DATE(date_sinistre) as date_sinistre,
-date_de_creation,
-circonstance,
-tiers,
-resp,
-cloture,
--- Infos Vehicule
-immat,
-nom,
-prenom,
-statut_actuel,
-genre_fiscal,
-reference_gac,
-entite_entite_2,
-entite_entite_3,
---Couts
-centre_de_couts,
-cout_assureur,
-auto_assurance,
-franchise,
-cout_global,
-cout_client,
--- Métadonnées dbt
-CURRENT_TIMESTAMP() as dbt_updated_at,
-'15a963fc-e2ec-4a0c-a29b-f2695bfa964e' as dbt_invocation_id
- FROM `evs-datastack-prod`.`prod_staging`.`stg_gac__sinistres_sg`
+
+select
+    -- Infos Sinistre
+    n_de_sinistre,
+    date(date_sinistre) as date_sinistre,
+    date_de_creation,
+    circonstance,
+    tiers,
+    resp,
+    cloture,
+
+    -- Infos Vehicule
+    immat,
+    nom,
+    prenom,
+    statut_actuel,
+    genre_fiscal,
+    reference_gac,
+    entite_entite_2,
+    entite_entite_3,
+
+    -- Couts
+    centre_de_couts,
+    cout_assureur,
+    auto_assurance,
+    franchise,
+    cout_global,
+    cout_client,
+
+    -- Metadonnees dbt
+    current_timestamp() as dbt_updated_at,
+    '2c49c569-b4fc-4f29-9309-0a459bd137af' as dbt_invocation_id
+
+from `evs-datastack-prod`.`prod_staging`.`stg_gac__sinistres_sg`
     );
   
