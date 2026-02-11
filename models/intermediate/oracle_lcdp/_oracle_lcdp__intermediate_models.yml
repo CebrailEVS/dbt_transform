@@ -861,6 +861,106 @@ models:
         tests:
           - not_null
 
+  - name: int_oracle_lcdp__inter_technique_tasks
+    description: >
+      Table intermédiaire des tâches d'intervention technique.
+      Filtrée sur les tâches de type INTERVENTION TECHNIQUE (idtask_type=131)
+      avec code_status_record=1 et real_start_date non null.
+      Enrichie avec les labels pivotés (Statut inter, Objet intervent, DEVICE_CANCEL_REASON)
+      et les ressources de type personne (idresources_type=2).
+
+    columns:
+      - name: task_id
+        description: "Clé primaire - Identifiant unique de la tâche d'intervention technique"
+        data_type: int64
+        tests:
+          - unique
+          - not_null
+
+      - name: device_id
+        description: "ID du device associé à la tâche"
+        data_type: int64
+
+      - name: company_id
+        description: "ID de l'entreprise cliente (peer company)"
+        data_type: int64
+
+      - name: resources_id
+        description: "ID de la ressource personne (idresources_type=2) associée à la tâche"
+        data_type: int64
+
+      - name: company_code
+        description: "Code client de l'entreprise"
+        data_type: string
+
+      - name: device_code
+        description: "Code métier du device (numéro de série)"
+        data_type: string
+
+      - name: company_name
+        description: "Nom de l'entreprise cliente"
+        data_type: string
+
+      - name: device_name
+        description: "Nom du device"
+        data_type: string
+
+      - name: task_location_info
+        description: "Informations d'accès de la localisation de la tâche"
+        data_type: string
+
+      - name: comments_self
+        description: "Commentaires internes de la tâche"
+        data_type: string
+
+      - name: comments_peer
+        description: "Commentaires peer de la tâche"
+        data_type: string
+
+      - name: task_start_date
+        description: "Date et heure réelle de début de l'intervention technique"
+        data_type: timestamp
+        tests:
+          - not_null
+
+      - name: task_end_date
+        description: "Date et heure réelle de fin de l'intervention technique"
+        data_type: timestamp
+
+      - name: task_status_code
+        description: "Code statut de la tâche (depuis task_status)"
+        data_type: string
+
+      - name: statut_inter
+        description: "Label pivoté - Code du statut de l'intervention (famille 'Statut inter')"
+        data_type: string
+
+      - name: objet_intervent
+        description: "Label pivoté - Code de l'objet de l'intervention (famille 'Objet intervent')"
+        data_type: string
+
+      - name: device_cancel_reason
+        description: "Label pivoté - Code de la raison d'annulation du device (famille 'DEVICE_CANCEL_REASON')"
+        data_type: string
+
+      - name: updated_at
+        description: "Timestamp de dernière modification (pour incrément)"
+        data_type: timestamp
+        tests:
+          - not_null
+
+      - name: created_at
+        description: "Timestamp de création"
+        data_type: timestamp
+        tests:
+          - not_null
+
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis Oracle"
+        data_type: timestamp
+        tests:
+          - not_null
+
   - name: int_oracle_lcdp__pointage
     description: >
       Table intermédiaire des tâches des pointages roadman sur les débuts et fin de journées
