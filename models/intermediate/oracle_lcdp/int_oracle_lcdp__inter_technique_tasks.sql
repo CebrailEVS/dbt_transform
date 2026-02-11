@@ -48,8 +48,9 @@ with base_task as (
     left join {{ ref('stg_oracle_lcdp__task_has_resources') }} as thr
         on t.idtask = thr.idtask
     left join {{ ref('stg_oracle_lcdp__resources') }} as r
-        on thr.idresources = r.idresources
-        and r.idresources_type = 2  -- Filter directly in the join
+        on
+            thr.idresources = r.idresources
+            and r.idresources_type = 2
     left join {{ ref('stg_oracle_lcdp__task_status') }} as ts
         on t.idtask_status = ts.idtask_status
     left join {{ ref('stg_oracle_lcdp__location') }} as l
@@ -62,12 +63,12 @@ with base_task as (
         and t.real_start_date is not null
         and r.idresources_type = 2 -- Ensure we only get resources type = people
 
-    {% if is_incremental() %}
-        and t.updated_at >= (
-            select max(updated_at) - interval 1 day
-            from {{ this }}
-        )
-    {% endif %}
+        {% if is_incremental() %}
+            and t.updated_at >= (
+                select max(src.updated_at) - interval 1 day
+                from {{ this }} as src
+            )
+        {% endif %}
 
 ),
 
@@ -108,6 +109,22 @@ label_pivot as (
     group by
         t.idtask
 
+),
+
+deduped_task as (
+
+    select *
+    from (
+        select
+            bt.*,
+            row_number() over (
+                partition by bt.task_id
+                order by bt.resources_id
+            ) as rn
+        from base_task as bt
+    )
+    where rn = 1
+
 )
 
 select
@@ -143,6 +160,6 @@ select
     bt.created_at,
     bt.extracted_at
 
-from base_task as bt
+from deduped_task as bt
 left join label_pivot as lp
     on bt.task_id = lp.task_id
