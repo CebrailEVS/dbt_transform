@@ -22,6 +22,8 @@ cleaned_data as (
         -- Colonnes texte et types
         type_product_source,
         type_product_destination,
+        comments_self,
+        comments_peer,
 
         -- Colonne numérique
         spantime, -- durée de la tâche en minute
