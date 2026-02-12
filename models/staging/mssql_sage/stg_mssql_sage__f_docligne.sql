@@ -34,6 +34,7 @@ cleaned_data as (
         cast(json_value(data, '$.DL_MontantHT') as float64) as dl_montant_ht,
         cast(json_value(data, '$.DL_MontantTTC') as float64) as dl_montant_ttc,
         cast(json_value(data, '$.DL_PrixUnitaire') as float64) as dl_prix_unitaire,
+        cast(json_value(data, '$.DL_Valorise') as int64) as dl_valorise,
 
         -- Metadata
         timestamp(json_value(data, '$.cbCreation')) as created_at,
