@@ -8,8 +8,8 @@
 
 select
     cast(id_entity as int64) as id_entity,
-    entity_name,
-    entity_type,
+    lower(entity_name) as entity_name,
+    lower(entity_type) as entity_type,
     cast(date_system as timestamp) as date_system,
     resources_code,
     code_source as product_code,
