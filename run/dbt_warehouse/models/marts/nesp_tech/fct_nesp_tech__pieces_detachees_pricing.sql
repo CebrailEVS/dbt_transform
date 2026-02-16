@@ -4,8 +4,8 @@
 
     create or replace table `evs-datastack-prod`.`prod_marts`.`fct_nesp_tech__pieces_detachees_pricing`
       
-    
-    
+    partition by date_fin
+    cluster by n_tech
 
     
     OPTIONS(
@@ -65,7 +65,7 @@ select
 
     -- Metadonnees dbt
     current_timestamp() as dbt_updated_at,
-    'cde0e048-6e4b-457d-ab7e-fe4d4fe0ddd4' as dbt_invocation_id
+    'd6d30a6d-f69d-4ee2-8134-7effc8505092' as dbt_invocation_id
 
 from final
     );

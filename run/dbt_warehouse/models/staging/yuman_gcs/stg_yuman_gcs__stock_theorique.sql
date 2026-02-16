@@ -27,18 +27,41 @@ cleaned as (
         -- Clean and normalize fields
         trim(r_f_rence) as reference,
         trim(d_signation) as designation,
+
         -- Convert quantity to float, handling decimal commas
         cast(replace(quantit_, ',', '.') as float64) as quantite,
+
         nullif(trim(nom_du_stock), '') as nom_du_stock,
+
         -- Metadata fields
         export_date,
         _sdc_source_file,
         _sdc_source_lineno
+
     from source
+
+),
+
+deduped as (
+
+    select *
+    from (
+        select
+            *,
+            row_number() over (
+                partition by
+                    export_date,
+                    _sdc_source_file,
+                    _sdc_source_lineno
+                order by export_date
+            ) as rn
+        from cleaned
+    )
+    where rn = 1
 
 )
 
 select *
-from cleaned
+from deduped
     );
   

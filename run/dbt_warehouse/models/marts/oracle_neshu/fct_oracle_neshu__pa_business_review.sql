@@ -1,10 +1,18 @@
 
+  
+    
 
-  create or replace view `evs-datastack-prod`.`prod_marts`.`fct_oracle_neshu__pa_business_review`
-  OPTIONS(
+    create or replace table `evs-datastack-prod`.`prod_marts`.`fct_oracle_neshu__pa_business_review`
+      
+    partition by timestamp_trunc(task_start_date, day)
+    cluster by company_id, device_id
+
+    
+    OPTIONS(
       description="""Table de faits des passages appro (Business Review Neshu). Permet de tracer le passage des roadmen chez les clients \u00e0 partir de 2025, avec enrichissement des informations clients et machines.\n"""
     )
-  as 
+    as (
+      
 
 select
     -- Identifiants
@@ -34,7 +42,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    'cde0e048-6e4b-457d-ab7e-fe4d4fe0ddd4' as dbt_invocation_id  -- noqa: TMP
+    'd6d30a6d-f69d-4ee2-8134-7effc8505092' as dbt_invocation_id  -- noqa: TMP
 
 from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_tasks` as pa
 inner join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` as d
@@ -43,5 +51,6 @@ inner join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company` as c
     on pa.company_id = c.company_id
 where
     date(pa.task_start_date) >= '2025-01-01'
-    and pa.task_status_code != 'ANNULE';
-
+    and pa.task_status_code != 'ANNULE'
+    );
+  

@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_pricing`
       
     partition by timestamp_trunc(date_done, day)
-    
+    cluster by client_id, site_id, material_id
 
     
     OPTIONS(
