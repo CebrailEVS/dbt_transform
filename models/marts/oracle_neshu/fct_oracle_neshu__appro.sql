@@ -5,6 +5,7 @@
         'data_type': 'timestamp',
         'granularity': 'day'
     },
+    cluster_by=['company_id', 'device_id', 'roadman_code'],
     description='Table de faits des passages appro enrichi avec les pointages des roadmen et calcul de métriques associées sur les durees de passage et de travail'
 ) }}
 

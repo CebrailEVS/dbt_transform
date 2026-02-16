@@ -1,6 +1,7 @@
 -- fct_oracle_neshu__machines_maintenance_tracking.sql
 {{ config(
     materialized = "table",
+    cluster_by = ['company_code', 'device_code'],
     description = "Table de faits du suivi des maintenances préventives des machines NESHU (Oracle + Yuman)."
 ) }}
 

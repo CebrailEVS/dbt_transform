@@ -1,6 +1,10 @@
 {{
     config(
         materialized='table',
+        partition_by={
+            'field': 'date_debut_passage_appro',
+            'data_type': 'date'
+        },
         cluster_by=['device_id'],
         description='Table de faits des chargement et consommation (telemetrie) par type de produit, par machine et date de passage appro - Utilisée pour les BI de taux d ecoulement et Suivi des chargements machines gratuités'
     )

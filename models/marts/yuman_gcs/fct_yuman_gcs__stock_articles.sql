@@ -1,5 +1,9 @@
 {{ config(
     materialized='table',
+    partition_by={
+        'field': 'stock_date',
+        'data_type': 'date'
+    },
     description='Table de faits des stocks des pièces Yuman journaliers pour chaque stock technicien et dépôt'
 ) }}
 

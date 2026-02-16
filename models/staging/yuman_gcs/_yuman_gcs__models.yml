@@ -10,6 +10,7 @@ models:
             combination_of_columns:
               - export_date
               - _sdc_source_lineno
+              - _sdc_source_file
 
     columns:
       - name: reference

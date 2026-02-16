@@ -1,5 +1,10 @@
 {{ config(
     materialized='table',
+    partition_by={
+        'field': 'date_fin',
+        'data_type': 'date'
+    },
+    cluster_by=['n_tech'],
     description='Table de pricing de la consommation des pièces détachées'
 ) }}
 

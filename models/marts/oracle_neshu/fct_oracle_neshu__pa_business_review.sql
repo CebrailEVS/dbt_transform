@@ -1,5 +1,11 @@
 {{ config(
-    materialized='view',
+    materialized='table',
+    partition_by={
+        'field': 'task_start_date',
+        'data_type': 'timestamp',
+        'granularity': 'day'
+    },
+    cluster_by=['company_id', 'device_id'],
     description='Table de faits des passages appro (Business Review Neshu) - permet de tracer le passage des roadmen chez les clients à partir de 2025'
 ) }}
 

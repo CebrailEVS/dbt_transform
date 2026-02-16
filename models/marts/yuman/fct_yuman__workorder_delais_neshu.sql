@@ -2,7 +2,8 @@
     materialized='table',
     schema='marts',
     alias='fct_yuman__workorder_delais_neshu',
-    partition_by={"field": "date_done", "data_type": "timestamp"}
+    partition_by={"field": "date_done", "data_type": "timestamp"},
+    cluster_by=['client_id', 'site_id', 'material_id']
 ) }}
 
 with adjusted_dates as (

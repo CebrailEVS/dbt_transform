@@ -8,6 +8,7 @@ logs/
 .env
 .env.*
 venv_dbt/
+dbt_venv/
 
 # Python
 __pycache__/
