@@ -44,7 +44,7 @@ select
 
     -- Metadonnees dbt
     current_timestamp() as dbt_updated_at,
-    '8cec9191-bbff-4fda-8ae0-0e56747b6061' as dbt_invocation_id
+    'cde0e048-6e4b-457d-ab7e-fe4d4fe0ddd4' as dbt_invocation_id
 
 from `evs-datastack-prod`.`prod_staging`.`stg_gac__sinistres_sg`
     );
