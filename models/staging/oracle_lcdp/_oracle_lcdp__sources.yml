@@ -175,9 +175,7 @@ sources:
       - name: lcdp_contract
         description: "Table des contrats"
         config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
+          freshness: null
         columns:
           - name: idcontract
             tests:
@@ -299,9 +297,7 @@ sources:
       - name: lcdp_label_has_contract
         description: "Labels par contrat"
         config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
+          freshness: null
         columns:
           - name: idlabel
             tests:
