@@ -119,6 +119,8 @@ minidisp momento,DISP MINI,NESPRESSO
 minitow momento,MINITOW,NESPRESSO
 minitower gemini,DISP MINI,NESPRESSO
 minitower momento,MINITOW,NESPRESSO
+minitower ag420,MINITOW,NESPRESSO
+minitower ag220,MINITOW,NESPRESSO
 mistral,FONTAINE A EAU,BLUPURA
 module momento 200,M200,NESPRESSO
 modulo the,MODULOTHE,ANIMO
@@ -127,6 +129,7 @@ momento 100,M100,NESPRESSO
 momento 200,M200,NESPRESSO
 momento 200 mini disp,DISP MINI,NESPRESSO
 momento cabinet,M100,NESPRESSO
+base cabinet momento,M100,NESPRESSO
 momento disp mini to,DISP MINI,NESPRESSO
 momento disp s by s,DISP SBS,NESPRESSO
 momento mini disp,DISP MINI,NESPRESSO
@@ -143,6 +146,9 @@ optibean x 22,MILANO,ANIMO
 optibeanx12 + modulo,MILANO,ANIMO
 optibeanx12 + modulo the,MILANO,ANIMO
 optibeanx12ts + modulo,MILANO,ANIMO
+tower optibean x12 + modulo the,MILANO,ANIMO
+tower optibean x12,MILANO,ANIMO
+tower optibean x12 ts,MILANO,ANIMO
 rebel gaz,FONTAINE A EAU,BLUPURA
 sbs momento 100,M100,NESPRESSO
 sbs momento 200,DISP SBS,NESPRESSO
@@ -233,6 +239,7 @@ viv t 50 c2-tg-n-cu ce,FONTAINE A EAU,BRITA
 viv t 85 c1-tg-n-cu ce,FONTAINE A EAU,BRITA
 viv t 85 c2-tg-i-cu ce,FONTAINE A EAU,BRITA
 viv t 85 c2-tg-n-cu ce,FONTAINE A EAU,BRITA
+viv t 85 c1-tg-l-cu ce,FONTAINE A EAU,BRITA
 ytmt,SNACKING,SNACKING
 ytmt 10,SNACKING,SNACKING
 ytmt fas,SNACKING,SNACKING
