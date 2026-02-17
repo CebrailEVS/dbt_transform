@@ -13,7 +13,7 @@ on:
       - 'dbt_project.yml'
       - 'profiles.yml'
       - 'packages.yml'
-      - '.github/workflows/dbt_ci.yml'
+      - '.github/workflows/dbt-ci.yml'
   pull_request:
     branches:
       - master
@@ -26,7 +26,7 @@ on:
       - 'dbt_project.yml'
       - 'profiles.yml'
       - 'packages.yml'
-      - '.github/workflows/dbt_ci.yml'
+      - '.github/workflows/dbt-ci.yml'
 
 permissions:
   contents: write
@@ -38,39 +38,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧾 Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install dbt-bigquery
+          pip install 'dbt-bigquery>=1.7,<2.0'
 
-      - name: 🔑 Decode and write service account keyfile
+      - name: Decode and write service account keyfile
         run: echo "${{ secrets.DBT_BIGQUERY_KEYFILE }}" | base64 -d > $GITHUB_WORKSPACE/keyfile.json
 
-      # --- Authenticate to GCP for GCS access ---
-      - name: 🔐 Authenticate to Google Cloud
-        uses: google-github-actions/auth@v1
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.DBT_BIGQUERY_KEYFILE }}
 
-      - name: ☁️ Setup Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
-      - name: 🌍 Export env variables for dbt
+      - name: Export env variables for dbt
         run: |
           echo "DBT_BIGQUERY_PROJECT=${{ secrets.DBT_BIGQUERY_PROJECT }}" >> $GITHUB_ENV
           echo "DBT_BIGQUERY_KEYFILE=$GITHUB_WORKSPACE/keyfile.json" >> $GITHUB_ENV
           echo "DBT_BIGQUERY_DATASET_DEV=${{ secrets.DBT_BIGQUERY_DATASET_DEV }}" >> $GITHUB_ENV
           echo "DBT_BIGQUERY_DATASET_PROD=${{ secrets.DBT_BIGQUERY_DATASET_PROD }}" >> $GITHUB_ENV
 
-      - name: 🎯 Determine target environment
+      - name: Determine target environment
         id: target
         run: |
           if [[ "${GITHUB_REF}" == "refs/heads/master" ]]; then
@@ -80,65 +79,62 @@ jobs:
           fi
 
       # --- Download manifest from GCS for PRs ---
-      - name: ⬇️ Download manifest from GCS (PR only)
+      - name: Download manifest from GCS (PR only)
         if: github.event_name == 'pull_request'
         continue-on-error: true
         run: |
           mkdir -p state/
           gsutil cp gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json state/manifest.json || echo "No manifest found in GCS (first PR)"
 
-      # --- Check if manifest exists ---
-      - name: 🔍 Check manifest availability
+      - name: Check manifest availability
         id: check_manifest
         if: github.event_name == 'pull_request'
         run: |
           if [[ -f "state/manifest.json" ]]; then
             echo "manifest_exists=true" >> $GITHUB_OUTPUT
-            echo "✅ Master manifest found - will run selective tests"
           else
             echo "manifest_exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️  No master manifest found - will run full tests (this is normal for first PR)"
           fi
 
       # --- Run dbt commands ---
-      - name: 🧱 Run dbt commands
+      - name: dbt setup
         run: |
           dbt deps
           dbt debug --target ${{ steps.target.outputs.target }}
-          dbt seed --target ${{ steps.target.outputs.target }}
-          
+
+      - name: dbt seed
+        if: github.ref == 'refs/heads/master'
+        run: dbt seed --target ${{ steps.target.outputs.target }}
+
+      - name: dbt build
+        run: |
           TARGET=${{ steps.target.outputs.target }}
-          
-          # For Pull Requests: selective run if manifest exists, otherwise full run
+
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             if [[ "${{ steps.check_manifest.outputs.manifest_exists }}" == "true" ]]; then
-              echo "🎯 Running SELECTIVE models and tests (state:modified+)..."
-              dbt run --target $TARGET --select state:modified+ --state state/
-              dbt test --target $TARGET --select state:modified+ --state state/
+              echo "Running SELECTIVE build (state:modified+), excluding snapshots..."
+              dbt build --target $TARGET --select state:modified+ --exclude resource_type:snapshot --state state/
             else
-              echo "🔄 Running FULL models and tests (no state comparison available)..."
-              dbt run --target $TARGET
-              dbt test --target $TARGET
+              echo "Running FULL build (no state comparison available), excluding snapshots..."
+              dbt build --target $TARGET --exclude resource_type:snapshot
             fi
-          
-          # For master branch: always full run
           else
-            echo "🚀 Running FULL models and tests on master..."
-            dbt run --target $TARGET
-            dbt test --target $TARGET
+            echo "Running FULL build on master, excluding snapshots..."
+            dbt build --target $TARGET --exclude resource_type:snapshot
           fi
-          
-          dbt docs generate --target $TARGET
+
+      - name: dbt docs generate
+        if: github.ref == 'refs/heads/master'
+        run: dbt docs generate --target ${{ steps.target.outputs.target }}
 
       # --- Upload manifest to GCS (master only) ---
-      - name: 📤 Upload manifest to GCS (master only)
+      - name: Upload manifest to GCS (master only)
         if: github.ref == 'refs/heads/master'
         run: |
           gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json
-          echo "✅ Manifest uploaded to GCS for future PR comparisons"
 
       # --- Upload docs artifacts ---
-      - name: 📤 Upload docs artifacts
+      - name: Upload docs artifacts
         if: github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
@@ -152,12 +148,12 @@ jobs:
     if: github.ref == 'refs/heads/master'
 
     steps:
-      - name: 📥 Download docs artifacts
+      - name: Download docs artifacts
         uses: actions/download-artifact@v4
         with:
           name: dbt-docs
 
-      - name: 🌐 Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
