@@ -30,9 +30,8 @@ git checkout -b feature/oracle_neshu/add-kpi-livraison
 # 3. Charger les variables d'environnement
 set -a && source .env && set +a
 
-# 4. Developper et tester
-dbt run --select tag:oracle_neshu
-dbt test --select tag:oracle_neshu
+# 4. Developper et tester (build = run + test en ordre DAG)
+dbt build --select tag:oracle_neshu
 
 # 5. Linter le SQL
 sqlfluff lint models/staging/oracle_neshu/
@@ -71,9 +70,9 @@ Exemples :
 
 ### Avant de creer une PR
 
-1. **Tester localement** : `dbt run` + `dbt test` sur les modeles concernes
+1. **Tester localement** : `dbt build` sur les modeles concernes
 2. **Linter** : `sqlfluff lint` sans violations bloquantes
-3. **Verifier les dependances** : `dbt run --select +mon_modele` (amont complet)
+3. **Verifier les dependances** : `dbt build --select +mon_modele` (amont complet)
 4. **Pas de secrets** : ne jamais commiter `.env`, cles GCP, credentials
 
 ### Contenu de la PR
@@ -129,8 +128,7 @@ git branch -d feature/oracle_neshu/add-kpi-livraison  # supprimer la branche loc
 
 ## Checklist avant merge
 
-- [ ] `dbt run` passe sans erreur sur les modeles concernes
-- [ ] `dbt test` passe (PASS ou WARN accepte, pas d'ERROR)
+- [ ] `dbt build` passe sans erreur sur les modeles concernes (PASS ou WARN accepte, pas d'ERROR)
 - [ ] `sqlfluff lint` sans violations sur les fichiers modifies
 - [ ] Modeles documentes dans les fichiers YAML
 - [ ] Pas de secrets dans le commit
@@ -140,12 +138,52 @@ git branch -d feature/oracle_neshu/add-kpi-livraison  # supprimer la branche loc
 
 ## Environnement de developpement
 
-| Env | Dataset | Usage |
-|-----|---------|-------|
-| `dev` | `dev` | Developpement local, tests |
-| `prod` | `prod` | Deploiement automatique (Airflow) |
+| Env | Schemas | Utilisateur | Usage |
+|-----|---------|-------------|-------|
+| `dev` | `dev_staging`, `dev_intermediate`, `dev_marts` | Data Engineer + Data Analyst | Developpement et tests |
+| `prod` | `prod_staging`, `prod_intermediate`, `prod_marts` | Airflow | Production automatisee |
 
-Les deux environnements lisent depuis `prod_raw` (meme source). Seul le dataset de destination change.
+Les deux environnements lisent depuis `prod_raw` (meme source). Seuls les schemas de destination changent. Configurer `DBT_TARGET=dev` dans `.env`.
+
+---
+
+## Roles et responsabilites
+
+| Action | Data Engineer | Data Analyst |
+|--------|:---:|:---:|
+| Modifier `staging/` | Oui | Non |
+| Modifier `intermediate/` | Oui | Sur validation DE |
+| Creer/modifier `marts/` | Oui | Oui |
+| Ajouter des seeds (CSV) | Oui | Oui |
+| Modifier `snapshots/` | Oui | Non |
+| Modifier `dbt_project.yml` | Oui | Non |
+| Pousser directement sur `master` | Non | Non |
+| Creer une PR | Oui | Oui |
+| Reviewer une PR | Oui | - |
+
+> Toute contribution passe par une PR. Le Data Engineer review et merge.
+
+---
+
+## Explorer le projet existant
+
+Avant de creer de nouveaux modeles, prendre le temps de comprendre ce qui existe :
+
+```bash
+# Naviguer visuellement tous les modeles, colonnes et tests
+dbt docs generate && dbt docs serve
+
+# Lister les modeles d'un domaine
+dbt ls --select tag:oracle_neshu
+
+# Voir les dependances amont d'un modele
+dbt ls --select +fct_oracle_neshu__conso_business_review
+
+# Voir les dependances aval d'un modele
+dbt ls --select fct_oracle_neshu__conso_business_review+
+```
+
+La documentation generee est aussi disponible en ligne : [https://cebrailevs.github.io/dbt_transform/](https://cebrailevs.github.io/dbt_transform/)
 
 ---
 

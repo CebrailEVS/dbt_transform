@@ -123,10 +123,12 @@ DBT_BIGQUERY_DATASET_PROD=prod
 
 ### Environnements
 
-| Environnement | Utilisateur | Dataset | Usage |
+| Environnement | Utilisateur | Schemas | Usage |
 |---------------|-------------|---------|-------|
-| `dev` | Data Engineer / Analyst | `dev` | Developpement et tests |
-| `prod` | Airflow | `prod` | Production automatisee |
+| `dev` | Data Engineer + Data Analyst | `dev_staging`, `dev_intermediate`, `dev_marts` | Developpement et tests |
+| `prod` | Airflow | `prod_staging`, `prod_intermediate`, `prod_marts` | Production automatisee |
+
+> Les deux profils lisent depuis `prod_raw` (memes sources). Seuls les schemas de destination changent.
 
 ---
 
@@ -136,29 +138,27 @@ DBT_BIGQUERY_DATASET_PROD=prod
 # Charger les variables (toujours en premier)
 set -a && source .env && set +a
 
-# Executer par source (tag-based)
-dbt run --select tag:oracle_neshu
-dbt run --select tag:yuman
+# Build par source (run + test en ordre DAG, fail-fast)
+dbt build --select tag:oracle_neshu
+dbt build --select tag:yuman
 
-# Executer par couche
-dbt run --select tag:staging
-dbt run --select tag:marts
+# Build par couche
+dbt build --select tag:staging
+dbt build --select tag:marts
 
-# Executer un modele et ses dependances amont
-dbt run --select +fct_oracle_neshu__conso_business_review
-
-# Tests de qualite
-dbt test
-dbt test --select tag:oracle_neshu
+# Build un modele et ses dependances amont
+dbt build --select +fct_oracle_neshu__conso_business_review
 
 # Freshness / Seeds / Snapshots
 dbt source freshness
 dbt seed
 dbt snapshot
 
-# Documentation
+# Documentation (naviguer les modeles, colonnes, tests)
 dbt docs generate && dbt docs serve
 ```
+
+> `dbt build` remplace `dbt run` + `dbt test` : il execute et teste chaque modele avant de passer aux modeles enfants. Si un test staging echoue, les marts ne sont pas construits sur des donnees incorrectes.
 
 ---
 
@@ -183,9 +183,10 @@ Toujours verifier avec `git diff` apres un `sqlfluff fix`. Voir [CONVENTIONS.md]
 
 | Evenement | Action |
 |-----------|--------|
-| Push vers `master` | Deploiement automatique en production |
-| Push vers `feature/**` | Tests de validation en dev |
-| Pull Request | Tests complets avant merge |
+| Pull Request vers `master` | `dbt build --exclude resource_type:snapshot` sur dev (slim CI si manifest disponible) |
+| Merge dans `master` | Build complet en prod + generation docs + deploiement GitHub Pages |
+
+> Les snapshots sont exclus du CI pour eviter des captures SCD parasites. Ils sont geres uniquement par Airflow en production.
 
 ---
 
@@ -215,8 +216,9 @@ Toujours verifier avec `git diff` apres un `sqlfluff fix`. Voir [CONVENTIONS.md]
 dbt debug                              # Verifier la configuration
 set -a && source .env && set +a        # Variables non chargees
 git rebase --abort                     # Annuler un rebase en echec
-dbt test --select tag:oracle_neshu     # Cibler les tests en echec
+dbt build --select tag:oracle_neshu    # Cibler les modeles en echec
 sqlfluff lint models/staging/          # Verifier le linting SQL
+dbt ls --select +mon_modele            # Voir les dependances d'un modele
 ```
 
 ---

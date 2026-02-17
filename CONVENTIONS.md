@@ -44,6 +44,8 @@ Chaque source a deux fichiers YAML dans son dossier staging :
 | snake_case | `company_name`, `postal_code` |
 | IDs : `id<entite>` (staging) | `idcompany`, `idtask` |
 | IDs : `<entite>_id` (marts) | `company_id`, `task_id` |
+
+> Staging conserve le nommage du systeme source (`idcompany`) pour faciliter le debug et le mapping. Les marts normalisent en `<entite>_id` pour la clarte cote Power BI et consommateurs finaux.
 | Booleens : `is_` ou `has_` | `is_active`, `has_contract` |
 | Dates : `_at` pour timestamps | `created_at`, `updated_at` |
 | Dates : `_date` pour dates | `start_date`, `end_date` |
@@ -236,9 +238,19 @@ select max(updated_at) from {{ ref('stg_oracle_neshu__task') }}  -- noqa: RF02
 
 ## Seeds et Snapshots
 
-### Seeds (`seeds/`)
+### Seeds (`data/reference_data/`)
 
-Fichiers CSV charges via `dbt seed`. Utilises pour les donnees de reference statiques (mappings, parametres).
+Fichiers CSV charges via `dbt seed`. Utilises pour les donnees de reference statiques (mappings, parametres). Organises par domaine :
+
+```
+data/reference_data/
+├── yuman/              # ref_yuman__cp_metropole.csv, ref_yuman__machine_clean.csv, ...
+├── oracle_neshu/       # ref_oracle_neshu__valo_parc_machine.csv, ...
+├── mssql_sage/         # ref_mssql_sage__code_analytique_bu.csv, ...
+└── nesp_tech/          # ref_nesp_tech__articles_prix.csv, ...
+```
+
+Les types de colonnes sont declares dans `dbt_project.yml` (section `seeds:`).
 
 ### Snapshots (`snapshots/`)
 
@@ -259,10 +271,25 @@ Commande : `dbt snapshot`
 Chaque modele est tag par source pour permettre une execution selective :
 
 ```bash
-dbt run --select tag:oracle_neshu    # Toute la chaine oracle_neshu
-dbt run --select tag:yuman           # Toute la chaine yuman
-dbt run --select tag:staging         # Tous les staging
-dbt run --select tag:marts           # Tous les marts
+dbt build --select tag:oracle_neshu    # Toute la chaine oracle_neshu
+dbt build --select tag:yuman           # Toute la chaine yuman
+dbt build --select tag:staging         # Tous les staging
+dbt build --select tag:marts           # Tous les marts
 ```
 
 Les tags sont definis dans `dbt_project.yml` et herites automatiquement par les modeles enfants.
+
+---
+
+## Exposition Power BI
+
+Les modeles marts (`dim_*` et `fct_*`) sont la couche exposee a Power BI.
+
+| Element | Convention |
+|---------|-----------|
+| Dataset BigQuery | `prod_marts` (production), `dev_marts` (developpement) |
+| Dimensions | `dim_<source>__<entite>` - tables de reference (clients, produits, machines) |
+| Facts | `fct_<source>__<metrique>` - tables de mesures (consommation, pricing, KPIs) |
+| Jointures | Via les colonnes `<entite>_id` presentes dans les dims et facts |
+
+Lors de la creation d'un nouveau mart, verifier que les noms de colonnes sont clairs pour un utilisateur Power BI (pas d'abreviations internes, pas d'IDs techniques exposes sans libelle).
