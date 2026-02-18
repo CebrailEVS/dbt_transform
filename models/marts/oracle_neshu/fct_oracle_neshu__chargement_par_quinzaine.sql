@@ -50,8 +50,3 @@ group by
     company_name,
     annee_chgt,
     quinzaine_chgt
-order by
-    product_type,
-    company_code,
-    annee_chgt,
-    quinzaine_chgt
