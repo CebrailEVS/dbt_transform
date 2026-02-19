@@ -43,3 +43,93 @@ models:
 
       - name: montant_total
         description: Montant total calculé pour cet article sur l’intervention (quantité × prix unitaire).
+
+  - name: fct_nesp_tech__alerting_conso_pieces_aguila
+    description: >
+      Modèle analytique de contrôle des consommations des interventions techniques Aguila.
+      Ce modèle consolide les consommations d’articles et applique les règles métier
+      permettant de détecter les incohérences de conso de pièces lors de maintenance préventive,
+      kits, filtres et pièces hors kit.
+
+    columns:
+
+      # ============================================================
+      # Clés & métadonnées intervention
+      # ============================================================
+
+      - name: n_planning
+        description: Identifiant unique de l’intervention (clé métier Nomad)
+        tests:
+          - not_null
+          - unique
+
+      - name: date_fin
+        description: Date de fin d’intervention (convertie depuis timestamp opérationnel)
+
+      - name: intervention_type
+        description: Code métier du type d’intervention
+
+      - name: consignes
+        description: Consignes saisies par le technicien lors de l’intervention
+
+      # ============================================================
+      # Normalisation machine
+      # ============================================================
+
+      - name: categorie_machine
+        description: Catégorie machine issue du référentiel machines
+
+      - name: machine_clean
+        description: Nom machine normalisé via le référentiel technique
+
+      # ============================================================
+      # Alertes métier – règles qualité
+      # ============================================================
+
+      - name: alt_nomenclature
+        description: >
+          Détecte l’absence de PREV ou MINIPREV sur une intervention préventive.
+
+      - name: alt_coherence_consigne
+        description: >
+          Vérifie la cohérence entre la consigne saisie et les articles consommés.
+
+      - name: alt_prevcompletekit
+        description: >
+          Vérifie la présence d’un kit lorsque PREV est consommé.
+
+      - name: alt_kit_typemachine
+        description: >
+          Contrôle la cohérence entre le kit consommé et le type de machine Aguila.
+
+      - name: alt_filtre_consomme
+        description: >
+          Détecte l’absence du filtre EVERPUREXL lorsque requis.
+
+      - name: alt_nb_kits
+        description: >
+          Détecte la consommation de plusieurs kits sur une même intervention.
+
+      - name: alt_conso_hors_kit
+        description: >
+          Vérifie la conformité des quantités de pièces hors kit selon la machine.
+
+      # ============================================================
+      # Champ analytique consolidé
+      # ============================================================
+
+      - name: alerte_compile
+        description: >
+          Concaténation des alertes détectées pour l’intervention.
+          Format standardisé : ALERTE1-ALERTE2-ALERTE3.
+          Les alertes nulles ne sont pas incluses.
+
+      # ============================================================
+      # Métadonnées dbt (audit / lineage)
+      # ============================================================
+
+      - name: dbt_updated_at
+        description: Timestamp de dernière exécution du modèle dbt
+
+      - name: dbt_invocation_id
+        description: Identifiant unique d’exécution dbt (traçabilité pipeline)

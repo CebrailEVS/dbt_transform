@@ -72,3 +72,21 @@ models:
 
       - name: tarif_factu
         description: "Tarif appliqué à l’intervention"
+
+
+  - name: int_nesp_tech__interventions_dedup
+    description: Dédoublonnage des interventions par n_planning
+    columns:
+      - name: n_planning
+        tests:
+          - not_null
+          - unique
+
+  - name: int_nesp_tech__articles_dedup
+    description: Dédoublonnage des articles par intervention + article
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - n_planning
+            - code_article
+
