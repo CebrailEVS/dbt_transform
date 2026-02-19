@@ -1,5 +1,5 @@
 {{ config(
-    materialized = 'view'
+    materialized = 'table'
 ) }}
 -- Liste des interventions dédupliquées par la date de fin
 with ranked as (
