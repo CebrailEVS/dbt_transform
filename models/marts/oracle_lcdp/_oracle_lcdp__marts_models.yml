@@ -13,6 +13,9 @@ models:
         tests:
           - not_null
           - unique
+        
+      - name: parent_company_id
+        description: "ID de la comapny parente (hiérarchie)"
 
       - name: company_type_id
         description: "ID Type de société (ex : client, fournisseur...)"
