@@ -91,68 +91,68 @@ final as (
         -- Vérification nomenclature PREV / MINIPREV
         case
             when
-                intervention_type = '2'
-                and not has_prev_or_miniprev
+                i.intervention_type = '2'
+                and not ap.has_prev_or_miniprev
                 then 'NOMENCLATURE'
         end as alt_nomenclature,
 
         -- Cohérence consigne vs articles consommés
         case
             when
-                intervention_type = '2'
-                and LOWER(consignes) like 'mini-pr%'
-                and not has_miniprev
+                i.intervention_type = '2'
+                and LOWER(i.consignes) like 'mini-pr%'
+                and not ap.has_miniprev
                 then 'CONSIGNE'
 
             when
-                intervention_type = '2'
-                and LOWER(consignes) not like 'mini-pr%'
-                and not has_prev
+                i.intervention_type = '2'
+                and LOWER(i.consignes) not like 'mini-pr%'
+                and not ap.has_prev
                 then 'CONSIGNE'
         end as alt_coherence_consigne,
 
         -- PREV consommé → kit obligatoire
         case
-            when has_prev and not has_kit
+            when ap.has_prev and not ap.has_kit
                 then 'PAS DE KIT'
         end as alt_prevcompletekit,
 
         -- Cohérence kit vs type machine
         case
-            when has_kit and machine_clean = 'Aguila 2' and not kit_aguila2_ok
+            when ap.has_kit and r.machine_clean = 'Aguila 2' and not ap.kit_aguila2_ok
                 then 'KIT INCOHERENT'
 
-            when has_kit and machine_clean = 'Aguila 4' and not kit_aguila4_ok
+            when ap.has_kit and r.machine_clean = 'Aguila 4' and not ap.kit_aguila4_ok
                 then 'KIT INCOHERENT'
         end as alt_kit_typemachine,
 
         -- Filtre obligatoire sur préventives
         case
             when
-                intervention_type = '2'
-                and not has_filtre
+                i.intervention_type = '2'
+                and not ap.has_filtre
                 then 'PAS DE FILTRE'
         end as alt_filtre_consomme,
 
         -- Détection consommation multiple de kits
         case
-            when nb_kits > 1
+            when ap.nb_kits > 1
                 then 'PLUSIEURS KITS'
         end as alt_nb_kits,
 
         -- Contrôles hors kit
         case
-            when has_kit and has_hors_kit_parts
+            when ap.has_kit and ap.has_hors_kit_parts
                 then 'PROBLEME KIT + AUTRES'
 
             when
-                not has_kit and machine_clean = 'Aguila 2'
-                and (qty_126015 != 2 or qty_120555 != 2 or qty_120257 != 1)
+                not ap.has_kit and r.machine_clean = 'Aguila 2'
+                and (ap.qty_126015 != 2 or ap.qty_120555 != 2 or ap.qty_120257 != 1)
                 then 'QUANTITES INCOHERENTES'
 
             when
-                not has_kit and machine_clean = 'Aguila 4'
-                and (qty_126015 != 4 or qty_120555 != 4 or qty_120257 != 1)
+                not ap.has_kit and r.machine_clean = 'Aguila 4'
+                and (ap.qty_126015 != 4 or ap.qty_120555 != 4 or ap.qty_120257 != 1)
                 then 'QUANTITES INCOHERENTES'
         end as alt_conso_hors_kit
 
@@ -169,8 +169,8 @@ final as (
     -- Filtrage analytique ciblé (Aguila uniquement)
     where
         r.categorie_machine like '%AGUILA%'
-        and intervention_type = '2'
-        and etat_intervention not in ('annulée', 'mise en échec')
+        and i.intervention_type = '2'
+        and i.etat_intervention not in ('annulée', 'mise en échec')
 
 )
 
