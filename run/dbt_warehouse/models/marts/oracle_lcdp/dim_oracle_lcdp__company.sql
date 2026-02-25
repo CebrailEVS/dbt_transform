@@ -17,6 +17,7 @@
 with company_labels as (
     select
         c.idcompany as company_id,
+        c.company_idcompany as parent_company_id,
         c.code as company_code,
         c.idcompany_type as company_type_id,
         c.name as company_name,
@@ -46,6 +47,7 @@ with company_labels as (
 aggregated_labels as (
     select
         company_id,
+        parent_company_id,
         company_type_id,
         company_code,
         company_name,
@@ -72,6 +74,7 @@ aggregated_labels as (
     from company_labels
     group by
         company_id,
+        parent_company_id,
         company_type_id,
         company_code,
         company_name,
@@ -87,6 +90,7 @@ aggregated_labels as (
 select
     -- Identifiants
     company_id,
+    parent_company_id,
     company_type_id,
 
     -- Codes et noms
