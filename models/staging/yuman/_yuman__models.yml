@@ -19,6 +19,57 @@ models:
       - name: client_adress
         description: "Adresse du client"
 
+  - name: stg_yuman__contacts
+    description: "Contacts transformés et nettoyés depuis l'API Yuman"
+    columns:
+      - name: contact_id
+        description: "Identifiant unique du contact"
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        description: "Référence vers le client rattaché"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_yuman__clients')
+                field: client_id
+      - name: site_id
+        description: "Référence vers le site rattaché"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_yuman__sites')
+                field: site_id
+      - name: category_id
+        description: "Identifiant de la catégorie du contact"
+      - name: contact_name
+        description: "Nom du contact"
+      - name: contact_title
+        description: "Civilité du contact (mr, mrs, etc.)"
+      - name: contact_phone
+        description: "Numéro de téléphone fixe"
+      - name: contact_mobile
+        description: "Numéro de téléphone mobile"
+      - name: contact_email
+        description: "Adresse e-mail du contact"
+      - name: contact_observation
+        description: "Observations libres sur le contact"
+      - name: external_reference
+        description: "Référence externe du contact"
+      - name: external_reference_vendor
+        description: "Référence externe fournisseur du contact"
+      - name: created_at
+        description: "Date de création de l'enregistrement"
+        tests:
+          - not_null
+      - name: updated_at
+        description: "Date de dernière mise à jour"
+      - name: extracted_at
+        description: "Date d'extraction depuis la source (Singer/Meltano)"
+      - name: deleted_at
+        description: "Date de suppression (soft delete)"
+
   - name: stg_yuman__sites
     description: "Sites transformés et nettoyés depuis l'API Yuman"
     columns:

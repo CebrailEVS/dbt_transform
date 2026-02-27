@@ -88,6 +88,41 @@ sources:
               - not_null
             description: "Identifiant unique du client"
 
+      - name: yuman_contacts
+        description: "Table des contacts Yuman"
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du contact"
+          - name: client_id
+            description: "Identifiant du client rattaché"
+          - name: site_id
+            description: "Identifiant du site rattaché"
+          - name: category_id
+            description: "Identifiant de la catégorie du contact"
+          - name: name
+            description: "Nom du contact"
+          - name: title
+            description: "Civilité du contact (mr, mrs, etc.)"
+          - name: phone
+            description: "Numéro de téléphone fixe"
+          - name: mobile
+            description: "Numéro de téléphone mobile"
+          - name: email
+            description: "Adresse e-mail du contact"
+          - name: observation
+            description: "Observations libres sur le contact"
+          - name: external_reference
+            description: "Référence externe du contact"
+          - name: external_reference_vendor
+            description: "Référence externe fournisseur du contact"
+          - name: created_at
+            description: "Date de création de l'enregistrement"
+          - name: updated_at
+            description: "Date de dernière mise à jour"
+
       - name: yuman_sites
         description: "Table des sites Yuman"
         columns:
