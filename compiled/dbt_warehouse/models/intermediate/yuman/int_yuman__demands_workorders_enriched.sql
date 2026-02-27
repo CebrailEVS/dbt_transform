@@ -45,7 +45,8 @@ workorders as (
         workorder_si_non_pourquoi,
         date_planned,
         date_started,
-        date_done
+        date_done,
+        workorder_time_taken
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman__workorders`
 ),
 
@@ -106,6 +107,36 @@ tech_agence_mapping as (
         agence,
         equipe
     from `evs-datastack-prod`.`prod_reference`.`ref_yuman__tech_agence`
+),
+
+contacts_per_site as (
+    select
+        contact_id,
+        site_id,
+        contact_name,
+        contact_title,
+        contact_phone,
+        contact_mobile,
+        contact_email,
+        row_number() over (
+            partition by site_id
+            order by created_at desc
+        ) as rn
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__contacts`
+    where site_id is not null
+),
+
+contacts as (
+    select
+        contact_id,
+        site_id,
+        contact_name,
+        contact_title,
+        contact_phone,
+        contact_mobile,
+        contact_email
+    from contacts_per_site
+    where rn = 1
 )
 
 select
@@ -159,6 +190,14 @@ select
     s.site_address,
     s.site_postal_code,
 
+    -- Contact du site
+    c.contact_id,
+    c.contact_name,
+    c.contact_title,
+    c.contact_phone,
+    c.contact_mobile,
+    c.contact_email,
+
     -- Materiels
     m.material_name,
     m.material_serial_number,
@@ -188,6 +227,8 @@ left join clients as cl
     on wd.client_id = cl.client_id
 left join sites as s
     on wd.site_id = s.site_id
+left join contacts as c
+    on wd.site_id = c.site_id
 left join materials as m
     on wd.material_id = m.material_id
 left join materials_categories as mc
