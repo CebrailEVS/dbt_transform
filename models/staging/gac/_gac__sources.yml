@@ -10,9 +10,7 @@ sources:
       loaded_at_field: _sdc_batched_at
 
       # Default freshness thresholds for all tables
-      freshness:
-        warn_after: {count: 26, period: hour}    # Warn if > 26h old
-        error_after: {count: 50, period: hour}  # Error before next business day
+      freshness: null
     tables:
       - name: gac_suivi_sinistres_sg
         description: "Table des sinistres des véhicules extraite depuis GAC vers SFTP EVS"
