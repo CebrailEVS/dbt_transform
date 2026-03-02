@@ -21,7 +21,7 @@ with base as (
         calendar_month,
 
         -- IDs nettoyés
-        c4c_id_main_account     as act_compte_id,
+        c4c_id_main_account as act_compte_id,
         nessoft_id_main_account as act_id_nessoft,
 
         -- Créateur unifié
@@ -35,7 +35,6 @@ with base as (
         case
             when activity_type = 'Phone Call' then phone_call
             when activity_type = 'Appointment' then appointment
-            else null
         end as act_nom,
 
         -- Date début unifiée
@@ -45,7 +44,7 @@ with base as (
             else start_date_task
         end as act_date_debut
 
-    from {{ref('stg_nesp_co__activite')}}
+    from {{ ref('stg_nesp_co__activite') }}
 ),
 
 enrich as (
@@ -53,27 +52,27 @@ enrich as (
     select
 
         -- Clés
-        activity_id              as act_id,
-        employee_responsible     as act_id_resp,
+        activity_id as act_id,
+        employee_responsible as act_id_resp,
         act_cree_par,
 
         -- Compte
-        main_account             as act_compte_nom,
+        main_account as act_compte_nom,
         act_compte_id,
         act_id_nessoft,
 
         -- Contenu
-        notes                    as act_note,
-        calendar_month           as act_mois_creation,
+        notes as act_note,
+        calendar_month as act_mois_creation,
         act_nom,
         act_date_debut,
 
         -- Traduction type
         case activity_type
-            when 'Appointment'   then 'Rendez-vous'
+            when 'Appointment' then 'Rendez-vous'
             when 'Activity Task' then 'Tâche dactivité'
-            when 'Phone Call'    then 'Appel téléphonique'
-            when 'E-Mail'        then 'e-mail'
+            when 'Phone Call' then 'Appel téléphonique'
+            when 'E-Mail' then 'e-mail'
             else activity_type
         end as act_type,
 
@@ -85,9 +84,9 @@ enrich as (
         end as act_role,
         -- Traduction statut
         case activity_life_cycle_status
-            when 'Open'       then 'En cours'
+            when 'Open' then 'En cours'
             when 'In Process' then 'En cours'
-            when 'Completed'  then 'Terminé'
+            when 'Completed' then 'Terminé'
             else activity_life_cycle_status
         end as act_statut,
 

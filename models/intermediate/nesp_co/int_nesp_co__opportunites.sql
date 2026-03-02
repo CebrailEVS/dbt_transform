@@ -27,7 +27,7 @@ with base as (
         chance_of_success,
         machines_opportunity
 
-    from {{ref('stg_nesp_co__opportunite')}}
+    from {{ ref('stg_nesp_co__opportunite') }}
 
 ),
 
@@ -38,38 +38,38 @@ enrich as (
         -- =============================
         -- Clé opportunité
         -- =============================
-        cast(opportunity_id as string)                    as opp_id,
-        opportunity_name                                  as opp_nom,
+        cast(opportunity_id as string) as opp_id,
+        opportunity_name as opp_nom,
 
         -- =============================
         -- Dates
         -- =============================
-        created_on                                        as opp_date_creation,
-        close_date                                        as opp_date_cloture,
+        created_on as opp_date_creation,
+        close_date as opp_date_cloture,
 
         -- =============================
         -- Compte
         -- =============================
-        account_name                                      as opp_compte,
-        nessoft_id_account                                as opp_id_compte,
-        nullif(cast(c4c_id_account as string), '#')       as opp_id_client_c4c,
+        account_name as opp_compte,
+        nessoft_id_account as opp_id_compte,
+        nullif(cast(c4c_id_account as string), '#') as opp_id_client_c4c,
 
         -- =============================
         -- Commercial
         -- =============================
-        c4c_id_commercial                                 as opp_id_commercial,
+        c4c_id_commercial as opp_id_commercial,
 
         -- =============================
         -- Campagne
         -- =============================
-        campaign_name                                     as opp_campagne,
-        safe_cast(c4c_id_campaign as int64)               as opp_campagne_id,
+        campaign_name as opp_campagne,
+        safe_cast(c4c_id_campaign as int64) as opp_campagne_id,
 
         -- =============================
         -- Métadonnées
         -- =============================
-        zeq_zenius_equivalent                              as opp_ez,
-        source_name                                        as opp_source,
+        zeq_zenius_equivalent as opp_ez,
+        source_name as opp_source,
 
         -- =============================
         -- Statut traduit
@@ -80,7 +80,7 @@ enrich as (
             when 'In Process' then 'En cours'
             when 'Open' then 'En cours'
             else lifecycle_status
-        end                                                as opp_statut,
+        end as opp_statut,
 
         -- =============================
         -- Rôle traduit
@@ -89,15 +89,15 @@ enrich as (
             when 'Customer' then 'Client'
             when 'Prospect' then 'Client potentiel'
             else role_account
-        end                                                as opp_role,
+        end as opp_role,
 
         -- =============================
         -- KPI
         -- =============================
-        first_coffee_order                                 as opp_first_order_cafe,
-        expected_value                                     as opp_ns_attendu,
-        chance_of_success / 100                            as opp_probabilite,
-        machines_opportunity                               as opp_nb_opport
+        first_coffee_order as opp_first_order_cafe,
+        expected_value as opp_ns_attendu,
+        chance_of_success / 100 as opp_probabilite,
+        machines_opportunity as opp_nb_opport
 
     from base
 
