@@ -1,0 +1,108 @@
+version: 2
+
+models:
+  - name: int_nesp_co__activites
+    description: >
+      Modèle intermédiaire des activités commerciales NESP CO.
+      Harmonisation des champs, traduction des typologies et unification des dates.
+
+    columns:
+
+      - name: act_id
+        description: Identifiant unique de l'activité.
+        tests:
+          - not_null
+
+      - name: act_id_resp
+        description: Identifiant du collaborateur responsable.
+
+      - name: act_cree_par
+        description: Identifiant du créateur de l'activité selon le type.
+
+      - name: act_compte_id
+        description: Identifiant C4C du compte lié.
+
+      - name: act_id_nessoft
+        description: Identifiant Nessoft du compte lié.
+
+      - name: act_compte_nom
+        description: Nom du compte principal.
+
+      - name: act_date_debut
+        description: Date de début normalisée de l'activité.
+
+      - name: act_type
+        description: Type d'activité traduit en français.
+
+      - name: act_role
+        description: Rôle du compte (client / prospect).
+
+      - name: act_statut
+        description: Statut du cycle de vie de l'activité.
+
+      - name: act_categorie
+        description: Catégorie métier traduite.
+
+      - name: act_semaine_creation
+        description: Semaine ISO au format SS.AAAA calculée à partir de la date de début.
+
+  - name: int_nesp_co__opportunites
+    description: >
+      Modèle intermédiaire des opportunités commerciales NESP CO.
+      Harmonisation des noms de colonnes, traduction des statuts et rôles,
+      normalisation des identifiants et indicateurs de performance.
+
+    columns:
+
+      - name: opp_id
+        description: Identifiant unique de l'opportunité.
+        tests:
+          - not_null
+
+      - name: opp_nom
+        description: Nom de l'opportunité.
+
+      - name: opp_ez
+        description: Indicateur équivalent Zenius.
+
+      - name: opp_date_creation
+        description: Date de création de l'opportunité.
+
+      - name: opp_date_cloture
+        description: Date de clôture de l'opportunité.
+
+      - name: opp_statut
+        description: Statut de cycle de vie traduit en français.
+
+      - name: opp_compte
+        description: Nom du compte associé.
+
+      - name: opp_id_compte
+        description: Identifiant Nessoft du compte.
+
+      - name: opp_id_client_c4c
+        description: Identifiant C4C du compte (valeur '#' remplacée par NULL).
+
+      - name: opp_role
+        description: Rôle du compte (client / prospect).
+
+      - name: opp_id_commercial
+        description: Identifiant du commercial responsable.
+
+      - name: opp_campagne
+        description: Nom de la campagne marketing associée.
+
+      - name: opp_campagne_id
+        description: Identifiant numérique de la campagne.
+
+      - name: opp_first_order_cafe
+        description: Indicateur première commande café.
+
+      - name: opp_ns_attendu
+        description: Valeur nette attendue.
+
+      - name: opp_probabilite
+        description: Probabilité de succès normalisée entre 0 et 1.
+
+      - name: opp_nb_opport
+        description: Nombre de machines liées à l'opportunité.
