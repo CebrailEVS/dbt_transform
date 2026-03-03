@@ -329,6 +329,10 @@ seeds:
         description: "Machine normalisée"
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('ref_nesp_tech__machines_clean')
+                field: machine_clean
 
       - name: montagne_factu
         description: "Suffixe potentiel selon montagne"
@@ -337,6 +341,7 @@ seeds:
         description: "Clé de facturation lisible"
         tests:
           - not_null
+          - unique
 
       - name: key_factu
         description: "Clé de facturation lisible"
