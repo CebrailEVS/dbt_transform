@@ -80,6 +80,9 @@ models:
       mssql_sage:
         +tags: ['intermediate', 'mssql_sage']
 
+      nesp_co:
+        +tags: ['intermediate', 'nesp_co']
+
       nesp_tech:
         +tags: ['intermediate', 'nesp_tech']
 
