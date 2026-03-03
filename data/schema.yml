@@ -330,8 +330,9 @@ seeds:
         tests:
           - not_null
           - relationships:
-              to: ref('ref_nesp_tech__machines_clean')
-              field: machine_clean
+              arguments:
+                to: ref('ref_nesp_tech__machines_clean')
+                field: machine_clean
 
       - name: montagne_factu
         description: "Suffixe potentiel selon montagne"
