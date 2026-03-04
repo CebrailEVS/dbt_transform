@@ -380,3 +380,46 @@ seeds:
           - dbt_utils.expression_is_true:
               arguments:
                 expression: " >= 0"
+
+  - name: ref_nesp_co__commerciaux
+    description: "Table de référence des secteurs commerciaux et du commercial actuellement associé."
+    
+    columns:
+      - name: co_secteur
+        description: "Secteur géographique commercial (clé unique)."
+        tests:
+          - not_null
+          - unique
+
+      - name: co_nom
+        description: "Nom du commercial affecté au secteur."
+
+      - name: co_prenom
+        description: "Prénom du commercial."
+
+      - name: co_id_c4c
+        description: "Identifiant C4C du commercial."
+
+      - name: co_manager_secteur
+        description: "Manager responsable du secteur."
+
+      - name: co_metier
+        description: "Métier ou division commerciale."
+
+      - name: co_region
+        description: "Région commerciale."
+
+      - name: co_equipe
+        description: "Equipe commerciale."
+
+      - name: co_id_nunshen
+        description: "Identifiant interne Nunshen."
+
+      - name: co_fonction
+        description: "Fonction du collaborateur."
+
+      - name: co_statut
+        description: "Statut du commercial."
+        tests:
+          - accepted_values:
+              values: ['Actif', 'Inactif']
