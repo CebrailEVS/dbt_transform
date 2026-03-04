@@ -151,6 +151,9 @@ models:
       - name: third_secteur
         description: Secteur commercial associé.
 
+      - name: third_groupe
+        description : groupe du client, notamment utile pour la FID
+
       - name: third_siret
         description: Numéro SIRET du client.
 
