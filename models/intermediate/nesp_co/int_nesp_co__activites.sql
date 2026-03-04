@@ -9,7 +9,7 @@ with base as (
     select
         -- Identifiants bruts
         activity_id,
-        employee_responsible,
+        c4c_id_commercial,
         activity_type,
         activity_category,
         type_role,
@@ -53,7 +53,7 @@ enrich as (
 
         -- Clés
         activity_id as act_id,
-        employee_responsible as act_id_resp,
+        c4c_id_commercial as act_id_resp,
         act_cree_par,
 
         -- Compte
