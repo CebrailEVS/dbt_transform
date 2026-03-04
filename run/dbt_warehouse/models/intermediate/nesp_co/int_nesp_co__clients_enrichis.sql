@@ -82,6 +82,10 @@ select
     c.categorie_client as metier,
     c.region,
     c.secteur as third_secteur,
+    (case 
+        when c.secteur like '%FID%' then upper(c.region) 
+        else concat('RS ',c.categorie_client) end
+    ) as third_groupe,
 
     -- =============================
     -- Informations légales
