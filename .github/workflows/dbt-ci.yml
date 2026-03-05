@@ -107,7 +107,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin ${{ github.base_ref }} --depth=1
-          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'models/**/*.sql' | tr '\n' ' ')
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }} HEAD -- 'models/**/*.sql' | tr '\n' ' ')
           if [ -z "$CHANGED" ]; then
             echo "No SQL model files changed, skipping lint"
           else
