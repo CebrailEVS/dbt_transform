@@ -422,4 +422,5 @@ seeds:
         description: "Statut du commercial."
         tests:
           - accepted_values:
-              values: ['Actif', 'Inactif']
+              arguments:
+                values: ['Actif', 'Inactif']
