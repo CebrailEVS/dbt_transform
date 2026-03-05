@@ -12,7 +12,7 @@ with inters as (
     select
         n_planning,
         cast(date_heure_fin as date) as date_fin
-    from {{ ref('stg_nesp_tech__interventions') }}
+    from {{ ref('int_nesp_tech__interventions_dedup') }}
     where
         etat_intervention in ('terminée signée', 'signature différée')
         and agency in ('evs', 'evs paris', 'evs idf', 'evs paris 2')
@@ -33,7 +33,7 @@ final as (
         art_conso.quantite_article as piece_quantite,
         art_pricing.article_prix_unitaire as piece_prix_unitaire,
         (art_conso.quantite_article * art_pricing.article_prix_unitaire) as montant_total
-    from {{ ref('stg_nesp_tech__articles') }} as art_conso
+    from {{ ref('int_nesp_tech__articles_dedup') }} as art_conso
     left join {{ ref('ref_nesp_tech__articles_prix') }} as art_pricing
         on art_conso.code_article = lower(art_pricing.article_ref_nomad)
     inner join inters as i

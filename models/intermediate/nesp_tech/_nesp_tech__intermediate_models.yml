@@ -11,6 +11,7 @@ models:
         description: "Identifiant unique de l intervention"
         tests:
           - not_null
+          - unique
 
       - name: type
         description: "Type d intervention"
@@ -60,6 +61,7 @@ models:
         description: "Identifiant unique de l’intervention"
         tests:
           - not_null
+          - unique
 
       - name: type_inter_libelle
         description: "Libellé métier du type d’intervention"
