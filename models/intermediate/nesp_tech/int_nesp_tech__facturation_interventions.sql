@@ -4,7 +4,7 @@
 ) }}
 
 with inter as (
-    select
+    SELECT
         intv.*,
         (art.code_article is not null) as mini_prev_bool,
         cast(
