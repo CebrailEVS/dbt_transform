@@ -115,10 +115,6 @@ jobs:
             sqlfluff lint $CHANGED --format github-annotation-native
           fi
 
-      - name: dbt seed
-        if: github.ref == 'refs/heads/master'
-        run: dbt seed --target ${{ steps.target.outputs.target }}
-
       - name: dbt build
         run: |
           TARGET=${{ steps.target.outputs.target }}
