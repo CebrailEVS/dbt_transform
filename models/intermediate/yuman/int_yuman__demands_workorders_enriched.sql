@@ -181,7 +181,7 @@ select
     wo.date_planned,
     wo.date_started,
     wo.date_done,
-    workorder_time_taken,
+    wo.workorder_time_taken,
 
     -- Clients
     cl.partner_name,
