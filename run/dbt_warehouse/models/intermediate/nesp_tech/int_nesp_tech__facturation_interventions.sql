@@ -27,7 +27,7 @@ with inter as (
         ) as dpt_site
     from `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__interventions_dedup` as intv
     left join `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__articles_dedup` as art
-        on 
+        on
             intv.n_planning = art.n_planning
             and art.code_article = 'miniprev'
     where
