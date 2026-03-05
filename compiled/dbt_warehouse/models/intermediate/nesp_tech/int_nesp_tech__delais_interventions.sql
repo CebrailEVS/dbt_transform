@@ -7,7 +7,7 @@ with inter as (
             when pickup_date < creation_date then creation_date
             else pickup_date
         end as date_creation_delai
-    from `evs-datastack-prod`.`prod_staging`.`stg_nesp_tech__interventions`
+    from `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__interventions_dedup`
     where
         etat_intervention in ('terminée signée', 'signature différée')
         and agency in ('evs idf', 'evs', 'evs paris', 'evs paris 2')

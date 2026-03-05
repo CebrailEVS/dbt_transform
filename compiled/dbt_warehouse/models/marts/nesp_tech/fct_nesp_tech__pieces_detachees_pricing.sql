@@ -4,7 +4,7 @@ with inters as (
     select
         n_planning,
         cast(date_heure_fin as date) as date_fin
-    from `evs-datastack-prod`.`prod_staging`.`stg_nesp_tech__interventions`
+    from `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__interventions_dedup`
     where
         etat_intervention in ('terminée signée', 'signature différée')
         and agency in ('evs', 'evs paris', 'evs idf', 'evs paris 2')
@@ -25,7 +25,7 @@ final as (
         art_conso.quantite_article as piece_quantite,
         art_pricing.article_prix_unitaire as piece_prix_unitaire,
         (art_conso.quantite_article * art_pricing.article_prix_unitaire) as montant_total
-    from `evs-datastack-prod`.`prod_staging`.`stg_nesp_tech__articles` as art_conso
+    from `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__articles_dedup` as art_conso
     left join `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__articles_prix` as art_pricing
         on art_conso.code_article = lower(art_pricing.article_ref_nomad)
     inner join inters as i
@@ -51,6 +51,6 @@ select
 
     -- Metadonnees dbt
     current_timestamp() as dbt_updated_at,
-    'ad64a1eb-4082-4f37-a84f-561d818aaa8d' as dbt_invocation_id
+    '49134e52-6917-4c59-8c18-2f201aaef48e' as dbt_invocation_id
 
 from final
