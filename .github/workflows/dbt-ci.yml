@@ -142,6 +142,17 @@ jobs:
         run: |
           gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json
 
+      # --- Rebuild dbt-runner image (master only) ---
+      - name: Authenticate to Artifact Registry
+        if: github.ref == 'refs/heads/master'
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+
+      - name: Build and push dbt-runner image
+        if: github.ref == 'refs/heads/master'
+        run: |
+          docker build -t europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:latest .
+          docker push europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:latest
+
       # --- Upload docs artifacts ---
       - name: Upload docs artifacts
         if: github.ref == 'refs/heads/master'
