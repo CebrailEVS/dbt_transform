@@ -116,15 +116,19 @@ jobs:
           fi
 
       - name: dbt build
-        if: github.event_name == 'pull_request'
         run: |
           TARGET=${{ steps.target.outputs.target }}
 
-          if [[ "${{ steps.check_manifest.outputs.manifest_exists }}" == "true" ]]; then
-            echo "Running SELECTIVE build (state:modified+), excluding snapshots..."
-            dbt build --target $TARGET --select state:modified+ --exclude resource_type:snapshot --state state/
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            if [[ "${{ steps.check_manifest.outputs.manifest_exists }}" == "true" ]]; then
+              echo "Running SELECTIVE build (state:modified+), excluding snapshots..."
+              dbt build --target $TARGET --select state:modified+ --exclude resource_type:snapshot --state state/
+            else
+              echo "Running FULL build (no state comparison available), excluding snapshots..."
+              dbt build --target $TARGET --exclude resource_type:snapshot
+            fi
           else
-            echo "Running FULL build (no state comparison available), excluding snapshots..."
+            echo "Running FULL build on master, excluding snapshots..."
             dbt build --target $TARGET --exclude resource_type:snapshot
           fi
 
@@ -132,25 +136,13 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: dbt docs generate --target ${{ steps.target.outputs.target }}
 
-      # --- Build image and trigger Cloud Run Job (master only) ---
-      - name: Authenticate to Artifact Registry
-        if: github.ref == 'refs/heads/master'
-        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
-
-      - name: Build and push dbt-runner image
+      # --- Upload manifest to GCS (master only) ---
+      - name: Upload manifest to GCS (master only)
         if: github.ref == 'refs/heads/master'
         run: |
-          docker build -t europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:latest .
-          docker push europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:latest
+          gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json
 
-      - name: Trigger Cloud Run Job (prod dbt run)
-        if: github.ref == 'refs/heads/master'
-        run: |
-          gcloud run jobs execute dbt-runner \
-            --region europe-west1 \
-            --project evs-datastack-prod \
-            --wait
-
+      # --- Upload docs artifacts ---
       - name: Upload docs artifacts
         if: github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
