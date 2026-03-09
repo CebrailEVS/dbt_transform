@@ -13,6 +13,8 @@ on:
       - 'dbt_project.yml'
       - 'profiles.yml'
       - 'packages.yml'
+      - 'Dockerfile'
+      - 'requirements.txt'
       - '.github/workflows/dbt-ci.yml'
   pull_request:
     branches:
