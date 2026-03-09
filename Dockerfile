@@ -1,8 +1,11 @@
 # =============================================================================
 # Dockerfile for dbt-runner Cloud Run Job
-# Uses official dbt Labs image — update minor version intentionally to avoid breaking changes
+# Python version and dbt versions are managed in requirements.txt
 # =============================================================================
-FROM ghcr.io/dbt-labs/dbt-bigquery:1.11.1
+FROM python:3.11-slim
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 WORKDIR /app
 
