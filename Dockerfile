@@ -2,7 +2,7 @@
 # Dockerfile for dbt-runner Cloud Run Job
 # Uses official dbt Labs image — update minor version intentionally
 # =============================================================================
-FROM ghcr.io/dbt-labs/dbt-bigquery:1.11.latest
+FROM ghcr.io/dbt-labs/dbt-bigquery:1.11.1
 
 WORKDIR /app
 
