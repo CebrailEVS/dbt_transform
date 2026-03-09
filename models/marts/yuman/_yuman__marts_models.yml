@@ -310,6 +310,87 @@ models:
       - name: billing_validation_status
         description: Statut de validation de la facturation (VALIDATED, MISSING_TARIF, NOT_BILLABLE).
 
+  - name: fct_yuman__suivi_partenaires
+    description: >
+      Table de suivi opérationnel des demandes et interventions par partenaire.
+      Remplace le DAG Airflow MAIL_Yuman_Module_Notification (emails automatiques).
+      Chaque ligne correspond à une demande d'intervention enrichie avec son workorder,
+      son client, son site, son matériel et son technicien.
+      Les 7 flags d'alerte (alerte_*) permettent de filtrer dans Power BI chaque type
+      de situation qui déclenchait auparavant un email.
+
+    columns:
+      - name: demand_id
+        description: "Identifiant unique de la demande d'intervention"
+        tests:
+          - unique
+          - not_null
+      - name: workorder_id
+        description: "Identifiant unique du bon de travail associé"
+      - name: partner_name
+        description: "Nom du partenaire — slicer principal dans Power BI"
+      - name: client_name
+        description: "Nom du client"
+      - name: site_name
+        description: "Nom du site d'intervention"
+      - name: site_address
+        description: "Adresse du site d'intervention"
+      - name: contact_name
+        description: "Nom du contact principal du site"
+      - name: contact_email
+        description: "Email du contact principal du site"
+      - name: material_name
+        description: "Nom du matériel concerné"
+      - name: material_serial_number
+        description: "Numéro de série du matériel"
+      - name: demand_status
+        description: "Statut de la demande (Open, Accepted, Rejected…)"
+      - name: demand_category_name
+        description: "Catégorie de la demande"
+      - name: demand_created_at
+        description: "Date de création de la demande"
+      - name: demand_updated_at
+        description: "Date de dernière mise à jour de la demande"
+      - name: demand_reject_comment
+        description: "Commentaire de rejet de la demande"
+      - name: workorder_number
+        description: "Numéro de l'intervention"
+      - name: workorder_type
+        description: "Type d'intervention (Reactive = curative, Preventive…)"
+      - name: workorder_status
+        description: "Statut du bon de travail (Scheduled, InProgress, Closed…)"
+      - name: workorder_technician_name
+        description: "Nom du technicien affecté"
+      - name: technician_equipe
+        description: "Équipe du technicien (BORDEAUX / HORS BORDEAUX)"
+      - name: date_planned
+        description: "Date planifiée de l'intervention"
+      - name: date_started
+        description: "Date de début de l'intervention"
+      - name: date_done
+        description: "Date de clôture de l'intervention"
+      - name: nb_jours_depuis_creation
+        description: "Nombre de jours calendaires depuis la création de la demande"
+      - name: nb_jours_ouvrables_ecoules
+        description: >
+          Nombre de jours ouvrés écoulés depuis la création (hors week-ends et jours fériés).
+          Calculé uniquement pour les curatives encore ouvertes (logique hors délais).
+      - name: alerte_rejet
+        description: "Demande rejetée ou non-intervention (motif renseigné)"
+      - name: alerte_acceptee
+        description: "Demande acceptée mais pas encore planifiée (statut Open)"
+      - name: alerte_planifiee
+        description: "Intervention planifiée (statut Scheduled)"
+      - name: alerte_cloturee
+        description: "Intervention clôturée (vraie clôture, sans motif de non-intervention)"
+      - name: alerte_pause
+        description: "Intervention mise en pause (raison ou explication renseignée)"
+      - name: alerte_en_cours_non_cloture
+        description: "Intervention démarrée avant aujourd'hui et toujours ouverte"
+      - name: alerte_hors_delais
+        description: "Curative ouverte dépassant 3 jours ouvrés depuis la création"
+
+
   - name: fct_yuman__workorder_delais_neshu
     description: >
       Table de fait marts de tarification automatique des interventions (workorders).
