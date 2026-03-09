@@ -1,7 +1,5 @@
-# dbt + BigQuery adapter
-dbt-core==1.11.3
-dbt-bigquery==1.11.0
-
-# SQL linting
+# Local dev and CI/CD only (dbt is managed via official Docker image)
+dbt-core==1.11.7
+dbt-bigquery==1.11.1
 sqlfluff==4.0.0
 sqlfluff-templater-dbt==4.0.0

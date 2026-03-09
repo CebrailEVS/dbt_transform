@@ -7,12 +7,13 @@ logs/
 # Environment & secrets
 .env
 .env.*
+!.env.example
 venv_dbt/
 dbt_venv/
 
 # Python
 __pycache__/
-*.py[cod]git p
+*.py[cod]
 
 # IDE & OS 
 .vscode/

@@ -12,10 +12,10 @@ colorama==0.4.6
 cryptography==46.0.5
 daff==1.4.2
 db-dtypes==1.5.0
-dbt-adapters==1.22.5
-dbt-bigquery==1.11.0
-dbt-common==1.37.2
-dbt-core==1.11.3
+dbt-adapters==1.22.8
+dbt-bigquery==1.11.1
+dbt-common==1.37.3
+dbt-core==1.11.7
 dbt-extractor==0.6.0
 dbt-protos==1.0.431
 dbt-semantic-interfaces==0.9.0

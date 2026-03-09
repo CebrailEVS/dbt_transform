@@ -4,6 +4,51 @@ Guide de collaboration pour le projet dbt EVS. A lire avant toute contribution.
 
 ---
 
+## Installation de l'environnement local
+
+### Premier démarrage
+
+```bash
+# 1. Cloner le repo
+git clone https://github.com/CebrailEVS/dbt_transform.git
+cd dbt_transform
+
+# 2. Créer un environnement virtuel Python
+python3 -m venv dbt_venv
+source dbt_venv/bin/activate  # Windows : dbt_venv\Scripts\activate
+
+# 3. Installer les dépendances exactes
+pip install -r requirements-lock.txt
+
+# 4. Copier et remplir le fichier d'environnement
+cp .env.example .env  # puis remplir les variables avec le Data Engineer
+
+# 5. Vérifier que tout fonctionne
+dbt debug --target dev
+```
+
+### Comprendre les fichiers de dépendances
+
+| Fichier | Rôle | Modifié par |
+|---------|------|-------------|
+| `requirements.txt` | Dépendances directes avec versions fixes (`dbt-bigquery==1.11.1`) | Data Engineer uniquement |
+| `requirements-lock.txt` | Toutes les dépendances (y compris transitives) figées exactement | Généré automatiquement |
+
+**Règle simple :**
+- Tu installes toujours depuis `requirements-lock.txt` → environnement identique pour toute l'équipe
+- Tu ne modifies jamais ces fichiers toi-même → c'est le rôle du Data Engineer
+
+### Mettre à jour ses dépendances
+
+Si le Data Engineer a mis à jour les versions (dbt, sqlfluff...) :
+
+```bash
+git pull
+pip install -r requirements-lock.txt
+```
+
+---
+
 ## Workflow Git
 
 ### Branches
