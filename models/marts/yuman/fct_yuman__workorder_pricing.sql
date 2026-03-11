@@ -135,7 +135,9 @@ ref_tarification as (
             cast(metropole as string)
         )) as key_tarif,
         montant,
-        prod
+        prod,
+        valid_from,
+        valid_to
     from {{ ref('ref_yuman__tarification_clean') }}
 ),
 
@@ -221,6 +223,8 @@ final_result as (
                 w.type_tarif, '_',
                 cast(w.metropole as string)
             )) = t.key_tarif
+            and date(w.date_done) >= t.valid_from
+            and (t.valid_to is null or date(w.date_done) <= t.valid_to)
 )
 
 select
