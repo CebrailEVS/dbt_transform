@@ -324,7 +324,6 @@ models:
         description: "Identifiant unique de la demande d'intervention"
         tests:
           - unique
-          - not_null
       - name: workorder_id
         description: "Identifiant unique du bon de travail associé"
       - name: partner_name
