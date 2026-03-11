@@ -132,11 +132,15 @@ seeds:
         tests:
           - not_null
       - name: Montant
-        description: "Montant en euros"
-        tests:
-          - not_null
+        description: "Montant en euros (NULL pour les lignes en attente de tarification)"
       - name: PROD
         description: "Indicateur production"
+      - name: valid_from
+        description: "Date de début de validité du tarif"
+        tests:
+          - not_null
+      - name: valid_to
+        description: "Date de fin de validité du tarif (NULL = tarif actif)"
 
 #### REFERENCE POUR MODEL ORACLE NESHU  ####
 
