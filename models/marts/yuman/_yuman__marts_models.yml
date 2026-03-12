@@ -326,6 +326,27 @@ models:
           - unique
       - name: workorder_id
         description: "Identifiant unique du bon de travail associé"
+      - name: material_id
+        description: "Identifiant du matériel concerné"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_yuman__materials')
+                field: material_id
+      - name: site_id
+        description: "Identifiant du site d'intervention"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_yuman__sites')
+                field: site_id
+      - name: client_id
+        description: "Identifiant du client"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_yuman__clients')
+                field: client_id
       - name: partner_name
         description: "Nom du partenaire — slicer principal dans Power BI"
       - name: client_name
@@ -374,10 +395,14 @@ models:
         description: >
           Nombre de jours ouvrés écoulés depuis la création (hors week-ends et jours fériés).
           Calculé uniquement pour les curatives encore ouvertes (logique hors délais).
-      - name: alerte_rejet
-        description: "Demande rejetée ou non-intervention (motif renseigné)"
-      - name: alerte_acceptee
-        description: "Demande acceptée mais pas encore planifiée (statut Open)"
+      - name: alerte_demand_open
+        description: "Demande créée par le client, pas encore traitée par le support (demand_status = Open)"
+      - name: alerte_demand_accepted
+        description: "Demande acceptée par le support (demand_status = Accepted)"
+      - name: alerte_demand_rejected
+        description: "Demande rejetée par le support (demand_status = Rejected)"
+      - name: alerte_workorder_canceled
+        description: "Demande acceptée mais workorder annulé (motif ou détail de non-intervention renseigné)"
       - name: alerte_planifiee
         description: "Intervention planifiée (statut Scheduled)"
       - name: alerte_cloturee

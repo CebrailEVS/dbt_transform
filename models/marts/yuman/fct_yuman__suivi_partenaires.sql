@@ -2,7 +2,7 @@
     materialized='table',
     schema='marts',
     alias='fct_yuman__suivi_partenaires',
-    partition_by={"field": "demand_created_at", "data_type": "timestamp"},
+    partition_by={"field": "date_done", "data_type": "timestamp"},
     cluster_by=['partner_name', 'demand_status', 'workorder_status']
 ) }}
 
@@ -10,11 +10,17 @@
     Modèle de suivi opérationnel par partenaire — remplace le DAG MAIL_Yuman_Module_Notification.
 
     Chaque ligne = une demande d'intervention enrichie avec son workorder associé.
-    Les 7 flags d'alerte correspondent aux 7 types d'emails de l'ancien DAG :
-      - alerte_rejet                 : demande rejetée ou non-intervention
-      - alerte_acceptee              : demande acceptée, pas encore planifiée
+    Les 9 flags d'alerte sont séparés entre statut de la demande et statut du workorder :
+
+    Statut de la demande (demand_status) :
+      - alerte_demand_open           : demande créée par le client, pas encore traitée par le support
+      - alerte_demand_accepted       : demande acceptée par le support
+      - alerte_demand_rejected       : demande rejetée par le support
+
+    Statut du workorder :
+      - alerte_workorder_canceled    : demande acceptée mais workorder annulé (motif/détail non-intervention renseigné)
       - alerte_planifiee             : intervention planifiée (Scheduled)
-      - alerte_cloturee              : intervention clôturée (vraie clôture)
+      - alerte_cloturee              : intervention clôturée (vraie clôture, sans motif de non-intervention)
       - alerte_pause                 : intervention mise en pause
       - alerte_en_cours_non_cloture  : démarrée avant aujourd'hui, toujours ouverte
       - alerte_hors_delais           : curative ouverte > 3 jours ouvrés (logique NESHU, extensible)
@@ -132,68 +138,56 @@ select
     coalesce(bde.nb_jours_ouvrables_ecoules, 0) as nb_jours_ouvrables_ecoules,
 
     -- -------------------------------------------------------------------------
-    -- FLAGS D'ALERTE — correspondent aux 7 types d'emails de l'ancien DAG
+    -- FLAGS D'ALERTE — statut de la demande
     -- -------------------------------------------------------------------------
 
-    -- 1. Demande rejetée ou non-intervention
-    case
-        when
-            base.demand_status = 'Rejected'
-            or base.workorder_motif_non_intervention is not null
+    -- 1. Demande créée par le client, pas encore traitée par le support
+    base.demand_status = 'Open' as alerte_demand_open,
+
+    -- 2. Demande acceptée par le support
+    base.demand_status = 'Accepted' as alerte_demand_accepted,
+
+    -- 3. Demande rejetée par le support
+    base.demand_status = 'Rejected' as alerte_demand_rejected,
+
+    -- -------------------------------------------------------------------------
+    -- FLAGS D'ALERTE — statut du workorder
+    -- -------------------------------------------------------------------------
+
+    -- 4. Demande acceptée mais workorder annulé (motif ou détail de non-intervention renseigné)
+    (
+        base.demand_status = 'Accepted'
+        and (
+            base.workorder_motif_non_intervention is not null
             or base.workorder_detail_non_intervention is not null
-        then true
-        else false
-    end as alerte_rejet,
+        )
+    ) as alerte_workorder_canceled,
 
-    -- 2. Demande acceptée mais pas encore planifiée (statut Open)
-    case
-        when base.demand_status = 'Open'
-        then true
-        else false
-    end as alerte_acceptee,
+    -- 5. Intervention planifiée (technicien et date assignés)
+    base.workorder_status = 'Scheduled' as alerte_planifiee,
 
-    -- 3. Intervention planifiée (technicien et date assignés)
-    case
-        when base.workorder_status = 'Scheduled'
-        then true
-        else false
-    end as alerte_planifiee,
+    -- 6. Intervention clôturée (vraie clôture, sans motif de non-intervention)
+    (
+        base.workorder_status = 'Closed'
+        and base.workorder_motif_non_intervention is null
+        and base.workorder_detail_non_intervention is null
+    ) as alerte_cloturee,
 
-    -- 4. Intervention clôturée (vraie clôture, sans motif de non-intervention)
-    case
-        when
-            base.workorder_status = 'Closed'
-            and base.workorder_motif_non_intervention is null
-            and base.workorder_detail_non_intervention is null
-        then true
-        else false
-    end as alerte_cloturee,
+    -- 7. Intervention mise en pause
+    (
+        base.workorder_raison_mise_en_pause is not null
+        or base.workorder_explication_mise_en_pause is not null
+    ) as alerte_pause,
 
-    -- 5. Intervention mise en pause
-    case
-        when
-            base.workorder_raison_mise_en_pause is not null
-            or base.workorder_explication_mise_en_pause is not null
-        then true
-        else false
-    end as alerte_pause,
+    -- 8. Intervention en cours non clôturée (démarrée avant aujourd'hui, toujours ouverte)
+    (
+        base.workorder_status != 'Closed'
+        and base.date_started is not null
+        and date(base.date_started) < current_date('Europe/Paris')
+    ) as alerte_en_cours_non_cloture,
 
-    -- 6. Intervention en cours non clôturée (démarrée avant aujourd'hui, toujours ouverte)
-    case
-        when
-            base.workorder_status not in ('Closed', 'Cancelled')
-            and base.date_started is not null
-            and date(base.date_started) < current_date('Europe/Paris')
-        then true
-        else false
-    end as alerte_en_cours_non_cloture,
-
-    -- 7. Curative hors délais : > 3 jours ouvrés depuis la création, encore ouverte
-    case
-        when coalesce(bde.nb_jours_ouvrables_ecoules, 0) > 3
-        then true
-        else false
-    end as alerte_hors_delais
+    -- 9. Curative hors délais : > 3 jours ouvrés depuis la création, encore ouverte
+    coalesce(bde.nb_jours_ouvrables_ecoules, 0) > 3 as alerte_hors_delais
 
 from base
 left join business_days_elapsed as bde
