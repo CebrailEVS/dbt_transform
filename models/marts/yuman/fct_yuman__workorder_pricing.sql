@@ -182,14 +182,14 @@ workorders_with_tarif as (
         *,
         case
             when postal_code_site is null then 'Tarif normal'
-            when partner_name in ('AUUM', 'FONTAINCO', 'TWYD', 'NESHU', 'NU', 'DAANTECH', 'EXPRESSO', 'DAAN')
+            when partner_name in ('FONTAINCO', 'TWYD', 'NESHU', 'NU', 'DAANTECH', 'EXPRESSO', 'DAAN')
                 then
                     case
                         when reccurence < 5 then 'Tarif normal'
                         when reccurence between 5 and 20 then 'Remise niv1'
                         else 'Remise niv2'
                     end
-            when partner_name in ('BRITA', 'FONTAINCO')
+            when partner_name in ('BRITA', 'AUUM')
                 then
                     case
                         when reccurence < 2 then 'Tarif normal'
