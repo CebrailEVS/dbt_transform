@@ -24,7 +24,7 @@ aggregated_labels as (
         idresources_type,
         resources_code,
         resources_name,
-        max(case when label_family_code = 'isactive' then label_code end) as is_active
+        max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active
     from resources_labels
     where idresources_type = 3  -- type vehicule
     group by 1, 2, 3, 4
@@ -70,7 +70,7 @@ filtered_stock as (
         or
         (
             st.entity_type = 'resource'
-            and al.is_active = 'yes'
+            and al.is_active = 'YES'
         )
 )
 
