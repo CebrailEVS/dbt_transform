@@ -179,6 +179,8 @@ seeds:
             Type_tarif: STRING
             Montant: INTEGER
             PROD: INTEGER
+            valid_from: DATE
+            valid_to: DATE
         
         ref_yuman__tech_agence:
           +column_types:
