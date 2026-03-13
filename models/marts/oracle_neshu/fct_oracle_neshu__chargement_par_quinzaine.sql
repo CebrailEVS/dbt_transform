@@ -6,7 +6,10 @@
 
 with base as (
     select
-        p.product_type,
+        (case 
+            when p.product_type in ('BOISSONS FRAICHES','SNACKING') then 'SODA + SNACKS' 
+            else p.product_type 
+        end ) as product_type,
         cm.company_code,
         comp.name as company_name,
         EXTRACT(year from cm.task_start_date) as annee_chgt,

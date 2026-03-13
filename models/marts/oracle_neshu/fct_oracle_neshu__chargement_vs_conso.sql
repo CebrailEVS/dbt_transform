@@ -62,7 +62,11 @@ chargement_agg as (
     select
         pa.device_id,
         pa.task_start_date,
-        p.product_type,
+        p.product_type as product_type_2,
+        (case 
+            when p.product_type in ('BOISSONS FRAICHES','SNACKING') then 'SODA + SNACKS' 
+            else p.product_type 
+        end ) as product_type,
         coalesce(sum(cm.load_quantity), 0) as q_chargee
     from passage_avec_suivant as pa
     left join {{ ref('int_oracle_neshu__chargement_tasks') }} as cm
@@ -71,8 +75,8 @@ chargement_agg as (
             and date(pa.task_start_date) = date(cm.task_start_date)
     left join {{ ref('dim_oracle_neshu__product') }} as p
         on cm.product_id = p.product_id
-    group by 1, 2, 3
-    having p.product_type is not null or sum(cm.load_quantity) > 0
+    group by 1, 2, 3, 4
+    having product_type is not null or sum(cm.load_quantity) > 0
 ),
 
 -- -----------------------------------------------------------------------------------
