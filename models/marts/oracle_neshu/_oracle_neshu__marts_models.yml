@@ -756,6 +756,92 @@ models:
         description: Quantité totale chargée sur la période
 
 
+  - name: dim_oracle_neshu__resources
+    description: |
+      Dimension des ressources Oracle Neshu regroupant les **roadmen** (PERSON) et les **véhicules** (VEHICULE).
+
+      Enrichie avec :
+      - Les labels Oracle (ISACTIVE, Fonction) pivotés depuis `label_has_resources`
+      - Le code GEA du roadman depuis `ref_oracle_neshu__roadman_gea` (jointure sur `resources_code`, PERSON uniquement)
+
+      **Hiérarchie véhicule/roadman :**
+      `resources_idresources` pointe vers l'ID du roadman associé au véhicule.
+      Pour un roadman (PERSON), ce champ est NULL.
+
+      **Note :** `code_status_record` est conservé comme colonne pour permettre un filtrage
+      à la volée côté BI (1 = actif). Le filtre n'est pas appliqué dans le modèle.
+    columns:
+      - name: resources_id
+        description: "Identifiant unique de la ressource dans Oracle"
+        tests:
+          - not_null
+          - unique
+
+      - name: resources_type_id
+        description: "Identifiant du type de ressource (clé vers resources_type)"
+
+      - name: resources_idresources
+        description: >
+          Lien vers la ressource associée. Pour un véhicule (VEHICULE) : pointe vers l'ID du roadman (PERSON) associé.
+          Pour un roadman (PERSON) : NULL.
+
+      - name: company_id
+        description: "Identifiant de l'entreprise à laquelle est rattachée la ressource"
+
+      - name: company_storehouse_id
+        description: "Identifiant de l'entreprise entrepôt associée à la ressource"
+
+      - name: location_id
+        description: "Identifiant de la localisation de la ressource"
+
+      - name: resources_code
+        description: "Code métier de la ressource (ex : code roadman ou immatriculation véhicule)"
+        tests:
+          - not_null
+
+      - name: resources_name
+        description: "Nom de la ressource"
+
+      - name: resources_type
+        description: "Type de ressource : PERSON (roadman) ou VEHICULE"
+        tests:
+          - not_null
+
+      - name: gea_code
+        description: >
+          Code GEA du roadman, issu de `ref_oracle_neshu__roadman_gea`.
+          Jointé sur `resources_code` pour les PERSON uniquement. NULL pour les véhicules.
+
+      - name: is_active
+        description: >
+          Indique si la ressource est active (label ISACTIVE).
+          Converti en booléen : TRUE si 'yes', FALSE sinon.
+        tests:
+          - not_null
+
+      - name: fonction
+        description: "Fonction du roadman (label Fonction, ex : ROADMAN, RESPONSABLE). NULL pour les véhicules."
+
+      - name: cost
+        description: "Coût associé à la ressource"
+
+      - name: arrival
+        description: "Date d'arrivée de la ressource dans l'entreprise"
+
+      - name: departure
+        description: "Date de départ de la ressource (NULL si toujours en poste/en service)"
+
+      - name: code_status_record
+        description: >
+          Code de statut de l'enregistrement Oracle (1 = actif, autre = inactif).
+          Non filtré dans ce modèle — utilisable côté BI pour exclure les inactifs.
+
+      - name: created_at
+        description: "Date de création de la ressource dans Oracle"
+
+      - name: updated_at
+        description: "Date de dernière mise à jour de la ressource dans Oracle"
+
   - name: fct_oracle_neshu__appro
     description: >
       Table de faits représentant les passages des roadmen,
