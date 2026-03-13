@@ -15,9 +15,12 @@ dbt_venv/
 __pycache__/
 *.py[cod]
 
-# IDE & OS 
+# IDE & OS
 .vscode/
 .DS_Store
+
+# Claude Code
+CLAUDE.md
 
 # Keyfile test
 keyfile.b64.txt

@@ -59,9 +59,9 @@ Le projet integre **9 sources** couvrant l'ensemble des operations EVS :
 
 ```
 models/
-├── staging/          74 modeles — Nettoyage, typage, standardisation
-├── intermediate/     18 modeles — Logique metier, enrichissement, aggregations
-└── marts/            23 modeles — Dimensions + facts pour Power BI
+├── staging/          Nettoyage, typage, standardisation
+├── intermediate/     Logique metier, enrichissement, aggregations
+└── marts/            Dimensions + facts pour Power BI
 ```
 
 **6 domaines metier :** Operations (oracle_neshu), Service Technique (yuman, nesp_tech), Finance (mssql_sage), Flotte (gac), Stock (yuman_gcs, oracle_neshu_gcs), Commercial Nespresso (nesp_co - WIP).
