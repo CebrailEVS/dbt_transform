@@ -13,9 +13,9 @@
 
 
 
-select Montant
+select valid_from
 from `evs-datastack-prod`.`prod_reference`.`ref_yuman__tarification_clean`
-where Montant is null
+where valid_from is null
 
 
 
