@@ -189,7 +189,7 @@ select
 
     -- Metadonnees dbt
     current_timestamp() as dbt_updated_at,
-    'cb6d2608-3618-4183-bb3f-2d940caaef61' as dbt_invocation_id
+    '45c75090-8266-4646-b349-68f138a875d0' as dbt_invocation_id
 
 from kpi_long as l
 left join kpi_long as ca
