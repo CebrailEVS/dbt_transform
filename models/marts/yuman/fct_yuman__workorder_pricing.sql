@@ -137,7 +137,7 @@ ref_tarification as (
         montant,
         prod,
         valid_from,
-        valid_to
+        coalesce(valid_to, date('9999-12-31')) as valid_to
     from {{ ref('ref_yuman__tarification_clean') }}
 ),
 
@@ -223,8 +223,12 @@ final_result as (
                 w.type_tarif, '_',
                 cast(w.metropole as string)
             )) = t.key_tarif
-            and date(w.date_done) >= t.valid_from
-            and (t.valid_to is null or date(w.date_done) <= t.valid_to)
+            and date(w.date_done) between t.valid_from and t.valid_to
+    qualify
+        row_number() over (
+            partition by w.demand_id, w.workorder_id
+            order by t.valid_from desc nulls last
+        ) = 1
 )
 
 select
