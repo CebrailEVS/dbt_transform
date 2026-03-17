@@ -139,6 +139,21 @@ models:
       - name: third_city
         description: Ville du client.
 
+      - name : order_placer_name,
+        description : Nom Contact
+
+      - name : order_placer_adr_ln1,
+        description : Adresse Contact
+
+      - name : order_placer_post_code,
+        description : Code Postal Contact
+
+      - name : order_placer_city,
+        description : Contact Ville
+
+      - name : order_placer_phone,
+        description : Contact Téléphone
+
       - name: segmentation_hypercare
         description: Indicateur de segmentation Hypercare.
 
