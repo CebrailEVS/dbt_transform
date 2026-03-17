@@ -1,7 +1,7 @@
 {{
   config(
     materialized='table',
-    description='Dimension des ressources Oracle (roadmen et véhicules) enrichie avec les labels (ISACTIVE, Fonction) et le code GEA. Filtrée sur les types PERSON et VEHICULE. Le code GEA est jointé uniquement sur les PERSON via ref_oracle_neshu__roadman_gea.'
+    description='Dimension des ressources Oracle (roadmen et véhicules) enrichie avec les labels (ISACTIVE, Fonction) et le code GEA. Filtrée sur les types PERSON et VEHICLE. Le code GEA est jointé uniquement sur les PERSON via ref_oracle_neshu__roadman_gea.'
   )
 }}
 
@@ -36,7 +36,7 @@ with resources_labels as (
         on lhr.idlabel = l.idlabel
     left join {{ ref('stg_oracle_neshu__label_family') }} as lf
         on l.idlabel_family = lf.idlabel_family
-    where rt.code in ('PERSON', 'VEHICULE')
+    where rt.code in ('PERSON', 'VEHICLE')
     --   and r.code_status_record = 1
 ),
 
