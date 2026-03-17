@@ -970,3 +970,47 @@ models:
 
       - name: dbt_invocation_id
         description: Identifiant unique de l'exécution dbt
+
+# =========================================================
+# OBJECTIF
+# Construire une table de faits mensuelle regroupant
+# l'ensemble des flux supply Neshu :
+# - Stocks réels (inventaires)
+# - Stocks théoriques
+# - Réceptions fournisseurs
+# - Livraisons internes
+# - Livraisons clients
+# - Chargements machines
+# ======================================================
+
+  - name: fct_oracle_neshu__supply_flux
+    description: Flux mensuels supply Neshu (stocks, réceptions, livraisons, chargements).
+    columns:
+      - name: annee
+        description: Année du flux
+      - name: mois
+        description: Mois du flux
+      - name: stock_depot
+        description: Valeur du stock dépôt réel
+      - name: stock_vehicule
+        description: Valeur du stock véhicule réel
+      - name: stock_total
+        description: Stock total réel
+      - name: stocks_theoriques
+        description: Valeur du stock théorique
+      - name: reception_fournisseur
+        description: Valeur des réceptions fournisseurs
+      - name: livraison_client
+        description: Valeur des livraisons clients
+      - name: livraison_vehicule
+        description: Valeur des livraisons vers véhicules
+      - name: livraison_anim
+        description: Valeur des livraisons animation
+      - name: livraison_perime
+        description: Valeur des livraisons périmés
+      - name: chargement_machine
+        description: Valeur des chargements machines
+      - name: livraison_prepa
+        description: Valeur des livraisons préparation
+      - name: livraison_interne_autre
+        description: Autres flux internes
