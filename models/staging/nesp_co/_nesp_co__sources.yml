@@ -9,7 +9,7 @@ sources:
       tags: ['nesp_co', 'source']
     tables:
       - name: nespresso_commerce_activite
-        description: "Table des activites commerciales Nespresso"  
+        description: "External table (GCS-backed CSV) — activités commerciales Nespresso, remplace l'ancienne table native"
         columns:
           - name: employee_responsible
             description: "Identifiant de l'employé responsable"
@@ -73,7 +73,7 @@ sources:
             description: "Date du fichier source"
           
       - name: nespresso_commerce_opportunite
-        description: "Table des opportunités commerciales Nespresso"  
+        description: "External table (GCS-backed CSV) — opportunités commerciales Nespresso, remplace l'ancienne table native"
         columns:
           - name: opportunity
             description: "Identifiant de l'opportunité commerciale"

@@ -1,7 +1,8 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Table des activités Nespresso Commercial nettoyée et filtrée sur les colonnes utiles.'
+        materialized='table',
+        partition_by={'field': 'file_date', 'data_type': 'timestamp'},
+        description='Table des activités Nespresso Commercial nettoyée et filtrée sur les colonnes utiles.'
     )
 }}
 
@@ -15,17 +16,15 @@ with source_data as (
 base_activite as (
 
     select
-        -- ids convertis en bigint
+        -- ids
         cast(nullif(activity_id, '#') as int64) as activity_id,
-
-        -- id string
         nullif(unnamed_1, '#') as c4c_id_commercial,
         cast(nullif(unnamed_12, '#') as int64) as c4c_id_main_account,
         nullif(nessoft_id_main_account, '#') as nessoft_id_main_account,
         cast(nullif(unnamed_22, '#') as int64) as c4c_id_campaign,
         nullif(campaign_id_preceding_lead, '#') as campaign_id_preceding_lead,
 
-        -- colonnes texte
+        -- texte
         nullif(employee_responsible, '#') as employee_responsible,
         nullif(activity_type, '#') as activity_type,
         nullif(phone_call, '#') as phone_call,
@@ -39,7 +38,7 @@ base_activite as (
         nullif(activity_life_cycle_status, '#') as activity_life_cycle_status,
         nullif(notes, '#') as notes,
 
-        -- dates harmonisées (converties en timestamp)
+        -- dates
         timestamp(nullif(start_date_phone_call, '#')) as start_date_phone_call,
         timestamp(nullif(start_date_appointment, '#')) as start_date_appointment,
         timestamp(nullif(start_date_task, '#')) as start_date_task,
@@ -52,7 +51,17 @@ base_activite as (
 
     from source_data
 
+),
+
+deduped as (
+
+    select *
+    from base_activite
+    qualify row_number() over (
+        partition by activity_id, employee_responsible, activity_type
+        order by file_date desc
+    ) = 1
+
 )
 
-select *
-from base_activite
+select * from deduped
