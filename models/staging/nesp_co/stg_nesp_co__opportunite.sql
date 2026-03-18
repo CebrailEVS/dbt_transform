@@ -1,7 +1,8 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Table des opportunites Nespresso Commercial nettoyée et filtrée sur les colonnes utiles.'
+        materialized='table',
+        partition_by={'field': 'file_date', 'data_type': 'timestamp'},
+        description='Table des opportunites Nespresso Commercial nettoyée et filtrée sur les colonnes utiles.'
     )
 }}
 
@@ -15,7 +16,7 @@ with source_data as (
 base_opportunite as (
 
     select
-        -- ids convertis en bigint
+        -- ids
         cast(
             case
                 when opportunity = '#' then null
@@ -23,14 +24,12 @@ base_opportunite as (
                 else opportunity
             end as int64
         ) as opportunity_id,
-
-        -- id string
         nullif(unnamed_2, '#') as c4c_id_commercial,
         cast(regexp_replace(nullif(unnamed_13, '#'), r'\.0$', '') as int64) as c4c_id_account,
         nullif(nessoft_id, '#') as nessoft_id_account,
         cast(nullif(unnamed_8, '#') as int64) as c4c_id_campaign,
 
-        -- colonnes texte
+        -- texte
         nullif(employee_responsible, '#') as employee_responsible,
         nullif(created_by, '#') as created_by,
         nullif(unnamed_6, '#') as opportunity_name,
@@ -42,24 +41,17 @@ base_opportunite as (
         nullif(role_account, '#') as role_account,
         nullif(lifecycle_status, '#') as lifecycle_status,
 
-        -- mesures numériques
+        -- mesures
         cast(nullif(first_coffee_order, '#') as float64) as first_coffee_order,
         cast(nullif(expected_value, '#') as float64) as expected_value,
         cast(nullif(zeq_zenius_equivalent, '#') as float64) as zeq_zenius_equivalent,
         cast(
-            replace(
-                replace(
-                    trim(nullif(chance_of_success, '#')),
-                    '%',
-                    ''
-                ),
-                ',',
-                '.'
-            ) as float64
+            replace(replace(trim(nullif(chance_of_success, '#')), '%', ''), ',', '.')
+            as float64
         ) as chance_of_success,
         cast(nullif(machines, '#') as int64) as machines_opportunity,
 
-        -- dates harmonisées (converties en timestamp)
+        -- dates
         timestamp(nullif(created_on, '#')) as created_on,
         timestamp(nullif(close_date, '#')) as close_date,
 
@@ -69,9 +61,20 @@ base_opportunite as (
         source_file
 
     from source_data
+    where opportunity != 'Result' or opportunity is null
+
+),
+
+deduped as (
+
+    select *
+    from base_opportunite
+    where opportunity_id is not null
+    qualify row_number() over (
+        partition by opportunity_id, employee_responsible, created_by
+        order by file_date desc
+    ) = 1
 
 )
 
-select *
-from base_opportunite
-where opportunity_id is not null
+select * from deduped
