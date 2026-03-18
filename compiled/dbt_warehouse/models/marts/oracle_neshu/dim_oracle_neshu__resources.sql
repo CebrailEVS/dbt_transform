@@ -31,7 +31,7 @@ with resources_labels as (
         on lhr.idlabel = l.idlabel
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_family` as lf
         on l.idlabel_family = lf.idlabel_family
-    where rt.code in ('PERSON', 'VEHICULE')
+    where rt.code in ('PERSON', 'VEHICLE')
     --   and r.code_status_record = 1
 ),
 

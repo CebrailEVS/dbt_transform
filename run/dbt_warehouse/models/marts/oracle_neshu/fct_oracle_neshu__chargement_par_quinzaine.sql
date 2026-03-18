@@ -17,7 +17,10 @@
 
 with base as (
     select
-        p.product_type,
+        (case
+            when p.product_type in ('BOISSONS FRAICHES', 'SNACKING') then 'SODA + SNACKS'
+            else p.product_type
+        end) as product_type,
         cm.company_code,
         comp.name as company_name,
         EXTRACT(year from cm.task_start_date) as annee_chgt,
@@ -53,7 +56,7 @@ select
     SUM(load_quantity) as quantite_chargee,
     -- Métadonnées dbt
     CURRENT_TIMESTAMP() as dbt_updated_at,
-    'ad3714c3-06a8-41c7-8218-442a9fd4d1d1' as dbt_invocation_id  -- noqa: TMP
+    '3477cac2-ea81-45ca-a163-1a19372ab878' as dbt_invocation_id  -- noqa: TMP
 from base
 group by
     product_type,
