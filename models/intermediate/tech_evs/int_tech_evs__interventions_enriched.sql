@@ -156,4 +156,4 @@ select
     tech_nomad_id,
     tech_nom
 from interventions_enrichies
-where date_fin >= '2025-01-01'
+where date_fin >= '2026-01-01'
