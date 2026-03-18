@@ -109,6 +109,32 @@ Exemples :
 - `test(mssql_sage): add row count expectations on f_ecriturea`
 - `docs: update README with new sources`
 
+### Mettre a jour sa branche avant une PR
+
+Si `master` a avance depuis la creation de ta branche, il faut rebaser avant d'ouvrir (ou de mettre a jour) ta PR. Cela evite les "Update branch" sur GitHub et garde un historique lineaire.
+
+```bash
+# 1. Mettre master a jour en local
+git checkout master
+git pull origin master
+
+# 2. Rebaser ta branche sur master
+git checkout ma_branche
+git rebase master
+
+# 3. Pousser (force necessaire apres un rebase)
+git push --force-with-lease
+```
+
+> `--force-with-lease` est plus sur que `--force` : il echoue si quelqu'un d'autre a pousse sur ta branche entre-temps.
+
+En cas de conflit pendant le rebase :
+```bash
+# Resoudre le conflit dans le fichier concerne, puis :
+git add fichier_en_conflit
+git rebase --continue
+```
+
 ---
 
 ## Pull Requests
