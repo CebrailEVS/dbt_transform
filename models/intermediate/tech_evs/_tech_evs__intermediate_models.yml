@@ -40,6 +40,9 @@ models:
       - name: date_fin
         description: "Date de fin de l'intervention"
 
+      - name : duree_inter_minutes
+        description : "Durée de l'intervention en minutes"
+
       - name: montant
         description: "Montant facturé de l'intervention"
 
