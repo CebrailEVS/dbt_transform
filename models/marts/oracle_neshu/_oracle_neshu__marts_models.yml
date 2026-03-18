@@ -718,6 +718,11 @@ models:
         description: "Type de produit associé aux quantités consommées ou chargées."
         tests:
           - not_null
+      
+      - name: product_code
+        description: "Code produit associé aux quantités consommées ou chargées."
+        tests:
+          - not_null      
 
       - name: q_consommee
         description: "Quantité consommée entre le passage précédent et le passage actuel."
