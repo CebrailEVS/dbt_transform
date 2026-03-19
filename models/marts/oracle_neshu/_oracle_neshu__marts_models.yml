@@ -375,7 +375,7 @@ models:
           name: device_id_required_except_livraison
 
 # FACT PASSAGES APPRO BUSINESS REVIEW
-  - name: fct_oracle_neshu__pa_business_review
+  - name: fct_oracle_neshu__pa_business_review 
     description: >
       Table de faits des passages appro (Business Review Neshu).
       Permet de tracer le passage des roadmen chez les clients à partir de 2025,
