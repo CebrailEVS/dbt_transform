@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Table interm\u00e9diaire calculant, pour chaque passage APPRO, les quantit\u00e9s consomm\u00e9es (t\u00e9l\u00e9metries) et charg\u00e9es, en reconstruisant les intervalles de consommation entre deux passages.\n"""
+      description=""""""
     )
     as (
       
@@ -135,7 +135,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    'f456cc17-7715-403c-b617-efdd1e1c08c8' as dbt_invocation_id  -- noqa: TMP
+    '7460aca9-88e3-44bb-a757-fede3f7218af' as dbt_invocation_id  -- noqa: TMP
 
 from fusion_telemetry_chargement
     );

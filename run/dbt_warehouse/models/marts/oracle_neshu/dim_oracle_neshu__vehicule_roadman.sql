@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Dimension regroupant les v\u00e9hicules et roadmen issus de la table `stg_oracle_neshu__resources`, enrichie avec le code GEA provenant de la r\u00e9f\u00e9rence `ref_oracle_neshu__roadman_gea`.\n"""
+      description=""""""
     )
     as (
       

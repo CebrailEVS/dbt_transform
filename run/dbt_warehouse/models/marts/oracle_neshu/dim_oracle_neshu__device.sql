@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Dimension device enrichie \u00e0 partir des labels associ\u00e9s (\u00e9tat, statut, gamme, cat\u00e9gorie, marque, etc.), filtr\u00e9e sur les machines (type 1).\n"""
+      description=""""""
     )
     as (
       

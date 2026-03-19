@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Dimension produit enrichie \u00e0 partir des labels associ\u00e9s (type, famille, groupe, marque, etc.) et filtr\u00e9e sur les produits de type 1 (produit) et 5 (ligne de prix).\n"""
+      description=""""""
     )
     as (
       

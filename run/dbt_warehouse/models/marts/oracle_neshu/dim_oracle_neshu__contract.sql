@@ -5,11 +5,11 @@
     create or replace table `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__contract`
       
     
-    cluster by contract_id
+    
 
     
     OPTIONS(
-      description="""Dimension contrat : pivot des labels et s\u00e9lection du contrat actif principal par client.\nCette table contient un seul contrat actif par client (company_id), s\u00e9lectionn\u00e9 selon\nla date de fin de contrat la plus r\u00e9cente, puis la date de d\u00e9but la plus r\u00e9cente.\n"""
+      description=""""""
     )
     as (
       

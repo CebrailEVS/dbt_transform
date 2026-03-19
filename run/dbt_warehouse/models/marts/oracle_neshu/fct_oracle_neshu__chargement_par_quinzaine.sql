@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Table de faits calculant les quantit\u00e9s charg\u00e9es par type de produit, soci\u00e9t\u00e9, ann\u00e9e et quinzaine (p\u00e9riodes de 14 jours d\u00e9marrant un lundi).\n"""
+      description=""""""
     )
     as (
       -- models/fct_chargement_quinzaine.sql
@@ -56,7 +56,7 @@ select
     SUM(load_quantity) as quantite_chargee,
     -- Métadonnées dbt
     CURRENT_TIMESTAMP() as dbt_updated_at,
-    'f456cc17-7715-403c-b617-efdd1e1c08c8' as dbt_invocation_id  -- noqa: TMP
+    '7460aca9-88e3-44bb-a757-fede3f7218af' as dbt_invocation_id  -- noqa: TMP
 from base
 group by
     product_type,

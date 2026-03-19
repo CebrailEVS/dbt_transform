@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Table de faits des consommations clients pour la Business Review Neshu. Consolidation des donn\u00e9es t\u00e9l\u00e9m\u00e9trie, chargement et livraison avec application des r\u00e8gles m\u00e9tier sp\u00e9cifiques (gratuit\u00e9 vs payant, types de produits, etc.). Utilis\u00e9e pour les analyses de consommation, comparatifs annuels et reporting client.\n"""
+      description=""""""
     )
     as (
       
@@ -344,7 +344,7 @@ select
 
     -- Métadonnées d'exécution
     current_timestamp() as dbt_updated_at,
-    'f456cc17-7715-403c-b617-efdd1e1c08c8' as dbt_invocation_id  -- noqa: TMP
+    '7460aca9-88e3-44bb-a757-fede3f7218af' as dbt_invocation_id  -- noqa: TMP
 
 from combined_and_filtered_data
     );
