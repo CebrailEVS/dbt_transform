@@ -970,3 +970,132 @@ models:
 
       - name: dbt_invocation_id
         description: Identifiant unique de l'exécution dbt
+
+version: 2
+
+models:
+  - name: fct_oracle_neshu__supply_flux
+    description: >
+      Table de faits mensuelle consolidant l'ensemble des flux supply Neshu.
+      Elle combine :
+      - Les stocks réels issus des inventaires (prioritaires)
+      - Les stocks théoriques (fallback si absence d'inventaire)
+      - Les flux opérationnels (réceptions, livraisons, chargements)
+      La granularité est mensuelle (mois_date).
+
+    columns:
+
+      # =========================
+      # DIMENSIONS TEMPORELLES
+      # =========================
+      - name: mois_date
+        description: >
+          Date du mois (premier jour du mois) utilisée pour la partition BigQuery
+          et la granularité principale du modèle.
+        tests:
+          - not_null
+          - unique
+
+      - name: annee
+        description: Année extraite de mois_date
+        tests:
+          - not_null
+
+      - name: mois
+        description: Numéro du mois (1 à 12)
+        tests:
+          - not_null
+
+      # =========================
+      # STOCKS REELS
+      # =========================
+      - name: stock_depot_rungis
+        description: Stock réel valorisé du dépôt de Rungis issu des inventaires
+
+      - name: stock_depot_lyon
+        description: Stock réel valorisé du dépôt de Lyon issu des inventaires
+
+      - name: stock_depot_marseille
+        description: Stock réel valorisé du dépôt de Marseille issu des inventaires
+
+      - name: stock_depot
+        description: Somme des stocks réels des dépôts (Rungis + Lyon + Marseille)
+
+      - name: stock_vehicule
+        description: Stock réel valorisé embarqué dans les véhicules
+
+      - name: stock_total
+        description: Stock total réel (dépôts + véhicules)
+
+      # =========================
+      # STOCKS THEORIQUES
+      # =========================
+      - name: stocks_theoriques_anim
+        description: >
+          Stock théorique des centres ANIM (utilisé uniquement en absence d'inventaire réel)
+
+      - name: stocks_theoriques_prepa
+        description: >
+          Stock théorique des centres de préparation (PREPA)
+
+      - name: stocks_theoriques_autre
+        description: >
+          Stock théorique des autres sources (principalement véhicules)
+
+      # =========================
+      # FLUX ENTRANTS
+      # =========================
+      - name: reception_fournisseur
+        description: >
+          Valeur des réceptions fournisseurs (entrées de stock externes)
+
+      # =========================
+      # FLUX SORTANTS
+      # =========================
+      - name: livraison_client
+        description: >
+          Valeur des livraisons vers les clients finaux
+
+      - name: livraison_vehicule
+        description: >
+          Flux de livraison interne vers véhicules ou sites assimilés
+
+      - name: livraison_anim
+        description: >
+          Flux de livraison interne vers centres ANIM
+
+      - name: livraison_prepa
+        description: >
+          Flux de livraison interne vers centres de préparation
+
+      - name: livraison_perime
+        description: >
+          Flux sortant vers destruction / rebut / périmé
+
+      - name: livraison_interne_autre
+        description: >
+          Autres flux internes non catégorisés
+
+      # =========================
+      # AUTRES FLUX
+      # =========================
+      - name: chargement_machine
+        description: >
+          Valeur des chargements de machines (approvisionnement terrain)
+
+    # =========================
+    # TESTS AU NIVEAU MODELE
+    # =========================
+    tests:
+
+      # cohérence simple : stock total = depot + véhicule
+      - dbt_utils.expression_is_true:
+          expression: "stock_total = stock_depot + stock_vehicule"
+
+      # cohérence : pas de valeurs négatives sur les stocks
+      - dbt_utils.expression_is_true:
+          expression: "stock_depot >= 0 and stock_vehicule >= 0"
+
+      # cohérence : flux principaux non négatifs
+      - dbt_utils.expression_is_true:
+          expression: "reception_fournisseur >= 0 and livraison_client >= 0"
