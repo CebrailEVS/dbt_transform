@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Table interm\u00e9diaire des t\u00e2ches d'invendus. Filtr\u00e9e sur les t\u00e2ches de type INVENDUS (idtask_type=11) avec statut FAIT/VALIDE/ANNULE.\n"""
+      description="""Table interm\u00e9diaire des t\u00e2ches d'invendus. Filtr\u00e9e sur les t\u00e2ches de type INVENDUS (idtask_type=11) avec statut FAIT/VALIDE/ANNULE et une destination non nulle (COMPANY ou RESOURCES). Enrichie avec le v\u00e9hicule associ\u00e9 \u00e0 la t\u00e2che (resources_type=3 uniquement, pas de roadman) via task_has_resources.\n"""
     )
     as (
       
@@ -33,6 +33,7 @@ with invendus_base as (
             when t.type_product_destination = 'RESOURCES' then rd.code
         end as destination_code,
 
+        c.code as company_code,
         p.code as product_code,
         ts.code as task_status_code,
 
@@ -62,6 +63,8 @@ with invendus_base as (
         on thp.idproduct = p.idproduct
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_status` as ts
         on t.idtask_status = ts.idtask_status
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` as c
+        on t.idcompany_peer = c.idcompany
 
     -- Destination = COMPANY
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` as cd
@@ -93,9 +96,29 @@ with invendus_base as (
         thp.net_price,
         p.purchase_unit_price,
         cd.code, rd.code,
-        p.code, ts.code,
+        c.code, p.code, ts.code,
         t.real_start_date,
         t.updated_at, t.created_at, t.extracted_at
+),
+
+ressources_vehicle as (
+    select
+        thr.idtask,
+        min(r.idresources) as resources_id,
+        min(r.code) as vehicle_code
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_resources` as thr
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__resources` as r on thr.idresources = r.idresources
+    where r.idresources_type = 3
+    group by thr.idtask
+),
+
+invendus_enrichi as (
+    select
+        ib.*,
+        rv.resources_id,
+        rv.vehicle_code
+    from invendus_base as ib
+    left join ressources_vehicle as rv on ib.task_id = rv.idtask
 )
 
 select
@@ -104,6 +127,7 @@ select
     task_id,
     company_id,
     product_id,
+    resources_id,
     product_source_id,
     product_source_type,
     product_destination_id,
@@ -111,7 +135,9 @@ select
 
     -- Codes
     destination_code,
+    company_code,
     product_code,
+    vehicle_code,
     task_status_code,
 
     -- Infos métier
@@ -133,7 +159,7 @@ select
     created_at,
     extracted_at
 
-from invendus_base
+from invendus_enrichi
 where
     destination_code is not null
     );
