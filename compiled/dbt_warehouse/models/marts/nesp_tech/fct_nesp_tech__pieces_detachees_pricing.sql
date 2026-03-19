@@ -51,6 +51,6 @@ select
 
     -- Metadonnees dbt
     current_timestamp() as dbt_updated_at,
-    'd20766c2-dc8f-41f3-bd4b-6b11a3ce28ce' as dbt_invocation_id
+    '58abc294-8e1f-4b82-baf2-6320726a8baf' as dbt_invocation_id
 
 from final

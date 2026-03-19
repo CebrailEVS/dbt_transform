@@ -116,7 +116,7 @@ cleaned_data as (
         end as date_planning_nomadrepair,
 
         -- Metadata
-        timestamp(extracted_at) as extracted_at,
+        safe.parse_timestamp('%Y-%m-%d %H:%M:%S%Ez', extracted_at) as extracted_at,
         source_file
 
     from source_data
