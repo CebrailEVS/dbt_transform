@@ -10,7 +10,8 @@ with source_data as (
 
 deduped as (
 
-    select *,
+    select
+        *,
         row_number() over (
             partition by third
             order by _sdc_received_at desc
