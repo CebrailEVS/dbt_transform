@@ -1,0 +1,25 @@
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select n_serie_machine
+from `evs-datastack-prod`.`prod_marts`.`fct_nesp_co__machines_avec_interventions`
+where n_serie_machine is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
