@@ -22,6 +22,17 @@ with source_data as (
 
 ),
 
+deduped as (
+
+    select *,
+        row_number() over (
+            partition by third
+            order by _sdc_received_at desc
+        ) as rn
+    from source_data
+
+),
+
 base_client as (
 
     select
@@ -77,7 +88,8 @@ base_client as (
         _sdc_batched_at,
         _sdc_received_at
 
-    from source_data
+    from deduped
+    where rn = 1
 
 )
 
