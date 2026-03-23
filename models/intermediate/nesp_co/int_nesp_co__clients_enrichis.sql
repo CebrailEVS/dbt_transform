@@ -64,6 +64,14 @@ select
     c.third_adr_ln2 as third_address_2,
     c.third_post_code,
     c.third_city,
+    -- =============================
+    -- Informations de contact
+    -- =============================
+    c.order_placer_name,
+    c.order_placer_adr_ln1,
+    c.order_placer_post_code,
+    c.order_placer_city,
+    c.order_placer_phone,
 
     -- =============================
     -- Segmentation & Métier
