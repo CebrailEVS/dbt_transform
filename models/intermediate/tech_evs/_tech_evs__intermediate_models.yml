@@ -8,12 +8,16 @@ models:
       opérationnels, la facturation partenaire et les primes techniciens.
 
     columns:
+      - name: key_inter
+        description: Identifiant unique de l'intervention (clé primaire logique composée de intervention_id & partenaire)
+        tests:
+          - not_null
+          - unique
 
       - name: intervention_id
         description: "Identifiant unique de l'intervention (clé primaire logique)"
         tests:
           - not_null
-          - unique
 
       - name: src_inter
         description: "Source du système d'origine (NESP ou YUMAN)"

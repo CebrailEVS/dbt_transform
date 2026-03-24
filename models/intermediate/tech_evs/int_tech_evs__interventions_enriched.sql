@@ -64,6 +64,7 @@ interventions as (
 -- CTE 4 : Enrichissement métier (durée + flags + mapping techniciens)
 interventions_enrichies as (
     select
+        concat(i.intervention_id,'_',i.partenaire) as key_inter,
         i.src_inter,
         i.partenaire,
         i.intervention_id,
@@ -130,6 +131,7 @@ interventions_enrichies as (
 -- SELECT final (filtrage)
 -- SELECT final (filtrage + colonnes explicites)
 select
+    key_inter,
     src_inter,
     partenaire,
     intervention_id,
@@ -156,4 +158,3 @@ select
     tech_nomad_id,
     tech_nom
 from interventions_enrichies
-where date_fin >= '2026-01-01'
