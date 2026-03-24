@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description=""""""
+      description="""Table de faits repr\u00e9sentant les passages des roadmen, enrichie avec des m\u00e9triques journali\u00e8res de temps de travail et de performance (dur\u00e9e de passage, temps de travail quotidien, rang du passage). Les statuts ENCOURS ont \u00e9t\u00e9 reclass\u00e9s comme FAIT suite \u00e0 validation m\u00e9tier.\n"""
     )
     as (
       
@@ -315,7 +315,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '81c4733e-e23b-4de2-bc9b-5cae806f68cc' as dbt_invocation_id  -- noqa: TMP
+    '1075512f-7ea6-4dcb-a686-a7bd51e07888' as dbt_invocation_id  -- noqa: TMP
 
 from passage_work_duration
     );

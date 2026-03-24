@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description=""""""
+      description="""Dimension des ressources Oracle Neshu regroupant les **roadmen** (PERSON) et les **v\u00e9hicules** (VEHICULE).\n\nEnrichie avec :\n- Les labels Oracle (ISACTIVE, Fonction) pivot\u00e9s depuis `label_has_resources`\n- Le code GEA du roadman depuis `ref_oracle_neshu__roadman_gea` (jointure sur `resources_code`, PERSON uniquement)\n\n**Hi\u00e9rarchie v\u00e9hicule/roadman :**\n`resources_idresources` pointe vers l'ID du roadman associ\u00e9 au v\u00e9hicule.\nPour un roadman (PERSON), ce champ est NULL.\n\n**Note :** `code_status_record` est conserv\u00e9 comme colonne pour permettre un filtrage\n\u00e0 la vol\u00e9e c\u00f4t\u00e9 BI (1 = actif). Le filtre n'est pas appliqu\u00e9 dans le mod\u00e8le.\n"""
     )
     as (
       

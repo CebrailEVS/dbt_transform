@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description=""""""
+      description="""Dimension client/company enrichie \u00e0 partir des labels associ\u00e9s (r\u00e9gion, secteur, statut, etc.) et des informations de localisation.\n"""
     )
     as (
       

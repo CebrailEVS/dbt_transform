@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description=""""""
+      description="""Table de faits pour le suivi des maintenances pr\u00e9ventives des machines NESHU.\n\nCette table croise les donn\u00e9es Oracle (DLOG) et Yuman pour :\n- Identifier les machines en retard de maintenance pr\u00e9ventive\n- Calculer le d\u00e9lai de retard ou d'avance par rapport \u00e0 l'\u00e9ch\u00e9ance annuelle\n- Suivre le statut des demandes d'intervention ouvertes ou planifi\u00e9es\n\n**R\u00e8gles m\u00e9tier de calcul du retard :**\n- Machine < 13 mois (395 jours) : pas de retard (p\u00e9riode de gr\u00e2ce)\n- Machine sans pr\u00e9ventive : en retard si > 365 jours apr\u00e8s installation\n- Machine avec pr\u00e9ventives : en retard si derni\u00e8re pr\u00e9ventive > 365 jours\n\n**Sources de donn\u00e9es :**\n- Oracle NESHU (DLOG) : machines et interventions techniques (preventive dlog)\n- Yuman : mat\u00e9riels, clients, sites et workorders\n"""
     )
     as (
       -- fct_oracle_neshu__machines_maintenance_tracking.sql
@@ -392,7 +392,7 @@ final as (
 
         -- Métadonnées dbt
         current_timestamp() as dbt_updated_at,
-        '81c4733e-e23b-4de2-bc9b-5cae806f68cc' as dbt_invocation_id  -- noqa: TMP
+        '1075512f-7ea6-4dcb-a686-a7bd51e07888' as dbt_invocation_id  -- noqa: TMP
 
     from deduplicated
     where rn = 1  -- Ne garder qu'une ligne par device_id
