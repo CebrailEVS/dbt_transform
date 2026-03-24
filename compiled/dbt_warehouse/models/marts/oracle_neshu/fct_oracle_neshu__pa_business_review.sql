@@ -28,7 +28,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    'ef324f87-adbf-483e-8c63-c602cd803519' as dbt_invocation_id  -- noqa: TMP
+    'adb10272-4f0d-4f6e-83bc-33d11d50c11d' as dbt_invocation_id  -- noqa: TMP
 
 from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_tasks` as pa
 inner join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` as d
