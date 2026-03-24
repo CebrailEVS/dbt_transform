@@ -971,9 +971,6 @@ models:
       - name: dbt_invocation_id
         description: Identifiant unique de l'exécution dbt
 
-version: 2
-
-models:
   - name: fct_oracle_neshu__supply_flux
     description: >
       Table de faits mensuelle consolidant l'ensemble des flux supply Neshu.
@@ -1090,12 +1087,15 @@ models:
 
       # cohérence simple : stock total = depot + véhicule
       - dbt_utils.expression_is_true:
-          expression: "stock_total = stock_depot + stock_vehicule"
+          arguments:
+            expression: "stock_total = stock_depot + stock_vehicule"
 
       # cohérence : pas de valeurs négatives sur les stocks
       - dbt_utils.expression_is_true:
-          expression: "stock_depot >= 0 and stock_vehicule >= 0"
+          arguments:
+            expression: "stock_depot >= 0 and stock_vehicule >= 0"
 
       # cohérence : flux principaux non négatifs
       - dbt_utils.expression_is_true:
-          expression: "reception_fournisseur >= 0 and livraison_client >= 0"
+          arguments:
+            expression: "reception_fournisseur >= 0 and livraison_client >= 0"
