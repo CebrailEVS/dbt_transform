@@ -144,7 +144,19 @@ git rebase --continue
 1. **Tester localement** : `dbt build` sur les modeles concernes
 2. **Linter** : `sqlfluff lint` sans violations bloquantes
 3. **Verifier les dependances** : `dbt build --select +mon_modele` (amont complet)
-4. **Pas de secrets** : ne jamais commiter `.env`, cles GCP, credentials
+4. **Verifier les warnings dbt** : `dbt parse` ne doit produire aucun `[WARNING]`
+5. **Pas de secrets** : ne jamais commiter `.env`, cles GCP, credentials
+
+> `dbt parse` valide la coherence de tous les fichiers YAML sans toucher BigQuery.
+> Les warnings apparaissent typiquement lors d'un copier-coller d'un bloc YAML avec
+> une syntaxe obsolete, un `ref()` mal ecrit, ou une colonne documentee qui n'existe
+> plus dans le modele. La CI les detecte automatiquement et les signale sur la PR —
+> mieux vaut les corriger avant.
+>
+> ```bash
+> set -a && source .env && set +a
+> dbt parse --target dev
+> ```
 
 ### Contenu de la PR
 
@@ -201,6 +213,7 @@ git branch -d feature/oracle_neshu/add-kpi-livraison  # supprimer la branche loc
 
 - [ ] `dbt build` passe sans erreur sur les modeles concernes (PASS ou WARN accepte, pas d'ERROR)
 - [ ] `sqlfluff lint` sans violations sur les fichiers modifies
+- [ ] `dbt parse` sans `[WARNING]` — verifier les fichiers YAML modifies
 - [ ] Modeles documentes dans les fichiers YAML
 - [ ] Pas de secrets dans le commit
 - [ ] PR avec description claire
