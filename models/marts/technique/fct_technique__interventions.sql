@@ -1,11 +1,21 @@
-{{ config(materialized='table',unique_key='intervention_id') }}
+{{
+    config(
+        materialized='table',
+        partition_by={
+            'field': 'date_debut',
+            'data_type': 'timestamp',
+            'granularity': 'day'
+        },
+        cluster_by=['partenaire', 'src_inter', 'statut']
+    )
+}}
 
 -- CTE 1 : Interventions Nespresso enrichies (facturation + délais)
 with nesp_interventions as (
     select
         'NESP' as src_inter,
         'NESPRESSO' as partenaire,
-        CAST(dedup.n_planning as STRING) as intervention_id,
+        cast(dedup.n_planning as string) as intervention_id,
         dedup.n_tech as tech_id,
         dedup.etat_intervention as statut,
         dedup.pickup_date as date_creation,
@@ -35,9 +45,9 @@ yuman_interventions as (
         'YUMAN' as src_inter,
         inter_yuman.partner_name as partenaire,
         inter_yuman.workorder_number as intervention_id,
-        CAST(inter_yuman.technician_id as STRING) as tech_id,
+        cast(inter_yuman.technician_id as string) as tech_id,
         inter_yuman.workorder_status as statut,
-        TIMESTAMP(inter_yuman.workorder_date_creation) as date_creation,
+        timestamp(inter_yuman.workorder_date_creation) as date_creation,
         inter_yuman.date_started as date_debut,
         inter_yuman.date_done as date_fin,
         inter_yuman.pricing_key_used as key_factu,
@@ -50,7 +60,7 @@ yuman_interventions as (
         0 as delai_heures_fin,
         type_delai as delai_tech,
         type_delai as delai_partenaire
-    from `prod_marts.fct_yuman__workorder_delais_neshu` as inter_yuman
+    from {{ ref('fct_yuman__workorder_delais_neshu') }} as inter_yuman
     where inter_yuman.billing_validation_status = 'VALIDATED'
 ),
 
@@ -64,7 +74,7 @@ interventions as (
 -- CTE 4 : Enrichissement métier (durée + flags + mapping techniciens)
 interventions_enrichies as (
     select
-        CONCAT(i.intervention_id, '_', i.partenaire) as key_inter,
+        concat(i.intervention_id, '_', i.partenaire) as key_inter,
         i.src_inter,
         i.partenaire,
         i.intervention_id,
@@ -85,7 +95,7 @@ interventions_enrichies as (
         i.delai_partenaire,
 
         -- Calcul durée en minutes
-        TIMESTAMP_DIFF(i.date_fin, i.date_debut, minute) as duree_inter_minutes,
+        timestamp_diff(i.date_fin, i.date_debut, minute) as duree_inter_minutes,
 
         -- Flag montagne (prime spécifique)
         case
@@ -99,7 +109,7 @@ interventions_enrichies as (
 
         -- Flag Paris intramuros
         case
-            when STARTS_WITH(i.code_postal, '75') then 1
+            when starts_with(i.code_postal, '75') then 1
             else 0
         end as flag_paris_intramuros,
 
@@ -121,15 +131,13 @@ interventions_enrichies as (
     from interventions as i
     left join {{ ref('ref_yuman__tech_nomad') }} as tech
         on (
-            (i.src_inter = 'NESP' and LOWER(tech.nomad_id) = i.tech_id)
-            or (i.src_inter = 'YUMAN' and CAST(tech.user_id as STRING) = i.tech_id)
+            (i.src_inter = 'NESP' and lower(tech.nomad_id) = i.tech_id)
+            or (i.src_inter = 'YUMAN' and cast(tech.user_id as string) = i.tech_id)
         )
     left join {{ ref('ref_nesp_tech__cps_montagne_primes') }} as cp_montagne
-        on SAFE_CAST(i.code_postal as INT64) = cp_montagne.cp
+        on safe_cast(i.code_postal as int64) = cp_montagne.cp
 )
 
--- SELECT final (filtrage)
--- SELECT final (filtrage + colonnes explicites)
 select
     key_inter,
     src_inter,

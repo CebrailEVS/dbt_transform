@@ -1,0 +1,97 @@
+version: 2
+
+models:
+  - name: fct_technique__interventions
+    description: >
+      Table de fait consolidant les interventions techniques provenant des
+      systèmes NESP et YUMAN. Sert de base pour les indicateurs opérationnels,
+      la facturation partenaire et les primes techniciens.
+
+    columns:
+      - name: key_inter
+        description: Identifiant unique de l'intervention (intervention_id + partenaire)
+        tests:
+          - not_null
+          - unique
+
+      - name: intervention_id
+        description: Identifiant de l'intervention dans le système source
+        tests:
+          - not_null
+
+      - name: src_inter
+        description: Système source (NESP ou YUMAN)
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['NESP', 'YUMAN']
+
+      - name: partenaire
+        description: Partenaire client associé à l'intervention
+
+      - name: tech_id
+        description: Identifiant du technicien dans le système source
+
+      - name: tech_yuman_id
+        description: Identifiant Yuman du technicien
+
+      - name: tech_nomad_id
+        description: Identifiant Nomad du technicien
+
+      - name: tech_nom
+        description: Nom du technicien
+
+      - name: statut
+        description: Statut de l'intervention
+
+      - name: date_creation
+        description: Date de création de l'intervention
+
+      - name: date_debut
+        description: Date de début de l'intervention
+
+      - name: date_fin
+        description: Date de fin de l'intervention
+
+      - name: duree_inter_minutes
+        description: Durée de l'intervention en minutes
+
+      - name: key_factu
+        description: Clé de tarification utilisée
+
+      - name: code_postal
+        description: Code postal du site d'intervention
+
+      - name: prod
+        description: Numéro de produit
+
+      - name: montant
+        description: Montant facturé de l'intervention
+
+      - name: bonus_bool
+        description: Indique si un bonus de délai s'applique
+
+      - name: montant_avec_bonus
+        description: Montant incluant les bonus de délai
+
+      - name: delai_heures_debut
+        description: Délai en heures avant début d'intervention
+
+      - name: delai_heures_fin
+        description: Délai en heures avant fin d'intervention
+
+      - name: delai_tech
+        description: Type de délai côté technicien
+
+      - name: delai_partenaire
+        description: Type de délai côté partenaire
+
+      - name: flag_montagne_prime
+        description: Indique si l'intervention est éligible à une prime montagne (1/0)
+
+      - name: flag_paris_intramuros
+        description: Indique si l'intervention est réalisée à Paris intramuros (1/0)
+
+      - name: flag_hors_delai_tech
+        description: Indique si l'intervention est hors délai technicien (1/0)

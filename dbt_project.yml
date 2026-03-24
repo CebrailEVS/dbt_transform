@@ -114,6 +114,9 @@ models:
       gac:
         +tags: ['marts', 'gac']
 
+      technique:
+        +tags: ['marts', 'technique']
+
 
 # ✨ AJOUT de la section pour les seeds
 seeds:
