@@ -64,7 +64,7 @@ interventions as (
 -- CTE 4 : Enrichissement métier (durée + flags + mapping techniciens)
 interventions_enrichies as (
     select
-        concat(i.intervention_id,'_',i.partenaire) as key_inter,
+        CONCAT(i.intervention_id, '_', i.partenaire) as key_inter,
         i.src_inter,
         i.partenaire,
         i.intervention_id,
