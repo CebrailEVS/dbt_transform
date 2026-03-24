@@ -20,7 +20,7 @@ with inter as (
             intv.n_planning = art.n_planning
             and art.code_article = 'miniprev'
     where
-        intv.etat_intervention in ('terminée signée', 'signature différée')
+        intv.etat_intervention in ('terminée signée', 'signature différée', 'mise en échec')
 ),
 
 machines_clean as (
