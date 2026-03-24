@@ -79,6 +79,33 @@ cleaned as (
         _sdc_sequence
 
     from source
+),
+
+-- Déduplication
+deduplicated as (
+
+    select *
+    from (
+
+        select
+            *,
+            row_number() over (
+
+                partition by
+                    case
+                        when n_de_sinistre is not null then n_de_sinistre
+                        when reference_gac is not null then reference_gac
+                    end
+
+                order by _sdc_received_at desc
+
+            ) as rn
+
+        from cleaned
+
+    )
+
+    where rn = 1
 )
 
-select * from cleaned
+select * from deduplicated
