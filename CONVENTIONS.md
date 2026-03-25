@@ -247,10 +247,57 @@ data/reference_data/
 ├── yuman/              # ref_yuman__cp_metropole.csv, ref_yuman__machine_clean.csv, ...
 ├── oracle_neshu/       # ref_oracle_neshu__valo_parc_machine.csv, ...
 ├── mssql_sage/         # ref_mssql_sage__code_analytique_bu.csv, ...
-└── nesp_tech/          # ref_nesp_tech__articles_prix.csv, ...
+├── nesp_tech/          # ref_nesp_tech__articles_prix.csv, ...
+├── nesp_co/            # ref_nesp_co__commerciaux.csv, ...
+└── general/            # ref_general__feries_metropole.csv, ...
 ```
 
-Les types de colonnes sont declares dans `dbt_project.yml` (section `seeds:`).
+#### Declaration des types de colonnes
+
+Les types sont declares **dans `data/schema.yml`** sous chaque seed, via le bloc `config: column_types:`. Ne pas utiliser `dbt_project.yml` pour les types par colonne.
+
+```yaml
+- name: ref_nesp_tech__key_facturation
+  description: "Cle de facturation des interventions techniques"
+  config:
+    column_types:
+      type_code: STRING
+      prod_factu: INT64
+      tarif_factu: FLOAT64
+      valid_from: DATE
+  columns:
+    - name: type_code
+      ...
+```
+
+#### Types BigQuery a utiliser
+
+| Type | Utiliser | Ne pas utiliser |
+|------|----------|-----------------|
+| Texte | `STRING` | `string`, `str`, `VARCHAR` |
+| Entier | `INT64` | `int`, `integer`, `INTEGER` |
+| Decimal | `FLOAT64` | `float`, `FLOAT`, `NUMERIC` |
+| Date | `DATE` | `date` |
+| Timestamp | `TIMESTAMP` | `timestamp`, `DATETIME` |
+| Booleen | `BOOLEAN` | `bool`, `BOOL` |
+
+> **Regle critique** : toujours verifier les valeurs reelles du CSV avant d'assigner un type.
+> Un code postal sans zero initial (`38000`) sera infere `INT64` par BigQuery — le typer
+> `STRING` casserait les joins existants. Ne pas se fier au nom de la colonne seul.
+
+#### Colonnes dans `data/schema.yml`
+
+Chaque colonne du CSV doit avoir une entree dans `columns:` avec une description.
+Les colonnes importantes doivent avoir des tests (`not_null`, `unique`, `relationships`).
+
+#### BOM dans les fichiers CSV
+
+Ne pas sauvegarder les CSV depuis Excel en UTF-8 avec BOM. Si un fichier contient un BOM
+(visible via `head -c 3 fichier.csv | xxd`), le supprimer avec :
+
+```bash
+sed -i '1s/^\xef\xbb\xbf//' data/reference_data/<source>/<fichier>.csv
+```
 
 ### Snapshots (`snapshots/`)
 

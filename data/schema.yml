@@ -5,6 +5,10 @@ version: 2
 seeds:
   - name: ref_yuman__cp_metropole
     description: "Correspondance codes postaux vers métropoles"
+    config:
+      column_types:
+        Code_Postal: STRING
+        Metropole: STRING
     columns:
       - name: Code_Postal
         description: "Code postal (5 chiffres)"
@@ -15,6 +19,16 @@ seeds:
 
   - name: ref_yuman__cp_tech
     description: "Correspondance codes postaux et regions pour les techniciens"
+    config:
+      column_types:
+        cp_depart_int: INT64
+        cp_depart_texte: STRING
+        cp_final_int: INT64
+        cp_final_texte: STRING
+        libelle_cp: STRING
+        num_departement_texte: STRING
+        nom_departement: STRING
+        region_tech: STRING
     columns:
       - name: cp_depart_int
         description: "code postal de départ (cedex) - integer"
@@ -53,6 +67,13 @@ seeds:
 
   - name: ref_yuman__tech_agence
     description: "Mapping entre tech et agence stock"
+    config:
+      column_types:
+        nom: STRING
+        prenom: STRING
+        Chef: STRING
+        agence: STRING
+        equipe: STRING
     columns:
       - name: nom
         description: "nom tech"
@@ -62,6 +83,8 @@ seeds:
         description: "prénom du tech"
         tests:
           - not_null
+      - name: Chef
+        description: "Nom du chef d'équipe"
       - name: agence
         description: "agence rattaché pour le stock"
         tests:
@@ -73,6 +96,10 @@ seeds:
 
   - name: ref_yuman__dpt_metropole
     description: "Correspondance départements vers métropoles"
+    config:
+      column_types:
+        Departement: STRING
+        Metropole: STRING
     columns:
       - name: Departement
         description: "Numéro de département"
@@ -83,6 +110,11 @@ seeds:
 
   - name: ref_yuman__machine_clean
     description: "Mapping noms machines bruts vers standardisés"
+    config:
+      column_types:
+        Machine_Brut: STRING
+        MACHINE: STRING
+        famille_neshu: STRING
     columns:
       - name: Machine_Brut
         description: "Nom machine tel qu'en source"
@@ -98,6 +130,10 @@ seeds:
 
   - name: ref_yuman__marque_clean
     description: "Correspondance technicien vers marque"
+    config:
+      column_types:
+        NOM_DU_TECHNICIEN: STRING
+        MARQUE: STRING
     columns:
       - name: NOM_DU_TECHNICIEN
         description: "Nom du technicien"
@@ -106,11 +142,24 @@ seeds:
 
   - name: ref_yuman__technicien_clean
     description: "Référentiel des techniciens et équipes"
+    config:
+      column_types:
+        TECHNICIEN: STRING
+        Nom: STRING
+        Prenom: STRING
+        Nom_Prenom: STRING
+        EQUIPE: STRING
     columns:
       - name: TECHNICIEN
         description: "Format 'prénom nom'"
         tests:
           - not_null
+      - name: Nom
+        description: "Nom de famille du technicien"
+      - name: Prenom
+        description: "Prénom du technicien"
+      - name: Nom_Prenom
+        description: "Concaténation nom et prénom"
       - name: EQUIPE
         description: "Équipe d'affectation"
         tests:
@@ -118,6 +167,10 @@ seeds:
 
   - name: ref_yuman__type_inter_clean
     description: "Mapping types d'interventions"
+    config:
+      column_types:
+        Type_intervention_Brut: STRING
+        TYPE_INTER: STRING
     columns:
       - name: Type_intervention_Brut
         description: "Type intervention source"
@@ -126,11 +179,33 @@ seeds:
 
   - name: ref_yuman__tarification_clean
     description: "Grille tarifaire complète"
+    config:
+      column_types:
+        TYPE_INTER: STRING
+        MACHINE: STRING
+        KEY: STRING
+        MARQUE: STRING
+        METROPOLE: STRING
+        Type_tarif: STRING
+        Montant: INT64
+        PROD: INT64
+        valid_from: DATE
+        valid_to: DATE
     columns:
+      - name: TYPE_INTER
+        description: "Type d'intervention standardisé"
+      - name: MACHINE
+        description: "Nom machine standardisé"
       - name: KEY
         description: "Clé de tarification composite"
         tests:
           - not_null
+      - name: MARQUE
+        description: "Marque associée"
+      - name: METROPOLE
+        description: "Métropole associée"
+      - name: Type_tarif
+        description: "Type de tarif"
       - name: Montant
         description: "Montant en euros (NULL pour les lignes en attente de tarification)"
       - name: PROD
@@ -142,18 +217,48 @@ seeds:
       - name: valid_to
         description: "Date de fin de validité du tarif (NULL = tarif actif)"
 
+  - name: ref_yuman__tech_nomad
+    description: "Mapping utilisateurs Yuman vers identifiants Nomad"
+    config:
+      column_types:
+        user_id: INT64
+        user_name: STRING
+        nomad_id: STRING
+        user_stock_name: STRING
+        user_stock_agence: STRING
+    columns:
+      - name: user_id
+        description: "Identifiant utilisateur Yuman"
+      - name: user_name
+        description: "Nom utilisateur Yuman"
+      - name: nomad_id
+        description: "Identifiant Nomad associé"
+      - name: user_stock_name
+        description: "Nom du stock associé"
+      - name: user_stock_agence
+        description: "Agence de stock associée"
+
+
 #### REFERENCE POUR MODEL ORACLE NESHU  ####
 
   - name: ref_oracle_neshu__valo_parc_machine
     description: "Fichier de référence (machine -> valorisation unitaire)."
+    config:
+      column_types:
+        machine_modele: STRING
+        montant_inv: FLOAT64
     columns:
       - name: machine_modele
         description: "Identifiant / libellé du modèle de machine."
       - name: montant_inv
-        description: "Valorisation unitaire (format texte ou numérique selon l'import)."
+        description: "Valorisation unitaire."
 
   - name: ref_oracle_neshu__roadman_gea
     description: "Mapping code roadman NESHU vers GEA"
+    config:
+      column_types:
+        roadman_code: STRING
+        gea_code: STRING
     columns:
       - name: roadman_code
         description: "Code roadman NESHU"
@@ -166,6 +271,10 @@ seeds:
 
   - name: ref_oracle_neshu__groupement_machine
     description: "Mapping nom machine vers groupement machine pour valorisation parc"
+    config:
+      column_types:
+        device_name: STRING
+        device_group: STRING
     columns:
       - name: device_name
         description: "Nom de la machine"
@@ -178,6 +287,11 @@ seeds:
 
   - name: ref_oracle_neshu__valo_machine_capacite
     description: "Fichier de référence pour le groupe de machine animo grain modulo et la quantité maximal de produit associé"
+    config:
+      column_types:
+        product_code: STRING
+        quantite: INT64
+        device_group: STRING
     columns:
       - name: product_code
         description: "Code produit"
@@ -192,10 +306,15 @@ seeds:
         tests:
           - not_null
 
+
 #### REFERENCE POUR MODEL MSSQL SAGE  ####
 
   - name: ref_mssql_sage__code_analytique_bu
     description: "Mapping code analytique vers description"
+    config:
+      column_types:
+        code_analytique: STRING
+        code_analytique_bu: STRING
     columns:
       - name: code_analytique
         description: "Code de la section analytique"
@@ -208,7 +327,9 @@ seeds:
     description: "Mapping compte comptable vers BU"
     config:
       column_types:
-        code_comptable: string
+        code_comptable: STRING
+        designation_compte: STRING
+        macro_categorie_pnl_bu: STRING
     columns:
       - name: code_comptable
         description: "Numéro de compte général"
@@ -222,17 +343,24 @@ seeds:
       - name: macro_categorie_pnl_bu
         description: "Macro catégorie P&L BU associée au compte comptable"
 
+
 #### REFERENCE GENERAL ####
 
   - name: ref_general__feries_metropole
     description: "Liste des jours fériés en métropole"
+    config:
+      column_types:
+        annee: INT64
+        mois: STRING
+        date_ferie: DATE
+        nom_jour_ferie: STRING
     columns:
       - name: annee
         description: "Année"
         tests:
           - not_null
       - name: mois
-        description: "Mois"
+        description: "Mois en toutes lettres (janvier, février, etc.)"
         tests:
           - not_null
       - name: date_ferie
@@ -245,76 +373,85 @@ seeds:
           - not_null
 
 
-#### REFERENCE TECHNIQUE NESPRESSO (FACTURATION ET PRIMES)
+#### REFERENCE TECHNIQUE NESPRESSO (FACTURATION ET PRIMES) ####
 
   - name: ref_nesp_tech__key_type_inter
     description: "Table de référence des types d'intervention techniques"
+    config:
+      column_types:
+        type_code: STRING
+        repair_code_1: STRING
+        failure_code: STRING
+        mini_prev_bool: BOOLEAN
+        type_machine: STRING
+        type_inter_libelle: STRING
     columns:
       - name: type_code
         description: "Code du type d'intervention"
         tests:
           - not_null
-
       - name: repair_code_1
         description: "Code réparation (NULL = toutes valeurs)"
-
       - name: failure_code
         description: "Code panne (NULL = toutes valeurs)"
-
       - name: mini_prev_bool
         description: "Indique une mini préventive (TRUE/FALSE)"
-
       - name: type_machine
-        description : "Categorie Machine"
-
+        description: "Categorie Machine"
       - name: type_inter_libelle
         description: "Libellé du type d'intervention"
         tests:
           - not_null
 
-
   - name: ref_nesp_tech__machines_clean
     description: "Table de normalisation des noms de machines"
+    config:
+      column_types:
+        nom_machine: STRING
+        categorie_machine: STRING
+        machine_clean: STRING
     columns:
       - name: nom_machine
         description: "Nom machine brut"
         tests:
           - not_null
           - unique
-
       - name: categorie_machine
         description: "Catégorie de machine"
-
       - name: machine_clean
         description: "Nom machine standardisé"
         tests:
           - not_null
 
-
   - name: ref_nesp_tech__dpts_montagne_factu
     description: "Départements considérés comme zone montagne pour la facturation"
+    config:
+      column_types:
+        dpt: INT64
+        montagne: INT64
     columns:
       - name: dpt
         description: "Code département"
         tests:
           - not_null
           - unique
-
       - name: montagne
         description: "Indicateur zone montagne (1 = oui, 0 = non)"
         tests:
           - not_null
 
-
   - name: ref_nesp_tech__cps_montagne_primes
     description: "Codes postaux considérés comme zone montagne pour le calcul des primes"
+    config:
+      column_types:
+        cp: INT64
+        montagne: INT64
     columns:
       - name: cp
         description: "Code postal"
         tests:
           - not_null
           - unique
-
       - name: montagne
         description: "Indicateur zone montagne (1 = oui, 0 = non)"
         tests:
@@ -322,13 +459,21 @@ seeds:
 
   - name: ref_nesp_tech__key_facturation
     description: "Clé de facturation des interventions techniques"
+    config:
+      column_types:
+        type_code: STRING
+        type_inter: STRING
+        machine_clean: STRING
+        type_montagne: STRING
+        key_ref_inter: STRING
+        key_factu: STRING
+        prod_factu: INT64
+        tarif_factu: FLOAT64
     columns:
       - name: type_code
         description: "Code intervention"
-
       - name: type_inter
         description: "Type d'intervention (Curative / Préventive)"
-
       - name: machine_clean
         description: "Machine normalisée"
         tests:
@@ -337,26 +482,21 @@ seeds:
               arguments:
                 to: ref('ref_nesp_tech__machines_clean')
                 field: machine_clean
-
-      - name: montagne_factu
+      - name: type_montagne
         description: "Suffixe potentiel selon montagne"
-
       - name: key_ref_inter
         description: "Clé de facturation lisible"
         tests:
           - not_null
           - unique
-
       - name: key_factu
         description: "Clé de facturation lisible"
         tests:
           - not_null
-
       - name: prod_factu
-        description: "Prod associee a l'intervention"
+        description: "Code produit associé à l'intervention (entier)"
         tests:
           - not_null
-
       - name: tarif_factu
         description: "Tarif de l'intervention"
         tests:
@@ -364,19 +504,22 @@ seeds:
 
   - name: ref_nesp_tech__articles_prix
     description: "Référentiel des articles techniques avec prix unitaires"
+    config:
+      column_types:
+        article_ref_nomad: STRING
+        article_desc: STRING
+        article_ref_cordon: STRING
+        article_prix_unitaire: FLOAT64
     columns:
       - name: article_ref_nomad
         description: "Référence interne NOMAD de l'article"
         tests:
           - not_null
           - unique
-
       - name: article_desc
         description: "Description de l'article"
-
       - name: article_ref_cordon
         description: "Référence CORDON associée à l'article"
-
       - name: article_prix_unitaire
         description: "Prix unitaire de l'article"
         tests:
@@ -385,43 +528,48 @@ seeds:
               arguments:
                 expression: " >= 0"
 
+
+#### REFERENCE COMMERCIALE NESPRESSO ####
+
   - name: ref_nesp_co__commerciaux
     description: "Table de référence des secteurs commerciaux et du commercial actuellement associé."
-    
+    config:
+      column_types:
+        co_secteur: STRING
+        co_nom: STRING
+        co_prenom: STRING
+        co_id_c4c: STRING
+        co_manager_secteur: STRING
+        co_metier: STRING
+        co_region: STRING
+        co_equipe: STRING
+        co_id_nunshen: STRING
+        co_fonction: STRING
+        co_statut: STRING
     columns:
       - name: co_secteur
         description: "Secteur géographique commercial (clé unique)."
         tests:
           - not_null
           - unique
-
       - name: co_nom
         description: "Nom du commercial affecté au secteur."
-
       - name: co_prenom
         description: "Prénom du commercial."
-
       - name: co_id_c4c
         description: "Identifiant C4C du commercial."
-
       - name: co_manager_secteur
         description: "Manager responsable du secteur."
-
       - name: co_metier
         description: "Métier ou division commerciale."
-
       - name: co_region
         description: "Région commerciale."
-
       - name: co_equipe
         description: "Equipe commerciale."
-
       - name: co_id_nunshen
         description: "Identifiant interne Nunshen."
-
       - name: co_fonction
         description: "Fonction du collaborateur."
-
       - name: co_statut
         description: "Statut du commercial."
         tests:

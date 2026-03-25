@@ -198,6 +198,25 @@ git branch -d feature/oracle_neshu/add-kpi-livraison  # supprimer la branche loc
 
 ---
 
+## Ajouter un seed
+
+1. Placer le CSV dans `data/reference_data/<source>/` en respectant le nommage `ref_<source>__<entite>.csv`
+2. Sauvegarder en **UTF-8 sans BOM** (pas depuis Excel directement — utiliser LibreOffice ou un editeur de texte)
+3. Ajouter une entree dans `data/schema.yml` avec :
+   - `description` du seed
+   - `config: column_types:` pour **toutes les colonnes** (voir types autorises dans CONVENTIONS.md)
+   - `columns:` avec description et tests pour chaque colonne
+4. **Verifier les types en regardant les donnees reelles**, pas seulement le nom de colonne :
+   ```bash
+   head -3 data/reference_data/<source>/ref_<source>__<entite>.csv
+   ```
+5. Tester : `dbt build -s ref_<source>__<entite>`
+6. Verifier que les modeles downstream compilent toujours : `dbt build -s ref_<source>__<entite>+`
+
+> Ne pas ajouter de `column_types` dans `dbt_project.yml` — tout se declare dans `data/schema.yml`.
+
+---
+
 ## Ajouter une nouvelle source
 
 1. Creer le dossier `models/staging/<nouvelle_source>/`
