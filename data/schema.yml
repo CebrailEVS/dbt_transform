@@ -343,6 +343,54 @@ seeds:
       - name: macro_categorie_pnl_bu
         description: "Macro catégorie P&L BU associée au compte comptable"
 
+  - name: ref_mssql_sage__pnl_budget
+    description: "Reference dataset for PNL budget by business unit, category, year and month."
+    config:
+      column_types:
+        budg_bu: STRING
+        budg_categorie_pnl: STRING
+        budg_mois: INT64
+        budg_annee: INT64
+        budg_valeur: FLOAT64
+    columns:
+      - name: budg_bu
+        description: "Business unit (e.g. NESHU, NUNSHEN, COMMERCE, TECHNIQUE)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['NESHU','NUNSHEN','COMMERCE','TECHNIQUE']
+      - name: budg_categorie_pnl
+        description: "PNL category (e.g. Chiffre d'Affaires, Consommation MP & SSTT, Masse Salariale)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["CA","MASSE_SALARIALE","CONSOMMATION_MP_SSTT"]
+      - name: budg_annee
+        description: "Budget year."
+        data_tests:
+          - not_null
+      - name: budg_mois
+        description: "Month number (1-12)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1,2,3,4,5,6,7,8,9,10,11,12]
+                quote: false
+      - name: budg_valeur
+        description: "Budget amount (can be positive or negative depending on PNL category)."
+        data_tests:
+          - not_null
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - budg_bu
+              - budg_categorie_pnl
+              - budg_annee
+              - budg_mois
 
 #### REFERENCE GENERAL ####
 
@@ -528,6 +576,62 @@ seeds:
               arguments:
                 expression: " >= 0"
 
+  - name: ref_nesp_tech__objectifs_volumes
+    description: "Reference data table for volume objectives by intervention type and machine type."
+    config:
+      column_types:
+        obj_vol_annee: INT64
+        obj_vol_anneemois: STRING
+        obj_vol_mois: INT64
+        obj_vol_objectif_valeur: INT64
+    columns:
+      - name: obj_vol_annee
+        description: "Year of the objective (e.g. 2025)."
+        data_tests:
+          - not_null
+      - name: obj_vol_anneemois
+        description: "Year-month of the objective in YYYYMM format (e.g. 202501)."
+        data_tests:
+          - not_null
+      - name: obj_vol_mois
+        description: "Month number (1-12)."
+        data_tests:
+          - not_null
+      - name: obj_vol_type_inter
+        description: "Technical intervention type key (e.g. curative)."
+        data_tests:
+          - not_null
+      - name: obj_vol_type_machine
+        description: "Technical machine type key (e.g. momento)."
+        data_tests:
+          - not_null
+      - name: obj_vol_key_item
+        description: "Surrogate key combining intervention type and machine type (e.g. curative_momento)."
+        data_tests:
+          - not_null
+      - name: obj_vol_alias_type_inter
+        description: "Display label for the intervention type (e.g. CURATIVE)."
+        data_tests:
+          - not_null
+      - name: obj_vol_alias_type_machine
+        description: "Display label for the machine type (e.g. MOMENTO)."
+        data_tests:
+          - not_null
+      - name: obj_vol_grp_machine
+        description: "Machine group category (e.g. TRANSPORTABLES)."
+        data_tests:
+          - not_null
+      - name: obj_vol_objectif_valeur
+        description: "Target volume value for the given period and machine/intervention combination."
+        data_tests:
+          - not_null
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - obj_vol_anneemois
+              - obj_vol_key_item
+              
 
 #### REFERENCE COMMERCIALE NESPRESSO ####
 
