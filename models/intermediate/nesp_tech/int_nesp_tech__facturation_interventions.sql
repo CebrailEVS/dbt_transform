@@ -53,6 +53,7 @@ joined as (
         ma.machine_clean,
         r.type_inter_libelle,
         r.type_code,
+        ma.categorie_machine as categorie_machine,
         if(dm.dpt is not null, ' - Montagne', '') as montagne_factu,
         concat(
             r.type_code,
@@ -63,6 +64,7 @@ joined as (
             if(dm.dpt is not null, ' - Montagne', '')
         ) as key_factu,
         i.n_planning,
+        i.etat_intervention,
         i.intervention_type,
         i.code_machine,
         i.nom_machine,
@@ -99,6 +101,9 @@ joined as (
 final as (
     select
         j.n_planning,
+        j.etat_intervention,
+        j.categorie_machine,
+        j.machine_clean,
         j.type_inter_libelle,
         j.key_factu,
         kf.prod_factu,
@@ -111,6 +116,9 @@ final as (
 
 select
     n_planning,
+    etat_intervention,
+    coalesce(categorie_machine,'UNDEFINED') as categorie_machine,
+    coalesce(machine_clean,'UNDEFINED') as machine_clean,
     type_inter_libelle,
     key_factu,
     prod_factu,

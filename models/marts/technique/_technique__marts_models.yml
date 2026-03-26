@@ -33,6 +33,18 @@ models:
       - name: tech_id
         description: Identifiant du technicien dans le système source
 
+      - name: intervention_statut
+        description: Etat de l'intervention 
+
+      - name: statut_facturation
+        description: Statu de facturation de l'intervention (BILLABLE vs NOT BILLABLE)
+
+      - name: categorie_machine
+        description: Groupe machine - clé utile notamment pour la liaison avec les objectifs techniques
+
+      - name: machine_clean
+        description: type machine clean - clé utile notamment pour la liaison avec les objectifs techniques
+
       - name: tech_yuman_id
         description: Identifiant Yuman du technicien
 
@@ -41,9 +53,6 @@ models:
 
       - name: tech_nom
         description: Nom du technicien
-
-      - name: statut
-        description: Statut de l'intervention
 
       - name: date_creation
         description: Date de création de l'intervention
