@@ -17,10 +17,10 @@ with nesp_interventions as (
         'NESPRESSO' as partenaire,
         cast(dedup.n_planning as string) as intervention_id,
         dedup.n_tech as tech_id,
-        factu.categorie_machine as categorie_machine,
-        factu.machine_clean as machine_clean,
+        factu.categorie_machine,
+        factu.machine_clean,
         dedup.etat_intervention as intervention_statut,
-        case 
+        case
             when dedup.etat_intervention in ('terminée signée', 'signature différée') then 'VALIDATED'
             when dedup.etat_intervention in ('mise en échec') then 'NOT VALIDATED'
             else 'NOT DEFINED'
@@ -158,8 +158,8 @@ select
     intervention_id,
     intervention_statut,
     statut_facturation,
-    coalesce(categorie_machine,'UNDEFINED') as categorie_machine,
-    coalesce(machine_clean,'UNDEFINED') as machine_clean,
+    coalesce(categorie_machine, 'UNDEFINED') as categorie_machine,
+    coalesce(machine_clean, 'UNDEFINED') as machine_clean,
     tech_id,
     date_creation,
     date_debut,
