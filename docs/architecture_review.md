@@ -305,7 +305,109 @@ This is less real-time but simpler to maintain and guarantees all upstream sourc
 
 ---
 
-## 6. Decision Points for the Team
+## 6. Naming Convention for Marts Models
+
+### The Core Rule
+
+The **folder** gives the business context (BU). The **model name prefix** gives the
+technical origin (source or BU). Both layers of information are useful independently
+and should never be collapsed into one.
+
+```
+marts/logistique/fct_oracle_neshu__appro.sql
+│               │   │             │
+│               │   └─ source     └─ event/entity
+│               └─ prefix type (fct / dim)
+└─ BU folder
+```
+
+### Rule 1 — Pure single-source model → use source prefix
+
+When a model reads from one source only, keep `{source}` as prefix regardless of
+which BU folder it lives in. The source tells you exactly where the data comes from.
+Renaming it to the BU prefix would lose that information without adding anything.
+
+```
+marts/logistique/
+    fct_oracle_neshu__appro.sql             ✅
+    fct_oracle_lcdp__livraison.sql          ✅
+    dim_oracle_neshu__company.sql           ✅
+    dim_oracle_lcdp__company.sql            ✅
+
+    fct_logistique__appro.sql               ❌  which source? oracle_neshu or oracle_lcdp?
+```
+
+### Rule 2 — Cross-source model → use BU prefix
+
+When a model joins 2 or more sources, there is no single source to put in the name.
+The BU becomes the owner. This is already established in the project with
+`fct_technique__interventions` — follow that pattern.
+
+```
+marts/technique/
+    fct_technique__interventions.sql        ✅  joins nesp_tech + yuman
+    fct_technique__machines_avec_inter.sql  ✅  joins nesp_tech + nesp_co (renamed from fct_nesp_co__)
+
+marts/commerce/
+    fct_commerce__activite_commerciale.sql  ✅  joins nesp_co + yuman
+
+marts/parc_machines/
+    dim_parc_machines__machines.sql         ✅  joins oracle_neshu + yuman + nesp_tech
+```
+
+### Rule 3 — Unified model (union of two sources) → use BU prefix
+
+If you create a model that unions or merges the same entity from two sources
+(e.g. NESHU companies + LCDP companies into a single company dimension),
+use the BU prefix. This is a new model, not a rename of either source model.
+
+```
+marts/logistique/
+    dim_oracle_neshu__company.sql       ← NESHU companies only (keep)
+    dim_oracle_lcdp__company.sql        ← LCDP companies only (keep)
+    dim_logistique__company.sql         ← union of both (new model, BU prefix)
+```
+
+### Rule 4 — Never rename a single-source model just because it moved folders
+
+Moving a file to a BU folder does not require a rename. The BigQuery table name
+stays the same, BI reports are unaffected, and all `ref()` calls continue to work.
+Only rename when the model's scope changes (i.e. it becomes cross-source).
+
+```
+Before migration:
+    marts/oracle_neshu/fct_oracle_neshu__appro.sql    → BigQuery: marts.fct_oracle_neshu__appro
+
+After moving to BU folder (no rename needed):
+    marts/logistique/fct_oracle_neshu__appro.sql      → BigQuery: marts.fct_oracle_neshu__appro ✅ unchanged
+```
+
+### Summary Table
+
+| Situation | Pattern | Example |
+|---|---|---|
+| Single-source fact | `fct_{source}__{event}` | `fct_oracle_neshu__appro` |
+| Single-source dimension | `dim_{source}__{entity}` | `dim_oracle_neshu__company` |
+| Cross-source fact | `fct_{bu}__{event}` | `fct_technique__interventions` |
+| Cross-source dimension | `dim_{bu}__{entity}` | `dim_parc_machines__machines` |
+| Unified dim (union of 2 sources) | `dim_{bu}__{entity}` | `dim_logistique__company` |
+
+### Models to Rename During Migration
+
+Only cross-source models that currently carry a misleading single-source prefix
+need to be renamed. Everything else: move the file, keep the name.
+
+| Current name | Current folder | Proposed name | Proposed folder | Reason |
+|---|---|---|---|---|
+| `fct_nesp_co__machines_avec_interventions` | `marts/nesp_co/` | `fct_technique__machines_avec_interventions` | `marts/technique/` | Joins nesp_tech + nesp_co — misleading nesp_co prefix |
+| `int_oracle_neshu__machines_yuman_maintenance_base` | `intermediate/oracle_neshu/` | `int_cross__machines_yuman_maintenance_base` | `intermediate/cross/` | Joins oracle_neshu + yuman — misleading oracle_neshu prefix |
+
+All other existing models: **move the file, do not rename**.
+
+---
+
+## 7. Decision Points for the Team
+
 
 1. **Do we do Phase 2 now or after other priorities?**
    Phase 1 fixes the real bugs. Phase 2 is a structural improvement for long-term
