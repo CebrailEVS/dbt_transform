@@ -5,7 +5,7 @@
     create or replace table `evs-datastack-prod`.`prod_marts`.`fct_technique__interventions`
       
     partition by timestamp_trunc(date_debut, day)
-    cluster by partenaire, src_inter, statut
+    cluster by partenaire, src_inter
 
     
     OPTIONS(
@@ -21,7 +21,14 @@ with nesp_interventions as (
         'NESPRESSO' as partenaire,
         cast(dedup.n_planning as string) as intervention_id,
         dedup.n_tech as tech_id,
-        dedup.etat_intervention as statut,
+        factu.categorie_machine,
+        factu.machine_clean,
+        dedup.etat_intervention as intervention_statut,
+        case
+            when dedup.etat_intervention in ('terminée signée', 'signature différée') then 'VALIDATED'
+            when dedup.etat_intervention in ('mise en échec') then 'NOT VALIDATED'
+            else 'NOT DEFINED'
+        end as statut_facturation,
         dedup.pickup_date as date_creation,
         dedup.date_heure_debut as date_debut,
         dedup.date_heure_fin as date_fin,
@@ -50,7 +57,10 @@ yuman_interventions as (
         inter_yuman.partner_name as partenaire,
         inter_yuman.workorder_number as intervention_id,
         cast(inter_yuman.technician_id as string) as tech_id,
-        inter_yuman.workorder_status as statut,
+        inter_yuman.machine_clean as categorie_machine,
+        inter_yuman.machine_raw as machine_clean,
+        inter_yuman.workorder_status as intervention_statut,
+        inter_yuman.billing_validation_status as statut_facturation,
         timestamp(inter_yuman.workorder_date_creation) as date_creation,
         inter_yuman.date_started as date_debut,
         inter_yuman.date_done as date_fin,
@@ -65,7 +75,7 @@ yuman_interventions as (
         type_delai as delai_tech,
         type_delai as delai_partenaire
     from `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_delais_neshu` as inter_yuman
-    where inter_yuman.billing_validation_status = 'VALIDATED'
+    where inter_yuman.demand_status = 'Accepted'
 ),
 
 -- CTE 3 : Union des deux sources homogénéisées
@@ -82,8 +92,11 @@ interventions_enrichies as (
         i.src_inter,
         i.partenaire,
         i.intervention_id,
+        i.intervention_statut,
+        i.statut_facturation,
+        i.categorie_machine,
+        i.machine_clean,
         i.tech_id,
-        i.statut,
         i.date_creation,
         i.date_debut,
         i.date_fin,
@@ -121,8 +134,8 @@ interventions_enrichies as (
         case
             when
                 i.delai_tech in ('J++', 'J+3')
-                and i.key_factu like '%Curative%'
-                and i.partenaire = 'NESPRESSO'
+                and lower(i.key_factu) like '%curative%'
+                --and i.partenaire = 'NESPRESSO'
                 then 1
             else 0
         end as flag_hors_delai_tech,
@@ -147,8 +160,11 @@ select
     src_inter,
     partenaire,
     intervention_id,
+    intervention_statut,
+    statut_facturation,
+    coalesce(categorie_machine, 'UNDEFINED') as categorie_machine,
+    coalesce(machine_clean, 'UNDEFINED') as machine_clean,
     tech_id,
-    statut,
     date_creation,
     date_debut,
     date_fin,
