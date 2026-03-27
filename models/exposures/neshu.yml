@@ -1,0 +1,76 @@
+version: 2
+
+# ============================================================
+# EXPOSURES — BU Neshu (Oracle Neshu)
+# ============================================================
+# Maturité :
+#   high   → rapport en production, utilisé régulièrement
+#   medium → rapport stable mais en cours d'adoption
+#   low    → rapport en cours de développement / pilote
+# ============================================================
+
+exposures:
+
+  - name: business_review
+    label: "Business Review"
+    type: dashboard
+    maturity: high
+    description: >
+      Rapport Business Review Neshu. Inclut le suivi des contrats, consommation produits
+      (tendances N vs N-1 par client, région, secteur) et les données des passages appros
+      des Roadman chez les clients Neshu.
+    owner:
+      name: Cebrail Aksoy
+      email: cebrail.aksoy@evs-pro.com
+    depends_on:
+      - ref('fct_oracle_neshu__conso_business_review')
+      - ref('fct_oracle_neshu__pa_business_review')
+      - ref('dim_oracle_neshu__company')
+      - ref('dim_oracle_neshu__contract')
+      - ref('dim_oracle_neshu__device')
+
+  - name: passage_appro_monitoring
+    label: "Passage Appro Monitoring"
+    type: dashboard
+    maturity: high
+    description: >
+      Monitoring des passages appro Roadman chez les clients Neshu. Refresh 8x par jour.
+      Données chargées par le Cloud Run job "ingest-oracle-neshu-passages-appro"
+      via GCP Cloud Workflows (pipeline-passages-appro-neshu), qui écrit directement dans
+      prod_marts sans passer par dbt — fct_oracle_neshu__monitoring_passages_appro non modélisée dans dbt.
+      Mapping Roadman/GEA et référentiel société gérés via dbt.
+      PBI : workspace "Neshu" / dataset "PROD APPRO MONITORING".
+    owner:
+      name: Cebrail Aksoy
+      email: cebrail.aksoy@evs-pro.com
+    depends_on:
+      - source('marts_oracle_neshu_external', 'fct_oracle_neshu__monitoring_passages_appro')
+      - ref('ref_oracle_neshu__roadman_gea')
+      - ref('dim_oracle_neshu__company')
+
+  - name: reporting_appro
+    label: "Reporting Appro"
+    type: dashboard
+    maturity: high
+    description: >
+      Rapport de suivi des approvisionnements Roadman chez les clients Neshu.
+      Analyse des passages appro par GEA, roadman et clients.
+    owner:
+      name: Cebrail Aksoy
+      email: cebrail.aksoy@evs-pro.com
+    depends_on:
+      - ref('fct_oracle_neshu__appro')
+      - ref('dim_oracle_neshu__company')
+      - ref('ref_oracle_neshu__roadman_gea')
+
+  - name: maintenance_preventives
+    label: "Neshu Maintenance Préventives"
+    type: dashboard
+    maturity: medium
+    description: >
+      Rapport de suivi de la maintenance préventive des machines Neshu en utilisant les données des interventions Yuman.
+    owner:
+      name: Cebrail Aksoy
+      email: cebrail.aksoy@evs-pro.com
+    depends_on:
+      - ref('fct_oracle_neshu__machines_maintenance_tracking')

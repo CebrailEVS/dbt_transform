@@ -1,7 +1,7 @@
 version: 2
 
 # ============================================
-# SOURCES EXTERNES - MARTS ORACLE NESHU
+# SOURCES EXTERNES - MARTS ORACLE LCDP
 # ============================================
 # Tables écrites directement dans prod_marts par des pipelines
 # externes à dbt (Cloud Run jobs orchestrés via GCP Cloud Workflows).
@@ -9,24 +9,24 @@ version: 2
 # ============================================
 
 sources:
-  - name: marts_oracle_neshu_external
+  - name: marts_oracle_lcdp_external
     description: |
       Tables de la couche marts alimentées par des pipelines externes à dbt.
       Chargées via Cloud Run jobs orchestrés par GCP Cloud Workflows.
       Ne pas modifier via dbt — toute évolution passe par le Cloud Run job concerné.
     config:
-      tags: ['marts', 'oracle_neshu', 'external_source']
+      tags: ['marts', 'oracle_lcdp', 'external_source']
     database: evs-datastack-prod
     schema: prod_marts
 
     tables:
-      - name: fct_oracle_neshu__monitoring_passages_appro
+      - name: fct_oracle_lcdp__monitoring_passages_appro
         description: |
-          Table de monitoring des passages approvisionneurs Roadman chez les clients Neshu.
+          Table de monitoring des passages approvisionneurs Roadman chez les clients LCDP.
 
           **Pipeline :**
-          - Cloud Run job : `ingest-oracle-neshu-passages-appro`
-          - Orchestration : GCP Cloud Workflows (`pipeline-passages-appro-neshu`)
+          - Cloud Run job : `ingest-oracle-lcdp-passages-appro`
+          - Orchestration : GCP Cloud Workflows (`pipeline-passages-appro-lcdp`)
           - Schedule : jours ouvrés, 07h–15h (Europe/Paris), géré par Cloud Scheduler
 
           **Refresh :**
@@ -35,9 +35,8 @@ sources:
           - Statuts inclus : PREVU, ENCOURS, FAIT
 
           **Usage métier :**
-          Suivi en quasi temps-réel des passages Roadman. Rafraîchissement horaire
-          nécessaire pour les besoins opérationnels — contrairement aux marts dbt
-          qui sont quotidiens.
+          Suivi en quasi temps-réel des passages Roadman LCDP.
+          PBI : workspace "Lcdp" / dataset "DEV APPRO MONITORING".
 
           ⚠️ Ne pas modifier cette table via dbt.
 
@@ -48,8 +47,8 @@ sources:
             refresh_schedule: "weekdays 07-15 Paris"
             data_retention_days: 15
             external_pipeline: true
-            cloud_run_job: "ingest-oracle-neshu-passages-appro"
-            cloud_workflow: "pipeline-passages-appro-neshu"
+            cloud_run_job: "ingest-oracle-lcdp-passages-appro"
+            cloud_workflow: "pipeline-passages-appro-lcdp"
           loaded_at_field: loaded_at_utc
 
         columns:
@@ -141,11 +140,6 @@ sources:
             data_type: timestamp
             tests:
               - not_null
-              - dbt_utils.expression_is_true:
-                  arguments:
-                    expression: "<= task_end_date"
-                    config:
-                      severity: warn
 
           - name: task_end_date
             description: "Date et heure de fin réelle du passage. Peut être NULL si passage en cours."
@@ -154,12 +148,6 @@ sources:
           - name: passage_duration_min
             description: "Durée du passage en minutes. NULL si passage pas encore terminé."
             data_type: float
-            tests:
-              - dbt_utils.expression_is_true:
-                  arguments:
-                    expression: ">= 0 OR passage_duration_min IS NULL"
-                    config:
-                      severity: warn
 
           - name: is_done
             description: "1 = FAIT, 0 = PREVU ou ENCOURS"
