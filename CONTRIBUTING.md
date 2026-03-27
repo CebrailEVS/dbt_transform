@@ -72,6 +72,17 @@ Exemples :
 - `feature/oracle_neshu/add-valorisation-parc`
 - `fix/yuman/workorder-deduplication`
 
+### Rester a jour avec le remote
+
+VS Code fetche automatiquement le remote toutes les 3 minutes (`git.autofetch: true` dans `.vscode/settings.json`).
+Surveille l'indicateur en bas a gauche de la fenetre, a cote du nom de branche :
+
+- Pas de chiffre → tu es a jour
+- `↓2` → 2 commits a recuperer : lance `git pull`
+- `↑1` → 1 commit local a pousser
+
+Clique sur l'icone pour synchroniser directement depuis VS Code.
+
 ### Workflow quotidien
 
 ```bash
