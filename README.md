@@ -1,7 +1,7 @@
 # EVS Data Warehouse - dbt Project
 
 Projet dbt de transformation de donnees pour **EVS Professionnelle France**.
-Pipeline ELT moderne : extraction via Meltano, transformation via dbt, orchestration via Airflow, visualisation via Power BI.
+Ce repo couvre la couche **Transform** du pipeline ELT : modélisation BigQuery via dbt, déclenchée automatiquement par Google Cloud Workflows après chaque extraction.
 
 **[Documentation dbt generee](https://cebrailevs.github.io/dbt_transform/)** | [CONTRIBUTING.md](CONTRIBUTING.md) | [CONVENTIONS.md](CONVENTIONS.md)
 
@@ -25,15 +25,17 @@ dbt deps && dbt debug
 
 ## Stack technique
 
-| Composant          | Role                                     |
-|--------------------|------------------------------------------|
-| **Meltano**        | Extraction et chargement vers BigQuery   |
-| **BigQuery**       | Data Lake (prod_raw) + Data Warehouse    |
-| **dbt**            | Transformation et modelisation           |
-| **Airflow**        | Orchestration production                 |
-| **GitHub Actions** | CI/CD automatisee                        |
-| **SQLFluff**       | Linting et formatage SQL                 |
-| **Power BI**       | Visualisation et reporting               |
+| Composant                  | Role                                              |
+|----------------------------|---------------------------------------------------|
+| **dbt**                    | Transformation et modelisation (ce repo)          |
+| **BigQuery**               | Data Lake (`prod_raw`) + Data Warehouse           |
+| **Cloud Workflows**        | Orchestration production (ELT → dbt → done)      |
+| **Cloud Scheduler**        | Declenchement des workflows (cron)                |
+| **Cloud Run**              | Execution des jobs Meltano et dbt en production   |
+| **GitHub Actions**         | CI/CD automatisee                                 |
+| **SQLFluff**               | Linting et formatage SQL                          |
+| **Power BI**               | Visualisation et reporting                        |
+| **Meltano** *(repo separe)*| Extraction et chargement vers BigQuery            |
 
 ---
 
@@ -41,17 +43,21 @@ dbt deps && dbt debug
 
 Le projet integre **9 sources** couvrant l'ensemble des operations EVS :
 
-| Source | Systeme | Description | Staging |
-|--------|---------|-------------|---------|
-| **oracle_neshu** | Oracle ERP (NESHU) | ERP principal : clients, machines, produits, taches | 24 |
-| **oracle_lcdp** | Oracle ERP (LCDP) | ERP secondaire, meme schema qu'oracle_neshu | 24 |
-| **yuman** | Yuman API | Interventions terrain : clients, sites, materiels, bons de travail | 11 |
-| **nesp_tech** | Nomad Repair API | Interventions techniques Nespresso, pieces detachees | 2 |
-| **nesp_co** | Excel / Nespresso | Donnees commerciales Nespresso (WIP) | 3 |
-| **mssql_sage** | MSSQL Sage | Comptabilite : ecritures, comptes tiers, collaborateurs | 5 |
-| **gac** | SFTP CSV | Assurance flotte, sinistres vehicules | 1 |
-| **yuman_gcs** | GCS JSON | Stock theorique Yuman | 1 |
-| **oracle_neshu_gcs** | GCS CSV | Stock theorique Oracle | 1 |
+| Source | Systeme | Description |
+|--------|---------|-------------|
+| **oracle_neshu** | Oracle ERP (NESHU) | ERP principal : clients, machines, produits, taches |
+| **oracle_lcdp** | Oracle ERP (LCDP) | ERP secondaire, meme schema qu'oracle_neshu |
+| **yuman** | Yuman API | Interventions terrain : clients, sites, materiels, bons de travail |
+| **nesp_tech** | Nomad Repair API | Interventions techniques Nespresso, pieces detachees |
+| **nesp_co** | Excel / Nespresso | Donnees commerciales Nespresso (WIP) |
+| **mssql_sage** | MSSQL Sage | Comptabilite : ecritures, comptes tiers, collaborateurs |
+| **gac** | SFTP CSV | Assurance flotte, sinistres vehicules |
+| **yuman_gcs** | GCS JSON | Stock theorique Yuman |
+| **oracle_neshu_gcs** | GCS CSV | Stock theorique Oracle |
+
+> Les sources suffixees `_gcs` (et `nesp_tech`, `nesp_co`) transitent par GCS avant d'etre lues par dbt via table externe BigQuery.
+> C'est le cas quand Meltano ne peut pas extraire la donnee directement vers BigQuery (API specifique, Excel, PL/SQL, parsing XML…).
+> Ces ingestions sont gerees par des scripts Python dedies dans un repo separe.
 
 ---
 
@@ -188,7 +194,7 @@ Toujours verifier avec `git diff` apres un `sqlfluff fix`. Voir [CONVENTIONS.md]
 | Pull Request vers `master` | `dbt build --exclude resource_type:snapshot` sur dev (slim CI si manifest disponible) |
 | Merge dans `master` | Build complet en prod + generation docs + deploiement GitHub Pages |
 
-> Les snapshots sont exclus du CI pour eviter des captures SCD parasites. Ils sont geres uniquement par Airflow en production.
+> Les snapshots sont exclus du CI pour eviter des captures SCD parasites. Ils sont geres uniquement par Cloud Workflows en production.
 
 ---
 
