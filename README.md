@@ -101,8 +101,11 @@ pip install -r requirements.txt
 # 4. Configurer les variables d'environnement
 cp .env.example .env  # Ajuster les valeurs
 
-# 5. Charger les variables (OBLIGATOIRE avant chaque session dbt)
-set -a && source .env && set +a
+# 5. Installer direnv (recommande — charge .env automatiquement a chaque cd)
+sudo apt install direnv                  # Linux
+# brew install direnv                    # macOS
+echo 'eval "$(direnv hook bash)"' >> ~/.bashrc && source ~/.bashrc
+direnv allow                             # a faire une seule fois dans le repo
 
 # 6. Installer les packages dbt
 dbt deps
@@ -110,6 +113,8 @@ dbt deps
 # 7. Tester la configuration
 dbt debug
 ```
+
+> **Sans direnv**, charger les variables manuellement avant chaque session : `set -a && source .env && set +a`
 
 ### Variables d'environnement (.env)
 
@@ -135,9 +140,6 @@ DBT_BIGQUERY_DATASET_PROD=prod
 ## Commandes courantes
 
 ```bash
-# Charger les variables (toujours en premier)
-set -a && source .env && set +a
-
 # Build par source (run + test en ordre DAG, fail-fast)
 dbt build --select tag:oracle_neshu
 dbt build --select tag:yuman
@@ -214,7 +216,8 @@ Toujours verifier avec `git diff` apres un `sqlfluff fix`. Voir [CONVENTIONS.md]
 
 ```bash
 dbt debug                              # Verifier la configuration
-set -a && source .env && set +a        # Variables non chargees
+direnv allow                           # direnv bloque ou non autorise
+set -a && source .env && set +a        # Variables non chargees (sans direnv)
 git rebase --abort                     # Annuler un rebase en echec
 dbt build --select tag:oracle_neshu    # Cibler les modeles en echec
 sqlfluff lint models/staging/          # Verifier le linting SQL

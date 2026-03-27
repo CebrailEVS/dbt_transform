@@ -23,9 +23,18 @@ pip install -r requirements-lock.txt
 # 4. Copier et remplir le fichier d'environnement
 cp .env.example .env  # puis remplir les variables avec le Data Engineer
 
-# 5. Vérifier que tout fonctionne
+# 5. Installer direnv (charge .env automatiquement a chaque cd dans le repo)
+sudo apt install direnv                  # Linux
+# brew install direnv                    # macOS
+echo 'eval "$(direnv hook bash)"' >> ~/.bashrc && source ~/.bashrc
+direnv allow                             # a faire une seule fois dans le repo
+
+# 6. Vérifier que tout fonctionne
 dbt debug --target dev
 ```
+
+> `direnv allow` est a executer une seule fois par machine/repo. Apres ca, les variables `.env` sont chargees automatiquement des que tu entres dans le dossier.
+> **Sans direnv**, charge les variables manuellement avant chaque session : `set -a && source .env && set +a`
 
 ### Comprendre les fichiers de dépendances
 
@@ -72,10 +81,7 @@ git checkout master && git pull
 # 2. Creer une branche
 git checkout -b feature/oracle_neshu/add-kpi-livraison
 
-# 3. Charger les variables d'environnement
-set -a && source .env && set +a
-
-# 4. Developper et tester (build = run + test en ordre DAG)
+# 3. Developper et tester (build = run + test en ordre DAG)
 dbt build --select tag:oracle_neshu
 
 # 5. Linter le SQL
@@ -154,7 +160,6 @@ git rebase --continue
 > mieux vaut les corriger avant.
 >
 > ```bash
-> set -a && source .env && set +a
 > dbt parse --target dev
 > ```
 
