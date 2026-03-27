@@ -243,6 +243,8 @@ models:
         description: Nom du technicien affecté au bon de travail.
       - name: workorder_date_creation
         description: Date de création du bon de travail.
+      - name: workorder_report
+        description: Obeservation du technicien post intervention
       - name: workorder_motif_non_intervention
         description: Motif de non-intervention, si applicable.
       - name: workorder_detail_non_intervention
