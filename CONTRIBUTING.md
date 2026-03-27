@@ -212,6 +212,40 @@ git branch -d feature/oracle_neshu/add-kpi-livraison  # supprimer la branche loc
 2. Nommer : `dim_<source>__<entite>.sql` ou `fct_<source>__<metrique>.sql`
 3. C'est la couche exposee a Power BI — veiller a la clarte des colonnes
 
+### Exposures (rapport Power BI)
+
+Les exposures declarent quels rapports Power BI consomment quels modeles dbt. Cela permet de :
+
+- **Visualiser la lignee complete** dans `dbt docs` — de la source raw jusqu'au rapport BI
+- **Mesurer l'impact d'un changement** : si on modifie `fct_oracle_neshu__appro`, on voit immediatement quels rapports sont affectes
+- **Cibler un rebuild** : `dbt build -s +exposure:reporting_appro` reconstruit uniquement les modeles qui alimentent ce rapport
+- **Documenter qui est responsable** de chaque rapport (owner) et son niveau de maturite
+
+Quand un rapport Power BI est cree ou modifie, mettre a jour le fichier exposure correspondant dans `models/exposures/`.
+
+- Un fichier par BU/partenaire : `neshu.yml`, `lcdp.yml`, etc.
+- Si le rapport est pour une nouvelle BU, creer un nouveau fichier dans `models/exposures/`
+- Chaque exposure doit lister tous les modeles dbt (`ref()`) et sources externes (`source()`) consommes par le rapport
+
+```yaml
+- name: nom_du_rapport          # slug CLI : dbt build -s +exposure:nom_du_rapport
+  label: "Nom Lisible"          # affiche dans dbt docs
+  type: dashboard
+  maturity: high | medium | low
+  description: >
+    Description metier du rapport.
+  owner:
+    name: Prenom Nom
+    email: prenom.nom@evs-pro.com
+  depends_on:
+    - ref('fct_source__modele')
+    - ref('dim_source__dimension')
+```
+
+> Si le rapport consomme une table alimentee par un pipeline externe (Cloud Run / Cloud Workflows),
+> utiliser `source('<source_externe>', '<table>')` et verifier que la source est declaree
+> dans le fichier `_<source>__marts_sources.yml` correspondant.
+
 ---
 
 ## Ajouter un seed
@@ -250,6 +284,7 @@ git branch -d feature/oracle_neshu/add-kpi-livraison  # supprimer la branche loc
 - [ ] `sqlfluff lint` sans violations sur les fichiers modifies
 - [ ] `dbt parse` sans `[WARNING]` — verifier les fichiers YAML modifies
 - [ ] Modeles documentes dans les fichiers YAML
+- [ ] Si le modele est consomme par un rapport Power BI : exposure mise a jour dans `models/exposures/`
 - [ ] Pas de secrets dans le commit
 - [ ] PR avec description claire
 

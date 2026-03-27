@@ -1,0 +1,29 @@
+version: 2
+
+# ============================================================
+# EXPOSURES — BU LCDP (Oracle LCDP)
+# ============================================================
+# Maturité :
+#   high   → rapport en production, utilisé régulièrement
+#   medium → rapport stable mais en cours d'adoption
+#   low    → rapport en cours de développement / pilote
+# ============================================================
+
+exposures:
+
+  - name: passage_appro_monitoring_lcdp
+    label: "Passage Appro Monitoring LCDP"
+    type: dashboard
+    maturity: medium
+    description: >
+      Monitoring des passages appro Roadman chez les clients LCDP. Refresh 8x par jour.
+      Données chargées par le Cloud Run job "ingest-oracle-lcdp-passages-appro"
+      via GCP Cloud Workflows (pipeline-passages-appro-lcdp), qui écrit directement dans
+      prod_marts sans passer par dbt.
+      PBI : workspace "Lcdp" / dataset "DEV APPRO MONITORING".
+    owner:
+      name: Cebrail Aksoy
+      email: cebrail.aksoy@evs-pro.com
+    depends_on:
+      - source('marts_oracle_lcdp_external', 'fct_oracle_lcdp__monitoring_passages_appro')
+      - ref('dim_oracle_lcdp__company')
