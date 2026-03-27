@@ -62,6 +62,21 @@ models:
         tests:
           - not_null
           - unique
+      
+      - name: etat_intervention
+        description: "etat de l'intervention (Terminée, Mise en échec, Signature Différée ... )"
+        tests : 
+          - not_null
+
+      - name: categorie_machine
+        description: "Categorie de machine (AGUILA ou TRANSPORTABLE)"
+        tests : 
+          - not_null
+
+      - name: machine_clean
+        description: "Nom de la machine clean pour lien avec objetifs"
+        tests : 
+          - not_null
 
       - name: type_inter_libelle
         description: "Libellé métier du type d’intervention"
