@@ -13,7 +13,7 @@ Ce repo couvre la couche **Transform** du pipeline ELT : modélisation BigQuery 
 git clone https://github.com/CebrailEVS/dbt_transform.git
 cd dbt_transform
 python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-lock.txt
 cp .env.example .env   # editer avec vos valeurs
 set -a && source .env && set +a
 dbt deps && dbt debug
@@ -35,6 +35,7 @@ dbt deps && dbt debug
 | **GitHub Actions**         | CI/CD automatisee                                 |
 | **SQLFluff**               | Linting et formatage SQL                          |
 | **Power BI**               | Visualisation et reporting                        |
+| **Cloud Storage**          | Zone d'atterrissage intermediaire pour certaines types de données                |
 | **Meltano** *(repo separe)*| Extraction et chargement vers BigQuery            |
 
 ---
@@ -102,7 +103,7 @@ source venv/bin/activate  # Linux/Mac
 # ou venv\Scripts\activate  # Windows
 
 # 3. Installer les dependances (dbt, dbt-bigquery, sqlfluff)
-pip install -r requirements.txt
+pip install -r requirements-lock.txt
 
 # 4. Configurer les variables d'environnement
 cp .env.example .env  # Ajuster les valeurs
@@ -137,7 +138,7 @@ DBT_BIGQUERY_DATASET_PROD=prod
 | Environnement | Utilisateur | Schemas | Usage |
 |---------------|-------------|---------|-------|
 | `dev` | Data Engineer + Data Analyst | `dev_staging`, `dev_intermediate`, `dev_marts` | Developpement et tests |
-| `prod` | Airflow | `prod_staging`, `prod_intermediate`, `prod_marts` | Production automatisee |
+| `prod` | Cloud Workflows | `prod_staging`, `prod_intermediate`, `prod_marts` | Production automatisee |
 
 > Les deux profils lisent depuis `prod_raw` (memes sources). Seuls les schemas de destination changent.
 
