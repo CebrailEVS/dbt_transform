@@ -59,8 +59,32 @@ sources:
               - unique
               - not_null
 
-          - name: roadman_code
-            description: "Code du roadman assigné au passage."
+          - name: device_id
+            description: "Identifiant de la machine concernée"
+            data_type: integer
+
+          - name: company_id
+            description: "Identifiant du client"
+            data_type: integer
+
+          - name: product_source_id
+            description: "Identifiant du produit source (chargé)"
+            data_type: integer
+
+          - name: product_destination_id
+            description: "Identifiant du produit destination (déchargé)"
+            data_type: integer
+
+          - name: resources_roadman_id
+            description: "Identifiant de la ressource Roadman"
+            data_type: integer
+
+          - name: product_source_type
+            description: "Type du produit source"
+            data_type: string
+
+          - name: product_destination_type
+            description: "Type du produit destination"
             data_type: string
 
           - name: company_code
@@ -75,31 +99,51 @@ sources:
             description: "Info complet du client au format 'nom - code'."
             data_type: string
 
-          - name: device_id
-            description: "Identifiant de l'équipement/machine concerné"
-            data_type: integer
-
-          - name: device_info
-            description: "Info complet de l'équipement au format 'nom - code'."
+          - name: device_code
+            description: "Code de la machine"
             data_type: string
 
-          - name: passage_start_datetime
+          - name: device_name
+            description: "Nom de la machine"
+            data_type: string
+
+          - name: device_info
+            description: "Info complet de la machine au format 'nom - code'."
+            data_type: string
+
+          - name: roadman_code
+            description: "Code du roadman assigné au passage."
+            data_type: string
+
+          - name: task_location_info
+            description: "Informations de localisation de la tâche"
+            data_type: string
+
+          - name: task_status_code
+            description: "Statut du passage : PREVU / ENCOURS / FAIT"
+            data_type: string
+
+          - name: date_pointage
+            description: "Heure de pointage du roadman ce jour-là (premier pointage valide après 3h). NULL si pas de pointage trouvé."
+            data_type: timestamp
+
+          - name: date_pointage_jour
+            description: "Date du pointage sans l'heure."
+            data_type: date
+
+          - name: start_date_day
+            description: "Date de début du passage sans l'heure. Utilisé pour les agrégations journalières."
+            data_type: date
+
+          - name: task_start_date
             description: "Date et heure de début réel du passage."
             data_type: timestamp
             tests:
               - not_null
 
-          - name: passage_start_date
-            description: "Date du passage sans l'heure. Utilisé pour les agrégations journalières."
-            data_type: date
-
-          - name: passage_end_datetime
+          - name: task_end_date
             description: "Date et heure de fin réelle du passage. Peut être NULL si passage en cours."
             data_type: timestamp
-
-          - name: passage_status
-            description: "Statut du passage : PREVU / ENCOURS / FAIT"
-            data_type: string
 
           - name: passage_duration_min
             description: "Durée du passage en minutes. NULL si passage pas encore terminé."
@@ -113,8 +157,8 @@ sources:
             description: "1 = PREVU / ENCOURS / FAIT, 0 = autres statuts"
             data_type: integer
 
-          - name: passage_sequence
-            description: "Numéro de séquence du passage pour ce roadman dans la journée."
+          - name: pointage_missing_flag
+            description: "1 = pointage absent pour ce roadman ce jour-là"
             data_type: integer
 
           - name: loaded_at_utc
@@ -122,6 +166,10 @@ sources:
             data_type: timestamp
             tests:
               - not_null
+
+          - name: loaded_at_paris
+            description: "Timestamp de chargement converti en heure de Paris (string)."
+            data_type: string
 
         tests:
           - dbt_utils.unique_combination_of_columns:
