@@ -24,3 +24,6 @@ CLAUDE.md
 
 # Keyfile test
 keyfile.b64.txt
+keyfile.json
+*-keyfile.json
+*-sa-key.json
