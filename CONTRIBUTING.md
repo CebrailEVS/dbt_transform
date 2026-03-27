@@ -289,9 +289,6 @@ Les deux environnements lisent depuis `prod_raw` (meme source). Seuls les schema
 Avant de creer de nouveaux modeles, prendre le temps de comprendre ce qui existe :
 
 ```bash
-# Naviguer visuellement tous les modeles, colonnes et tests
-dbt docs generate && dbt docs serve
-
 # Lister les modeles d'un domaine
 dbt ls --select tag:oracle_neshu
 
@@ -309,5 +306,5 @@ La documentation generee est aussi disponible en ligne : [https://cebrailevs.git
 ## Besoin d'aide ?
 
 - `dbt debug` pour verifier la configuration
-- `dbt docs generate && dbt docs serve` pour naviguer les modeles
+- Documentation en ligne (modeles, lineage, tests) : [https://cebrailevs.github.io/dbt_transform/](https://cebrailevs.github.io/dbt_transform/)
 - Consulter [CONVENTIONS.md](CONVENTIONS.md) pour les regles de nommage et qualite

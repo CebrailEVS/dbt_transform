@@ -158,14 +158,12 @@ dbt build --select tag:marts
 # Build un modele et ses dependances amont
 dbt build --select +fct_oracle_neshu__conso_business_review
 
-# Freshness / Seeds / Snapshots
+# Freshness / Seeds
 dbt source freshness
 dbt seed
-dbt snapshot
-
-# Documentation (naviguer les modeles, colonnes, tests)
-dbt docs generate && dbt docs serve
 ```
+
+> Les snapshots sont executes automatiquement par Cloud Workflows — ne pas les lancer manuellement.
 
 > `dbt build` remplace `dbt run` + `dbt test` : il execute et teste chaque modele avant de passer aux modeles enfants. Si un test staging echoue, les marts ne sont pas construits sur des donnees incorrectes.
 
