@@ -2,10 +2,12 @@ version: 2
 
 models:
   - name: fct_technique__machines_avec_interventions
-    description: >
+    description: |
       Nombre d'interventions techniques réalisées sur les machines installées chez les clients
       sur les 12 derniers mois. Croise les données clients Nespresso CO et les interventions
       techniques Nespresso Tech.
+
+      **Sources :** nesp_co (clients enrichis) · nesp_tech (interventions dédupliquées)
 
     columns:
       - name: n_serie_machine
@@ -171,10 +173,12 @@ models:
         description: Date de création de l'enregistrement matériel dans Yuman (utilisée pour la déduplication)
 
   - name: fct_technique__interventions
-    description: >
+    description: |
       Table de fait consolidant les interventions techniques provenant des
       systèmes NESP et YUMAN. Sert de base pour les indicateurs opérationnels,
       la facturation partenaire et les primes techniciens.
+
+      **Sources :** nesp_tech (interventions, facturation, délais) · yuman (workorders NESHU)
 
     columns:
       - name: key_inter
