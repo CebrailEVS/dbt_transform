@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: fct_technique__machines_maintenance_tracking
+  - name: fct_technique__neshu_maintenance_preventives
     description: |
       Table de faits pour le suivi des maintenances préventives des machines NESHU.
 
