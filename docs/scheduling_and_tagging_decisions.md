@@ -1,5 +1,5 @@
 # Scheduling & Tagging Decisions
-> Internal doc — architecture decisions made during migration planning. Last updated: 2026-03-30.
+> Internal doc — architecture decisions made during migration planning. Last updated: 2026-03-31.
 
 ---
 
@@ -7,6 +7,9 @@
 
 This document captures the decisions made around dbt tag conventions and pipeline scheduling,
 specifically for cross-source models. It is a companion to `architecture_review.md`.
+
+It also serves as the reference inventory for the BU-based marts restructuration
+(`feature/refactor-marts-by-bu`).
 
 ---
 
@@ -98,7 +101,7 @@ One tag per **scheduling boundary** — defined by the last upstream source to f
 | Tag | Trigger time | Gate: last source to finish | Sources it covers |
 |---|---|---|---|
 | `cross_post_yuman` | Set based on observed yuman run time + buffer | yuman (starts 01:00 weekdays) | oracle_neshu + yuman |
-| `cross_post_nesp_co` | Set based on observed nesp_co run time + buffer | nesp_co (starts 08:00 daily) | models needing nesp_co or gac |
+| `cross_post_nesp_co` | Set based on observed nesp_co run time + buffer | nesp_co (starts 08:00 daily) | models needing nesp_co or nesp_tech |
 
 **Naming rule:** `cross_post_<last_source>` — tells you exactly which pipeline gate
 the model is waiting for without being tied to a hardcoded time.
@@ -110,7 +113,83 @@ the model is waiting for without being tied to a hardcoded time.
 
 ---
 
-## 5. Dedicated Cross-Source Workflow (Option B — chosen)
+## 5. Full Cross-Source Model Inventory
+
+As of 2026-03-31. 7 cross-source models across all layers.
+
+| Model | Layer | Current location | Sources | Scheduling risk | Tag needed |
+|---|---|---|---|---|---|
+| `int_oracle_neshu__machines_yuman_maintenance_base` | intermediate | `intermediate/oracle_neshu/` | oracle_neshu + yuman | High | `cross_post_yuman` |
+| `fct_oracle_neshu__machines_maintenance_tracking` | marts | `marts/oracle_neshu/` | oracle_neshu + yuman | High | `cross_post_yuman` |
+| `fct_nesp_co__machines_avec_interventions` | marts | `marts/nesp_co/` | nesp_co + nesp_tech | Medium | `cross_post_nesp_co` |
+| `fct_technique__interventions` | marts | `marts/technique/` ✅ | nesp_tech + yuman | Medium | TBD — confirm which finishes last |
+| `fct_oracle_neshu__supply_flux` | marts | `marts/oracle_neshu/` | oracle_neshu + oracle_neshu_gcs | Low | Likely none — confirm same pipeline window |
+| `fct_oracle_neshu_gcs__stock_products` | marts | `marts/oracle_neshu_gcs/` | oracle_neshu + oracle_neshu_gcs | Low | Likely none — confirm same pipeline window |
+| `int_mssql_sage__pnl_bu` | intermediate | `intermediate/mssql_sage/` | mssql_sage + historic (static) | Low | None — historic source is not a pipeline |
+
+### Notes on low-risk models
+
+**`oracle_neshu` + `oracle_neshu_gcs`** — both originate from the same Oracle system, extracted
+via different paths (DB connector vs GCS CSV dump). If they run in the same Cloud Scheduler
+window, no dedicated cross-source workflow is needed. Confirm before migration.
+
+**`int_mssql_sage__pnl_bu`** — `source('historic', 'update_mssql_sage__analytique_2024')` is a
+one-time historical mapping table, not a live pipeline. No scheduling concern.
+
+### Known gap (pre-migration bug)
+
+`marts/nesp_co/` has no entry under `marts:` in `dbt_project.yml`. `fct_nesp_co__machines_avec_interventions`
+only receives `tag:marts`, never `tag:nesp_co`. It is invisible to any nesp_co pipeline selector today.
+Fix this as part of the migration.
+
+---
+
+## 6. Impact of BU Migration on Workflows
+
+### dbt_project.yml
+
+Staging and intermediate layers are **unchanged** — they stay source-tagged.
+Only the `marts/` folder structure changes (source folders → BU folders).
+
+Before:
+```yaml
+marts:
+  oracle_neshu:
+    +tags: ['marts', 'oracle_neshu']
+```
+
+After:
+```yaml
+marts:
+  technique:
+    +tags: ['marts', 'technique']
+  # etc. — BU folder names replace source folder names
+```
+
+### Cloud Workflows / Cloud Scheduler selectors
+
+Current pipelines presumably select by source tag across all layers:
+```
+dbt build --select tag:oracle_neshu
+# today: hits staging/oracle_neshu + intermediate/oracle_neshu + marts/oracle_neshu
+```
+
+After BU migration `tag:oracle_neshu` no longer selects the oracle_neshu marts (they moved
+to a BU folder with a different tag). Each workflow selector must be updated to union the
+source tag with the relevant BU mart tag:
+
+```
+# updated selector in pipeline-oracle-neshu workflow
+dbt build --select tag:oracle_neshu tag:neshu
+```
+
+Or split into two steps: source/intermediate build first, then BU mart build.
+
+**Update every workflow's `DBT_TAG_SELECTOR` environment variable as part of the migration.**
+
+---
+
+## 7. Dedicated Cross-Source Workflow (Option B — chosen)
 
 ### Why not append to an existing pipeline (Option A)?
 
@@ -194,55 +273,48 @@ resource "google_cloud_scheduler_job" "pipeline_cross_source_yuman" {
 
 ---
 
-## 6. Current Cross-Source Models
+## 8. Migration Steps per Model
 
-### `fct_technique__machines_maintenance_tracking`
+### `fct_oracle_neshu__machines_maintenance_tracking` (+ its intermediate)
 
-| Property | Value |
-|---|---|
-| Current location | `models/marts/oracle_neshu/` |
-| Proposed location | `models/marts/technique/` |
-| Sources | oracle_neshu (daily 01:00) + yuman (weekdays 01:00) |
-| Scheduling tag | `cross_post_yuman` |
-| Reason for move | Cross-source model, belongs in `technique/` BU folder |
-| Uses `current_timestamp()` | Yes — must rebuild daily, weekly is not acceptable |
-
-**Migration steps for this model:**
-1. Absorb `int_oracle_neshu__machines_yuman_maintenance_base` logic directly into this mart
-   (the intermediate has only one consumer — this model)
+1. Absorb `int_oracle_neshu__machines_yuman_maintenance_base` logic directly into the mart
+   (single consumer — no reason to keep the intermediate)
 2. Move file to `models/marts/technique/`
-3. Rename to `fct_technique__machines_maintenance_tracking` (name unchanged, only folder moves)
+3. Rename to `fct_technique__machines_maintenance_tracking`
 4. Add `tags = ['cross_post_yuman']` to model config
-5. Delete `int_oracle_neshu__machines_yuman_maintenance_base`
-6. Update `_oracle_neshu__marts_models.yml` → remove entry
-7. Update `_technique__marts_models.yml` → add entry
-8. Update `_oracle_neshu__intermediate_models.yml` → remove intermediate entry
-9. Deploy `pipeline-cross-source-yuman` workflow + Cloud Scheduler
+5. Add `tags = ['cross_post_yuman']` to `int_oracle_neshu__machines_yuman_maintenance_base` (until absorbed)
+6. Delete `int_oracle_neshu__machines_yuman_maintenance_base`
+7. Update `_oracle_neshu__marts_models.yml` → remove entry
+8. Update `_technique__marts_models.yml` → add entry
+9. Update `_oracle_neshu__intermediate_models.yml` → remove intermediate entry
+10. Deploy `pipeline-cross-source-yuman` workflow + Cloud Scheduler
 
 ### `fct_nesp_co__machines_avec_interventions`
 
-| Property | Value |
-|---|---|
-| Current location | `models/marts/nesp_co/` |
-| Proposed location | `models/marts/technique/` |
-| Proposed name | `fct_technique__machines_avec_interventions` |
-| Sources | nesp_tech (Monday 07:30) + nesp_co (daily 08:00) |
-| Scheduling tag | none — inherits `technique` from folder |
-| Triggered by | `pipeline-nesp-tech` already runs `tag:technique` after nesp_tech refresh |
-| Refresh cadence | Weekly (Monday only) — acceptable, intervention data is weekly by nature |
-
-**Migration steps for this model:**
 1. Move file to `models/marts/technique/`
 2. Rename to `fct_technique__machines_avec_interventions`
-3. No model-level tag needed — folder tag `technique` is correct
+3. Add `tags = ['cross_post_nesp_co']` to model config
 4. Update `_nesp_co__marts_models.yml` → remove entry
 5. Update `_technique__marts_models.yml` → add entry
-6. Verify Power BI reports: if they reference the BigQuery table by name, update the dataset reference
-   (table name changes because the model is renamed)
+6. Fix `dbt_project.yml` — add missing `nesp_co:` entry under `marts:` (or remove folder entirely after move)
+7. Verify Power BI reports: table name changes → update BigQuery dataset reference in Power BI
+8. Deploy `pipeline-cross-source-nesp-co` workflow + Cloud Scheduler
+
+### `fct_technique__interventions` (already in `marts/technique/`)
+
+1. Confirm which source finishes last (nesp_tech vs yuman) to pick the right `cross_post_*` tag
+2. Add `tags = ['cross_post_<last_source>']` to model config
+3. No file move needed
+
+### `fct_oracle_neshu__supply_flux` and `fct_oracle_neshu_gcs__stock_products`
+
+1. Confirm oracle_neshu and oracle_neshu_gcs run in the same pipeline window
+2. If yes → no scheduling change needed, migration is folder/tag rename only
+3. If no → treat as high-risk cross-source and assign a `cross_post_oracle_neshu_gcs` tag
 
 ---
 
-## 7. Scaling Rules — Adding Future Cross-Source Models
+## 9. Scaling Rules — Adding Future Cross-Source Models
 
 1. **Identify the last upstream source to finish** among the model's dependencies
 2. **Use the existing `cross_post_<source>` tag** if one already exists for that boundary
@@ -252,7 +324,7 @@ resource "google_cloud_scheduler_job" "pipeline_cross_source_yuman" {
 
 ---
 
-## 8. What Big Companies Do (for context — not applicable here)
+## 10. What Big Companies Do (for context — not applicable here)
 
 Large companies use orchestrators (Airflow, Dagster, Prefect) where cross-source dependencies
 are handled natively via task DAGs. `depends_on: [oracle_neshu_pipeline, yuman_pipeline]`
