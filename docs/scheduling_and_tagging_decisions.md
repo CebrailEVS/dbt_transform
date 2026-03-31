@@ -1,5 +1,9 @@
 # Scheduling & Tagging Decisions
 > Internal doc — architecture decisions made during migration planning. Last updated: 2026-03-31.
+>
+> **Decision log:** `cross_post_*` tag pattern was considered and dropped. Replaced by a dedicated
+> T-only workflow (`transform-technique-daily`) with dbt source freshness as a safety gate.
+> See section 7.
 
 ---
 
@@ -189,79 +193,63 @@ Or split into two steps: source/intermediate build first, then BU mart build.
 
 ---
 
-## 7. Dedicated Cross-Source Workflow (Option B — chosen)
+## 7. Chosen Solution: `transform-technique-daily`
 
-### Why not append to an existing pipeline (Option A)?
+### Naming convention: `transform-*` vs `pipeline-*`
 
-Appending `tag:cross_post_yuman` to the end of `pipeline-yuman` would work today but:
-- Couples cross-source logic to the yuman pipeline — a yuman failure blocks cross-source builds
-- The yuman workflow accumulates responsibilities that don't belong to it
-- Less self-documenting
+- `pipeline-*` — EL + T workflows (Meltano extract + dbt build)
+- `transform-*` — T-only workflows (dbt only, no extraction step)
 
-### Dedicated workflow structure
+### Why a dedicated workflow instead of appending to yuman or oracle_neshu
 
-One workflow file + one Cloud Scheduler job per scheduling boundary.
+Both `pipeline-yuman` and `pipeline-oracle-neshu` start at 01:00. oracle_neshu finishes
+first (~03:00), yuman finishes last (~04:00-05:00 by experience). Appending a technique
+build step to oracle_neshu would race with yuman. Appending to yuman would mean a yuman
+pipeline failure also breaks technique mart builds — wrong failure domain.
 
-**`/workflows/pipeline-cross-source-yuman.yaml`** — fires after yuman is guaranteed done:
+A dedicated T-only workflow at 03:00 with a source freshness gate is self-contained,
+self-documenting, and fails independently.
 
-```yaml
-# Schedule: weekdays, set time based on observed yuman run time + buffer
-# cron: 0 <H> * * 1-5
+### Why `tag:technique` and not `cross_post_yuman`
 
-main:
-  steps:
-    - init:
-        assign:
-          - project: "evs-datastack-prod"
-          - region: "europe-west1"
+All technique models live in `marts/technique/` and share the same `tag:technique` folder tag.
+Using `tag:technique` directly is simpler — no model-level tag overrides needed.
 
-    - run_dbt:
-        call: run_cloud_run_job
-        args:
-          project: ${project}
-          region: ${region}
-          job_name: "dbt-runner"
-          args_override: []
-          env_override:
-            - name: "DBT_SOURCE_SELECTOR"
-              value: "source:oracle_neshu source:yuman_api"
-            - name: "DBT_TAG_SELECTOR"
-              value: "tag:cross_post_yuman"
-        result: res_dbt
+nesp_tech-dependent models (`fct_technique__interventions`, `fct_technique__machines_avec_interventions`)
+rebuild daily with the previous Monday's nesp_tech data. This is intentional and acceptable:
+yuman and nesp_co data still refresh daily. The Monday nesp_tech pipeline rebuilds them again
+with fresh nesp_tech data. Idempotent, no data integrity issue.
 
-    - log_dbt:
-        call: sys.log
-        args:
-          text: "dbt cross_post_yuman completed"
-          severity: INFO
+### Workflow: `transform-technique-daily`
 
-    - pipeline_done:
-        return: "Pipeline cross-source-yuman completed successfully"
+File: `/workflows/transform-technique-daily.yaml`
+Schedule: daily at 03:00 Europe/Paris (`0 3 * * *`)
 
-# + run_cloud_run_job and poll_lro subworkflows (copy from any existing pipeline)
+```
+Step 1: dbt source freshness → source:oracle_neshu source:yuman_api
+        fails fast if either upstream pipeline failed overnight
+
+Step 2: dbt build → tag:technique
+        builds all models in marts/technique/
 ```
 
-**Note on `DBT_SOURCE_SELECTOR`:** `entrypoint.sh` always runs `dbt source freshness`
-before building. For cross-source workflows there is no EL step, so pass all upstream
-source names as a space-separated string. dbt treats this as a union selector.
-
-### Terraform additions
+### Terraform (in `infra/workflows.tf`)
 
 ```hcl
-resource "google_workflows_workflow" "pipeline_cross_source_yuman" {
-  name            = "pipeline-cross-source-yuman"
+resource "google_workflows_workflow" "transform_technique_daily" {
+  name            = "transform-technique-daily"
   region          = var.region
   service_account = google_service_account.meltano_runner.email
-  source_contents = file("${path.module}/../workflows/pipeline-cross-source-yuman.yaml")
+  source_contents = file("${path.module}/../workflows/transform-technique-daily.yaml")
 }
 
-resource "google_cloud_scheduler_job" "pipeline_cross_source_yuman" {
-  name      = "pipeline-cross-source-yuman"
-  schedule  = "0 <H> * * 1-5"   # set based on observed yuman run time + buffer
+resource "google_cloud_scheduler_job" "transform_technique_daily" {
+  name      = "transform-technique-daily"
+  schedule  = "0 3 * * *"
   time_zone = "Europe/Paris"
 
   http_target {
-    uri         = "https://workflowexecutions.googleapis.com/v1/${google_workflows_workflow.pipeline_cross_source_yuman.id}/executions"
+    uri         = "https://workflowexecutions.googleapis.com/v1/${google_workflows_workflow.transform_technique_daily.id}/executions"
     http_method = "POST"
     body        = base64encode("{}")
     oauth_token {
