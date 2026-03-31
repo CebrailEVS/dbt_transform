@@ -21,8 +21,13 @@ Le double underscore `__` separe la source de l'entite.
 | Staging | `stg_` | `stg_oracle_neshu__company.sql` |
 | Intermediate | `int_` | `int_oracle_neshu__appro_tasks.sql` |
 | Marts - Dimension | `dim_` | `dim_oracle_neshu__company.sql` |
-| Marts - Fact | `fct_` | `fct_oracle_neshu__conso_business_review.sql` |
+| Marts - Fact (mono-source) | `fct_` | `fct_oracle_neshu__conso_business_review.sql` |
+| Marts - Fact (cross-source) | `fct_<bu>__` | `fct_technique__neshu_maintenance_preventives.sql` |
 | Snapshot | `snap_` | `snap_oracle_neshu__device.sql` |
+
+> **Modeles cross-source :** un modele qui consomme des donnees de plusieurs sources differentes
+> va dans un dossier BU (`marts/technique/`) et non dans un dossier source (`marts/oracle_neshu/`).
+> Le prefixe du nom reflete la BU, pas la source. Voir `docs/scheduling_and_tagging_decisions.md`.
 
 ### Fichiers YAML
 
