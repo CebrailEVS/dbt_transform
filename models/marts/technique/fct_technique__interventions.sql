@@ -37,12 +37,17 @@ with nesp_interventions as (
         delais.delai_heures_debut,
         delais.delai_heures_fin,
         delais.type_delai_debut as delai_tech,
-        delais.type_delai_fin as delai_partenaire
+        delais.type_delai_fin as delai_partenaire,
+        key_factu_obj.alias_obj_type_inter,
+        key_factu_obj.alias_obj_type_machine,
+        key_factu_obj.alias_obj_grp_machine
     from {{ ref('int_nesp_tech__interventions_dedup') }} as dedup
     left join {{ ref('int_nesp_tech__facturation_interventions') }} as factu
         on dedup.n_planning = factu.n_planning
     left join {{ ref('int_nesp_tech__delais_interventions') }} as delais
         on dedup.n_planning = delais.n_planning
+    left join {{ ref('ref_nesp_tech__key_facturation')}} as key_factu_obj
+        on factu.key_factu = key_factu_obj.key_ref_inter
     where dedup.etat_intervention != 'annulée'
 ),
 
@@ -69,7 +74,10 @@ yuman_interventions as (
         0 as delai_heures_debut,
         0 as delai_heures_fin,
         type_delai as delai_tech,
-        type_delai as delai_partenaire
+        type_delai as delai_partenaire,
+        'NA' as alias_obj_type_inter,
+        'NA' as alias_obj_type_machine,
+        'NA' as alias_obj_grp_machine
     from {{ ref('fct_yuman__workorder_delais_neshu') }} as inter_yuman
     where inter_yuman.demand_status = 'Accepted'
 ),
@@ -106,6 +114,9 @@ interventions_enrichies as (
         i.delai_heures_fin,
         i.delai_tech,
         i.delai_partenaire,
+        i.alias_obj_type_inter,
+        i.alias_obj_type_machine,
+        i.alias_obj_grp_machine,
 
         -- Calcul durée en minutes
         timestamp_diff(i.date_fin, i.date_debut, minute) as duree_inter_minutes,
@@ -180,5 +191,8 @@ select
     flag_hors_delai_tech,
     tech_yuman_id,
     tech_nomad_id,
-    tech_nom
+    tech_nom,
+    alias_obj_type_inter,
+    alias_obj_type_machine,
+    alias_obj_grp_machine
 from interventions_enrichies
