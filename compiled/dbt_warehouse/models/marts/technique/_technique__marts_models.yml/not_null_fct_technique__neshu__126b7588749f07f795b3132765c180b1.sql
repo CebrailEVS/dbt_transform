@@ -1,0 +1,11 @@
+
+    
+    
+
+
+
+select device_last_installation_date
+from `evs-datastack-prod`.`prod_marts`.`fct_technique__neshu_maintenance_preventives`
+where device_last_installation_date is null
+
+

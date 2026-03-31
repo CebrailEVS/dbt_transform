@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Table de fait consolidant les interventions techniques provenant des syst\u00e8mes NESP et YUMAN. Sert de base pour les indicateurs op\u00e9rationnels, la facturation partenaire et les primes techniciens.\n"""
+      description="""Table de fait consolidant les interventions techniques provenant des\nsyst\u00e8mes NESP et YUMAN. Sert de base pour les indicateurs op\u00e9rationnels,\nla facturation partenaire et les primes techniciens.\n\n**Sources :** nesp_tech (interventions nomad) \u00b7 yuman (interventions yuman)\n"""
     )
     as (
       
