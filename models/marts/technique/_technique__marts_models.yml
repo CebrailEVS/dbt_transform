@@ -76,6 +76,10 @@ models:
         tests:
           - not_null
           - unique
+          - relationships:
+              arguments:
+                to: ref('dim_oracle_neshu__device')
+                field: device_id
 
       - name: device_code
         description: Numéro de série du device de la source DLOG NESHU
@@ -104,6 +108,13 @@ models:
 
       - name: material_id
         description: Identifiant unique du matériel dans Yuman (peut être NULL si machine non référencée dans Yuman)
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_yuman__materials')
+                field: material_id
+              config:
+                where: "material_id is not null"
 
       - name: material_serial_number
         description:
@@ -178,7 +189,7 @@ models:
       systèmes NESP et YUMAN. Sert de base pour les indicateurs opérationnels,
       la facturation partenaire et les primes techniciens.
 
-      **Sources :** nesp_tech (interventions, facturation, délais) · yuman (workorders NESHU)
+      **Sources :** nesp_tech (interventions nomad) · yuman (interventions yuman)
 
     columns:
       - name: key_inter
