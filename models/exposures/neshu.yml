@@ -73,4 +73,4 @@ exposures:
       name: Cebrail Aksoy
       email: cebrail.aksoy@evs-pro.com
     depends_on:
-      - ref('fct_oracle_neshu__machines_maintenance_tracking')
+      - ref('fct_technique__neshu_maintenance_preventives')

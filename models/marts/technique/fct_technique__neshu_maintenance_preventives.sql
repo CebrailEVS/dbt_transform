@@ -1,12 +1,129 @@
--- fct_oracle_neshu__machines_maintenance_tracking.sql
+-- fct_technique__machines_maintenance_tracking.sql
 {{ config(
     materialized = "table",
     cluster_by = ['company_code', 'device_code'],
     description = "Table de faits du suivi des maintenances préventives des machines NESHU (Oracle + Yuman)."
 ) }}
 
-with machines_base as (
-    select * from {{ ref('int_oracle_neshu__machines_yuman_maintenance_base') }}
+-- LISTE MACHINE DLOG filtré & clean
+with liste_machine_oracle as (
+    select
+        d.device_id,
+        CONCAT('NESH_', d.device_code) as device_code,
+        d.device_name,
+        CONCAT('NESH_', company_code) as company_code,
+        d.company_name,
+        d.last_installation_date,
+        d.created_at as device_created_at,
+        d.updated_at as device_updated_at
+    from {{ ref('dim_oracle_neshu__device') }} as d
+    where
+        is_active
+        and device_type_id in (1, 2)
+        and REGEXP_CONTAINS(company_code, r'^CN[0-9]{4}$')
+        and device_name in (
+            'MOMENTO 100', 'GEMINI 200', 'MOMENTO 200', 'MINITOWER GEMINI', 'MINITOWER MOMENTO',
+            'SBS MOMENTO 100', 'TOWER GEMINI', 'TOWER MOMENTO', 'MILANO LYO FTS120',
+            'MILANO GRAIN FTS60E', 'MILANO GRAIN FTS60E + MODULO', 'BLUSODA', 'BLUSODA GAZ',
+            'TOWER BLUSODA', 'TOWER BLUSODA GAZ', 'MILANO LYO FTS120 + MODULO',
+            'BLUSODA',
+            'TOWER ONE GAZ',
+            'OPTIBEANX12 + MODULO',
+            'OPTIBEAN X 12',
+            'OPTIBEAN X 12 TS',
+            'OPTIBEANX12TS + MODULO',
+            'OPTIBEANX12TS + MODULO',
+            'OPTIBEAN 12'
+        )
+),
+
+-- LISTE MACHINE YUMAN ENRICHI CLIENT / SITE filtré & clean
+yuman_materials_clean as (
+    select
+        ym.material_id,
+        ym.material_description,
+        ym.material_name,
+        ym.material_brand,
+        ym.material_serial_number,
+        ycat.category_name,
+        ym.material_in_service_date,
+        ym.created_at,
+        ym.updated_at,
+        yc.client_id,
+        yc.client_code,
+        yc.client_name,
+        yc.client_category,
+        yc.partner_name,
+        ys.site_id,
+        ys.site_code,
+        ys.site_postal_code
+    from {{ ref('stg_yuman__materials') }} as ym
+    left join {{ ref('stg_yuman__sites') }} as ys
+        on ym.site_id = ys.site_id
+    left join {{ ref('stg_yuman__clients') }} as yc
+        on ys.client_id = yc.client_id
+    left join {{ ref('stg_yuman__materials_categories') }} as ycat
+        on ym.category_id = ycat.category_id
+    where
+        yc.partner_name = 'NESHU'
+        and ys.site_code not in (
+            'NESH_DEPOTATELIERBORDEAUX', 'NESH_DEPOTATELIERLYON', 'NESH_DEPOTATELIERMARSEILLE',
+            'NESH_DEPOTATELIERRUNGIS', 'NESH_DEPOTATELIERSTRASBOURG', 'NESH_DEPOTBORDEAUX',
+            'NESH_DEPOTLYON', 'NESH_DEPOTMARSEILLE', 'NESH_DEPOTPERIMES', 'NESH_DEPOTREBUS',
+            'NESH_DEPOTRUNGIS', 'NESH_DEPOTSTRASBOURG', 'NESH_RELYON', 'NESH_RERUNGIS', 'NESH_STOCKNUNSHEN'
+        )
+        and ym.material_name not like '%GENERIQUE NESHU%'
+        and ym.material_serial_number not in
+        (
+            'NESH_MA00226', 'NESH_MA00227', 'NESH_MA00247', 'NESH_MA00248', 'NESH_MA00249',
+            'NESH_MA00250', 'NESH_MA00251', 'NESH_MA00252', 'NESH_MA00253', 'NESH_MA00254',
+            'NESH_MA00193', 'NESH_MA00194', 'NESH_MA00195', 'NESH_MA00196', 'NESH_MA00197',
+            'NESH_MA00198', 'NESH_MA00199', 'NESH_MA00200', 'NESH_MA00201', 'NESH_MA00202',
+            'NESH_MA00203', 'NESH_MA00204', 'NESH_MA00205', 'NESH_MA00206', 'NESH_MA00207',
+            'NESH_MA00208', 'NESH_MA00209', 'NESH_MA00210', 'NESH_MA00211', 'NESH_MA00212',
+            'NESH_MA00213', 'NESH_MA00214', 'NESH_MA00215', 'NESH_MA00228', 'NESH_MA00229',
+            'NESH_MA00230', 'NESH_MA00231', 'NESH_MA00232', 'NESH_MA00233', 'NESH_MA00234',
+            'NESH_MA00235', 'NESH_MA00236', 'NESH_MA00237', 'NESH_MA00238', 'NESH_MA00239',
+            'NESH_MA00240', 'NESH_MA00241', 'NESH_MA00242', 'NESH_MA00244', 'NESH_MA00245',
+            'NESH_MA00246', 'NESH_MA00256', 'NESH_MA00257', 'NESH_MA00258', 'NESH_MA00259',
+            'NESH_MA00260', 'NESH_MA00261', 'NESH_MA00262', 'NESH_MA00263', 'NESH_MA00264',
+            'NESH_MA00265', 'NESH_MA00266', 'NESH_MA00270', 'NESH_MA00216', 'NESH_MA00217',
+            'NESH_MA00220', 'NESH_MA00221', 'NESH_MA00222', 'NESH_MA00223', 'NESH_MA00181',
+            'NESH_MA00182', 'NESH_MA00184', 'NESH_MA00185', 'NESH_MA00183', 'NESH_MA00186',
+            'NESH_MA00187', 'NESH_AS00401', 'NESH_AS00403', 'NESH_AS00393', 'NESH_AS00557',
+            'NESH_AS00558', 'NESH_AS00242', 'NESH_AS00241', 'NESH_AS00562', 'NESH_AS00559',
+            'NESH_AS00070', 'NESH_AS00568', 'NESH_AS00563', 'NESH_AS00561', 'NESH_AS00560',
+            'NESH_AS00317', 'NESH_AS00314', 'NESH_MA00136', 'NESH_AS00011', 'NESH_AS00012',
+            'NESH_MA00170', 'NESH_AS00004'
+        )
+),
+
+-- JOINTURE ENTRE LA LISTE MACHINE DLOG avec les données YUMAN
+machines_base as (
+    select
+        lo.device_id,
+        lo.device_code,
+        lo.device_name,
+        lo.company_code,
+        lo.company_name,
+        lo.last_installation_date,
+        lo.device_created_at,
+        lo.device_updated_at,
+        ym.material_id,
+        ym.material_serial_number,
+        ym.material_name,
+        ym.client_id,
+        ym.client_code,
+        ym.client_name,
+        ym.client_category,
+        ym.site_id,
+        ym.site_code,
+        ym.site_postal_code,
+        ym.created_at as material_created_at,
+        ym.updated_at as material_updated_at
+    from liste_machine_oracle as lo
+    left join yuman_materials_clean as ym
+        on lo.device_code = ym.material_serial_number and lo.company_code = ym.client_code
 ),
 
 -- INTERVENTIONS YUMAN (toutes, pas de filtre ici)
@@ -48,8 +165,8 @@ workorder_enrichi as (
 -- LISTE INTERVENTION PREV DLOG
 intervention_prev_dlog as (
     select
-        concat('NESH_', device_code) as device_code,
-        max(task_end_date) as last_preventive_date
+        CONCAT('NESH_', device_code) as device_code,
+        MAX(task_end_date) as last_preventive_date
     from {{ ref('int_oracle_neshu__inter_techinique_tasks') }}
     where
         dc04 = 'DC0402'
@@ -87,7 +204,7 @@ calcul_retard as (
         material_created_at,
 
         -- Déterminer la dernière préventive de la source 1 (Yuman)
-        max(
+        MAX(
             case
                 when (
                     workorder_type = 'Preventive'
@@ -100,12 +217,12 @@ calcul_retard as (
             as derniere_preventive_source1,
 
         -- Récupérer la préventive externe (source 2 - DLOG)
-        max(last_preventive_date) over (
+        MAX(last_preventive_date) over (
             partition by material_id
         ) as derniere_preventive_source2,
 
         -- Date du jour
-        current_timestamp() as today
+        CURRENT_TIMESTAMP() as today
 
     from material_enrichi
 ),
@@ -132,7 +249,7 @@ retard_final as (
         -- CAS 1: Machine installée depuis moins de 13 mois
         case
             when
-                last_installation_date > timestamp_sub(today, interval 395 day)
+                last_installation_date > TIMESTAMP_SUB(today, interval 395 day)
                 then false
 
             -- CAS 2: Machine ancienne sans aucune préventive
@@ -143,16 +260,16 @@ retard_final as (
 
             -- CAS 3: Machine avec préventives - vérifier si retard > 365 jours
             when
-                greatest(
-                    coalesce(
+                GREATEST(
+                    COALESCE(
                         derniere_preventive_source1,
-                        timestamp('1900-01-01')
+                        TIMESTAMP('1900-01-01')
                     ),
-                    coalesce(
+                    COALESCE(
                         derniere_preventive_source2,
-                        timestamp('1900-01-01')
+                        TIMESTAMP('1900-01-01')
                     )
-                ) < timestamp_sub(today, interval 365 day)
+                ) < TIMESTAMP_SUB(today, interval 365 day)
                 then true
             else false
         end as retard_bol,
@@ -161,10 +278,10 @@ retard_final as (
         case
             -- CAS 1: Machine récente (< 13 mois)
             when
-                last_installation_date > timestamp_sub(today, interval 395 day)
+                last_installation_date > TIMESTAMP_SUB(today, interval 395 day)
                 then
-                    timestamp_diff(
-                        timestamp_add(
+                    TIMESTAMP_DIFF(
+                        TIMESTAMP_ADD(
                             last_installation_date, interval 395 day
                         ),
                         today,
@@ -176,9 +293,9 @@ retard_final as (
                 derniere_preventive_source1 is null
                 and derniere_preventive_source2 is null
                 then
-                    -timestamp_diff(
+                    -TIMESTAMP_DIFF(
                         today,
-                        timestamp_add(
+                        TIMESTAMP_ADD(
                             last_installation_date, interval 365 day
                         ),
                         day
@@ -186,48 +303,48 @@ retard_final as (
 
             -- CAS 3: Avec préventives
             when
-                timestamp_diff(
+                TIMESTAMP_DIFF(
                     today,
-                    greatest(
-                        coalesce(
+                    GREATEST(
+                        COALESCE(
                             derniere_preventive_source1,
-                            timestamp('1900-01-01')
+                            TIMESTAMP('1900-01-01')
                         ),
-                        coalesce(
+                        COALESCE(
                             derniere_preventive_source2,
-                            timestamp('1900-01-01')
+                            TIMESTAMP('1900-01-01')
                         )
                     ),
                     day
                 ) > 365
                 then
                     -(
-                        timestamp_diff(
+                        TIMESTAMP_DIFF(
                             today,
-                            greatest(
-                                coalesce(
+                            GREATEST(
+                                COALESCE(
                                     derniere_preventive_source1,
-                                    timestamp('1900-01-01')
+                                    TIMESTAMP('1900-01-01')
                                 ),
-                                coalesce(
+                                COALESCE(
                                     derniere_preventive_source2,
-                                    timestamp('1900-01-01')
+                                    TIMESTAMP('1900-01-01')
                                 )
                             ),
                             day
                         ) - 365
                     )
             else
-                365 - timestamp_diff(
+                365 - TIMESTAMP_DIFF(
                     today,
-                    greatest(
-                        coalesce(
+                    GREATEST(
+                        COALESCE(
                             derniere_preventive_source1,
-                            timestamp('1900-01-01')
+                            TIMESTAMP('1900-01-01')
                         ),
-                        coalesce(
+                        COALESCE(
                             derniere_preventive_source2,
-                            timestamp('1900-01-01')
+                            TIMESTAMP('1900-01-01')
                         )
                     ),
                     day
@@ -237,7 +354,7 @@ retard_final as (
         -- SOURCE DE LA DERNIÈRE PRÉVENTIVE
         case
             when
-                last_installation_date > timestamp_sub(today, interval 395 day)
+                last_installation_date > TIMESTAMP_SUB(today, interval 395 day)
                 then 'aucune'
             when
                 derniere_preventive_source1 is null
@@ -263,7 +380,7 @@ retard_final as (
 deduplique as (
     select
         * except (today),
-        row_number() over (
+        ROW_NUMBER() over (
             partition by material_serial_number
             order by
                 retard_bol asc,                -- Les machines non en retard d'abord (FALSE avant TRUE)
@@ -351,7 +468,7 @@ joined_data as (
 deduplicated as (
     select
         *,
-        row_number() over (
+        ROW_NUMBER() over (
             partition by device_id
             order by demand_created_at desc nulls last  -- Les plus récentes d'abord, NULL à la fin
         ) as rn
@@ -376,12 +493,12 @@ final as (
         retard_bol,
         retard_delai,
         source_last_preventive,
-        coalesce(status_inter, 'Aucune') as status_inter,
+        COALESCE(status_inter, 'Aucune') as status_inter,
         date_planned,
         material_created_at,
 
         -- Métadonnées dbt
-        current_timestamp() as dbt_updated_at,
+        CURRENT_TIMESTAMP() as dbt_updated_at,
         '{{ invocation_id }}' as dbt_invocation_id  -- noqa: TMP
 
     from deduplicated

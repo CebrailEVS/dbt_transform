@@ -208,9 +208,39 @@ git branch -d feature/oracle_neshu/add-kpi-livraison  # supprimer la branche loc
 
 ### Marts
 
+#### Modele mono-source (cas standard)
+
 1. Creer dans `models/marts/<source>/`
 2. Nommer : `dim_<source>__<entite>.sql` ou `fct_<source>__<metrique>.sql`
 3. C'est la couche exposee a Power BI — veiller a la clarte des colonnes
+
+#### Modele cross-source (plusieurs sources de donnees)
+
+Un modele est cross-source s'il consomme des `ref()` provenant de sources differentes
+(ex : oracle_neshu + yuman, nesp_co + nesp_tech).
+
+1. Creer dans `models/marts/technique/` (ou le dossier BU correspondant, pas dans un dossier source)
+2. Nommer avec le prefixe BU : `fct_technique__<metrique>.sql`
+3. Ajouter la section **Sources** dans la description YAML du modele :
+   ```yaml
+   description: |
+     ...
+     **Sources :** nesp_tech (interventions) · yuman (workorders NESHU)
+   ```
+4. Pour les tests `relationships` sur des FK nullable (LEFT JOIN), ajouter un filtre :
+   ```yaml
+   - relationships:
+       arguments:
+         to: ref('stg_yuman__materials')
+         field: material_id
+       config:
+         where: "material_id is not null"
+   ```
+5. Ne pas creer d'intermediate dedie si le modele n'a qu'un seul consommateur — absorber la logique directement dans le mart
+
+> **Scheduling :** les modeles cross-source ne sont pas construits par le pipeline de leur source.
+> Ils sont construits par le workflow `transform-technique-daily` (03:00 quotidien).
+> Voir `docs/scheduling_and_tagging_decisions.md` pour le detail.
 
 ### Exposures (rapport Power BI)
 
