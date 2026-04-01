@@ -133,3 +133,6 @@ snapshots:
     
     oracle_neshu:
       +tags: ['snapshots', 'oracle_neshu']
+
+    yuman:
+      +tags: ['snapshots', 'yuman']
