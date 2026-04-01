@@ -131,8 +131,3 @@ snapshots:
     +target_schema: "{{ 'snapshots_dev' if target.name == 'dev' else 'snapshots' }}"
     +tags: ['snapshots']
     
-    oracle_neshu:
-      +tags: ['snapshots', 'oracle_neshu']
-
-    yuman:
-      +tags: ['snapshots', 'yuman']
