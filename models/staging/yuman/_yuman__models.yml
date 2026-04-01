@@ -129,6 +129,9 @@ models:
           - unique
           - not_null
 
+      - name: nomad_id
+        description: "Identifiant de l'utilisateur dans le système Nomad (si applicable)"
+
   - name: stg_yuman__workorder_demands_categories
     description: "Catégories de demandes d'intervention transformées et nettoyées depuis l'API Yuman"
     columns:
