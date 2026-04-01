@@ -125,7 +125,7 @@ As of 2026-03-31. 7 cross-source models across all layers.
 |---|---|---|---|---|---|
 | `int_oracle_neshu__machines_yuman_maintenance_base` | intermediate | `intermediate/oracle_neshu/` | oracle_neshu + yuman | High | `cross_post_yuman` |
 | `fct_oracle_neshu__machines_maintenance_tracking` | marts | `marts/oracle_neshu/` | oracle_neshu + yuman | High | `cross_post_yuman` |
-| `fct_nesp_co__machines_avec_interventions` | marts | `marts/nesp_co/` | nesp_co + nesp_tech | Medium | `cross_post_nesp_co` |
+| `fct_commerce__machines_avec_interventions` | marts | `marts/commerce/` ✅ | nesp_co + nesp_tech | Medium | `cross_post_nesp_co` |
 | `fct_technique__interventions` | marts | `marts/technique/` ✅ | nesp_tech + yuman | Medium | TBD — confirm which finishes last |
 | `fct_oracle_neshu__supply_flux` | marts | `marts/oracle_neshu/` | oracle_neshu + oracle_neshu_gcs | Low | Likely none — confirm same pipeline window |
 | `fct_oracle_neshu_gcs__stock_products` | marts | `marts/oracle_neshu_gcs/` | oracle_neshu + oracle_neshu_gcs | Low | Likely none — confirm same pipeline window |
@@ -215,7 +215,7 @@ self-documenting, and fails independently.
 All technique models live in `marts/technique/` and share the same `tag:technique` folder tag.
 Using `tag:technique` directly is simpler — no model-level tag overrides needed.
 
-nesp_tech-dependent models (`fct_technique__interventions`, `fct_technique__machines_avec_interventions`)
+nesp_tech-dependent models (`fct_technique__interventions`, `fct_commerce__machines_avec_interventions`)
 rebuild daily with the previous Monday's nesp_tech data. This is intentional and acceptable:
 yuman and nesp_co data still refresh daily. The Monday nesp_tech pipeline rebuilds them again
 with fresh nesp_tech data. Idempotent, no data integrity issue.
@@ -277,16 +277,17 @@ resource "google_cloud_scheduler_job" "transform_technique_daily" {
 9. Update `_oracle_neshu__intermediate_models.yml` → remove intermediate entry
 10. Deploy `pipeline-cross-source-yuman` workflow + Cloud Scheduler
 
-### `fct_nesp_co__machines_avec_interventions`
+### `fct_commerce__machines_avec_interventions` ✅ Done (2026-04-01)
 
-1. Move file to `models/marts/technique/`
-2. Rename to `fct_technique__machines_avec_interventions`
-3. Add `tags = ['cross_post_nesp_co']` to model config
-4. Update `_nesp_co__marts_models.yml` → remove entry
-5. Update `_technique__marts_models.yml` → add entry
-6. Fix `dbt_project.yml` — add missing `nesp_co:` entry under `marts:` (or remove folder entirely after move)
-7. Verify Power BI reports: table name changes → update BigQuery dataset reference in Power BI
-8. Deploy `pipeline-cross-source-nesp-co` workflow + Cloud Scheduler
+Migrated from `marts/technique/fct_technique__machines_avec_interventions` to `marts/commerce/`.
+
+1. ✅ Moved file to `models/marts/commerce/`
+2. ✅ Renamed to `fct_commerce__machines_avec_interventions`
+3. ✅ Created `_commerce__marts_models.yml` with model entry
+4. ✅ Removed entry from `_technique__marts_models.yml`
+5. ✅ `dbt_project.yml` already had `commerce:` folder tag (`tag:commerce`)
+6. ✅ Updated `pipeline-nesp-tech.yaml` — added `tag:commerce` alongside `tag:technique` in cross-source step
+7. ⬜ Verify Power BI reports: table name changed → update BigQuery dataset reference in Power BI if consumed
 
 ### `fct_technique__interventions` (already in `marts/technique/`)
 
