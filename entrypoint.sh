@@ -9,8 +9,9 @@
 #   DBT_TARGET                  — dbt target (default: prod)
 #
 # Injected by Cloud Workflow at runtime:
-#   DBT_SOURCE_SELECTOR         — e.g. "source:yuman_api"
-#   DBT_TAG_SELECTOR            — e.g. "tag:yuman"
+#   DBT_COMMAND                 — dbt command to run: "build" (default) or "snapshot"
+#   DBT_SOURCE_SELECTOR         — e.g. "source:yuman_api" (skipped if empty)
+#   DBT_TAG_SELECTOR            — e.g. "tag:yuman" (used for build only)
 # =============================================================================
 
 set -euo pipefail
@@ -18,15 +19,23 @@ set -euo pipefail
 echo "[dbt] Installing packages..."
 dbt deps
 
-echo "[dbt] Running source freshness: ${DBT_SOURCE_SELECTOR}"
-dbt source freshness --select "${DBT_SOURCE_SELECTOR}" || echo "[WARN] Source freshness had warnings, continuing..."
-
-FULL_REFRESH_FLAG=""
-if [ "${DBT_FULL_REFRESH:-false}" = "true" ]; then
-  FULL_REFRESH_FLAG="--full-refresh"
+if [ -n "${DBT_SOURCE_SELECTOR:-}" ]; then
+  echo "[dbt] Running source freshness: ${DBT_SOURCE_SELECTOR}"
+  dbt source freshness --select "${DBT_SOURCE_SELECTOR}" || echo "[WARN] Source freshness had warnings, continuing..."
 fi
 
-echo "[dbt] Building models: ${DBT_TAG_SELECTOR}${FULL_REFRESH_FLAG:+ (full-refresh)}"
-dbt build --select "${DBT_TAG_SELECTOR}" --target "${DBT_TARGET:-prod}" ${FULL_REFRESH_FLAG}
+DBT_COMMAND="${DBT_COMMAND:-build}"
+
+if [ "${DBT_COMMAND}" = "snapshot" ]; then
+  echo "[dbt] Running snapshots (all)"
+  dbt snapshot --target "${DBT_TARGET:-prod}"
+else
+  FULL_REFRESH_FLAG=""
+  if [ "${DBT_FULL_REFRESH:-false}" = "true" ]; then
+    FULL_REFRESH_FLAG="--full-refresh"
+  fi
+  echo "[dbt] Building models: ${DBT_TAG_SELECTOR}${FULL_REFRESH_FLAG:+ (full-refresh)}"
+  dbt build --select "${DBT_TAG_SELECTOR}" --target "${DBT_TARGET:-prod}" ${FULL_REFRESH_FLAG}
+fi
 
 echo "[dbt] Done."
