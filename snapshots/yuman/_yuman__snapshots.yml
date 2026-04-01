@@ -1,0 +1,50 @@
+version: 2
+
+snapshots:
+  - name: snap_yuman__users
+    description: |
+      Historical snapshot of Yuman app users tracking changes to user identity over time.
+
+      Captures:
+      - User reassignments (same user_id, new user_name / user_email)
+      - Hard deletes (user removed from Yuman — dbt_valid_to is stamped automatically)
+      - Any field change that bumps updated_at in Yuman
+
+      Uses timestamp strategy on updated_at. invalidate_hard_deletes=true ensures
+      deleted users are closed out rather than left with dbt_valid_to = NULL.
+
+      **Query current users:** SELECT * FROM snapshots.snap_yuman__users WHERE dbt_valid_to IS NULL
+      **Query full history:** SELECT * FROM snapshots.snap_yuman__users WHERE user_id = 'XXX' ORDER BY dbt_valid_from
+
+    columns:
+      - name: user_id
+        description: Unique user identifier (primary key)
+        tests:
+          - not_null
+
+      - name: nomad_id
+        description: Nomad identifier linked to this Yuman user — TRACKED via updated_at
+
+      - name: user_name
+        description: Name of the Yuman user — TRACKED via updated_at
+
+      - name: user_email
+        description: Email of the Yuman user — TRACKED via updated_at
+
+      - name: user_type
+        description: User type in Yuman (e.g. guest)
+
+      - name: updated_at
+        description: Last update timestamp from Yuman — drives snapshot change detection
+
+      - name: dbt_valid_from
+        description: Timestamp when this version of the record became active
+
+      - name: dbt_valid_to
+        description: Timestamp when this version was superseded (NULL = current active record)
+
+      - name: dbt_scd_id
+        description: Unique identifier for this snapshot record (SCD Type 2)
+        tests:
+          - unique
+          - not_null

@@ -16,7 +16,12 @@ cleaned_users as (
 
     select
         id as user_id,
-        manager_id, -- id du manager de l'utilisateur
+        manager_id,
+        (
+            select json_value(field, '$.value')
+            from unnest(json_query_array(_embed_fields)) as field
+            where json_value(field, '$.name') = 'ID NOMAD'
+        ) as nomad_id,
         name as user_name,
         email as user_email,
         user_type,
@@ -26,6 +31,7 @@ cleaned_users as (
         timestamp(updated_at) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
         timestamp(_sdc_deleted_at) as deleted_at
+
     from source_data
 
 )
