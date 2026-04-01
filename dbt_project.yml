@@ -117,6 +117,9 @@ models:
       technique:
         +tags: ['marts', 'technique']
 
+      commerce:
+        +tags: ['marts', 'commerce']
+
 seeds:
   dbt_warehouse:
     +schema: reference

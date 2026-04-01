@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: fct_commerce__machines_avec_interventions
+    description: |
+      Nombre d'interventions techniques réalisées sur les machines installées chez les clients
+      sur les 12 derniers mois. Croise les données clients Nespresso CO et les interventions
+      techniques Nespresso Tech.
+
+      **Sources :** nesp_co (clients enrichis) · nesp_tech (interventions dédupliquées)
+
+    columns:
+      - name: n_serie_machine
+        description: Numéro de série de la machine installée chez le client
+        tests:
+          - unique
+          - not_null
+
+      - name: mc
+        description: Code client
+
+      - name: nom_client
+        description: Nom du client
+
+      - name: secteur
+        description: Secteur commercial du client
+
+      - name: contact_client
+        description: Contact principal chez le client
+
+      - name: telephone
+        description: Numéro de téléphone du contact client
+
+      - name: adresse
+        description: Adresse complète du client
+
+      - name: ville
+        description: Ville du client
+
+      - name: code_postal
+        description: Code postal du client
+
+      - name: code_machine
+        description: Code machine brut provenant de l'intervention
+
+      - name: machine
+        description: Nom normalisé de la machine
+
+      - name: n_inter_12mois
+        description: Nombre d'interventions réalisées sur les 12 derniers mois
+
+      - name: date_last_inter
+        description: Date de la dernière intervention réalisée
