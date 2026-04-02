@@ -1,6 +1,42 @@
 version: 2
 
 snapshots:
+  - name: snap_yuman__storehouses
+    description: |
+      Historical snapshot of Yuman storehouses tracking name changes and soft deletes.
+
+      Captures:
+      - Name changes (storehouses_name updated in Yuman)
+      - Hard deletes (storehouse removed from Yuman API — dbt_valid_to stamped via invalidate_hard_deletes)
+
+      Uses check strategy on storehouses_name. Hard deletes are handled by invalidate_hard_deletes=True,
+      not by the staging model. stg_yuman__storehouses is a plain table — full-refresh safe.
+
+      **Query current:** SELECT * FROM snapshots.snap_yuman__storehouses WHERE dbt_valid_to IS NULL
+      **Query history:** SELECT * FROM snapshots.snap_yuman__storehouses WHERE storehouses_id = 'XXX' ORDER BY dbt_valid_from
+
+    columns:
+      - name: storehouses_id
+        description: Unique storehouse identifier (primary key)
+        tests:
+          - not_null
+
+      - name: storehouses_name
+        description: Name of the storehouse — TRACKED for changes
+
+      - name: dbt_valid_from
+        description: Timestamp when this version of the record became active
+
+      - name: dbt_valid_to
+        description: Timestamp when this version was superseded (NULL = current active record)
+
+      - name: dbt_scd_id
+        description: Unique identifier for this snapshot record (SCD Type 2)
+        tests:
+          - unique
+          - not_null
+
+
   - name: snap_yuman__users
     description: |
       Historical snapshot of Yuman app users tracking changes to user identity over time.
