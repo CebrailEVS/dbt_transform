@@ -17,6 +17,11 @@ cleaned_users as (
             from unnest(json_query_array(_embed_fields)) as field
             where json_value(field, '$.name') = 'ID NOMAD'
         ) as nomad_id,
+        (
+            select json_value(field, '$.value')
+            from unnest(json_query_array(_embed_fields)) as field
+            where json_value(field, '$.name') = 'SECTEUR'
+        ) as user_secteur,
         name as user_name,
         email as user_email,
         user_type,
