@@ -20,6 +20,8 @@ with nesp_interventions as (
         dedup.date_heure_fin as date_fin,
         factu.key_factu,
         dedup.code_postal_site as code_postal,
+        dedup.consignes,
+        dedup.observations as commentaire_tech,
         factu.prod_factu as prod,
         factu.tarif_factu as montant,
         delais.delai_bonus_bool as bonus_bool,
@@ -27,12 +29,17 @@ with nesp_interventions as (
         delais.delai_heures_debut,
         delais.delai_heures_fin,
         delais.type_delai_debut as delai_tech,
-        delais.type_delai_fin as delai_partenaire
+        delais.type_delai_fin as delai_partenaire,
+        key_factu_obj.alias_obj_type_inter,
+        key_factu_obj.alias_obj_type_machine,
+        key_factu_obj.alias_obj_grp_machine
     from `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__interventions_dedup` as dedup
     left join `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__facturation_interventions` as factu
         on dedup.n_planning = factu.n_planning
     left join `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__delais_interventions` as delais
         on dedup.n_planning = delais.n_planning
+    left join `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation` as key_factu_obj
+        on factu.key_factu = key_factu_obj.key_ref_inter
     where dedup.etat_intervention != 'annulée'
 ),
 
@@ -52,6 +59,8 @@ yuman_interventions as (
         inter_yuman.date_done as date_fin,
         inter_yuman.pricing_key_used as key_factu,
         inter_yuman.site_postal_code as code_postal,
+        inter_yuman.demand_description as consignes,
+        inter_yuman.workorder_report as commentaire_tech,
         inter_yuman.prod_number as prod,
         inter_yuman.amount as montant,
         false as bonus_bool,
@@ -59,7 +68,10 @@ yuman_interventions as (
         0 as delai_heures_debut,
         0 as delai_heures_fin,
         type_delai as delai_tech,
-        type_delai as delai_partenaire
+        type_delai as delai_partenaire,
+        'NA' as alias_obj_type_inter,
+        'NA' as alias_obj_type_machine,
+        'NA' as alias_obj_grp_machine
     from `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_delais_neshu` as inter_yuman
     where inter_yuman.demand_status = 'Accepted'
 ),
@@ -88,6 +100,8 @@ interventions_enrichies as (
         i.date_fin,
         i.key_factu,
         i.code_postal,
+        i.consignes,
+        i.commentaire_tech,
         i.prod,
         i.montant,
         i.bonus_bool,
@@ -96,6 +110,9 @@ interventions_enrichies as (
         i.delai_heures_fin,
         i.delai_tech,
         i.delai_partenaire,
+        i.alias_obj_type_inter,
+        i.alias_obj_type_machine,
+        i.alias_obj_grp_machine,
 
         -- Calcul durée en minutes
         timestamp_diff(i.date_fin, i.date_debut, minute) as duree_inter_minutes,
@@ -129,10 +146,11 @@ interventions_enrichies as (
         -- Mapping technicien
         tech.user_id as tech_yuman_id,
         tech.nomad_id as tech_nomad_id,
-        tech.user_name as tech_nom
+        tech.user_name as tech_nom,
+        tech.user_secteur as tech_secteur
 
     from interventions as i
-    left join `evs-datastack-prod`.`prod_reference`.`ref_yuman__tech_nomad` as tech
+    left join `evs-datastack-prod`.`prod_staging`.`stg_yuman__users` as tech
         on (
             (i.src_inter = 'NESP' and lower(tech.nomad_id) = i.tech_id)
             or (i.src_inter = 'YUMAN' and cast(tech.user_id as string) = i.tech_id)
@@ -157,6 +175,8 @@ select
     duree_inter_minutes,
     key_factu,
     code_postal,
+    consignes,
+    commentaire_tech,
     prod,
     montant,
     bonus_bool,
@@ -170,5 +190,9 @@ select
     flag_hors_delai_tech,
     tech_yuman_id,
     tech_nomad_id,
-    tech_nom
+    tech_nom,
+    tech_secteur,
+    alias_obj_type_inter,
+    alias_obj_type_machine,
+    alias_obj_grp_machine
 from interventions_enrichies
