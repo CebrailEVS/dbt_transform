@@ -156,10 +156,11 @@ interventions_enrichies as (
         -- Mapping technicien
         tech.user_id as tech_yuman_id,
         tech.nomad_id as tech_nomad_id,
-        tech.user_name as tech_nom
+        tech.user_name as tech_nom,
+        tech.user_secteur as tech_secteur
 
     from interventions as i
-    left join {{ ref('ref_yuman__tech_nomad') }} as tech
+    left join {{ ref('stg_yuman__users') }} as tech
         on (
             (i.src_inter = 'NESP' and lower(tech.nomad_id) = i.tech_id)
             or (i.src_inter = 'YUMAN' and cast(tech.user_id as string) = i.tech_id)
@@ -200,6 +201,7 @@ select
     tech_yuman_id,
     tech_nomad_id,
     tech_nom,
+    tech_secteur,
     alias_obj_type_inter,
     alias_obj_type_machine,
     alias_obj_grp_machine
