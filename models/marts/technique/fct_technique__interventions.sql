@@ -48,7 +48,7 @@ with nesp_interventions as (
         on dedup.n_planning = factu.n_planning
     left join {{ ref('int_nesp_tech__delais_interventions') }} as delais
         on dedup.n_planning = delais.n_planning
-    left join {{ ref('ref_nesp_tech__key_facturation')}} as key_factu_obj
+    left join {{ ref('ref_nesp_tech__key_facturation') }} as key_factu_obj
         on factu.key_factu = key_factu_obj.key_ref_inter
     where dedup.etat_intervention != 'annulée'
 ),
