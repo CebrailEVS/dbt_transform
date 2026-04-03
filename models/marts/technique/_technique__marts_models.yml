@@ -205,11 +205,17 @@ models:
       - name: code_postal
         description: Code postal du site d'intervention
 
+      - name: consignes
+        description: Consignes de la demande d'intervention
+
+      - name: commentaire_tech
+        description: Commentaire finale du technicien post intervention
+
       - name: prod
-        description: Numéro de produit
+        description: Production associée à l'intervention - utile pour les calcul de primes des techniciens
 
       - name: montant
-        description: Montant facturé de l'intervention
+        description: Montant de l'intervention
 
       - name: bonus_bool
         description: Indique si un bonus de délai s'applique
