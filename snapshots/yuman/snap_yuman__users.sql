@@ -6,7 +6,7 @@
 --          role/sector changes, and hard deletes (user removed from Yuman)
 -- Strategy: Check — creates a new record only when tracked columns change
 -- Tracked columns: manager_id, nomad_id, user_name, user_type, user_secteur,
---                  is_manager_as_technician
+--                  is_manager_as_technician, is_active
 --
 -- Usage:
 --   Query current: SELECT * FROM snapshots.snap_yuman__users WHERE dbt_valid_to IS NULL
@@ -19,7 +19,7 @@
     config(
       unique_key='user_id',
       strategy='check',
-      check_cols=['manager_id', 'nomad_id', 'user_name', 'user_type', 'user_secteur', 'is_manager_as_technician'],
+      check_cols=['manager_id', 'nomad_id', 'user_name', 'user_type', 'user_secteur', 'is_manager_as_technician','is_active'],
       invalidate_hard_deletes=True,
       tags=['yuman']
     )
@@ -40,6 +40,7 @@
         user_phone,
         user_secteur,       -- TRACKED
         is_manager_as_technician, -- TRACKED
+        is_active,          -- TRACKED (derived from user_inactif)
         created_at,
         updated_at,
         extracted_at
