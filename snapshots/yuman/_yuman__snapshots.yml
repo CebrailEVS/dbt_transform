@@ -70,6 +70,9 @@ snapshots:
       - name: user_type
         description: User type in Yuman (e.g. guest)
 
+      - name: is_active
+        description: Whether the user is active (true) or inactive (false) — TRACKED for changes. Derived from the custom field INACTIF (Oui/Non).
+
       - name: updated_at
         description: Last update timestamp from Yuman — drives snapshot change detection
 
