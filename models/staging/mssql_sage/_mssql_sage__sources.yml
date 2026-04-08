@@ -192,6 +192,44 @@ sources:
             description: "Statut de règlement (0 = non réglé, 1 = réglé)"
           - name: ec_montant_regle
             description: "Montant réglé"
+          - name: ec_date_regle
+            description: "Date de règlement (supposé, non documenté Sage)"
+          - name: ec_rib
+            description: "Référence bancaire / RIB (supposé, non documenté Sage)"
+          - name: ec_date_op
+            description: "Date d'opération (supposé, non documenté Sage)"
+          - name: ec_no_cloture
+            description: "Numéro d'écriture de clôture (supposé, non documenté Sage)"
+          - name: ec_export_rappro
+            description: "Indicateur d'export rapprochement (supposé, non documenté Sage)"
+          - name: ec_facture_guid
+            description: "GUID de la facture associée (supposé, non documenté Sage)"
+          - name: ec_date_cloture
+            description: "Date de clôture (supposé, non documenté Sage)"
+          - name: ec_facture_file
+            description: "Chemin ou nom du fichier facture (supposé, non documenté Sage)"
+          - name: ec_payment_id
+            description: "Identifiant de paiement (supposé, non documenté Sage)"
+          - name: ec_pay_now_url
+            description: "URL de paiement en ligne (supposé, non documenté Sage)"
+          - name: cb_hash
+            description: "Hash technique interne Sage (non documenté)"
+          - name: cb_hash_version
+            description: "Version du hash technique Sage (non documenté)"
+          - name: cb_hash_date
+            description: "Date du hash technique Sage (non documenté)"
+          - name: cb_hash_order
+            description: "Ordre du hash technique Sage (non documenté)"
+          - name: cle_acs
+            description: "Clé ACS (non documenté Sage)"
+          - name: ec_ext_provenance
+            description: "Provenance externe (supposé, non documenté Sage)"
+          - name: ec_ext_sequence
+            description: "Séquence externe (supposé, non documenté Sage)"
+          - name: sac_id
+            description: "Identifiant SAC (non documenté Sage)"
+          - name: cb_sac_id
+            description: "Identifiant SAC encodé (non documenté Sage)"
           - name: _sdc_received_at
             description: "Timestamp d’ingestion du flux par Singer/ETL"
           - name: _sdc_extracted_at
