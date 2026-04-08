@@ -2,52 +2,90 @@ version: 2
 
 models:
   - name: fct_commerce__machines_avec_interventions
-    description: |
-      Nombre d'interventions techniques réalisées sur les machines installées chez les clients
-      sur les 12 derniers mois. Croise les données clients Nespresso CO et les interventions
-      techniques Nespresso Tech.
-
-      **Sources :** nesp_co (clients enrichis) · nesp_tech (interventions dédupliquées)
-
+    description: >
+      Vue dédupliquée des machines actives sur les 6 derniers mois,
+      enrichie des informations client et du libellé machine normalisé.
+      Granularité : 1 ligne par numéro de série de machine.
+      En cas de machine présente chez plusieurs clients, on conserve
+      la ligne associée à la dernière intervention (puis code_machine ASC,
+      puis mc ASC pour un arbitrage déterministe).
+    config:
+      materialized: table
+ 
     columns:
-      - name: n_serie_machine
-        description: Numéro de série de la machine installée chez le client
+ 
+      # -----------------------------------------------------------------------
+      # [A] Identification client
+      # -----------------------------------------------------------------------
+      - name: mc
+        description: Identifiant unique du client (tiers). Clé de jointure avec le référentiel clients.
         tests:
+          - not_null
+ 
+      - name: nom_client
+        description: Raison sociale ou nom du client.
+ 
+      - name: secteur
+        description: Secteur d'activité du client (ex. santé, industrie, tertiaire…).
+ 
+      # -----------------------------------------------------------------------
+      # [B] Coordonnées & contact client
+      # -----------------------------------------------------------------------
+      - name: contact_client
+        description: Nom du donneur d'ordre côté client (order_placer_name).
+ 
+      - name: telephone
+        description: Numéro de téléphone du contact client (order_placer_phone).
+ 
+      # -----------------------------------------------------------------------
+      # [C] Localisation client
+      # -----------------------------------------------------------------------
+      - name: adresse
+        description: >
+          Adresse postale du client, construite par concaténation de
+          third_address_1 et third_address_2 (NULL traité comme chaîne vide).
+ 
+      - name: ville
+        description: Ville du client.
+ 
+      - name: code_postal
+        description: Code postal du client.
+ 
+      # -----------------------------------------------------------------------
+      # [D] Identification machine
+      # -----------------------------------------------------------------------
+      - name: n_serie_machine
+        description: Numéro de série de la machine. Clé de déduplication du modèle (PARTITION BY).
+        tests:
+          - not_null
           - unique
+ 
+      - name: code_machine
+        description: Code technique de la machine (ex. référence catalogue interne).
+ 
+      - name: nom_machine
+        description: Libellé brut de la machine tel qu'il apparaît dans les interventions.
+ 
+      - name: machine
+        description: >
+          Libellé normalisé de la machine issu de ref_nesp_tech__machines_clean.
+          Peut être NULL si le nom_machine ne trouve pas de correspondance dans
+          la table de référence.
+ 
+      # -----------------------------------------------------------------------
+      # [E] Métriques d'activité (fenêtre glissante 6 mois)
+      # -----------------------------------------------------------------------
+      - name: n_inter_6mois
+        description: >
+          Nombre d'interventions clôturées (tous états valides confondus)
+          sur les 6 derniers mois glissants pour cette machine et ce client.
+        tests:
+          - not_null
+ 
+      - name: date_last_inter
+        description: >
+          Date et heure de fin de la dernière intervention clôturée
+          sur cette machine. Utilisée comme critère principal de déduplication.
+        tests:
           - not_null
 
-      - name: mc
-        description: Code client
-
-      - name: nom_client
-        description: Nom du client
-
-      - name: secteur
-        description: Secteur commercial du client
-
-      - name: contact_client
-        description: Contact principal chez le client
-
-      - name: telephone
-        description: Numéro de téléphone du contact client
-
-      - name: adresse
-        description: Adresse complète du client
-
-      - name: ville
-        description: Ville du client
-
-      - name: code_postal
-        description: Code postal du client
-
-      - name: code_machine
-        description: Code machine brut provenant de l'intervention
-
-      - name: machine
-        description: Nom normalisé de la machine
-
-      - name: n_inter_12mois
-        description: Nombre d'interventions réalisées sur les 12 derniers mois
-
-      - name: date_last_inter
-        description: Date de la dernière intervention réalisée
