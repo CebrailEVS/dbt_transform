@@ -158,10 +158,18 @@ dbt build --select tag:marts
 # Build un modele et ses dependances amont
 dbt build --select +fct_oracle_neshu__conso_business_review
 
+# Build un modele et ses dependances aval (les modeles qui en dependent)
+dbt build --select fct_oracle_neshu__conso_business_review+
+
 # Freshness / Seeds
 dbt source freshness
 dbt seed
 ```
+
+> **Selecteurs `+` :** le `+` est un raccourci pour inclure les dependances d'un modele.
+> - `+mon_modele` — construit le modele **et tous ses parents** (staging → intermediate → mart)
+> - `mon_modele+` — construit le modele **et tous ses enfants** (utile pour verifier qu'un changement ne casse rien en aval)
+> - `+mon_modele+` — les deux en meme temps
 
 > Les snapshots sont executes automatiquement par Cloud Workflows — ne pas les lancer manuellement.
 

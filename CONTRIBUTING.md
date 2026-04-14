@@ -322,12 +322,72 @@ Quand un rapport Power BI est cree ou modifie, mettre a jour le fichier exposure
 
 ## Environnement de developpement
 
-| Env | Schemas | Utilisateur | Usage |
-|-----|---------|-------------|-------|
-| `dev` | `dev_staging`, `dev_intermediate`, `dev_marts` | Data Engineer + Data Analyst | Developpement et tests |
-| `prod` | `prod_staging`, `prod_intermediate`, `prod_marts` | Airflow | Production automatisee |
+### Les deux environnements
 
-Les deux environnements lisent depuis `prod_raw` (meme source). Seuls les schemas de destination changent. Configurer `DBT_TARGET=dev` dans `.env`.
+Le projet dispose de deux environnements BigQuery dans le **meme projet GCP** :
+
+| Environnement | Schemas | Qui ecrit dedans | Frequence de mise a jour |
+|---------------|---------|------------------|--------------------------|
+| `prod` | `prod_staging`, `prod_intermediate`, `prod_marts` | Cloud Workflows (automatique) | Chaque nuit en production |
+| `dev` | `dev_staging`, `dev_intermediate`, `dev_marts` | Toi (en local) + CI sur les PRs | Uniquement quand tu lances un build |
+
+> Les deux environnements lisent depuis la **meme source** : `prod_raw`. Seuls les schemas de destination changent.
+
+---
+
+### Pourquoi les tables `dev_marts` peuvent sembler "vieilles" ?
+
+C'est normal, et c'est voulu.
+
+`prod_marts` est reconstruit chaque nuit automatiquement par Cloud Workflows.
+`dev_marts`, lui, n'est reconstruit que dans deux cas :
+- quand la CI tourne sur une **Pull Request** (uniquement les modeles modifies)
+- quand **tu lances toi-meme** un `dbt build` en local
+
+Si personne n'a ouvert de PR ni lance de build depuis plusieurs jours, les tables `dev_*` contiennent les donnees telles qu'elles etaient au dernier build. Elles ne se rafraichissent pas automatiquement.
+
+---
+
+### Quelle table utiliser selon ce que tu fais ?
+
+| Ce que tu veux faire | Ou regarder |
+|----------------------|-------------|
+| Faire une analyse, un rapport, explorer les donnees | `prod_marts` — toujours frais, reconstruit chaque nuit |
+| Tester un modele que tu es en train de developper | `dev_marts` — mais tu dois d'abord lancer un build (voir ci-dessous) |
+| Verifier que ta PR ne casse rien | La CI s'en charge automatiquement quand tu ouvres la PR |
+
+> **Regle simple :** si tu ne developpes pas un modele dbt, tu n'as pas besoin de `dev_*`. Utilise `prod_marts`.
+
+---
+
+### Comment rafraichir `dev_marts` quand tu developpes ?
+
+Tu n'as **pas besoin** de tout reconstruire. Lance uniquement le modele sur lequel tu travailles et ses dependances amont :
+
+```bash
+# Construire ton modele et tout ce dont il depend (staging + intermediate + mart)
+dbt build -s +nom_de_ton_modele --target dev
+
+# Exemple : tu travailles sur fct_yuman__interventions
+dbt build -s +fct_yuman__interventions --target dev
+```
+
+Le `+` devant le nom du modele signifie "et tous ses parents". Sans ca, dbt ne reconstruirait que le modele final, sans s'assurer que les tables en amont sont a jour dans ton `dev_*`.
+
+Apres ca, ta table `dev_marts.fct_yuman__interventions` est fraiche et reflete exactement ton code local.
+
+---
+
+### Configurer son environnement local
+
+Verifier que `DBT_TARGET=dev` est bien defini dans ton `.env` avant de lancer quoi que ce soit :
+
+```bash
+# Dans .env
+DBT_TARGET=dev
+```
+
+Cela garantit que tous tes builds locaux ecrivent dans `dev_*` et jamais dans `prod_*`.
 
 ---
 
