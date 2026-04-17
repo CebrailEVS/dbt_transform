@@ -17,20 +17,20 @@ cleaned_users as (
     select
         id as user_id,
         manager_id,
-        (
+        nullif((
             select json_value(field, '$.value')
             from unnest(json_query_array(_embed_fields)) as field
             where json_value(field, '$.name') = 'ID NOMAD'
-        ) as nomad_id,
-        (
+        ), '') as nomad_id,
+        nullif((
             select json_value(field, '$.value')
             from unnest(json_query_array(_embed_fields)) as field
             where json_value(field, '$.name') = 'SECTEUR'
-        ) as user_secteur,
+        ), '') as user_secteur,
         name as user_name,
         email as user_email,
         user_type,
-        phone as user_phone,
+        nullif(phone, '') as user_phone,
         manager_as_technician as is_manager_as_technician,
         (
             select json_value(field, '$.value')

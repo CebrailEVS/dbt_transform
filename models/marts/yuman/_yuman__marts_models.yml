@@ -559,3 +559,57 @@ models:
         description: Nombre de jours ouvrés entre la date de creation de reference et la date de fin
       - name: date_creation_ref
         description: Date de creation de reference, selon les regles NESHU
+
+
+  - name: dim_yuman__technicians
+    description: >
+      Dimension techniciens Yuman. Inclut les techniciens purs et les managers intervenant
+      également comme technicien (is_manager_as_technician = true).
+      Enrichie avec le nom du manager direct et le nom du dépôt (storehouse) rattaché
+      au technicien via la jointure storehouses_id = user_id.
+
+    columns:
+      - name: user_id
+        description: Identifiant unique du technicien dans Yuman. Clé primaire.
+        tests:
+          - unique
+          - not_null
+
+      - name: nomad_id
+        description: Identifiant du technicien dans le système Nomad. Null si non référencé.
+
+      - name: manager_id
+        description: Clé étrangère vers user_id du manager direct. Null si aucun manager.
+
+      - name: user_name
+        description: Nom complet du technicien tel qu'affiché dans Yuman.
+
+      - name: user_email
+        description: Adresse e-mail professionnelle du technicien.
+
+      - name: user_phone
+        description: Numéro de téléphone du technicien.
+
+      - name: user_type
+        description: "Type d'utilisateur. Valeurs possibles : 'technician' ou 'manager'."
+
+      - name: user_secteur
+        description: Secteur géographique ou opérationnel d'affectation du technicien.
+
+      - name: is_manager_as_technician
+        description: True si le technicien est un manager intervenant également sur le terrain.
+
+      - name: is_active
+        description: False si le technicien a été désactivé dans Yuman (champ INACTIF).
+
+      - name: manager_name
+        description: Nom complet du manager direct. Null si aucun manager rattaché.
+
+      - name: storehouses_name
+        description: Nom du dépôt (storehouse) rattaché au technicien. Null si aucun dépôt associé.
+
+      - name: created_at
+        description: Date de création de l'utilisateur dans Yuman.
+
+      - name: updated_at
+        description: Date de dernière mise à jour de l'utilisateur dans Yuman.
