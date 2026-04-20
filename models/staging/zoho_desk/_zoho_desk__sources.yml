@@ -1,0 +1,598 @@
+version: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SOURCE : Zoho Desk (prod_raw)
+#
+# Données brutes extraites de l'API Zoho Desk (EU region) via dlt.
+# Chaque table = un endpoint Zoho Desk. Les colonnes préfixées `_dlt_` sont
+# internes à dlt — ne pas les utiliser en BI sauf quand une jointure dlt
+# est explicitement documentée (sous-tables __associated_department_ids,
+# __event_info, etc.).
+#
+# Freshness : _dlt_load_id est une STRING (unix timestamp en texte),
+# pas un TIMESTAMP — freshness dbt non applicable sur cette source.
+# ─────────────────────────────────────────────────────────────────────────────
+
+sources:
+  - name: zoho_desk
+    description: >
+      Données brutes extraites de l'API Zoho Desk (EU region) via dlt (data load tool).
+      Dataset BigQuery : evs-datastack-prod.prod_raw.
+    schema: prod_raw
+    config:
+      tags: ['zoho_desk', 'source']
+
+    tables:
+
+      # ═══════════════════════════════════════════════════════════════════════
+      # DIMENSIONS
+      # ═══════════════════════════════════════════════════════════════════════
+
+      - name: zoho_desk_accounts
+        description: >
+          Comptes Zoho Desk = entreprises clientes (251 lignes).
+          Un compte regroupe plusieurs contacts (personnes physiques).
+          Les tickets et contacts y sont rattachés via account_id.
+        columns:
+          - name: id
+            description: "PK — identifiant unique du compte. Renommé account_id dans le staging."
+            tests: [unique, not_null]
+          - name: account_name
+            description: "Nom de l'entreprise cliente"
+          - name: created_time
+            description: "Date de création du compte (TIMESTAMP)"
+          - name: web_url
+            description: "URL de la fiche compte dans l'interface Zoho Desk"
+          - name: customer_happiness__bad_percentage
+            description: "% d'évaluations CSAT négatives sur ce compte"
+          - name: customer_happiness__ok_percentage
+            description: "% d'évaluations CSAT neutres sur ce compte"
+          - name: customer_happiness__good_percentage
+            description: "% d'évaluations CSAT positives sur ce compte"
+          - name: _dlt_load_id
+            description: "ID interne du run dlt qui a chargé cette ligne (STRING)"
+          - name: _dlt_id
+            description: "Clé interne dlt unique par ligne (utilisée pour les jointures aux éventuelles sous-tables dlt)"
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_agents
+        description: >
+          Agents Zoho Desk = membres de l'équipe support (5 lignes).
+          Les tickets y sont rattachés via assignee_id.
+          Les départements de chaque agent sont dans la sous-table
+          zoho_desk_agents__associated_department_ids
+          (jointure dlt interne : _dlt_id → _dlt_parent_id).
+        columns:
+          - name: id
+            description: "PK — identifiant unique de l'agent. Renommé agent_id dans le staging."
+            tests: [unique, not_null]
+          - name: first_name
+            description: "Prénom de l'agent"
+          - name: last_name
+            description: "Nom de famille de l'agent"
+          - name: name
+            description: "Nom complet de l'agent (first_name + last_name concaténés par Zoho)"
+          - name: email_id
+            description: "Adresse e-mail professionnelle de l'agent"
+          - name: status
+            description: "Statut du compte agent : ACTIVE ou DISABLED"
+          - name: role_id
+            description: "ID du rôle Zoho attribué à l'agent"
+          - name: profile_id
+            description: "ID du profil de permissions Zoho (contrôle les droits d'accès)"
+          - name: role_permission_type
+            description: "Type de permission du rôle (ex : AGENT, ADMINISTRATOR)"
+          - name: phone
+            description: "Numéro de téléphone fixe de l'agent"
+          - name: mobile
+            description: "Numéro de téléphone mobile de l'agent"
+          - name: time_zone
+            description: "Fuseau horaire de l'agent"
+          - name: lang_code
+            description: "Code langue de l'interface Zoho pour cet agent (ex : fr, en)"
+          - name: country_code
+            description: "Code pays de l'agent"
+          - name: about_info
+            description: "Bio / description libre de l'agent"
+          - name: extn
+            description: "Extension téléphonique interne"
+          - name: photo_url
+            description: "URL de la photo de profil"
+          - name: is_confirmed
+            description: "BOOLEAN — compte e-mail confirmé par l'agent"
+          - name: is_zia_agent
+            description: "BOOLEAN — indique si c'est un agent IA Zoho Zia (bot)"
+          - name: zuid
+            description: "Identifiant Zoho universel cross-produits (ex : Zoho CRM, Zoho Mail)"
+          - name: _dlt_load_id
+            description: "ID interne du run dlt (STRING)"
+          - name: _dlt_id
+            description: >
+              Clé interne dlt unique par ligne.
+              IMPORTANT : cette colonne est exposée dans le staging car elle sert
+              de clé de jointure vers zoho_desk_agents__associated_department_ids._dlt_parent_id.
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_agents__associated_department_ids
+        description: >
+          Sous-table dlt — départements auxquels appartient chaque agent (11 lignes).
+          dlt dénormalise les tableaux JSON en tables séparées.
+          Cette table n'a pas de PK métier.
+          Jointure vers l'agent  : _dlt_parent_id = zoho_desk_agents._dlt_id
+          Jointure vers le département : value = zoho_desk_departments.id
+          ATTENTION : la jointure vers l'agent ne passe pas par agents.id mais
+          par agents._dlt_id (clé interne dlt, pas un ID Zoho).
+        columns:
+          - name: value
+            description: "ID du département (FK vers zoho_desk_departments.id)"
+          - name: _dlt_parent_id
+            description: "FK interne dlt vers zoho_desk_agents._dlt_id. Pas un ID Zoho — jointure uniquement via _dlt_id."
+            tests: [not_null]
+          - name: _dlt_root_id
+            description: "Référence à la ligne racine dans la hiérarchie dlt (ici identique à _dlt_parent_id)"
+          - name: _dlt_list_idx
+            description: "Position (0-based) de cet élément dans le tableau JSON d'origine"
+          - name: _dlt_id
+            description: "Clé interne dlt unique pour cette ligne"
+            tests: [unique, not_null]
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_contacts
+        description: >
+          Contacts Zoho Desk = personnes physiques (clients) qui ouvrent des tickets (3 362 lignes).
+          Un contact est rattaché à un compte via account_id.
+          Les tickets y sont liés via contact_id.
+        columns:
+          - name: id
+            description: "PK — identifiant unique du contact. Renommé contact_id dans le staging."
+            tests: [unique, not_null]
+          - name: first_name
+            description: "Prénom du contact"
+          - name: last_name
+            description: "Nom de famille du contact"
+          - name: email
+            description: "Adresse e-mail du contact"
+          - name: phone
+            description: "Numéro de téléphone du contact"
+          - name: account_id
+            description: "FK vers zoho_desk_accounts.id — entreprise à laquelle appartient ce contact"
+          - name: account_count
+            description: "Nombre de comptes associés à ce contact"
+          - name: owner_id
+            description: "ID de l'agent Zoho responsable de ce contact"
+          - name: created_time
+            description: "Date de création du contact dans Zoho Desk (TIMESTAMP)"
+          - name: is_anonymous
+            description: "BOOLEAN — contact anonyme (pas de nom connu)"
+          - name: is_end_user
+            description: "BOOLEAN — contact est un utilisateur final (vs agent interne)"
+          - name: is_spam
+            description: "BOOLEAN — contact marqué comme spam"
+          - name: web_url
+            description: "URL de la fiche contact dans l'interface Zoho Desk"
+          - name: customer_happiness__bad_percentage
+            description: "% d'évaluations CSAT négatives de ce contact"
+          - name: customer_happiness__ok_percentage
+            description: "% d'évaluations CSAT neutres de ce contact"
+          - name: customer_happiness__good_percentage
+            description: "% d'évaluations CSAT positives de ce contact"
+          - name: _dlt_load_id
+            description: "ID interne du run dlt (STRING)"
+          - name: _dlt_id
+            description: "Clé interne dlt unique par ligne"
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_departments
+        description: >
+          Départements Zoho Desk = groupes organisationnels recevant les tickets (4 lignes).
+          Exemples : Service Client, Facturation, Technique.
+          Tickets et agents y sont rattachés via department_id.
+        columns:
+          - name: id
+            description: "PK — identifiant unique du département. Renommé department_id dans le staging."
+            tests: [unique, not_null]
+          - name: name
+            description: "Nom du département (ex : Service Client)"
+          - name: description
+            description: "Description libre du département"
+          - name: sanitized_name
+            description: "Nom slugifié : minuscules, accents supprimés, espaces remplacés par tirets"
+          - name: name_in_customer_portal
+            description: "Nom affiché dans le portail libre-service client"
+          - name: created_time
+            description: "Date de création du département (TIMESTAMP)"
+          - name: creator_id
+            description: "ID de l'agent Zoho qui a créé ce département"
+          - name: chat_status
+            description: "Statut du canal chat en direct pour ce département (ONLINE / OFFLINE)"
+          - name: is_enabled
+            description: "BOOLEAN — département actif et recevant des tickets"
+          - name: is_default
+            description: "BOOLEAN — département sélectionné par défaut à la création d'un ticket"
+          - name: is_assign_to_team_enabled
+            description: "BOOLEAN — affectation aux équipes activée pour ce département"
+          - name: is_visible_in_customer_portal
+            description: "BOOLEAN — visible dans le portail libre-service client"
+          - name: has_logo
+            description: "BOOLEAN — un logo personnalisé est défini pour ce département"
+          - name: _dlt_load_id
+            description: "ID interne du run dlt (STRING)"
+          - name: _dlt_id
+            description: "Clé interne dlt unique par ligne"
+
+      # ═══════════════════════════════════════════════════════════════════════
+      # FACTS
+      # ═══════════════════════════════════════════════════════════════════════
+
+      - name: zoho_desk_associated_tickets
+        description: >
+          Table principale des tickets (20 678 lignes) — table centrale de toute l'analyse.
+          Extraite via /associatedTickets qui contourne la limite de pagination de
+          /tickets (~3 600 lignes max). write_disposition=merge : les runs s'accumulent.
+          Chaque ligne = un ticket.
+          Enrichissements disponibles :
+            - Métriques SLA       → zoho_desk_ticket_metrics (1:1, jointure sur id)
+            - Custom fields/flags → zoho_desk_ticket_details (1:1, jointure sur id)
+            - Historique événements → zoho_desk_ticket_history (1:N, jointure sur id)
+        columns:
+          - name: id
+            description: "PK — identifiant unique du ticket. Renommé ticket_id dans le staging."
+            tests: [unique, not_null]
+          - name: ticket_number
+            description: "Numéro de ticket lisible affiché dans l'interface Zoho (ex : #1234)"
+          - name: subject
+            description: "Objet/sujet du ticket saisi à la création"
+          - name: status
+            description: "Statut courant du ticket (ex : Open, Closed, On Hold, In Progress)"
+          - name: status_type
+            description: "Catégorie fonctionnelle du statut : open, closed, on_hold"
+          - name: priority
+            description: "Priorité du ticket : Low, Medium, High, Urgent"
+          - name: channel
+            description: "Canal d'entrée du ticket : Email, Phone, Chat, Web, etc."
+          - name: channel_code
+            description: "Code interne Zoho du canal"
+          - name: category
+            description: "Catégorie métier du ticket (premier niveau de classification)"
+          - name: sub_category
+            description: "Sous-catégorie métier du ticket (deuxième niveau de classification)"
+          - name: language
+            description: "Langue détectée du ticket"
+          - name: department_id
+            description: "FK vers zoho_desk_departments.id — département recevant le ticket"
+          - name: assignee_id
+            description: "FK vers zoho_desk_agents.id — agent actuellement assigné au ticket"
+          - name: contact_id
+            description: "FK vers zoho_desk_contacts.id — contact ayant ouvert le ticket"
+          - name: account_id
+            description: "FK vers zoho_desk_accounts.id — entreprise du contact"
+          - name: team_id
+            description: "ID de l'équipe Zoho assignée au ticket (si applicable)"
+          - name: product_id
+            description: "ID du produit Zoho associé au ticket (si applicable)"
+          - name: layout_id
+            description: "ID du layout de formulaire Zoho utilisé pour ce ticket"
+          - name: email
+            description: "Adresse e-mail du demandeur au moment de la création"
+          - name: phone
+            description: "Numéro de téléphone du demandeur"
+          - name: created_time
+            description: "Date/heure de création du ticket (TIMESTAMP)"
+          - name: closed_time
+            description: >
+              Date/heure de fermeture courante du ticket (TIMESTAMP).
+              NULL si le ticket n'a jamais été fermé ou s'il a été rouvert.
+              ATTENTION : n'utiliser cette colonne que pour l'état courant.
+              Pour les métriques temporelles (tickets fermés en mois X, rouverts),
+              utiliser zoho_desk_ticket_history avec property_name = 'Status'.
+          - name: due_date
+            description: "Échéance SLA de résolution (TIMESTAMP)"
+          - name: response_due_date
+            description: "Échéance SLA de première réponse (TIMESTAMP)"
+          - name: onhold_time
+            description: "Date/heure de mise en attente (TIMESTAMP)"
+          - name: customer_response_time
+            description: "Date/heure de la dernière réponse du client (TIMESTAMP)"
+          - name: comment_count
+            description: "Nombre de commentaires internes sur le ticket (STRING)"
+          - name: thread_count
+            description: "Nombre de threads e-mail/chat sur le ticket (STRING)"
+          - name: is_archived
+            description: "BOOLEAN — ticket archivé"
+          - name: is_spam
+            description: "BOOLEAN — ticket marqué comme spam"
+          - name: web_url
+            description: "URL directe vers le ticket dans l'interface Zoho Desk"
+          - name: sentiment
+            description: "Sentiment détecté par Zoho Zia (IA) : Positive, Negative, Neutral"
+          - name: relationship_type
+            description: "Type de relation si ticket lié à un autre ticket"
+          - name: on_hold_time
+            description: "Durée cumulée en attente (STRING, format propriétaire Zoho)"
+          - name: last_thread
+            description: "ID du dernier thread sur ce ticket"
+          - name: last_thread__channel
+            description: "Canal du dernier thread"
+          - name: last_thread__direction
+            description: "Direction du dernier thread : inbound (client→agent) / outbound (agent→client)"
+          - name: last_thread__is_draft
+            description: "BOOLEAN — dernier thread est un brouillon non envoyé"
+          - name: last_thread__is_forward
+            description: "BOOLEAN — dernier thread est un transfert (forward)"
+          - name: source__type
+            description: "Type de source du ticket (ex : email, web form)"
+          - name: source__app_name
+            description: "Nom de l'application externe ayant créé le ticket"
+          - name: source__app_photo_url
+            description: "URL de l'icône de l'application source"
+          - name: source__ext_id
+            description: "ID de l'élément dans le système source externe"
+          - name: source__permalink
+            description: "Lien permanent vers l'élément dans le système source"
+          - name: _dlt_load_id
+            description: "ID interne du run dlt (STRING)"
+          - name: _dlt_id
+            description: "Clé interne dlt unique par ligne"
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_ticket_details
+        description: >
+          Enrichissement 1:1 par ticket (20 678 lignes) : flags SLA, champs custom (cf_*),
+          texte de résolution, layout utilisé.
+          Jointure : _zoho_desk_tickets_id = zoho_desk_associated_tickets.id
+          NOTE : la colonne FK est nommée _zoho_desk_tickets_id et non
+          _zoho_desk_associated_tickets_id car le transformer dlt était défini
+          avec data_from=tickets (nom de la ressource dlt, pas du endpoint).
+        columns:
+          - name: _zoho_desk_tickets_id
+            description: >
+              PK et FK — identifiant du ticket associé.
+              Jointure : = zoho_desk_associated_tickets.id
+              Renommé ticket_id dans le staging.
+            tests: [unique, not_null]
+          - name: sla_id
+            description: "ID du contrat SLA appliqué à ce ticket"
+          - name: is_over_due
+            description: "BOOLEAN — ticket en dépassement de l'échéance SLA de résolution"
+          - name: is_response_overdue
+            description: "BOOLEAN — ticket en dépassement de l'échéance SLA de première réponse"
+          - name: is_escalated
+            description: "BOOLEAN — ticket escaladé"
+          - name: resolution
+            description: "Texte de résolution saisi par l'agent à la fermeture du ticket"
+          - name: layout_id
+            description: "ID du layout de formulaire Zoho"
+          - name: layout_name
+            description: "Nom lisible du layout (ex : Default Layout, Formulaire Facturation)"
+          - name: contract_id
+            description: "ID du contrat de service associé au ticket"
+          - name: onhold_time
+            description: "Durée cumulée en attente (STRING)"
+          - name: created_by
+            description: "ID de l'agent ou du système ayant créé le ticket"
+          - name: modified_by
+            description: "ID de l'agent ayant effectué la dernière modification"
+          - name: follower_count
+            description: "Nombre d'abonnés (agents suivant ce ticket)"
+          - name: tag_count
+            description: "Nombre de tags appliqués au ticket"
+          - name: approval_count
+            description: "Nombre d'approbations en attente sur ce ticket"
+          - name: time_entry_count
+            description: "Nombre de saisies de temps (time tracking)"
+          - name: task_count
+            description: "Nombre de tâches liées à ce ticket"
+          # ── Champs custom (cf_*) ─────────────────────────────────────────
+          # Tous les champs custom Zoho sont de type STRING quelle que soit leur
+          # nature réelle (date, booléen, liste) — cast à faire dans le staging
+          # si nécessaire.
+          - name: cf_statut_client
+            description: "Custom field : statut du client (ex : VIP, Standard)"
+          - name: cf_nature_des_demandes
+            description: "Custom field : nature de la demande (classification interne)"
+          - name: cf_previous_status
+            description: "Custom field : statut Zoho précédent (avant l'état courant)"
+          - name: cf_demande_intervention
+            description: "Custom field : demande d'intervention terrain"
+          - name: cf_technique
+            description: "Custom field : indicateur de demande technique"
+          - name: cf_type
+            description: "Custom field : type de demande"
+          - name: cf_type_de_remboursement
+            description: "Custom field : type de remboursement demandé"
+          - name: cf_contrat_avenant
+            description: "Custom field : contrat ou avenant concerné"
+          - name: cf_suivi_intervention
+            description: "Custom field : lien ou référence de suivi d'intervention"
+          - name: cf_votre_demande_concerne
+            description: "Custom field : objet de la demande (formulaire portail client)"
+          - name: cf_correction
+            description: "Custom field : correction demandée"
+          - name: cf_close_ticket_notification_sent
+            description: "Custom field : notification de fermeture envoyée (oui/non)"
+          - name: cf_civilite
+            description: "Custom field : civilité du demandeur (M., Mme) — formulaire web"
+          - name: cf_nom
+            description: "Custom field : nom du demandeur — formulaire web"
+          - name: cf_prenom
+            description: "Custom field : prénom du demandeur — formulaire web"
+          - name: cf_numero_de_telephone
+            description: "Custom field : téléphone — formulaire web"
+          - name: cf_nom_de_l_entreprise
+            description: "Custom field : nom de l'entreprise — formulaire web"
+          - name: cf_secteur_d_activite
+            description: "Custom field : secteur d'activité — formulaire web"
+          - name: cf_tranche_effectiv
+            description: "Custom field : tranche d'effectif de l'entreprise"
+          - name: cf_fiche_de_renseignement
+            description: "Custom field : fiche de renseignement (pièce jointe ou référence)"
+          - name: cf_inscription
+            description: "Custom field : inscription"
+          - name: cf_creation_d_un_site
+            description: "Custom field : demande de création d'un site"
+          - name: cf_modification_d_un_site
+            description: "Custom field : demande de modification d'un site"
+          - name: cf_badges
+            description: "Custom field : badges concernés"
+          - name: cf_rupture
+            description: "Custom field : rupture de stock signalée"
+          - name: cf_boisson_chaude
+            description: "Custom field : boissons chaudes (ancienne colonne, remplacée par cf_boissons_chaudes)"
+          - name: cf_boissons_chaudes
+            description: "Custom field : boissons chaudes"
+          - name: cf_snack
+            description: "Custom field : snacks"
+          - name: cf_consommables
+            description: "Custom field : consommables"
+          - name: cf_s_reappro
+            description: "Custom field : réapprovisionnement"
+          - name: cf_s_facturation
+            description: "Custom field : facturation"
+          - name: cf_s_remboursement
+            description: "Custom field : remboursement"
+          - name: cf_s_commercial
+            description: "Custom field : commercial"
+          - name: cf_s_commande_directes
+            description: "Custom field : commandes directes"
+          - name: cf_s_gestion_des_cartes_privatives
+            description: "Custom field : gestion des cartes privatives"
+          - name: cf_s_gestion_des_planogrammes
+            description: "Custom field : gestion des planogrammes"
+          - name: cf_s_recyclage
+            description: "Custom field : recyclage"
+          - name: cf_s_remontees_personnel_neshu
+            description: "Custom field : remontées personnel NESHU"
+          - name: cf_s_systeme_de_paiement
+            description: "Custom field : système de paiement"
+          - name: cf_collecte
+            description: "Custom field : collecte"
+          - name: cf_modification
+            description: "Custom field : modification demandée"
+          - name: cf_modifications
+            description: "Custom field : modifications (variante colonne, coexiste avec cf_modification)"
+          - name: cf_date_de_l_animation
+            description: "Custom field : date de l'animation"
+          - name: cf_champ_machine_formulaire
+            description: "Custom field : référence machine saisie dans le formulaire web"
+          - name: cf_s_equipements
+            description: "Custom field : équipements concernés"
+          - name: cf_machines
+            description: "Custom field : machines concernées"
+          - name: _dlt_load_id
+            description: "ID interne du run dlt (STRING)"
+          - name: _dlt_id
+            description: "Clé interne dlt unique par ligne"
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_ticket_history
+        description: >
+          Journal d'audit par ticket (259 677 lignes) — une ligne par événement
+          (création du ticket, changement de statut, changement d'assigné,
+          commentaire ajouté, escalade, etc.).
+          C'est la SOURCE DE VÉRITÉ pour toutes les métriques temporelles :
+          tickets fermés en mois X, rouverts, réassignés.
+          NE PAS utiliser closed_time sur associated_tickets pour ces métriques :
+          closed_time ne reflète que la fermeture la plus récente et est NULL
+          si le ticket a été rouvert.
+          Les détails des champs modifiés (valeur avant/après) sont dans
+          zoho_desk_ticket_history__event_info via _dlt_id → _dlt_parent_id.
+        columns:
+          - name: _dlt_id
+            description: >
+              PK interne dlt de cet événement.
+              Utilisé comme clé de jointure vers
+              zoho_desk_ticket_history__event_info._dlt_parent_id.
+            tests: [unique, not_null]
+          - name: _zoho_desk_associated_tickets_id
+            description: "FK vers zoho_desk_associated_tickets.id — ticket concerné par cet événement"
+            tests: [not_null]
+          - name: event_name
+            description: >
+              Type d'événement. Valeurs fréquentes :
+              TicketCreated, StatusChanged, CommentAdded,
+              AssigneeChanged, PriorityChanged, DepartmentChanged, TicketClosed.
+          - name: event_time
+            description: "Date/heure exacte de l'événement (TIMESTAMP)"
+          - name: source
+            description: "Source déclenchant l'événement : UI, API, EMAIL, SYSTEM"
+          - name: actor__id
+            description: "ID Zoho de l'acteur ayant déclenché l'événement (agent, contact ou système)"
+          - name: actor__name
+            description: "Nom lisible de l'acteur"
+          - name: actor__type
+            description: "Type de l'acteur : AGENT, CONTACT, SYSTEM"
+          - name: _dlt_load_id
+            description: "ID interne du run dlt (STRING)"
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_ticket_history__event_info
+        description: >
+          Sous-table dlt de ticket_history (823 452 lignes) —
+          détail des champs modifiés lors d'un événement.
+          Chaque ligne = un champ modifié dans un événement
+          (ex : Status passé de Open à Closed).
+          Jointure : _dlt_parent_id = zoho_desk_ticket_history._dlt_id
+          Filtrer sur property_name pour isoler un type de changement :
+            'Status'     → transitions de statut (open→closed, closed→open…)
+            'Assignee'   → changements d'assigné
+            'Priority'   → changements de priorité
+            'Department' → changements de département
+            'Category'   → changements de catégorie
+          Quand la valeur modifiée est un objet (ex : agent, département),
+          les colonnes __id / __name / __type décomposent cet objet.
+        columns:
+          - name: _dlt_id
+            description: "Clé interne dlt unique pour cette ligne"
+            tests: [unique, not_null]
+          - name: _dlt_parent_id
+            description: "FK interne dlt vers zoho_desk_ticket_history._dlt_id"
+            tests: [not_null]
+          - name: _dlt_list_idx
+            description: "Position (0-based) de cet élément dans le tableau JSON d'origine"
+          - name: property_name
+            description: >
+              Nom du champ modifié. Exemples :
+              'Status', 'Assignee', 'Priority', 'Department', 'Category'.
+              C'est le filtre principal pour isoler le type d'événement.
+          - name: property_type
+            description: "Type Zoho du champ (STRING, BOOLEAN, LOOKUP, etc.)"
+          - name: system_property
+            description: "BOOLEAN — true = champ système Zoho standard, false = champ custom (cf_*)"
+          - name: property_value
+            description: >
+              Valeur du champ quand elle est scalaire simple (pas de before/after).
+              NULL si la modification est représentée en before/after
+              (property_value__previous_value / property_value__updated_value).
+          - name: property_value__id
+            description: "ID de l'objet quand la valeur est un objet unique sans before/after"
+          - name: property_value__name
+            description: "Nom de l'objet quand la valeur est un objet unique sans before/after"
+          - name: property_value__type
+            description: "Type de l'objet quand la valeur est un objet unique sans before/after"
+          - name: property_value__previous_value
+            description: >
+              Valeur AVANT modification (scalaire).
+              Exemple pour property_name='Status' : 'Open'
+          - name: property_value__previous_value__id
+            description: "ID de la valeur AVANT quand c'est un objet (ex : ID de l'agent précédent)"
+          - name: property_value__previous_value__name
+            description: "Nom de la valeur AVANT quand c'est un objet (ex : nom de l'agent précédent)"
+          - name: property_value__previous_value__type
+            description: "Type de la valeur AVANT"
+          - name: property_value__updated_value
+            description: >
+              Valeur APRÈS modification (scalaire).
+              Exemple pour property_name='Status' : 'Closed'
+          - name: property_value__updated_value__id
+            description: "ID de la valeur APRÈS quand c'est un objet (ex : ID du nouvel agent assigné)"
+          - name: property_value__updated_value__name
+            description: "Nom de la valeur APRÈS quand c'est un objet (ex : nom du nouvel agent)"
+          - name: property_value__updated_value__type
+            description: "Type de la valeur APRÈS"

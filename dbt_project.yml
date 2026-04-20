@@ -64,6 +64,10 @@ models:
       gac:
         +tags: ['staging', 'gac']
 
+      zoho_desk:
+        +tags: ['staging', 'zoho_desk']
+        +materialized: table
+
     intermediate:
       +schema: intermediate
       +tags: ['intermediate']
