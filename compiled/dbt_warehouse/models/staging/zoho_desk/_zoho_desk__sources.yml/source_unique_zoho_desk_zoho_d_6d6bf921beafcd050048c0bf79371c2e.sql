@@ -1,0 +1,21 @@
+
+    
+    
+
+with dbt_test__target as (
+
+  select _zoho_desk_tickets_id as unique_field
+  from `evs-datastack-prod`.`prod_raw`.`zoho_desk_ticket_details`
+  where _zoho_desk_tickets_id is not null
+
+)
+
+select
+    unique_field,
+    count(*) as n_records
+
+from dbt_test__target
+group by unique_field
+having count(*) > 1
+
+
