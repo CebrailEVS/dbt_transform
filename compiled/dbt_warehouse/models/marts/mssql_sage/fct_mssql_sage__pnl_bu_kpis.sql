@@ -305,7 +305,7 @@ select
     ecart_vs_budget_ytd,
     ecart_vs_budget_pct_ytd,
     current_timestamp() as dbt_updated_at,
-    '734e55d9-3171-45df-b455-232e706788e5' as dbt_invocation_id
+    '69b58540-99ea-488b-afc3-7ff5a51a1783' as dbt_invocation_id
 from kpi_with_budget
 where annee >= 2024
 order by annee, mois, bu, kpi
