@@ -577,3 +577,111 @@ models:
         description: "ID de la valeur APRÈS quand c'est un objet (ex : ID du nouvel agent assigné)"
       - name: property_value__updated_value__name
         description: "Nom de la valeur APRÈS quand c'est un objet"
+
+  # ─────────────────────────────────────────────────────────────────────────
+
+  - name: stg_zoho_desk__ticket_metrics
+    description: >
+      Métriques SLA et compteurs par ticket — enrichissement 1:1 avec tickets.
+      Source : prod_raw.zoho_desk_ticket_metrics
+      Transformation : _zoho_desk_associated_tickets_id renommé en ticket_id.
+      Durées converties du format STRING 'HH:MM hrs' en INT64 minutes.
+      Expose _dlt_id pour la jointure vers les sous-tables agents_handled et staging_data.
+    config:
+      tags: ['zoho_desk', 'staging']
+    columns:
+      - name: ticket_id
+        description: "PK et FK vers stg_zoho_desk__tickets.ticket_id (renommé depuis _zoho_desk_associated_tickets_id)"
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_zoho_desk__tickets')
+                field: ticket_id
+      - name: first_response_time_minutes
+        description: "Durée avant la première réponse agent, en minutes (converti depuis 'HH:MM hrs')"
+      - name: resolution_time_minutes
+        description: "Durée totale de résolution du ticket, en minutes (converti depuis 'HH:MM hrs')"
+      - name: total_response_time_minutes
+        description: "Durée totale de réponse cumulée, en minutes (converti depuis 'HH:MM hrs')"
+      - name: response_count
+        description: "Nombre de réponses envoyées (INT64)"
+      - name: outgoing_count
+        description: "Nombre de messages sortants (INT64)"
+      - name: thread_count
+        description: "Nombre de threads (INT64)"
+      - name: reopen_count
+        description: "Nombre de réouvertures du ticket (INT64)"
+      - name: reassign_count
+        description: "Nombre de réassignations du ticket (INT64)"
+      - name: _dlt_id
+        description: "Clé interne dlt — exposée pour jointure vers stg_zoho_desk__ticket_metrics_agents_handled et stg_zoho_desk__ticket_metrics_staging_data"
+        tests:
+          - unique
+          - not_null
+
+  # ─────────────────────────────────────────────────────────────────────────
+
+  - name: stg_zoho_desk__ticket_metrics_agents_handled
+    description: >
+      Agents ayant traité chaque ticket avec leur temps de traitement.
+      Source : prod_raw.zoho_desk_ticket_metrics__agents_handled
+      Transformation : handling_time converti en minutes. Pas de colonne id à renommer.
+      Jointure vers ticket_metrics : _dlt_parent_id = stg_zoho_desk__ticket_metrics._dlt_id
+    config:
+      tags: ['zoho_desk', 'staging']
+    columns:
+      - name: _dlt_id
+        description: "PK interne dlt de cette ligne"
+        tests:
+          - unique
+          - not_null
+      - name: _dlt_parent_id
+        description: "FK interne dlt vers stg_zoho_desk__ticket_metrics._dlt_id"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_zoho_desk__ticket_metrics')
+                field: _dlt_id
+      - name: agent_id
+        description: "ID Zoho de l'agent. NULL si agent_name = 'Unassigned'."
+      - name: agent_name
+        description: "Nom de l'agent. 'Unassigned' quand aucun agent n'était assigné."
+      - name: handling_time_minutes
+        description: "Temps passé par cet agent sur le ticket, en minutes (converti depuis 'HH:MM hrs')"
+      - name: _dlt_list_idx
+        description: "Position (0-based) dans le tableau JSON d'origine"
+
+  # ─────────────────────────────────────────────────────────────────────────
+
+  - name: stg_zoho_desk__ticket_metrics_staging_data
+    description: >
+      Temps passé par chaque ticket dans chaque statut Zoho.
+      Source : prod_raw.zoho_desk_ticket_metrics__staging_data
+      Transformation : handled_time converti en minutes. Pas de colonne id à renommer.
+      Jointure vers ticket_metrics : _dlt_parent_id = stg_zoho_desk__ticket_metrics._dlt_id
+      Note : 'staging' est un terme Zoho (= étape de statut), pas un concept dbt.
+    config:
+      tags: ['zoho_desk', 'staging']
+    columns:
+      - name: _dlt_id
+        description: "PK interne dlt de cette ligne"
+        tests:
+          - unique
+          - not_null
+      - name: _dlt_parent_id
+        description: "FK interne dlt vers stg_zoho_desk__ticket_metrics._dlt_id"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_zoho_desk__ticket_metrics')
+                field: _dlt_id
+      - name: status
+        description: "Statut Zoho dans lequel le ticket se trouvait (en français, ex : 'Clôturée')"
+      - name: handled_time_minutes
+        description: "Temps passé dans ce statut, en minutes (converti depuis 'HH:MM hrs')"
+      - name: _dlt_list_idx
+        description: "Position (0-based) dans le tableau JSON d'origine"
