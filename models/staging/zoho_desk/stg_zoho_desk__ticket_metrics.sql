@@ -20,15 +20,15 @@ renamed as (
 
         -- durations (STRING 'HH:MM hrs' → INT64 minutes)
         safe_cast(split(replace(first_response_time, ' hrs', ''), ':')[safe_offset(0)] as int64) * 60
-            + safe_cast(split(replace(first_response_time, ' hrs', ''), ':')[safe_offset(1)] as int64)
+        + safe_cast(split(replace(first_response_time, ' hrs', ''), ':')[safe_offset(1)] as int64)
             as first_response_time_minutes,
 
         safe_cast(split(replace(resolution_time, ' hrs', ''), ':')[safe_offset(0)] as int64) * 60
-            + safe_cast(split(replace(resolution_time, ' hrs', ''), ':')[safe_offset(1)] as int64)
+        + safe_cast(split(replace(resolution_time, ' hrs', ''), ':')[safe_offset(1)] as int64)
             as resolution_time_minutes,
 
         safe_cast(split(replace(total_response_time, ' hrs', ''), ':')[safe_offset(0)] as int64) * 60
-            + safe_cast(split(replace(total_response_time, ' hrs', ''), ':')[safe_offset(1)] as int64)
+        + safe_cast(split(replace(total_response_time, ' hrs', ''), ':')[safe_offset(1)] as int64)
             as total_response_time_minutes,
 
         -- counts (STRING → INT64)

@@ -22,7 +22,7 @@ renamed as (
 
         -- duration (STRING 'HH:MM hrs' → INT64 minutes)
         safe_cast(split(replace(handled_time, ' hrs', ''), ':')[safe_offset(0)] as int64) * 60
-            + safe_cast(split(replace(handled_time, ' hrs', ''), ':')[safe_offset(1)] as int64)
+        + safe_cast(split(replace(handled_time, ' hrs', ''), ':')[safe_offset(1)] as int64)
             as handled_time_minutes,
 
         -- metadata
