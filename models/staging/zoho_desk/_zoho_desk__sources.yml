@@ -595,4 +595,92 @@ sources:
           - name: property_value__updated_value__name
             description: "Nom de la valeur APRÈS quand c'est un objet (ex : nom du nouvel agent)"
           - name: property_value__updated_value__type
-            description: "Type de la valeur APRÈS"
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_ticket_metrics
+        description: >
+          Métriques SLA et compteurs par ticket (20 678 lignes — 1:1 avec tickets).
+          Jointure : _zoho_desk_associated_tickets_id = zoho_desk_associated_tickets.id
+          Les colonnes de durée (first_response_time, resolution_time, total_response_time)
+          sont au format STRING "HH:MM hrs" — converties en minutes (INT64) dans le staging.
+          Expose _dlt_id pour la jointure vers les sous-tables agents_handled et staging_data.
+        columns:
+          - name: _zoho_desk_associated_tickets_id
+            description: "PK et FK vers zoho_desk_associated_tickets.id. Renommé ticket_id dans le staging."
+            tests: [unique, not_null]
+          - name: first_response_time
+            description: "Durée avant la première réponse agent (STRING 'HH:MM hrs' — converti en minutes dans le staging)"
+          - name: resolution_time
+            description: "Durée totale de résolution du ticket (STRING 'HH:MM hrs' — converti en minutes dans le staging)"
+          - name: total_response_time
+            description: "Durée totale de réponse cumulée (STRING 'HH:MM hrs' — converti en minutes dans le staging)"
+          - name: response_count
+            description: "Nombre de réponses envoyées (STRING → INT64 dans le staging)"
+          - name: outgoing_count
+            description: "Nombre de messages sortants (STRING → INT64 dans le staging)"
+          - name: thread_count
+            description: "Nombre de threads (STRING → INT64 dans le staging)"
+          - name: reopen_count
+            description: "Nombre de fois que le ticket a été rouvert (STRING → INT64 dans le staging)"
+          - name: reassign_count
+            description: "Nombre de fois que le ticket a été réassigné (STRING → INT64 dans le staging)"
+          - name: _dlt_load_id
+            description: "ID interne du run dlt (STRING)"
+          - name: _dlt_id
+            description: >
+              Clé interne dlt unique par ligne.
+              Exposée dans le staging pour la jointure vers
+              zoho_desk_ticket_metrics__agents_handled et zoho_desk_ticket_metrics__staging_data.
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_ticket_metrics__agents_handled
+        description: >
+          Sous-table dlt de ticket_metrics (33 608 lignes — ~1.6 agents par ticket).
+          Une ligne par agent ayant traité le ticket, avec le temps passé.
+          Jointure : _dlt_parent_id = zoho_desk_ticket_metrics._dlt_id
+          Note : agent_id est NULL quand agent_name = 'Unassigned'
+          (tickets sans agent assigné à un moment donné).
+        columns:
+          - name: _dlt_id
+            description: "Clé interne dlt unique pour cette ligne"
+            tests: [unique, not_null]
+          - name: _dlt_parent_id
+            description: "FK interne dlt vers zoho_desk_ticket_metrics._dlt_id"
+            tests: [not_null]
+          - name: agent_id
+            description: "ID Zoho de l'agent ayant traité le ticket. NULL si agent_name = 'Unassigned'."
+          - name: agent_name
+            description: "Nom de l'agent. 'Unassigned' quand aucun agent n'était assigné."
+          - name: handling_time
+            description: "Temps passé par cet agent sur le ticket (STRING 'HH:MM hrs' — converti en minutes dans le staging)"
+          - name: _dlt_root_id
+            description: "Référence à la ligne racine dans la hiérarchie dlt"
+          - name: _dlt_list_idx
+            description: "Position (0-based) de cet élément dans le tableau JSON d'origine"
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_ticket_metrics__staging_data
+        description: >
+          Sous-table dlt de ticket_metrics (46 663 lignes — ~2.3 statuts par ticket).
+          Une ligne par statut par lequel le ticket est passé, avec le temps passé dans ce statut.
+          Jointure : _dlt_parent_id = zoho_desk_ticket_metrics._dlt_id
+          ATTENTION : "staging" est un terme Zoho (= étape de statut), pas un concept dbt.
+          Les valeurs de status sont en français (ex : "Clôturée", "Ouverte").
+        columns:
+          - name: _dlt_id
+            description: "Clé interne dlt unique pour cette ligne"
+            tests: [unique, not_null]
+          - name: _dlt_parent_id
+            description: "FK interne dlt vers zoho_desk_ticket_metrics._dlt_id"
+            tests: [not_null]
+          - name: status
+            description: "Statut Zoho dans lequel le ticket se trouvait (en français, ex : 'Clôturée', 'Ouverte')"
+          - name: handled_time
+            description: "Temps passé par le ticket dans ce statut (STRING 'HH:MM hrs' — converti en minutes dans le staging)"
+          - name: _dlt_root_id
+            description: "Référence à la ligne racine dans la hiérarchie dlt"
+          - name: _dlt_list_idx
+            description: "Position (0-based) de cet élément dans le tableau JSON d'origine"

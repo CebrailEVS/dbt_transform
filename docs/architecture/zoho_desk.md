@@ -109,6 +109,30 @@ erDiagram
         string property_value__updated_value
     }
 
+    stg_zoho_desk__ticket_metrics {
+        string ticket_id PK
+        string _dlt_id
+        int first_response_time_minutes
+        int resolution_time_minutes
+        int reopen_count
+        int reassign_count
+    }
+
+    stg_zoho_desk__ticket_metrics_agents_handled {
+        string _dlt_id PK
+        string _dlt_parent_id FK
+        string agent_id
+        string agent_name
+        int handling_time_minutes
+    }
+
+    stg_zoho_desk__ticket_metrics_staging_data {
+        string _dlt_id PK
+        string _dlt_parent_id FK
+        string status
+        int handled_time_minutes
+    }
+
     %% Dimensions → Tickets
     stg_zoho_desk__tickets }o--|| stg_zoho_desk__departments : "department_id"
     stg_zoho_desk__tickets }o--|| stg_zoho_desk__agents : "assignee_id → agent_id"
@@ -126,6 +150,13 @@ erDiagram
 
     %% Historique → détail événement 1:N
     stg_zoho_desk__ticket_history ||--o{ stg_zoho_desk__ticket_history_event_info : "_dlt_id"
+
+    %% Tickets → métriques 1:1
+    stg_zoho_desk__tickets ||--|| stg_zoho_desk__ticket_metrics : "ticket_id"
+
+    %% Métriques → sous-tables 1:N
+    stg_zoho_desk__ticket_metrics ||--o{ stg_zoho_desk__ticket_metrics_agents_handled : "_dlt_id"
+    stg_zoho_desk__ticket_metrics ||--o{ stg_zoho_desk__ticket_metrics_staging_data : "_dlt_id"
 
     %% Agent → départements (bridge)
     stg_zoho_desk__agents ||--o{ stg_zoho_desk__agent_departments : "_dlt_id"
@@ -152,8 +183,11 @@ erDiagram
 |---|---|---|
 | `stg_zoho_desk__tickets` | **Table centrale** — un ticket par ligne, avec tous ses attributs courants | 20 678 |
 | `stg_zoho_desk__ticket_details` | Enrichissement 1:1 : flags SLA, champs custom (`cf_*`), résolution | 20 678 |
+| `stg_zoho_desk__ticket_metrics` | Enrichissement 1:1 : durées SLA et compteurs (réponse, réouverture, réassignation) | 20 678 |
 | `stg_zoho_desk__ticket_history` | Journal d'audit : un événement par ligne (création, changement de statut, etc.) | 259 677 |
 | `stg_zoho_desk__ticket_history_event_info` | Détail de chaque événement : champ modifié, valeur avant, valeur après | 823 452 |
+| `stg_zoho_desk__ticket_metrics_agents_handled` | Agents ayant traité chaque ticket avec leur temps de traitement individuel | 33 608 |
+| `stg_zoho_desk__ticket_metrics_staging_data` | Temps passé par chaque ticket dans chaque statut Zoho ("staging" = étape de statut) | 46 663 |
 
 ---
 
