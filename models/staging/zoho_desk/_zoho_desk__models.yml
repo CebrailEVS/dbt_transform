@@ -138,9 +138,9 @@ models:
               arguments:
                 to: ref('stg_zoho_desk__agents')
                 field: _dlt_id
-      - name: value
+      - name: department_id
         description: >
-          ID du département auquel appartient cet agent.
+          ID du département auquel appartient cet agent (renommé depuis value).
           FK vers stg_zoho_desk__departments.department_id.
         tests:
           - relationships:
