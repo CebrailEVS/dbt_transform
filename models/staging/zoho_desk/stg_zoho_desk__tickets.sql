@@ -12,7 +12,7 @@ with source as (
 renamed as (
     select
         -- primary key
-        id                                                          as ticket_id,
+        id as ticket_id,
 
         -- foreign keys
         department_id,
@@ -74,8 +74,8 @@ renamed as (
         customer_response_time,
 
         -- counts (STRING in source → INT64)
-        SAFE_CAST(comment_count AS INT64)                           as comment_count,
-        SAFE_CAST(thread_count  AS INT64)                           as thread_count,
+        safe_cast(comment_count as int64) as comment_count,
+        safe_cast(thread_count as int64) as thread_count,
 
         -- metadata
         web_url

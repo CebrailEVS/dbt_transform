@@ -14,7 +14,7 @@ renamed as (
         -- primary key + foreign key to stg_zoho_desk__tickets
         -- (colonne source nommée _zoho_desk_tickets_id car le transformer dlt
         --  utilisait la ressource `tickets` comme parent)
-        _zoho_desk_tickets_id                               as ticket_id,
+        _zoho_desk_tickets_id as ticket_id,
 
         -- sla (indicateurs et flags regroupés par domaine)
         sla_id,
@@ -31,11 +31,11 @@ renamed as (
         contract_id,
 
         -- engagement counts (STRING in source → INT64)
-        SAFE_CAST(follower_count    AS INT64)                as follower_count,
-        SAFE_CAST(tag_count         AS INT64)                as tag_count,
-        SAFE_CAST(approval_count    AS INT64)                as approval_count,
-        SAFE_CAST(time_entry_count  AS INT64)                as time_entry_count,
-        SAFE_CAST(task_count        AS INT64)                as task_count,
+        safe_cast(follower_count as int64) as follower_count,
+        safe_cast(tag_count as int64) as tag_count,
+        safe_cast(approval_count as int64) as approval_count,
+        safe_cast(time_entry_count as int64) as time_entry_count,
+        safe_cast(task_count as int64) as task_count,
 
         -- custom fields (tous STRING — caster dans les marts si nécessaire)
         cf_statut_client,

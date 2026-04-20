@@ -12,7 +12,7 @@ with source as (
 renamed as (
     select
         -- primary key
-        id                              as department_id,
+        id as department_id,
 
         -- attributes
         name,

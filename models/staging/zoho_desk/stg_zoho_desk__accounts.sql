@@ -12,7 +12,7 @@ with source as (
 renamed as (
     select
         -- primary key
-        id                                    as account_id,
+        id as account_id,
 
         -- attributes
         account_name,
@@ -20,9 +20,9 @@ renamed as (
         web_url,
 
         -- csat scores (STRING in source → FLOAT64)
-        SAFE_CAST(customer_happiness__bad_percentage  AS FLOAT64) as customer_happiness__bad_percentage,
-        SAFE_CAST(customer_happiness__ok_percentage   AS FLOAT64) as customer_happiness__ok_percentage,
-        SAFE_CAST(customer_happiness__good_percentage AS FLOAT64) as customer_happiness__good_percentage
+        safe_cast(customer_happiness__bad_percentage as float64) as customer_happiness__bad_percentage,
+        safe_cast(customer_happiness__ok_percentage as float64) as customer_happiness__ok_percentage,
+        safe_cast(customer_happiness__good_percentage as float64) as customer_happiness__good_percentage
 
     from source
 )

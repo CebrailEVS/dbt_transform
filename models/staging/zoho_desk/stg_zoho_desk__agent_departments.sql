@@ -18,7 +18,7 @@ renamed as (
         _dlt_parent_id,
 
         -- fk to stg_zoho_desk__departments (c'est un ID Zoho métier)
-        value               as department_id,
+        value as department_id,
 
         -- position dans le tableau JSON d'origine (utile pour le debug)
         _dlt_list_idx

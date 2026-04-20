@@ -12,7 +12,7 @@ with source as (
 renamed as (
     select
         -- primary key
-        id                          as agent_id,
+        id as agent_id,
 
         -- identity
         first_name,

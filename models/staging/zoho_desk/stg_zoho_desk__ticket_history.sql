@@ -11,7 +11,7 @@ with source as (
 
 renamed as (
     select
-        -- primary key (dlt internal — exposé pour jointure vers stg_zoho_desk__ticket_history_event_info._dlt_parent_id)
+        -- primary key (dlt internal) — jointure vers ticket_history_event_info._dlt_parent_id
         _dlt_id,
 
         -- foreign key

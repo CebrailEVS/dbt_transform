@@ -12,7 +12,7 @@ with source as (
 renamed as (
     select
         -- primary key
-        id                                      as contact_id,
+        id as contact_id,
 
         -- identity
         first_name,
@@ -26,7 +26,7 @@ renamed as (
         -- metadata
         owner_id,
         created_time,
-        SAFE_CAST(account_count AS INT64) as account_count,
+        safe_cast(account_count as int64) as account_count,
 
         -- flags
         is_anonymous,
