@@ -1,0 +1,6 @@
+status,status_type,is_on_hold,is_closed
+Nouveau,Open,false,false
+En cours de traitement,Open,false,false
+En attente infos complémentaires,On Hold,true,false
+En attente interne,On Hold,true,false
+Clôturée,Closed,false,true

@@ -1,0 +1,138 @@
+# models/intermediate/zoho_desk/_zoho_desk__intermediate_models.yml
+version: 2
+
+models:
+  - name: int_zoho_desk__ticket_status_transitions
+    description: >
+      Une ligne par changement de statut par ticket. Reconstruit le cycle de vie complet
+      de chaque ticket à partir du journal d'audit brut (ticket_history + ticket_history_event_info).
+      Normalise les labels anglais hérités (pré-mai 2024) vers les labels français courants.
+      Exclut les événements TicketMergedMaster (snapshots, pas des transitions réelles).
+      Alimente int_zoho_desk__ticket_timeline (calcul SLA) et fct_zoho_desk__ticket_status_transitions.
+
+    columns:
+      - name: transition_id
+        description: "Clé de substitution — hash MD5 sur (ticket_id, event_id, from_status, to_status). event_id inclus pour différencier deux automatismes Zoho déclenchés à la même seconde."
+        data_type: string
+        tests:
+          - unique
+          - not_null
+
+      - name: ticket_id
+        description: "Identifiant Zoho du ticket (FK vers stg_zoho_desk__tickets)"
+        data_type: string
+        tests:
+          - not_null
+
+      - name: event_time
+        description: "Timestamp UTC de l'événement"
+        data_type: timestamp
+        tests:
+          - not_null
+
+      - name: event_date_paris
+        description: "Date locale Paris de l'événement (colonne de partition)"
+        data_type: date
+        tests:
+          - not_null
+
+      - name: event_name
+        description: "Type d'événement Zoho — TicketCreated ou TicketUpdated"
+        data_type: string
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['TicketCreated', 'TicketUpdated']
+
+      - name: actor_type
+        description: "Qui a déclenché le changement — Agent, null (automatisme Zoho), Workflow"
+        data_type: string
+
+      - name: from_status
+        description: "Statut avant la transition. Null pour les événements TicketCreated (pas de statut précédent)"
+        data_type: string
+
+      - name: to_status
+        description: "Statut après la transition"
+        data_type: string
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Nouveau'
+                - 'En cours de traitement'
+                - 'En attente infos complémentaires'
+                - 'En attente interne'
+                - 'Clôturée'
+
+      - name: transition_type
+        description: >
+          Classification métier de la transition.
+          ticket_created : statut initial à la création.
+          closed : passage vers Clôturée.
+          reopened : retour depuis Clôturée vers Nouveau (contact répond ou agent rouvre).
+          on_hold_enter : passage vers un statut En attente.
+          on_hold_exit : sortie d'un statut En attente.
+          status_change : tout autre changement entre statuts actifs.
+        data_type: string
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'ticket_created'
+                - 'closed'
+                - 'reopened'
+                - 'on_hold_enter'
+                - 'on_hold_exit'
+                - 'status_change'
+
+  - name: int_zoho_desk__ticket_timeline
+    description: >
+      Une ligne par ticket. Calcule toutes les métriques SLA en heures ouvrées à partir
+      du journal d'audit brut. Alimente fct_zoho_desk__tickets directement — aucune logique
+      SLA ne doit être dupliquée dans la couche mart.
+
+    columns:
+      - name: ticket_id
+        description: "Identifiant Zoho du ticket (FK vers stg_zoho_desk__tickets)"
+        data_type: string
+        tests:
+          - unique
+          - not_null
+
+      - name: first_response_at
+        description: >
+          Timestamp UTC du premier envoi de réponse par un agent
+          (ThreadAdded + ReplyThread + Outgoing + Success). Null si aucune réponse envoyée.
+        data_type: timestamp
+
+      - name: first_response_business_minutes
+        description: >
+          Heures ouvrées entre created_time et first_response_at.
+          Null si aucune réponse envoyée. À ne pas confondre avec first_response_time_minutes
+          de ticket_metrics (qui vaut 0 si pas de réponse).
+        data_type: int64
+
+      - name: resolution_business_minutes
+        description: >
+          Heures ouvrées de résolution : bh(created → closed) − somme des périodes Clôturée
+          intermédiaires. Les périodes en attente ne sont PAS soustraites (elles décalent
+          l'échéance SLA). Null pour les tickets non fermés.
+        data_type: int64
+
+      - name: on_hold_business_minutes
+        description: >
+          Somme des heures ouvrées passées dans les statuts En attente.
+          Utilisé pour le contrôle SLA : résolu dans les délais si
+          resolution_business_minutes ≤ sla_threshold + on_hold_business_minutes.
+        data_type: int64
+        tests:
+          - not_null
+
+      - name: paused_business_minutes
+        description: >
+          Somme des heures ouvrées dans les périodes Clôturée intermédiaires (déjà soustraites
+          de resolution_business_minutes). Exposé pour débogage et audit.
+        data_type: int64
+        tests:
+          - not_null
