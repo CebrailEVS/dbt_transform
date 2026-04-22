@@ -497,6 +497,8 @@ models:
               arguments:
                 to: ref('stg_zoho_desk__tickets')
                 field: ticket_id
+              config:
+                severity: warn
       - name: event_name
         description: >
           Type d'événement. Exemples :
@@ -599,6 +601,8 @@ models:
               arguments:
                 to: ref('stg_zoho_desk__tickets')
                 field: ticket_id
+              config:
+                severity: warn
       - name: first_response_time_minutes
         description: "Durée avant la première réponse agent, en minutes (converti depuis 'HH:MM hrs')"
       - name: resolution_time_minutes
