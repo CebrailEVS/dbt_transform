@@ -266,13 +266,13 @@ kpi_with_budget as (
         safe_divide(l.valeur_n_1, ca.valeur_n_1) as pct_du_ca_n_1,
         safe_divide(l.valeur_ytd_n_1, ca.valeur_ytd_n_1) as pct_du_ca_n_1_ytd,
         l.valeur - l.valeur_n_1 as ecart_n_vs_n_1,
-        safe_divide(l.valeur - l.valeur_n_1, l.valeur_n_1) as evolution_pct,
+        safe_divide(l.valeur - l.valeur_n_1, abs(l.valeur_n_1)) as evolution_pct,
         l.valeur_ytd - l.valeur_ytd_n_1 as ecart_n_vs_n_1_ytd,
-        safe_divide(l.valeur_ytd - l.valeur_ytd_n_1, l.valeur_ytd_n_1) as evolution_pct_ytd,
+        safe_divide(l.valeur_ytd - l.valeur_ytd_n_1, abs(l.valeur_ytd_n_1)) as evolution_pct_ytd,
         l.valeur - b.valeur as ecart_vs_budget,
-        safe_divide(l.valeur - b.valeur, b.valeur) as ecart_vs_budget_pct,
+        safe_divide(l.valeur - b.valeur, abs(b.valeur)) as ecart_vs_budget_pct,
         l.valeur_ytd - b.valeur_ytd as ecart_vs_budget_ytd,
-        safe_divide(l.valeur_ytd - b.valeur_ytd, b.valeur_ytd) as ecart_vs_budget_pct_ytd,
+        safe_divide(l.valeur_ytd - b.valeur_ytd, abs(b.valeur_ytd)) as ecart_vs_budget_pct_ytd,
         -- ✨ NOUVEAUTÉ : ratio budget en % du CA réel
         safe_divide(b.valeur, ca.valeur) as budget_pct_du_ca,
         safe_divide(b.valeur_ytd, ca.valeur_ytd) as budget_pct_du_ca_ytd
