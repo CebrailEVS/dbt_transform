@@ -42,7 +42,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['TicketCreated', 'TicketUpdated']
+              arguments:
+                values: ['TicketCreated', 'TicketUpdated']
 
       - name: actor_type
         description: "Qui a déclenché le changement — Agent, null (automatisme Zoho), Workflow"
@@ -58,12 +59,13 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Nouveau'
-                - 'En cours de traitement'
-                - 'En attente infos complémentaires'
-                - 'En attente interne'
-                - 'Clôturée'
+              arguments:
+                values:
+                  - 'Nouveau'
+                  - 'En cours de traitement'
+                  - 'En attente infos complémentaires'
+                  - 'En attente interne'
+                  - 'Clôturée'
 
       - name: transition_type
         description: >
@@ -78,19 +80,21 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'ticket_created'
-                - 'closed'
-                - 'reopened'
-                - 'on_hold_enter'
-                - 'on_hold_exit'
-                - 'status_change'
+              arguments:
+                values:
+                  - 'ticket_created'
+                  - 'closed'
+                  - 'reopened'
+                  - 'on_hold_enter'
+                  - 'on_hold_exit'
+                  - 'status_change'
 
   - name: int_zoho_desk__ticket_timeline
     description: >
-      Une ligne par ticket. Calcule toutes les métriques SLA en heures ouvrées à partir
-      du journal d'audit brut. Alimente fct_zoho_desk__tickets directement — aucune logique
-      SLA ne doit être dupliquée dans la couche mart.
+      Une ligne par ticket. Enrichit stg_zoho_desk__tickets avec le timestamp de première
+      prise en charge (reconstruit depuis ticket_history) et les métriques SLA Zoho en
+      heures ouvrées (sourcées directement depuis ticket_metrics — validées contre l'export
+      du web app Zoho "dans les heures d'ouverture"). Alimente fct_zoho_desk__tickets.
 
     columns:
       - name: ticket_id
@@ -102,37 +106,31 @@ models:
 
       - name: first_response_at
         description: >
-          Timestamp UTC du premier envoi de réponse par un agent
-          (ThreadAdded + ReplyThread + Outgoing + Success). Null si aucune réponse envoyée.
+          Timestamp UTC de la première prise en charge du ticket par un agent — plus ancien
+          événement ThreadAdded / CommentAdded, ou TicketUpdated modifiant un champ métier
+          significatif (Status, Category, Sub Category, Priority, Case Owner, Assignee,
+          Department). Les TicketUpdated générés par workflow (Previous Status, Statut client,
+          etc.) sont filtrés. Null si aucun agent n'a jamais touché le ticket. Non exposé
+          par l'API Zoho — reconstruit ici pour permettre le bucketing Paris dans les rapports.
         data_type: timestamp
 
-      - name: first_response_business_minutes
+      - name: first_response_time_minutes
         description: >
-          Heures ouvrées entre created_time et first_response_at.
-          Null si aucune réponse envoyée. À ne pas confondre avec first_response_time_minutes
-          de ticket_metrics (qui vaut 0 si pas de réponse).
+          Heures ouvrées entre la création et la première réponse. Sourcé tel quel depuis
+          stg_zoho_desk__ticket_metrics — correspond à la colonne "Temps de première réponse
+          dans les heures d'ouverture" du web app Zoho.
         data_type: int64
 
-      - name: resolution_business_minutes
+      - name: resolution_time_minutes
         description: >
-          Heures ouvrées de résolution : bh(created → closed) − somme des périodes Clôturée
-          intermédiaires. Les périodes en attente ne sont PAS soustraites (elles décalent
-          l'échéance SLA). Null pour les tickets non fermés.
+          Heures ouvrées de résolution (Délai de résolution du système). Sourcé tel quel
+          depuis stg_zoho_desk__ticket_metrics — correspond à la colonne "Temps de résolution
+          dans les heures d'ouverture" du web app Zoho. Null pour les tickets non fermés.
         data_type: int64
 
-      - name: on_hold_business_minutes
+      - name: total_response_time_minutes
         description: >
-          Somme des heures ouvrées passées dans les statuts En attente.
-          Utilisé pour le contrôle SLA : résolu dans les délais si
-          resolution_business_minutes ≤ sla_threshold + on_hold_business_minutes.
+          Temps de réponse total en heures ouvrées. Sourcé tel quel depuis
+          stg_zoho_desk__ticket_metrics — correspond à la colonne "Temps de réponse total
+          dans les heures d'ouverture" du web app Zoho.
         data_type: int64
-        tests:
-          - not_null
-
-      - name: paused_business_minutes
-        description: >
-          Somme des heures ouvrées dans les périodes Clôturée intermédiaires (déjà soustraites
-          de resolution_business_minutes). Exposé pour débogage et audit.
-        data_type: int64
-        tests:
-          - not_null
