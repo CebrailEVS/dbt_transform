@@ -66,7 +66,6 @@ models:
 
       zoho_desk:
         +tags: ['staging', 'zoho_desk']
-        +materialized: table
 
     intermediate:
       +schema: intermediate

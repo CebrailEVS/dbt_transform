@@ -38,8 +38,6 @@ models:
       Comptes Zoho Desk nettoyés = entreprises clientes.
       Source : prod_raw.zoho_desk_accounts
       Transformation : id renommé en account_id.
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: account_id
         description: "PK — identifiant unique du compte (renommé depuis id)"
@@ -68,8 +66,6 @@ models:
       Transformation : id renommé en agent_id.
       Note : _dlt_id est conservé dans ce modèle car il sert de clé de jointure
       vers stg_zoho_desk__agent_departments (jointure dlt interne, pas un ID Zoho).
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: agent_id
         description: "PK — identifiant unique de l'agent (renommé depuis id)"
@@ -120,8 +116,6 @@ models:
       Jointures :
         → agent      : _dlt_parent_id = stg_zoho_desk__agents._dlt_id  (clé dlt interne)
         → département : value = stg_zoho_desk__departments.department_id (ID Zoho métier)
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: _dlt_id
         description: "PK interne dlt de cette ligne"
@@ -157,8 +151,6 @@ models:
       Contacts Zoho Desk nettoyés = personnes physiques (clients) qui ouvrent des tickets.
       Source : prod_raw.zoho_desk_contacts
       Transformation : id renommé en contact_id.
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: contact_id
         description: "PK — identifiant unique du contact (renommé depuis id)"
@@ -204,8 +196,6 @@ models:
       Départements Zoho Desk nettoyés = groupes organisationnels recevant les tickets.
       Source : prod_raw.zoho_desk_departments
       Transformation : id renommé en department_id.
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: department_id
         description: "PK — identifiant unique du département (renommé depuis id)"
@@ -241,8 +231,6 @@ models:
       Pour les métriques temporelles (tickets fermés/rouverts par mois),
       utiliser stg_zoho_desk__ticket_history — ne pas utiliser closed_time
       qui ne reflète que la fermeture la plus récente.
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: ticket_id
         description: "PK — identifiant unique du ticket (renommé depuis id)"
@@ -342,8 +330,6 @@ models:
       NOTE sur le nom de la colonne source : la FK se nomme _zoho_desk_tickets_id
       (et non _zoho_desk_associated_tickets_id) car le transformer dlt était défini
       avec data_from=tickets. Dans le staging, on renomme en ticket_id pour la cohérence.
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: ticket_id
         description: >
@@ -478,8 +464,6 @@ models:
       Transformation : aucune (pas de colonne id à renommer — la PK est _dlt_id).
       Le détail des champs modifiés est dans stg_zoho_desk__ticket_history_event_info
       (jointure : _dlt_parent_id = _dlt_id de ce modèle).
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: _dlt_id
         description: >
@@ -529,8 +513,6 @@ models:
         Les valeurs avant/après sont dans property_value__previous_value /
         property_value__updated_value (scalaires) ou dans les colonnes __id/__name/__type
         (quand la valeur est un objet Zoho comme un agent ou département).
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: _dlt_id
         description: "PK interne dlt de cette ligne"
@@ -589,8 +571,6 @@ models:
       Transformation : _zoho_desk_associated_tickets_id renommé en ticket_id.
       Durées converties du format STRING 'HH:MM hrs' en INT64 minutes.
       Expose _dlt_id pour la jointure vers les sous-tables agents_handled et staging_data.
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: ticket_id
         description: "PK et FK vers stg_zoho_desk__tickets.ticket_id (renommé depuis _zoho_desk_associated_tickets_id)"
@@ -633,8 +613,6 @@ models:
       Source : prod_raw.zoho_desk_ticket_metrics__agents_handled
       Transformation : handling_time converti en minutes. Pas de colonne id à renommer.
       Jointure vers ticket_metrics : _dlt_parent_id = stg_zoho_desk__ticket_metrics._dlt_id
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: _dlt_id
         description: "PK interne dlt de cette ligne"
@@ -667,8 +645,6 @@ models:
       Transformation : handled_time converti en minutes. Pas de colonne id à renommer.
       Jointure vers ticket_metrics : _dlt_parent_id = stg_zoho_desk__ticket_metrics._dlt_id
       Note : 'staging' est un terme Zoho (= étape de statut), pas un concept dbt.
-    config:
-      tags: ['zoho_desk', 'staging']
     columns:
       - name: _dlt_id
         description: "PK interne dlt de cette ligne"
