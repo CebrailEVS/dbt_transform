@@ -80,7 +80,7 @@ with mouvement_interne_base as (
 
     where
         1 = 1
-        and t.idtask_status in (1, 4, 3)  -- FAIT, VALIDE, ANNULE
+        and t.idtask_status in (1, 4, 3, 5)  -- FAIT, VALIDE, ANNULE, ANOMALIE
         and t.code_status_record = '1'
         and t.idtask_type = 161 -- LIVRAISONS INTERNE
         and t.real_start_date is not null
