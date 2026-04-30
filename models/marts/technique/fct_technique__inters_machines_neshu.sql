@@ -56,7 +56,19 @@ future_planned as (
         and date(date_planned) > current_date()
 ),
 
--- CTE 4 : Full outer join entre dernière réalisée et prochaine planifiée pour couvrir
+-- CTE 4 : Filtre sur la dernière intervention réalisée (rn = 1 → rang le plus récent).
+last_done_top as (
+    select * from last_done
+    where rn = 1
+),
+
+-- CTE 5 : Filtre sur la prochaine intervention planifiée (rn = 1 → échéance la plus proche).
+future_planned_top as (
+    select * from future_planned
+    where rn = 1
+),
+
+-- CTE 6 : Full outer join entre dernière réalisée et prochaine planifiée pour couvrir
 -- les machines qui n'ont qu'une seule des deux informations disponibles.
 -- Le numéro de série est nettoyé du préfixe 'NESH_' pour la jointure avec Oracle.
 yuman_interventions as (
@@ -68,14 +80,8 @@ yuman_interventions as (
         d.last_done_date,
         f.future_planned_workorder_id,
         f.future_planned_date
-    from (
-        select * from last_done
-        where rn = 1
-    ) as d
-    full outer join (
-        select * from future_planned
-        where rn = 1
-    ) as f
+    from last_done_top as d
+    full outer join future_planned_top as f
         on d.material_id = f.material_id
 )
 
