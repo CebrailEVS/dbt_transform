@@ -243,3 +243,70 @@ models:
 
       - name: flag_hors_delai_tech
         description: Indique si l'intervention est hors délai technicien (1/0)
+
+  - name: fct_technique__inters_machines_neshu
+    description: |
+      Table de faits croisant les passages Oracle NESHU (appro) des 30 derniers jours
+      avec les interventions Yuman (dernière réalisée + prochaine planifiée) pour chaque machine.
+
+      Pour chaque passage Oracle, la jointure s'effectue via le numéro de série de la machine
+      (device_code côté Oracle, numéro de série sans préfixe 'NESH_' côté Yuman).
+
+      **Sources de données :**
+      - Oracle NESHU : passages appro (fct_oracle_neshu__monitoring_passages_appro — table externe)
+      - Yuman : workorders enrichis (int_yuman__demands_workorders_enriched)
+
+    columns:
+      - name: task_id
+        description: Identifiant unique du passage/tâche dans Oracle NESHU
+        tests:
+          - not_null
+
+      - name: roadman_code
+        description: Code du technicien/roadman ayant effectué le passage (source Oracle)
+
+      - name: device_code
+        description: Numéro de série de la machine (source Oracle, sans préfixe NESH_)
+        tests:
+          - not_null
+
+      - name: company_code
+        description: Code de l'entreprise/site client dans Oracle
+
+      - name: task_start_date
+        description: Date et heure de début du passage (source Oracle)
+
+      - name: device_name
+        description: Nom de la machine (source Oracle)
+
+      - name: task_location_info
+        description: Informations de localisation du passage (adresse, site)
+
+      - name: task_status_code
+        description: Code statut du passage Oracle
+
+      - name: is_planned
+        description: Indique si le passage était planifié (booléen)
+
+      - name: is_done
+        description: Indique si le passage a été réalisé (booléen)
+
+      - name: last_done_workorder_id
+        description: |
+          Identifiant du dernier workorder Yuman réalisé pour cette machine
+          dans les 30 derniers jours. NULL si aucune intervention Yuman récente.
+
+      - name: last_done_date
+        description: |
+          Date de réalisation du dernier workorder Yuman pour cette machine
+          dans les 30 derniers jours. NULL si aucune intervention Yuman récente.
+
+      - name: future_planned_workorder_id
+        description: |
+          Identifiant du prochain workorder Yuman planifié pour cette machine
+          (date planifiée > aujourd'hui). NULL si aucune intervention à venir.
+
+      - name: future_planned_date
+        description: |
+          Date planifiée du prochain workorder Yuman pour cette machine.
+          NULL si aucune intervention à venir.
