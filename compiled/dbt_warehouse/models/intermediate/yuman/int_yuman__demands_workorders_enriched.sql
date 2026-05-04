@@ -7,6 +7,7 @@ with workorder_demands as (
         material_id,
         site_id,
         client_id,
+        contact_id,
         user_id,
         demand_description,
         demand_status,
@@ -109,34 +110,15 @@ tech_agence_mapping as (
     from `evs-datastack-prod`.`prod_reference`.`ref_yuman__tech_agence`
 ),
 
-contacts_per_site as (
-    select
-        contact_id,
-        site_id,
-        contact_name,
-        contact_title,
-        contact_phone,
-        contact_mobile,
-        contact_email,
-        row_number() over (
-            partition by site_id
-            order by created_at desc
-        ) as rn
-    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__contacts`
-    where site_id is not null
-),
-
 contacts as (
     select
         contact_id,
-        site_id,
         contact_name,
         contact_title,
         contact_phone,
         contact_mobile,
         contact_email
-    from contacts_per_site
-    where rn = 1
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__contacts`
 )
 
 select
@@ -229,7 +211,7 @@ left join clients as cl
 left join sites as s
     on wd.site_id = s.site_id
 left join contacts as c
-    on wd.site_id = c.site_id
+    on wd.contact_id = c.contact_id
 left join materials as m
     on wd.material_id = m.material_id
 left join materials_categories as mc
