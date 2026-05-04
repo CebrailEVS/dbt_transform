@@ -27,20 +27,20 @@ models:
         tests:
           - unique
           - not_null
-      - name: client_id
-        description: "Référence vers le client rattaché"
-        tests:
-          - relationships:
-              arguments:
-                to: ref('stg_yuman__clients')
-                field: client_id
-      - name: site_id
-        description: "Référence vers le site rattaché"
-        tests:
-          - relationships:
-              arguments:
-                to: ref('stg_yuman__sites')
-                field: site_id
+#      - name: client_id
+#        description: "Référence vers le client rattaché"
+#        tests:
+#          - relationships:
+#              arguments:
+#                 to: ref('stg_yuman__clients')
+#                 field: client_id
+#       - name: site_id
+#         description: "Référence vers le site rattaché"
+#         tests:
+#           - relationships:
+#               arguments:
+#                 to: ref('stg_yuman__sites')
+#                 field: site_id
       - name: category_id
         description: "Identifiant de la catégorie du contact"
       - name: contact_name

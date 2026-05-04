@@ -103,7 +103,13 @@ cleaned_data as (
         case
             when lower(trim(pickup_date)) in ('nat', 'nan') then null
             when pickup_date like '01/01/0001%' then null
-            else timestamp(pickup_date)
+            else coalesce(
+                safe_cast(pickup_date as timestamp),
+                safe.parse_timestamp(
+                    '%d/%m/%Y %H:%M',
+                    regexp_replace(pickup_date, r'^(\d{2}/\d{2}/)00(\d{2})', r'\1' || '20' || r'\2')
+                )
+            )
         end as pickup_date,
         case
             when lower(trim(date_planning_nomadrepair)) in ('nat', 'nan') then null
