@@ -16,8 +16,6 @@ cleaned as (
 
     select
         id as contact_id,
-        client_id,
-        site_id,
         category_id,
         name as contact_name,
         title as contact_title,
