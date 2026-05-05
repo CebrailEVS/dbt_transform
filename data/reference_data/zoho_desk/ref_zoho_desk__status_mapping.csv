@@ -4,3 +4,6 @@ En cours de traitement,Open,false,false
 En attente infos complémentaires,On Hold,true,false
 En attente interne,On Hold,true,false
 Clôturée,Closed,false,true
+Open,Open,false,false
+On Hold,On Hold,true,false
+Closed,Closed,false,true
