@@ -121,6 +121,73 @@ Certains modeles intermediate utilisent `incremental` pour les gros volumes (ex:
 
 ---
 
+## Marts — modelisation en etoile
+
+Les marts suivent **strictement un modele en etoile** : un fait au centre,
+des dimensions autour, jointures via `<entite>_id`. Pas de snowflake.
+Pas de One Big Table.
+
+### Principes
+
+- **Faits** (`fct_*`) : evenements ou mesures, pointent vers les dims via FK.
+  Aucune jointure fait-a-fait. Si un calcul croise deux faits, il vit
+  dans l'intermediate ou dans la couche Power BI.
+- **Dimensions** (`dim_*`) : 1 ligne par entite metier (ticket, compte,
+  agent, machine, contrat...). Les attributs des dims parentes sont
+  **aplatis** dans la dim enfant via une jointure realisee en intermediate
+  (ex : `dim_oracle_neshu__device` contient deja le `company_name`, pas
+  besoin de joindre `dim_company`).
+- **Cles** : FKs en `<entite>_id` dans les faits. Cles surrogates via
+  `dbt_utils.generate_surrogate_key` quand l'entite n'a pas de PK naturelle.
+- **Conformed dimensions** : une meme dim sert plusieurs faits
+  (`dim_zoho_desk__ticket` consomme par `fct_zoho_desk__ticket_event` et
+  `fct_zoho_desk__ticket_sla`).
+- **Grain explicite** : chaque fait declare son grain dans la description
+  YAML (ex : "1 ligne par changement de statut", "1 ligne par ticket x jour").
+
+### Anti-patterns a refuser
+
+| Anti-pattern | Pourquoi c'est interdit | A faire a la place |
+|--------------|------------------------|-------------------|
+| Jointure fait-a-fait dans Power BI | Explosion cartesienne, mesures fausses | Croiser au niveau intermediate ou via dim partagee |
+| Dim qui pointe vers une autre dim (`device → company`) | Snowflake, requetes plus lentes, complexite Power BI | Aplatir les attributs parents dans la dim enfant |
+| Mart "OBT" 1 modele = 1 rapport, tout deja joint | Duplication, perte de reutilisabilite, refresh long | Star schema + mesures Power BI |
+| FK manquante dans un fait | Ligne orpheline silencieuse | Test `relationships` sur la FK (severity warn ou error) |
+
+### Pattern type
+
+```sql
+-- fct_<source>__<event>.sql
+{{ config(materialized='table',
+          partition_by={'field': 'event_date', 'data_type': 'date'},
+          cluster_by=['ticket_id']) }}
+
+with events as (
+    select * from {{ ref('int_<source>__<event>') }}
+)
+
+select
+    ticket_id,         -- FK vers dim_<source>__ticket
+    account_id,        -- FK vers dim_<source>__account
+    agent_id,          -- FK vers dim_<source>__agent
+    event_date,
+    event_type,
+    -- mesures additives uniquement
+    duration_minutes
+from events
+```
+
+### Tests obligatoires sur les marts star
+
+- **Dim** : `unique` + `not_null` sur la PK, plus tests metier sur les
+  attributs critiques (ex : `accepted_values` sur un statut).
+- **Fait** : `relationships` sur **chaque FK** vers la dim correspondante
+  (severity au moins `warn`), `not_null` sur les FKs obligatoires,
+  `dbt_expectations.expect_table_row_count_to_be_between` quand un ordre
+  de grandeur est connu.
+
+---
+
 ## Tests de qualite
 
 ### Tests dbt natifs
