@@ -684,3 +684,78 @@ sources:
             description: "Référence à la ligne racine dans la hiérarchie dlt"
           - name: _dlt_list_idx
             description: "Position (0-based) de cet élément dans le tableau JSON d'origine"
+
+      # ───────────────────────────────────────────────────────────────────────
+
+      - name: zoho_desk_ticket_threads
+        description: >
+          Threads (échanges email/chat) par ticket. Une ligne par thread.
+          Jointure : _zoho_desk_associated_tickets_id = zoho_desk_associated_tickets.id
+          Sert à reconstituer la chronologie des réponses agent (direction='out',
+          author__type='AGENT') et client (direction='in') pour les calculs SLA
+          (first_response_time custom).
+        columns:
+          - name: id
+            description: "PK — identifiant Zoho du thread. Renommé thread_id dans le staging."
+            tests: [unique, not_null]
+          - name: _zoho_desk_associated_tickets_id
+            description: "FK vers zoho_desk_associated_tickets.id"
+            tests: [not_null]
+          - name: created_time
+            description: "Date/heure du thread (TIMESTAMP UTC)"
+          - name: direction
+            description: "'in' = message entrant (client) / 'out' = message sortant (agent ou système)"
+          - name: channel
+            description: "Canal du thread : Email, Chat, Phone, etc."
+          - name: content_type
+            description: "Type de contenu (text, html)"
+          - name: status
+            description: "Statut du thread (DELIVERED, etc.)"
+          - name: visibility
+            description: "Visibilité (public / private)"
+          - name: summary
+            description: "Aperçu textuel du thread"
+          - name: has_attach
+            description: "BOOLEAN — pièce jointe présente"
+          - name: attachment_count
+            description: "Nombre de pièces jointes (STRING → INT64 dans le staging)"
+          - name: is_description_thread
+            description: "BOOLEAN — true si c'est le thread initial (corps du ticket à la création)"
+          - name: is_forward
+            description: "BOOLEAN — message transféré"
+          - name: can_reply
+            description: "BOOLEAN — possibilité de répondre à ce thread"
+          - name: from_email_address
+            description: "Adresse email de l'expéditeur"
+          - name: to
+            description: "Destinataires principaux"
+          - name: cc
+            description: "Destinataires en copie"
+          - name: bcc
+            description: "Destinataires en copie cachée"
+          - name: source__type
+            description: "Type de source du thread"
+          - name: author__id
+            description: "ID Zoho de l'auteur"
+          - name: author__name
+            description: "Nom de l'auteur"
+          - name: author__email
+            description: "Email de l'auteur"
+          - name: author__type
+            description: "Type d'auteur : AGENT, CONTACT, SYSTEM — clé pour identifier les réponses agent"
+          - name: author__first_name
+            description: "Prénom de l'auteur"
+          - name: author__last_name
+            description: "Nom de famille de l'auteur"
+          - name: author__photo_url
+            description: "URL photo de l'auteur"
+          - name: responder_id
+            description: "ID Zoho de la personne ayant répondu"
+          - name: responded_in
+            description: "Délai de réponse (format propriétaire Zoho)"
+          - name: last_rating_icon_url
+            description: "URL de l'icône de la dernière évaluation (CSAT)"
+          - name: _dlt_load_id
+            description: "ID interne du run dlt"
+          - name: _dlt_id
+            description: "Clé interne dlt unique pour cette ligne"
