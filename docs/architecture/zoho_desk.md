@@ -1,6 +1,6 @@
 # Architecture — Zoho Desk
 
-> Dernière mise à jour : 2026-04-20
+> Dernière mise à jour : 2026-05-06
 
 ---
 
@@ -34,8 +34,9 @@ Zoho Desk (EU region) et les rend disponibles dans BigQuery pour l'analyse.
 | Couche | Rôle | Localisation |
 |---|---|---|
 | `prod_raw` | Données brutes telles que reçues de l'API — aucune transformation | `evs-datastack-prod.prod_raw` |
-| `staging` | Nettoyage, renommage des PKs, cast des types, documentation | `evs-datastack-prod.staging` |
-| `marts` *(à venir)* | Métriques et dimensions BI-ready | `evs-datastack-prod.marts` |
+| `staging` | Nettoyage, renommage des PKs, cast des types, documentation | `evs-datastack-prod.prod_staging` |
+| `intermediate` | Modèles événementiels par propriété + agrégations SLA réutilisables | `evs-datastack-prod.prod_intermediate` |
+| `marts` *(à venir)* | Métriques et dimensions BI-ready (modèle en étoile) | `evs-datastack-prod.prod_marts` |
 
 ---
 
@@ -261,3 +262,171 @@ Dans le staging, cette colonne est renommée en `ticket_id` pour la cohérence.
 ### Les champs custom `cf_*` sont tous en `STRING`
 Même les champs qui contiennent des dates ou des booléens — c'est ainsi que
 l'API Zoho les retourne. Caster dans les modèles marts si nécessaire.
+
+---
+
+## Couche intermediate
+
+Les modèles intermediate consolident l'audit log brut de Zoho (`ticket_history`
+× `ticket_history_event_info`, dénormalisation forte) en vues métier
+exploitables : un modèle d'événements par type de propriété + une vue ticket
+"fat row" + des agrégations SLA. Aucune sémantique métier finale (closed /
+reopened / breached) n'est appliquée ici — ces règles sont laissées aux marts.
+
+### Vue d'ensemble
+
+```
+                       ┌────────────────────────────────────────┐
+                       │  int_zoho_desk__ticket_enriched        │  1 ligne / ticket
+                       │  (compte, contact, agent, dpt,         │  fondation des dim marts
+                       │   nature, threads, métriques SLA)      │
+                       └────────────────────────────────────────┘
+                                          ▲
+            ┌─────────────────────────────┼─────────────────────────────┐
+            │                             │                             │
+┌───────────────────────┐  ┌───────────────────────┐  ┌────────────────────────┐
+│ ticket_status_events  │  │ ticket_priority_events│  │ ticket_assignee_events │
+│ 1 ligne / changement  │  │ 1 ligne / changement  │  │ 1 ligne / changement   │
+│ de statut             │  │ de priorité           │  │ de propriétaire        │
+│ + status_type         │  │                       │  │ (= "Case Owner" Zoho)  │
+│   normalisé via seed  │  │                       │  │                        │
+└───────────┬───────────┘  └───────────────────────┘  └────────────────────────┘
+            │ LEAD()
+            ▼
+┌──────────────────────────────────────┐
+│  int_zoho_desk__ticket_lifecycle_    │  1 ligne / segment de statut
+│  segments                            │  (durations calendar + business)
+└────────────────────┬─────────────────┘
+                     │
+                     ▼
+┌──────────────────────────────────────────────────────────────┐
+│  int_zoho_desk__ticket_sla                                   │
+│  1 ligne / ticket                                            │
+│  - first_response_minutes (calendar + business)              │
+│  - resolution_minutes_first_close                            │
+│  - resolution_minutes_last_close                             │
+│  - resolution_excluding_hold (= time_in_open)                │
+│  - time_in_open / time_in_on_hold                            │
+│  - nb_closes / nb_reopens                                    │
+└──────────────────────────────────────────────────────────────┘
+            ▲                  ▲                  ▲
+            │                  │                  │
+┌───────────────────────┐  ┌───────────┐  ┌───────────────────────┐
+│ stg_zoho_desk__       │  │ status_   │  │ ticket_lifecycle_     │
+│ ticket_threads        │  │ events    │  │ segments              │
+│ (pour first_agent_    │  │ (pour     │  │ (pour temps en        │
+│  response_at)         │  │  closes)  │  │  Open / On Hold)      │
+└───────────────────────┘  └───────────┘  └───────────────────────┘
+```
+
+### Liste des modèles intermediate
+
+| Modèle | Grain | Source | Rôle |
+|---|---|---|---|
+| `int_zoho_desk__ticket_enriched` | 1 ticket | tickets + details + accounts (avec fallback contact) + metrics + departments + agents | Vue ticket complète — fondation des dim marts |
+| `int_zoho_desk__ticket_status_events` | 1 changement de statut | `ticket_history` × `event_info` filtrés sur `property_name='Status'` | Événements de statut + normalisation via seed `ref_zoho_desk__status_mapping` |
+| `int_zoho_desk__ticket_priority_events` | 1 changement de priorité | idem filtrés sur `property_name='Priority'` | Événements de priorité (escalades) |
+| `int_zoho_desk__ticket_assignee_events` | 1 changement d'agent | idem filtrés sur `property_name='Case Owner'` | Événements d'assignation (réassignations, charge agent) |
+| `int_zoho_desk__ticket_lifecycle_segments` | 1 intervalle de statut | `ticket_status_events` + `LEAD()` | Durées dans chaque statut (calendar + business hours) |
+| `int_zoho_desk__ticket_sla` | 1 ticket | threads + status_events + lifecycle_segments + enriched | Métriques SLA par ticket, en heures calendaires et ouvrées |
+
+### Pattern « 1 modèle par type d'événement »
+
+Chaque type d'événement métier (statut, priorité, propriétaire) a son propre
+modèle intermediate dédié, pas une table générique `ticket_changes` polymorphe.
+Trade-off retenu :
+
+- **Pro** : grain stable et clair, pas de décodage polymorphe (statuts =
+  scalaires, propriétaires = objets `__id`/`__name`), tests par modèle,
+  faible coût de maintenance par modèle.
+- **Con** : plusieurs modèles à construire si on ajoute de nouveaux types
+  d'événements.
+
+Pattern à reproduire pour ajouter un futur type d'événement (exemple :
+changements de département) :
+
+1. Filtrer `ticket_history__event_info` sur le `property_name` ciblé.
+2. Lire les valeurs prev/new dans les bonnes colonnes :
+   - **scalaires** (Status, Priority, Department, etc.) → `property_value__previous_value` / `__updated_value`
+   - **objets** (Case Owner, etc.) → `property_value__previous_value__id` / `__name` et `property_value__updated_value__id` / `__name`
+3. Gérer le cas "création" : Zoho stocke parfois la valeur initiale dans
+   `property_value` avec prev/new à `NULL` — utiliser `COALESCE` (cf. logique
+   `is_creation_event` dans `ticket_status_events`).
+4. Exposer la colonne `event_name` (depuis `ticket_history`) pour permettre
+   aux marts de filtrer le bruit des fusions.
+
+### Filtrage du bruit : `event_name = 'TicketMergedMaster'`
+
+Lors d'une fusion de tickets (action UI dans Zoho), le moteur d'audit
+ré-estampille **toutes les propriétés** du ticket (Status, Priority, Case
+Owner, etc.) sans qu'aucune valeur ne change réellement. Volumes constatés :
+
+| Propriété | Lignes `TicketUpdated` (réelles) | Lignes `TicketMergedMaster` (bruit) |
+|---|---|---|
+| Status | 40 514 | 1 009 |
+| Case Owner | 13 641 | 266 |
+| Priority | 12 816 | 41 |
+
+Les modèles intermediate exposent `event_name` mais **ne filtrent pas** : c'est
+aux marts de décider (ex : `WHERE event_name = 'TicketUpdated'` pour exclure
+les fusions). Le seul cas où l'intermediate filtre est
+`int_zoho_desk__ticket_lifecycle_segments`, qui exclut les `TicketMergedMaster`
+pour ne pas créer de faux segments.
+
+### Macro `business_minutes_between` : contrainte BigQuery
+
+La macro `macros/zoho_desk/business_minutes_between.sql` produit une
+**correlated subquery** (SELECT depuis `unnest(generate_date_array(...))` qui
+référence des colonnes externes). BigQuery refuse de la planifier dans deux
+cas :
+
+- alongside une `LEAD()` window function (cf. `ticket_lifecycle_segments`)
+- en présence de plusieurs appels dans le même SELECT (cf. `ticket_sla`)
+
+Erreur typique : `Correlated subqueries that reference other tables are not
+supported unless they can be de-correlated`.
+
+**Solution adoptée** : inliner la même logique via `CROSS JOIN UNNEST` +
+`LEFT JOIN holidays` + `GROUP BY` (pattern décorrélé). Les deux modèles
+concernés (`ticket_lifecycle_segments`, `ticket_sla`) implémentent cette
+variante. La macro reste disponible pour les cas simples (un seul appel,
+pas de window function adjacente).
+
+### Validation cross-checked
+
+Les métriques SLA ont été vérifiées sur 8 tickets contre l'activity log de la
+web app Zoho, incluant des cas limites :
+
+- multiples ré-ouvertures (#23073 : 4 closes / 3 reopens, 0 hold time)
+- longue attente client + spanning weekend (#23135 : 18 segments, fermé
+  hors heures ouvrées)
+- fusion de tickets (#23163 : 3 lignes `TicketMergedMaster` correctement taggées)
+- compte non rattaché → fallback via contact (#21952)
+
+Les requêtes types pour cross-checker un ticket sont documentées dans la
+mémoire personnelle Claude (`zoho_sla_verification_queries.md`, hors repo).
+
+### Limites connues
+
+- **Rounding minute** : `TIMESTAMP_DIFF(..., MINUTE)` tronque les secondes →
+  écart possible de ±1 min vs l'UI Zoho. Si nécessaire, recalculer en secondes
+  puis diviser.
+- **Règles SLA** : les définitions actuelles (premier close vs dernier close,
+  exclusion ou non du temps d'attente) sont des choix internes — en attente
+  de clarification du support Zoho sur leur dashboard officiel pour
+  alignement.
+- **Wording "rouvert" Zoho** : l'UI Zoho affiche "Ticket rouvert" pour toute
+  transition `En attente → Nouveau` ou `En cours → Nouveau`. Notre
+  `nb_reopens` est strict : il ne compte que les transitions `Clôturée → X`.
+
+### Pistes d'évolution
+
+Quand la business le demande, le pattern est facile à étendre. Idées
+potentielles classées par valeur :
+
+| Demande | Modèle à créer | Source |
+|---|---|---|
+| Tracking des breaches SLA | `int_zoho_desk__ticket_sla_breach_events` | `event_name = 'OvershotDueTime'` (2 612 lignes) |
+| Time-to-categorize | `int_zoho_desk__ticket_categorization_events` | `property_name LIKE 'Nature des%'` ou `'S/%'` |
+| Tickets bouncing entre départements | `int_zoho_desk__ticket_department_events` | `property_name = 'Department'` (22 368 lignes) |
+| Cycle archivage / suppression | `int_zoho_desk__ticket_archive_events` | `event_name IN ('TicketArchived', 'TicketDeleted', 'TicketRestored')` |
