@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select workorder_id as unique_field
-  from `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_pricing`
-  where workorder_id is not null
+  select co_secteur as unique_field
+  from `evs-datastack-prod`.`prod_reference`.`ref_nesp_co__commerciaux`
+  where co_secteur is not null
 
 )
 

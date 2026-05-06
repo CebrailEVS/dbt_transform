@@ -13,9 +13,9 @@
 
 
 
-select intervention_id
-from `evs-datastack-prod`.`prod_marts`.`fct_technique__interventions`
-where intervention_id is null
+select co_secteur
+from `evs-datastack-prod`.`prod_reference`.`ref_nesp_co__commerciaux`
+where co_secteur is null
 
 
 
