@@ -330,3 +330,109 @@ models:
         description: "Nom de l'agent assigné après"
       - name: is_initial_assignment
         description: "BOOLEAN — true si c'est la première attribution d'un propriétaire au ticket."
+
+  - name: int_zoho_desk__ticket_lifecycle_segments
+    description: >
+      Une ligne par période (segment) pendant laquelle le ticket reste dans un
+      même statut. Construit en appliquant LEAD() sur ticket_status_events :
+      le segment N commence à event_at[N] et se termine à event_at[N+1].
+      Le dernier segment (statut final) a segment_end_at = NULL et duration = NULL.
+      Les événements de fusion (TicketMergedMaster) sont exclus.
+      Sert de base pour calculer les temps passés en On Hold / Open / Closed.
+    columns:
+      - name: ticket_id
+        description: "FK vers le ticket"
+        tests:
+          - not_null
+      - name: segment_idx
+        description: "Numéro chronologique du segment (1, 2, 3...) par ticket"
+        tests:
+          - not_null
+      - name: segment_start_at
+        description: "Début du segment (TIMESTAMP UTC)"
+        tests:
+          - not_null
+      - name: segment_start_date_paris
+        description: "Date Europe/Paris du début — colonne de partition"
+      - name: segment_end_at
+        description: "Fin = début du segment suivant. NULL pour le dernier segment."
+      - name: status
+        description: "Libellé brut du statut pendant ce segment"
+      - name: status_type
+        description: "Catégorie normalisée : Open / On Hold / Closed (depuis le seed)"
+      - name: is_on_hold
+        description: "BOOLEAN — segment en attente"
+      - name: is_closed
+        description: "BOOLEAN — segment clôturé"
+      - name: duration_minutes_calendar
+        description: "Durée du segment en minutes calendaires. NULL si dernier segment."
+      - name: duration_minutes_business
+        description: >
+          Durée en heures ouvrées (9h-17h30, jours ouvrés FR, hors fériés)
+          via la macro business_minutes_between. NULL si dernier segment.
+
+  - name: int_zoho_desk__ticket_sla
+    description: >
+      Métriques SLA par ticket — 1 ligne par ticket.
+      Agrège trois sources : ticket_threads (first_agent_response_at),
+      ticket_status_events (first_close_at / last_close_at, nb_reopens),
+      ticket_lifecycle_segments (temps passés en Open / On Hold).
+      Toutes les durées existent en deux variantes :
+        - _calendar : minutes calendaires (24/7)
+        - _business : minutes ouvrées (9h-17h30 FR, hors weekends et fériés)
+      Trois définitions de "resolution time" :
+        - first_close      : créé → PREMIER close (ignore ré-ouvertures)
+        - last_close       : créé → DERNIER close (inclut tous les cycles)
+        - excluding_hold   : somme des segments Open uniquement (exclut attente client)
+      Règles internes en attente de la confirmation Zoho support sur leur
+      dashboard officiel.
+    columns:
+      - name: ticket_id
+        description: "PK — FK vers le ticket"
+        tests:
+          - unique
+          - not_null
+      - name: created_time
+        description: "Date/heure de création (TIMESTAMP UTC)"
+      - name: first_agent_response_at
+        description: >
+          Première réponse agent. Source : threads avec direction='out',
+          author__type='AGENT', NOT is_description_thread.
+          NULL si aucun agent n'a répondu.
+      - name: first_inbound_at
+        description: "Premier thread entrant (direction='in')"
+      - name: first_response_minutes_calendar
+        description: "Délai première réponse, minutes calendaires. NULL si pas de réponse."
+      - name: first_response_minutes_business
+        description: "Idem en minutes ouvrées"
+      - name: first_close_at
+        description: "Première fois que le ticket atteint Clôturée. NULL si jamais clôturé."
+      - name: last_close_at
+        description: "Dernière clôture. NULL si jamais clôturé."
+      - name: nb_closes
+        description: "Nombre total de clôtures"
+      - name: nb_reopens
+        description: "Nombre total de ré-ouvertures"
+      - name: resolution_minutes_first_close_calendar
+        description: "Création → premier close, minutes calendaires"
+      - name: resolution_minutes_first_close_business
+        description: "Idem en minutes ouvrées"
+      - name: resolution_minutes_last_close_calendar
+        description: "Création → dernier close, minutes calendaires (inclut tous les cycles)"
+      - name: resolution_minutes_last_close_business
+        description: "Idem en minutes ouvrées"
+      - name: time_in_open_minutes_calendar
+        description: "Temps total en Open (Nouveau / En cours), minutes calendaires"
+      - name: time_in_on_hold_minutes_calendar
+        description: "Temps total en attente, minutes calendaires"
+      - name: time_in_open_minutes_business
+        description: "Temps en Open, minutes ouvrées"
+      - name: time_in_on_hold_minutes_business
+        description: "Temps en On Hold, minutes ouvrées"
+      - name: resolution_excluding_hold_minutes_calendar
+        description: >
+          Temps de résolution excluant les périodes d'attente
+          (= time_in_open_minutes_calendar). Représente le temps "actif"
+          passé sur le ticket, hors attente client.
+      - name: resolution_excluding_hold_minutes_business
+        description: "Idem en minutes ouvrées"
