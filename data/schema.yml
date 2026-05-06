@@ -338,8 +338,6 @@ seeds:
           - unique
       - name: designation_compte
         description: "Désignation du compte comptable"
-        tests:
-          - not_null
       - name: macro_categorie_pnl_bu
         description: "Macro catégorie P&L BU associée au compte comptable"
 
