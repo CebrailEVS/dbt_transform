@@ -105,9 +105,8 @@ from (
         *,
         ROW_NUMBER() over (
             partition by company_id
-            order by current_end_date desc, original_start_date desc, contract_id asc
+            order by is_active desc, current_end_date desc, original_start_date desc, contract_id asc
         ) as rn
     from aggreated_contract
-    where is_active = true
 ) as subq
 where rn = 1
