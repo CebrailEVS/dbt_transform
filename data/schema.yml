@@ -672,6 +672,10 @@ seeds:
         description: "Identifiant interne Nunshen."
       - name: co_fonction
         description: "Fonction du collaborateur."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['ALL','alternant rs','commercial','commercial','fidelisation','manager']
       - name: co_statut
         description: "Statut du commercial."
         tests:
