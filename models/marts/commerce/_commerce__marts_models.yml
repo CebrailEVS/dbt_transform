@@ -78,6 +78,7 @@ models:
         description: Numéro de planning de l'intervention (n_planning). Identifiant technique de l'intervention.
         tests:
           - not_null
+          - unique
 
       - name: date_intervention
         description: Date et heure de fin de l'intervention clôturée.
