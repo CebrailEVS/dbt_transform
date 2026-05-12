@@ -28,6 +28,7 @@ with contract_labels as (
         on lhc.idlabel = l.idlabel
     left join {{ ref('stg_oracle_neshu__label_family') }} as lf
         on l.idlabel_family = lf.idlabel_family
+    where c.idcompany_peer is not null
 ),
 
 aggregated_labels as (
