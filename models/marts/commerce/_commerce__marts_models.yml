@@ -3,17 +3,14 @@ version: 2
 models:
   - name: fct_commerce__machines_avec_interventions
     description: >
-      Vue dédupliquée des machines actives sur les 6 derniers mois,
+      Table détaillée des interventions techniques clôturées sur les 6 derniers mois,
       enrichie des informations client et du libellé machine normalisé.
-      Granularité : 1 ligne par numéro de série de machine.
-      En cas de machine présente chez plusieurs clients, on conserve
-      la ligne associée à la dernière intervention (puis code_machine ASC,
-      puis mc ASC pour un arbitrage déterministe).
+      Granularité : 1 ligne par intervention.
     config:
       materialized: table
- 
+
     columns:
- 
+
       # -----------------------------------------------------------------------
       # [A] Identification client
       # -----------------------------------------------------------------------
@@ -21,22 +18,25 @@ models:
         description: Identifiant unique du client (tiers). Clé de jointure avec le référentiel clients.
         tests:
           - not_null
- 
+
       - name: nom_client
         description: Raison sociale ou nom du client.
- 
+
+      - name: mc_nom_client
+        description: Concaténation de l'identifiant client et de son nom (format "mc - nom_client").
+
       - name: secteur
         description: Secteur d'activité du client (ex. santé, industrie, tertiaire…).
- 
+
       # -----------------------------------------------------------------------
       # [B] Coordonnées & contact client
       # -----------------------------------------------------------------------
       - name: contact_client
         description: Nom du donneur d'ordre côté client (order_placer_name).
- 
+
       - name: telephone
         description: Numéro de téléphone du contact client (order_placer_phone).
- 
+
       # -----------------------------------------------------------------------
       # [C] Localisation client
       # -----------------------------------------------------------------------
@@ -44,48 +44,62 @@ models:
         description: >
           Adresse postale du client, construite par concaténation de
           third_address_1 et third_address_2 (NULL traité comme chaîne vide).
- 
+
       - name: ville
         description: Ville du client.
- 
+
       - name: code_postal
         description: Code postal du client.
- 
+
       # -----------------------------------------------------------------------
       # [D] Identification machine
       # -----------------------------------------------------------------------
       - name: n_serie_machine
-        description: Numéro de série de la machine. Clé de déduplication du modèle (PARTITION BY).
+        description: Numéro de série de la machine.
         tests:
           - not_null
-          - unique
- 
+
       - name: code_machine
         description: Code technique de la machine (ex. référence catalogue interne).
- 
+
       - name: nom_machine
         description: Libellé brut de la machine tel qu'il apparaît dans les interventions.
- 
+
       - name: machine
         description: >
           Libellé normalisé de la machine issu de ref_nesp_tech__machines_clean.
           Peut être NULL si le nom_machine ne trouve pas de correspondance dans
           la table de référence.
- 
+
       # -----------------------------------------------------------------------
-      # [E] Métriques d'activité (fenêtre glissante 6 mois)
+      # [E] Informations intervention
       # -----------------------------------------------------------------------
-      - name: n_inter_6mois
-        description: >
-          Nombre d'interventions clôturées (tous états valides confondus)
-          sur les 6 derniers mois glissants pour cette machine et ce client.
+      - name: intervention
+        description: Numéro de planning de l'intervention (n_planning). Identifiant technique de l'intervention.
         tests:
           - not_null
- 
-      - name: date_last_inter
-        description: >
-          Date et heure de fin de la dernière intervention clôturée
-          sur cette machine. Utilisée comme critère principal de déduplication.
+          - unique
+
+      - name: date_intervention
+        description: Date et heure de fin de l'intervention clôturée.
         tests:
           - not_null
 
+      - name: consignes
+        description: Consignes transmises au technicien avant l'intervention.
+
+      - name: observations
+        description: Observations saisies par le technicien à la clôture de l'intervention.
+
+      - name: etat_intervention
+        description: >
+          État de clôture de l'intervention.
+          Valeurs possibles : 'terminée signée', 'signature différée', 'terminée non signée'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - terminée signée
+                  - signature différée
+                  - terminée non signée
