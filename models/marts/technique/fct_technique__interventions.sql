@@ -21,7 +21,7 @@ with nesp_interventions as (
         factu.machine_clean,
         dedup.etat_intervention as intervention_statut,
         case
-            when dedup.etat_intervention in ('terminée signée', 'signature différée') then 'VALIDATED'
+            when dedup.etat_intervention in ('terminée signée', 'signature différée', 'terminée non signée') then 'VALIDATED'
             when dedup.etat_intervention in ('mise en échec') then 'NOT VALIDATED'
             else 'NOT DEFINED'
         end as statut_facturation,
