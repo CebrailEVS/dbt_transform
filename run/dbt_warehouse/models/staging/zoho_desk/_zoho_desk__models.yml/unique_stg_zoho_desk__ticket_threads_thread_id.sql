@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select contract_id as unique_field
-  from `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__contract`
-  where contract_id is not null
+  select thread_id as unique_field
+  from `evs-datastack-prod`.`prod_staging`.`stg_zoho_desk__ticket_threads`
+  where thread_id is not null
 
 )
 

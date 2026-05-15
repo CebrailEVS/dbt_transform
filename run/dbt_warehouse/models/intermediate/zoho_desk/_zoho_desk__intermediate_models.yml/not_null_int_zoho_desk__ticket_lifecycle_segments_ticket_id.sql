@@ -13,9 +13,9 @@
 
 
 
-select created_at
-from `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__contract`
-where created_at is null
+select ticket_id
+from `evs-datastack-prod`.`prod_intermediate`.`int_zoho_desk__ticket_lifecycle_segments`
+where ticket_id is null
 
 
 

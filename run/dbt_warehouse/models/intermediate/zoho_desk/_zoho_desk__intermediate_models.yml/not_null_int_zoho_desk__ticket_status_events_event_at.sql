@@ -13,9 +13,9 @@
 
 
 
-select updated_at
-from `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__contract`
-where updated_at is null
+select event_at
+from `evs-datastack-prod`.`prod_intermediate`.`int_zoho_desk__ticket_status_events`
+where event_at is null
 
 
 
