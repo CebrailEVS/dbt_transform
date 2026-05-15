@@ -665,3 +665,89 @@ models:
         description: "Temps passé dans ce statut, en minutes (converti depuis 'HH:MM hrs')"
       - name: _dlt_list_idx
         description: "Position (0-based) dans le tableau JSON d'origine"
+
+  # ─────────────────────────────────────────────────────────────────────────
+
+  - name: stg_zoho_desk__ticket_threads
+    description: >
+      Threads (échanges email/chat) par ticket — base pour reconstituer la
+      chronologie des réponses agent et client.
+      Source : prod_raw.zoho_desk_ticket_threads
+      Transformation : id renommé en thread_id, attachment_count cast STRING → INT64.
+      Jointure vers tickets : _zoho_desk_associated_tickets_id = stg_zoho_desk__tickets.ticket_id
+      Usage typique :
+        - Première réponse agent : MIN(created_time) WHERE direction='out' AND author__type='AGENT'
+        - Premier message client : MIN(created_time) WHERE direction='in'
+    columns:
+      - name: thread_id
+        description: "PK — identifiant unique du thread (renommé depuis id)"
+        tests:
+          - unique
+          - not_null
+      - name: _zoho_desk_associated_tickets_id
+        description: "FK vers stg_zoho_desk__tickets.ticket_id"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_zoho_desk__tickets')
+                field: ticket_id
+              config:
+                severity: warn
+      - name: created_time
+        description: "Date/heure du thread (TIMESTAMP UTC)"
+      - name: direction
+        description: "'in' = message client entrant / 'out' = message agent ou système sortant"
+      - name: channel
+        description: "Canal : Email, Chat, Phone, etc."
+      - name: content_type
+        description: "Type de contenu (text, html)"
+      - name: status
+        description: "Statut technique du thread (DELIVERED, etc.)"
+      - name: visibility
+        description: "Visibilité (public / private)"
+      - name: summary
+        description: "Aperçu textuel"
+      - name: is_description_thread
+        description: "BOOLEAN — true si c'est le thread initial (corps du ticket)"
+      - name: is_forward
+        description: "BOOLEAN — message transféré"
+      - name: can_reply
+        description: "BOOLEAN — possibilité de répondre"
+      - name: has_attach
+        description: "BOOLEAN — pièce jointe présente"
+      - name: attachment_count
+        description: "Nombre de pièces jointes (INT64, casté depuis STRING)"
+      - name: from_email_address
+        description: "Adresse email de l'expéditeur"
+      - name: to
+        description: "Destinataires principaux"
+      - name: cc
+        description: "Destinataires en copie"
+      - name: bcc
+        description: "Destinataires en copie cachée"
+      - name: source__type
+        description: "Type de source du thread"
+      - name: author__id
+        description: "ID Zoho de l'auteur"
+      - name: author__name
+        description: "Nom de l'auteur"
+      - name: author__email
+        description: "Email de l'auteur"
+      - name: author__type
+        description: >
+          Type d'auteur : AGENT / CONTACT / SYSTEM.
+          Filtre clé pour distinguer une réponse agent (vraie réponse humaine)
+          d'un envoi automatique système.
+      - name: author__first_name
+        description: "Prénom de l'auteur"
+      - name: author__last_name
+        description: "Nom de famille de l'auteur"
+      - name: author__photo_url
+        description: "URL photo de l'auteur"
+      - name: responder_id
+        description: "ID Zoho de la personne ayant répondu"
+      - name: responded_in
+        description: "Délai de réponse (format propriétaire Zoho)"
+      - name: last_rating_icon_url
+        description: "URL de l'icône CSAT"

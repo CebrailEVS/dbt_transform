@@ -1,0 +1,438 @@
+version: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# INTERMEDIATE MODELS : Zoho Desk
+#
+# Two models, kept simple:
+#   - int_zoho_desk__ticket_enriched     : 1 row per ticket with all attributes
+#                                          BI needs (account, contact, agent,
+#                                          department, categories, custom fields,
+#                                          metrics).
+#   - int_zoho_desk__ticket_status_events : 1 row per status change, with a
+#                                          derived event_type (closed / reopened
+#                                          / other). Foundation for the
+#                                          closed/reopened-by-day reports.
+#
+# Marts will sit on top:
+#   dim_zoho_desk__ticket          ← int_zoho_desk__ticket_enriched
+#   fct_zoho_desk__ticket_event    ← union of created events (from tickets) and
+#                                    status events (closed / reopened)
+# ─────────────────────────────────────────────────────────────────────────────
+
+models:
+
+  - name: int_zoho_desk__ticket_enriched
+    description: >
+      Vue enrichie 1:1 par ticket — fondation des marts ticket (dim).
+      Joint tickets + ticket_details (custom fields) + ticket_metrics (SLA,
+      compteurs) + accounts (avec fallback via le contact quand t.account_id
+      est NULL) + contacts + departments + agents.
+      Chaque ligne contient tout ce dont le métier a besoin pour analyser un
+      ticket : compte client, contact, agent assigné, département, catégories,
+      nature, threads, réponses agent, durées SLA.
+    columns:
+      - name: ticket_id
+        description: "PK — identifiant unique du ticket"
+        tests:
+          - unique
+          - not_null
+      - name: ticket_number
+        description: "Numéro de ticket lisible dans Zoho (ex : 21952)"
+      - name: subject
+        description: "Objet du ticket"
+      - name: web_url
+        description: "URL de la fiche ticket dans Zoho Desk"
+      - name: status
+        description: "Statut courant"
+      - name: status_type
+        description: "Catégorie du statut : open, closed, on_hold"
+      - name: priority
+        description: "Priorité : Low, Medium, High, Urgent"
+      - name: channel
+        description: "Canal d'entrée : Email, Phone, Chat, Web, etc."
+      - name: category
+        description: "Catégorie métier (premier niveau)"
+      - name: sub_category
+        description: "Sous-catégorie métier (deuxième niveau)"
+      - name: is_archived
+        description: "BOOLEAN — ticket archivé"
+      - name: is_spam
+        description: "BOOLEAN — ticket marqué comme spam"
+      - name: created_time
+        description: "Date/heure de création (TIMESTAMP UTC)"
+      - name: closed_time
+        description: >
+          Date/heure de la dernière fermeture (TIMESTAMP UTC, NULL si jamais fermé).
+          Pour l'analyse temporelle (réouvertures, fermetures par jour),
+          utiliser int_zoho_desk__ticket_status_events.
+      - name: due_date
+        description: "Échéance SLA de résolution"
+      - name: response_due_date
+        description: "Échéance SLA de première réponse"
+      - name: account_id
+        description: >
+          ID du compte client (entreprise). COALESCE de t.account_id puis
+          c.account_id (compte du contact). NULL si ni le ticket ni le contact
+          n'est lié à un compte dans Zoho.
+      - name: account_name
+        description: >
+          Nom du compte client. NULL quand account_id est NULL ou que le compte
+          n'a pas de nom. ~92% de couverture sur l'historique.
+      - name: contact_id
+        description: "FK contact ayant ouvert le ticket"
+      - name: contact_first_name
+        description: "Prénom du contact"
+      - name: contact_last_name
+        description: "Nom du contact"
+      - name: contact_email
+        description: "Email du contact"
+      - name: assignee_id
+        description: "FK agent actuellement assigné"
+      - name: assignee_name
+        description: "Nom complet de l'agent assigné"
+      - name: department_id
+        description: "FK département"
+      - name: department_name
+        description: "Nom du département (ex : Service Client, Facturation)"
+      - name: nature_des_demandes
+        description: "Nature de la demande (custom field cf_nature_des_demandes)"
+      - name: cf_contrat_avenant
+        description: "Catégorie principale : contrat / avenant"
+      - name: cf_creation_d_un_site
+        description: "Catégorie principale : création d'un site"
+      - name: cf_demande_intervention
+        description: "Catégorie principale : demande d'intervention"
+      - name: cf_inscription
+        description: "Catégorie principale : inscription"
+      - name: cf_machines
+        description: "Catégorie principale : machines"
+      - name: cf_modification
+        description: "Catégorie principale : modification"
+      - name: cf_modification_d_un_site
+        description: "Catégorie principale : modification d'un site"
+      - name: cf_modifications
+        description: "Catégorie principale : modifications"
+      - name: cf_rupture
+        description: "Catégorie principale : rupture de stock"
+      - name: cf_suivi_intervention
+        description: "Catégorie principale : suivi d'intervention"
+      - name: cf_s_systeme_de_paiement
+        description: "Catégorie principale : système de paiement"
+      - name: cf_technique
+        description: "Catégorie principale : technique"
+      - name: cf_s_equipements
+        description: "Sous-catégorie : équipements"
+      - name: cf_s_commande_directes
+        description: "Sous-catégorie : commandes directes"
+      - name: cf_s_commercial
+        description: "Sous-catégorie : commercial"
+      - name: cf_s_facturation
+        description: "Sous-catégorie : facturation"
+      - name: cf_s_gestion_des_cartes_privatives
+        description: "Sous-catégorie : gestion cartes privatives"
+      - name: cf_s_gestion_des_planogrammes
+        description: "Sous-catégorie : gestion planogrammes"
+      - name: cf_s_recyclage
+        description: "Sous-catégorie : recyclage"
+      - name: cf_s_remboursement
+        description: "Sous-catégorie : remboursement"
+      - name: cf_s_remontees_personnel_neshu
+        description: "Sous-catégorie : remontées personnel NESHU"
+      - name: cf_s_reappro
+        description: "Sous-catégorie : réapprovisionnement"
+      - name: is_over_due
+        description: "BOOLEAN — SLA résolution dépassé"
+      - name: is_response_overdue
+        description: "BOOLEAN — SLA première réponse dépassé"
+      - name: is_escalated
+        description: "BOOLEAN — ticket escaladé"
+      - name: resolution
+        description: "Texte de résolution saisi par l'agent à la fermeture"
+      - name: thread_count
+        description: "Nombre total de threads (client + agent)"
+      - name: agent_response_count
+        description: >
+          Nombre de réponses agent (= outgoing_count des metrics).
+          Vérifié contre threads où direction='out' AND author__type='AGENT'.
+      - name: response_count
+        description: "Nombre total de réponses (compteur Zoho — peut différer légèrement de outgoing_count)"
+      - name: reopen_count
+        description: "Nombre de réouvertures historiques du ticket"
+      - name: reassign_count
+        description: "Nombre de réassignations historiques"
+      - name: first_response_time_minutes
+        description: "Délai première réponse (minutes)"
+      - name: resolution_time_minutes
+        description: "Durée totale de résolution (minutes)"
+      - name: total_response_time_minutes
+        description: "Temps de réponse total cumulé (minutes)"
+
+  - name: int_zoho_desk__ticket_status_events
+    description: >
+      Une ligne par changement de statut — vue brute mais normalisée.
+      Source : stg_zoho_desk__ticket_history × stg_zoho_desk__ticket_history_event_info,
+      filtré sur property_name = 'Status'.
+      Inclut les événements de création : Zoho les enregistre avec
+      previous_value / updated_value à NULL et la valeur initiale dans
+      property_value. On lit ce dernier via COALESCE et on flagge la ligne
+      avec is_creation_event = true.
+      Les statuts bruts (français + anciens libellés anglais hérités) sont
+      enrichis via le seed ref_zoho_desk__status_mapping pour exposer
+      status_type / is_on_hold / is_closed.
+      Aucune sémantique métier n'est appliquée ici (closed/reopened/etc.) :
+      ces règles sont laissées aux marts pour rester flexible.
+      event_date_paris est calculé en Europe/Paris pour aligner avec les
+      rapports métier.
+    columns:
+      - name: ticket_id
+        description: "FK vers le ticket concerné"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_zoho_desk__tickets')
+                field: ticket_id
+              config:
+                severity: warn
+      - name: event_at
+        description: "Date/heure exacte de l'événement (TIMESTAMP UTC)"
+        tests:
+          - not_null
+      - name: event_date_paris
+        description: "Date de l'événement (Europe/Paris) — colonne de partition"
+      - name: event_name
+        description: >
+          Nom de l'action Zoho ayant déclenché le changement (méta-événement parent).
+          Valeurs : TicketUpdated (modification utilisateur classique),
+          TicketCreated (création), TicketMergedMaster (effet de bord d'une fusion
+          de tickets — Zoho ré-estampille les propriétés sans changement réel).
+          Permet aux marts de filtrer le bruit des fusions.
+      - name: actor_id
+        description: "ID Zoho de l'acteur (agent / contact / système)"
+      - name: actor_name
+        description: "Nom lisible de l'acteur"
+      - name: actor_type
+        description: "Type d'acteur : AGENT, CONTACT, SYSTEM"
+      - name: prev_status
+        description: "Libellé brut du statut avant la transition. NULL pour les événements de création."
+      - name: new_status
+        description: >
+          Libellé brut du statut après la transition. Pour les événements de
+          création, contient le statut initial du ticket (lu depuis property_value).
+      - name: is_creation_event
+        description: >
+          BOOLEAN — true si la ligne représente la création initiale du ticket
+          (prev_status IS NULL, new_status = statut initial). Permet de
+          distinguer creation vs changement de statut classique.
+      - name: prev_status_type
+        description: "Catégorie normalisée du statut avant : Open / On Hold / Closed (depuis le seed)"
+      - name: prev_is_on_hold
+        description: "BOOLEAN — le statut avant était une attente (depuis le seed)"
+      - name: prev_is_closed
+        description: "BOOLEAN — le statut avant était fermé (depuis le seed)"
+      - name: new_status_type
+        description: "Catégorie normalisée du statut après : Open / On Hold / Closed (depuis le seed)"
+      - name: new_is_on_hold
+        description: "BOOLEAN — le statut après est une attente (depuis le seed)"
+      - name: new_is_closed
+        description: "BOOLEAN — le statut après est fermé (depuis le seed)"
+
+  - name: int_zoho_desk__ticket_priority_events
+    description: >
+      Une ligne par changement de priorité du ticket
+      (filtré sur property_name = 'Priority').
+      Source : stg_zoho_desk__ticket_history × stg_zoho_desk__ticket_history_event_info.
+      Même pattern que ticket_status_events : la priorité est une valeur scalaire,
+      donc on lit prev/new dans property_value__previous_value / __updated_value,
+      avec un fallback sur property_value pour l'attribution initiale.
+      Permet d'analyser les escalades (ex : Low → High en cours de traitement).
+    columns:
+      - name: ticket_id
+        description: "FK vers le ticket concerné"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_zoho_desk__tickets')
+                field: ticket_id
+              config:
+                severity: warn
+      - name: event_at
+        description: "Date/heure exacte (TIMESTAMP UTC)"
+        tests:
+          - not_null
+      - name: event_date_paris
+        description: "Date Europe/Paris — colonne de partition"
+      - name: event_name
+        description: >
+          Nom de l'action Zoho ayant déclenché le changement (méta-événement parent).
+          TicketUpdated / TicketCreated / TicketMergedMaster. Voir
+          int_zoho_desk__ticket_status_events pour le détail.
+      - name: actor_id
+        description: "ID Zoho de l'acteur"
+      - name: actor_name
+        description: "Nom lisible de l'acteur"
+      - name: actor_type
+        description: "Type d'acteur : AGENT, CONTACT, SYSTEM"
+      - name: prev_priority
+        description: "Priorité avant (Low / Medium / High / Urgent). NULL pour l'attribution initiale."
+      - name: new_priority
+        description: "Priorité après (lue depuis updated_value, ou property_value pour l'attribution initiale)."
+      - name: is_initial_assignment
+        description: "BOOLEAN — true si c'est la première attribution de priorité (prev=NULL, new=valeur initiale)."
+
+  - name: int_zoho_desk__ticket_assignee_events
+    description: >
+      Une ligne par changement de propriétaire du ticket (l'agent assigné),
+      filtré sur property_name = 'Case Owner' (nomenclature Zoho héritée
+      de Salesforce, équivalent à "Propriétaire du Ticket" dans l'UI).
+      Source : stg_zoho_desk__ticket_history × stg_zoho_desk__ticket_history_event_info.
+      Différence avec priority/status : la valeur est un objet (agent_id + agent_name),
+      donc on lit dans les champs __id / __name (et non les scalaires).
+      Permet d'analyser la charge agent dans le temps et le taux de réassignation.
+    columns:
+      - name: ticket_id
+        description: "FK vers le ticket concerné"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_zoho_desk__tickets')
+                field: ticket_id
+              config:
+                severity: warn
+      - name: event_at
+        description: "Date/heure exacte (TIMESTAMP UTC)"
+        tests:
+          - not_null
+      - name: event_date_paris
+        description: "Date Europe/Paris — colonne de partition"
+      - name: event_name
+        description: >
+          Nom de l'action Zoho ayant déclenché le changement (méta-événement parent).
+          TicketUpdated / TicketCreated / TicketMergedMaster. Voir
+          int_zoho_desk__ticket_status_events pour le détail.
+      - name: actor_id
+        description: "ID Zoho de l'acteur ayant déclenché le changement"
+      - name: actor_name
+        description: "Nom de l'acteur"
+      - name: actor_type
+        description: "Type d'acteur : AGENT, CONTACT, SYSTEM"
+      - name: prev_assignee_id
+        description: "ID de l'agent assigné avant. NULL si non assigné ou attribution initiale."
+      - name: prev_assignee_name
+        description: "Nom de l'agent assigné avant"
+      - name: new_assignee_id
+        description: >
+          ID de l'agent assigné après (depuis updated_value__id, fallback property_value__id
+          pour l'attribution initiale).
+      - name: new_assignee_name
+        description: "Nom de l'agent assigné après"
+      - name: is_initial_assignment
+        description: "BOOLEAN — true si c'est la première attribution d'un propriétaire au ticket."
+
+  - name: int_zoho_desk__ticket_lifecycle_segments
+    description: >
+      Une ligne par période (segment) pendant laquelle le ticket reste dans un
+      même statut. Construit en appliquant LEAD() sur ticket_status_events :
+      le segment N commence à event_at[N] et se termine à event_at[N+1].
+      Le dernier segment (statut final) a segment_end_at = NULL et duration = NULL.
+      Les événements de fusion (TicketMergedMaster) sont exclus.
+      Sert de base pour calculer les temps passés en On Hold / Open / Closed.
+    columns:
+      - name: ticket_id
+        description: "FK vers le ticket"
+        tests:
+          - not_null
+      - name: segment_idx
+        description: "Numéro chronologique du segment (1, 2, 3...) par ticket"
+        tests:
+          - not_null
+      - name: segment_start_at
+        description: "Début du segment (TIMESTAMP UTC)"
+        tests:
+          - not_null
+      - name: segment_start_date_paris
+        description: "Date Europe/Paris du début — colonne de partition"
+      - name: segment_end_at
+        description: "Fin = début du segment suivant. NULL pour le dernier segment."
+      - name: status
+        description: "Libellé brut du statut pendant ce segment"
+      - name: status_type
+        description: "Catégorie normalisée : Open / On Hold / Closed (depuis le seed)"
+      - name: is_on_hold
+        description: "BOOLEAN — segment en attente"
+      - name: is_closed
+        description: "BOOLEAN — segment clôturé"
+      - name: duration_minutes_calendar
+        description: "Durée du segment en minutes calendaires. NULL si dernier segment."
+      - name: duration_minutes_business
+        description: >
+          Durée en heures ouvrées (9h-17h30, jours ouvrés FR, hors fériés)
+          via la macro business_minutes_between. NULL si dernier segment.
+
+  - name: int_zoho_desk__ticket_sla
+    description: >
+      Métriques SLA par ticket — 1 ligne par ticket.
+      Agrège trois sources : ticket_threads (first_agent_response_at),
+      ticket_status_events (first_close_at / last_close_at, nb_reopens),
+      ticket_lifecycle_segments (temps passés en Open / On Hold).
+      Toutes les durées existent en deux variantes :
+        - _calendar : minutes calendaires (24/7)
+        - _business : minutes ouvrées (9h-17h30 FR, hors weekends et fériés)
+      Trois définitions de "resolution time" :
+        - first_close      : créé → PREMIER close (ignore ré-ouvertures)
+        - last_close       : créé → DERNIER close (inclut tous les cycles)
+        - excluding_hold   : somme des segments Open uniquement (exclut attente client)
+      Règles internes en attente de la confirmation Zoho support sur leur
+      dashboard officiel.
+    columns:
+      - name: ticket_id
+        description: "PK — FK vers le ticket"
+        tests:
+          - unique
+          - not_null
+      - name: created_time
+        description: "Date/heure de création (TIMESTAMP UTC)"
+      - name: first_agent_response_at
+        description: >
+          Première réponse agent. Source : threads avec direction='out',
+          author__type='AGENT', NOT is_description_thread.
+          NULL si aucun agent n'a répondu.
+      - name: first_inbound_at
+        description: "Premier thread entrant (direction='in')"
+      - name: first_response_minutes_calendar
+        description: "Délai première réponse, minutes calendaires. NULL si pas de réponse."
+      - name: first_response_minutes_business
+        description: "Idem en minutes ouvrées"
+      - name: first_close_at
+        description: "Première fois que le ticket atteint Clôturée. NULL si jamais clôturé."
+      - name: last_close_at
+        description: "Dernière clôture. NULL si jamais clôturé."
+      - name: nb_closes
+        description: "Nombre total de clôtures"
+      - name: nb_reopens
+        description: "Nombre total de ré-ouvertures"
+      - name: resolution_minutes_first_close_calendar
+        description: "Création → premier close, minutes calendaires"
+      - name: resolution_minutes_first_close_business
+        description: "Idem en minutes ouvrées"
+      - name: resolution_minutes_last_close_calendar
+        description: "Création → dernier close, minutes calendaires (inclut tous les cycles)"
+      - name: resolution_minutes_last_close_business
+        description: "Idem en minutes ouvrées"
+      - name: time_in_open_minutes_calendar
+        description: "Temps total en Open (Nouveau / En cours), minutes calendaires"
+      - name: time_in_on_hold_minutes_calendar
+        description: "Temps total en attente, minutes calendaires"
+      - name: time_in_open_minutes_business
+        description: "Temps en Open, minutes ouvrées"
+      - name: time_in_on_hold_minutes_business
+        description: "Temps en On Hold, minutes ouvrées"
+      - name: resolution_excluding_hold_minutes_calendar
+        description: >
+          Temps de résolution excluant les périodes d'attente
+          (= time_in_open_minutes_calendar). Représente le temps "actif"
+          passé sur le ticket, hors attente client.
+      - name: resolution_excluding_hold_minutes_business
+        description: "Idem en minutes ouvrées"
