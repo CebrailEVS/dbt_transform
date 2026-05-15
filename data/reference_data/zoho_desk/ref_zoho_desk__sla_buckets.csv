@@ -1,0 +1,11 @@
+metric,lower_min,upper_min,bucket_label,bucket_order
+first_response,0,60,0-1h,1
+first_response,60,360,1-6h,2
+first_response,360,720,6-12h,3
+first_response,720,1440,12-24h,4
+first_response,1440,999999,24h+,5
+resolution,0,360,<6h,1
+resolution,360,720,6-12h,2
+resolution,720,1440,12-24h,3
+resolution,1440,2880,24-48h,4
+resolution,2880,999999,48h+,5
