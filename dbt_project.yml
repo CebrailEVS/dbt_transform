@@ -89,6 +89,9 @@ models:
       nesp_tech:
         +tags: ['intermediate', 'nesp_tech']
 
+      zoho_desk:
+        +tags: ['intermediate', 'zoho_desk']
+
     marts:
       +schema: marts
       +tags: ['marts']
