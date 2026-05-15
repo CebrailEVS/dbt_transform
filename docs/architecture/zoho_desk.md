@@ -273,50 +273,69 @@ exploitables : un modèle d'événements par type de propriété + une vue ticke
 "fat row" + des agrégations SLA. Aucune sémantique métier finale (closed /
 reopened / breached) n'est appliquée ici — ces règles sont laissées aux marts.
 
-### Vue d'ensemble
+### Diagramme de flux
 
-```
-                       ┌────────────────────────────────────────┐
-                       │  int_zoho_desk__ticket_enriched        │  1 ligne / ticket
-                       │  (compte, contact, agent, dpt,         │  fondation des dim marts
-                       │   nature, threads, métriques SLA)      │
-                       └────────────────────────────────────────┘
-                                          ▲
-            ┌─────────────────────────────┼─────────────────────────────┐
-            │                             │                             │
-┌───────────────────────┐  ┌───────────────────────┐  ┌────────────────────────┐
-│ ticket_status_events  │  │ ticket_priority_events│  │ ticket_assignee_events │
-│ 1 ligne / changement  │  │ 1 ligne / changement  │  │ 1 ligne / changement   │
-│ de statut             │  │ de priorité           │  │ de propriétaire        │
-│ + status_type         │  │                       │  │ (= "Case Owner" Zoho)  │
-│   normalisé via seed  │  │                       │  │                        │
-└───────────┬───────────┘  └───────────────────────┘  └────────────────────────┘
-            │ LEAD()
-            ▼
-┌──────────────────────────────────────┐
-│  int_zoho_desk__ticket_lifecycle_    │  1 ligne / segment de statut
-│  segments                            │  (durations calendar + business)
-└────────────────────┬─────────────────┘
-                     │
-                     ▼
-┌──────────────────────────────────────────────────────────────┐
-│  int_zoho_desk__ticket_sla                                   │
-│  1 ligne / ticket                                            │
-│  - first_response_minutes (calendar + business)              │
-│  - resolution_minutes_first_close                            │
-│  - resolution_minutes_last_close                             │
-│  - resolution_excluding_hold (= time_in_open)                │
-│  - time_in_open / time_in_on_hold                            │
-│  - nb_closes / nb_reopens                                    │
-└──────────────────────────────────────────────────────────────┘
-            ▲                  ▲                  ▲
-            │                  │                  │
-┌───────────────────────┐  ┌───────────┐  ┌───────────────────────┐
-│ stg_zoho_desk__       │  │ status_   │  │ ticket_lifecycle_     │
-│ ticket_threads        │  │ events    │  │ segments              │
-│ (pour first_agent_    │  │ (pour     │  │ (pour temps en        │
-│  response_at)         │  │  closes)  │  │  Open / On Hold)      │
-└───────────────────────┘  └───────────┘  └───────────────────────┘
+```mermaid
+flowchart TB
+    subgraph staging["staging (couche existante)"]
+        stg_tickets[stg_zoho_desk__tickets]
+        stg_details[stg_zoho_desk__ticket_details]
+        stg_metrics[stg_zoho_desk__ticket_metrics]
+        stg_accounts[stg_zoho_desk__accounts]
+        stg_contacts[stg_zoho_desk__contacts]
+        stg_agents[stg_zoho_desk__agents]
+        stg_departments[stg_zoho_desk__departments]
+        stg_history[stg_zoho_desk__ticket_history]
+        stg_event_info[stg_zoho_desk__ticket_history_event_info]
+        stg_threads[stg_zoho_desk__ticket_threads]
+        seed_status[(ref_zoho_desk__status_mapping)]
+        seed_feries[(ref_general__feries_metropole)]
+    end
+
+    subgraph intermediate["intermediate"]
+        int_enriched[int_zoho_desk__ticket_enriched<br/>1 ligne / ticket]
+        int_status[int_zoho_desk__ticket_status_events<br/>1 ligne / changement de statut]
+        int_priority[int_zoho_desk__ticket_priority_events<br/>1 ligne / changement de priorité]
+        int_assignee[int_zoho_desk__ticket_assignee_events<br/>1 ligne / changement de propriétaire]
+        int_segments[int_zoho_desk__ticket_lifecycle_segments<br/>1 ligne / segment de statut]
+        int_sla[int_zoho_desk__ticket_sla<br/>1 ligne / ticket — métriques SLA]
+    end
+
+    %% Sources de ticket_enriched
+    stg_tickets --> int_enriched
+    stg_details --> int_enriched
+    stg_metrics --> int_enriched
+    stg_accounts --> int_enriched
+    stg_contacts --> int_enriched
+    stg_agents --> int_enriched
+    stg_departments --> int_enriched
+
+    %% Sources des 3 modèles d'événements
+    stg_history --> int_status
+    stg_event_info --> int_status
+    seed_status --> int_status
+
+    stg_history --> int_priority
+    stg_event_info --> int_priority
+
+    stg_history --> int_assignee
+    stg_event_info --> int_assignee
+
+    %% Lifecycle segments construit à partir des status events
+    int_status --> int_segments
+    seed_feries --> int_segments
+
+    %% SLA agrège tout
+    int_enriched --> int_sla
+    stg_threads --> int_sla
+    int_status --> int_sla
+    int_segments --> int_sla
+    seed_feries --> int_sla
+
+    classDef seed fill:#fff3cd,stroke:#856404
+    classDef int fill:#d1ecf1,stroke:#0c5460,font-weight:bold
+    class seed_status,seed_feries seed
+    class int_enriched,int_status,int_priority,int_assignee,int_segments,int_sla int
 ```
 
 ### Liste des modèles intermediate
