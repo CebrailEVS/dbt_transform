@@ -192,8 +192,26 @@ models:
               arguments:
                 to: ref('stg_mssql_sage__f_collaborateur')
                 field: co_no
+      - name: do_domaine
+        description: >
+          Domaine du document Sage. Valeurs observées :
+          0 = Ventes (~225 k lignes, CT_Num pointe vers f_comptet),
+          1 = Achats / autre flux (~3 k lignes),
+          2 = Stock interne (~99 k lignes, CT_Num est un code dépôt
+          numérique et ne pointe PAS vers f_comptet).
+          Filtrer sur do_domaine = 0 pour ne garder que les ventes Nunshen.
+      - name: do_type
+        description: >
+          Type de document Sage à l'intérieur d'un domaine. Pour
+          do_domaine = 0 (ventes) : facture / avoir / livraison /
+          devis selon la valeur. Pour do_domaine = 2 (stock) : entrée,
+          sortie, transfert, etc.
       - name: ct_num
-        description: "Code du compte client associé"
+        description: >
+          Code du compte client associé pour les ventes (do_domaine = 0).
+          Pour do_domaine = 2 (stock interne), ct_num est un code
+          d'entrepôt / dépôt numérique et ne correspond PAS à un client
+          de f_comptet.
       - name: do_piece
         description: "Pièce associée à la ventes"
       - name: dl_design
