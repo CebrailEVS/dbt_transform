@@ -25,7 +25,7 @@ with pointage_unique_par_jour as (
         min(case
             when format_timestamp('%H:%M:%S', date_pointage) >= '03:00:00' then date_pointage
         end) as premier_pointage
-    from {{ ref('int_oracle_neshu__pointage') }}
+    from {{ ref('int_oracle_neshu__pointage_tasks') }}
     where label_code = 'START_DAY'
     group by
         task_id, company_id, resources_roadman_id, roadman_code,
