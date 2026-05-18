@@ -181,7 +181,7 @@ erDiagram
     }
 
     stg_yuman__storehouses {
-        int storehouses_id PK_FK
+        int storehouses_id PK
         string storehouses_name
         string storehouses_address
     }
