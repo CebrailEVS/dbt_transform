@@ -58,7 +58,7 @@ sources:
             description: "Identifiant du contact"
           - name: material_id
             description: "Identifiant du material/machine"
-          - name: workoder_id
+          - name: workorder_id
             description: "Identifiant de l'intervention"
           - name: user_id
             description: "Identifiant de l'utilisateur"
