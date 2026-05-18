@@ -1,13 +1,12 @@
 {{
     config(
         materialized='table',
-        unique_key='dl_no',
         partition_by={
             "field": "do_date",
             "data_type": "timestamp",
             "granularity": "day"
         },
-        description='Table des ventes Nunshen nettoyée et transformée depuis la table source dbo_f_docligne de MSSQL Sage'
+        description='Table des documents Sage Nunshen (ventes, achats, stock) nettoyée et transformée depuis dbo_f_docligne. Filtrer do_domaine = 0 pour ne garder que les ventes.'
     )
 }}
 
@@ -21,6 +20,11 @@ cleaned_data as (
         -- Identifiant unique de la ligne
         cast(json_value(data, '$.DL_No') as int64) as dl_no, -- PK
         cast(json_value(data, '$.cbCO_No') as int64) as cbco_no, -- FK pour table collaborateur
+
+        -- Domaine et type Sage (filtrage métier en aval)
+        -- DO_Domaine : 0 = Ventes, 1 = Achats/autre, 2 = Stock interne
+        cast(json_value(data, '$.DO_Domaine') as int64) as do_domaine,
+        cast(json_value(data, '$.DO_Type') as int64) as do_type,
 
         -- Champs principaux
         json_value(data, '$.CT_Num') as ct_num,
@@ -45,15 +49,3 @@ cleaned_data as (
 
 select *
 from cleaned_data
-
-
-{% if is_incremental() %}
-where
-    (
-        updated_at > (
-            select max(updated_at)
-            from {{ this }}
-        )
-        or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
-    )
-{% endif %}
