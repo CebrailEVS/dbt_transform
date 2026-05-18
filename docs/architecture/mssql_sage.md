@@ -162,6 +162,8 @@ erDiagram
     stg_mssql_sage__f_docligne {
         int dl_no PK
         int cbco_no FK
+        int do_domaine
+        int do_type
         string ct_num FK
         timestamp do_date
         float dl_montant_ht
@@ -195,7 +197,7 @@ erDiagram
 |---|---|---|
 | `stg_mssql_sage__f_comptet` | Comptes clients Nunshen. Source raw stockée **en JSON** (colonne `data`). | 12 156 |
 | `stg_mssql_sage__f_collaborateur` | Commerciaux Nunshen. Source raw stockée **en JSON**. | 166 |
-| `stg_mssql_sage__f_docligne` | Lignes de vente Nunshen. Source raw stockée **en JSON**. Partitionné sur `do_date`. **Incremental** (filtre `updated_at` + 7 jours de marge). | 326 910 |
+| `stg_mssql_sage__f_docligne` | Lignes de documents Sage (ventes + achats + stock). Filtrer `do_domaine = 0` pour les ventes pures. Source raw stockée **en JSON**. Partitionné sur `do_date`. **Incremental** (filtre `updated_at` + 7 jours de marge). | 326 910 |
 
 ---
 
@@ -236,7 +238,8 @@ select
 from stg_mssql_sage__f_docligne d
 left join stg_mssql_sage__f_comptet      cl   on cl.ct_num = d.ct_num
 left join stg_mssql_sage__f_collaborateur coll on coll.co_no = d.cbco_no
-where d.do_date >= '2026-01-01'
+where d.do_domaine = 0          -- 0 = ventes (exclut stock interne et achats)
+  and d.do_date >= '2026-01-01'
 ```
 
 **P&L direct depuis le mart (cas Power BI) :**
@@ -310,7 +313,7 @@ de chaque domaine :
 | Relation | Taux de match | Interprétation |
 |---|---|---|
 | `f_ecriturea.ec_no → f_ecriturec.ec_no` | testé en staging (100 % attendu) | Toute écriture analytique vient d'une écriture comptable |
-| `f_docligne.ct_num → f_comptet.ct_num` | 70 % (228 173 / 326 910) | 30 % des ventes pointent vers `ct_num = '1'` (cf. plus bas) |
+| `f_docligne.ct_num → f_comptet.ct_num` (domaine 0) | 100 % attendu | Voir gotcha ci-dessous : sans filtrage `do_domaine = 0`, 30 % d'orphelins illusoires |
 | `f_comptet.co_no → f_collaborateur.co_no` | 65 % (7 849 / 12 156) | 35 % des comptes clients n'ont pas de commercial attribué |
 
 Les jointures sur ces FK doivent systématiquement être en `LEFT JOIN`,
@@ -360,15 +363,31 @@ Conséquence : sur 2024 et pour les BU non budgétées, toutes les colonnes
 `budget`, `budget_ytd`, `ecart_vs_budget*` du mart sont `NULL`. À enrichir
 avec la DAF si Power BI doit afficher des écarts sur ces périmètres.
 
-### `ct_num = '1'` côté `f_docligne` : compte client générique
-~30 % des lignes de `f_docligne` (~98 k) n'ont pas de match dans
-`f_comptet`. Échantillonnage des plus récentes : **toutes ont `ct_num = '1'`**,
-qui correspond vraisemblablement à un **compte tiers générique** côté Sage
-(type "vente au comptoir" ou "divers"). Ce n'est probablement pas un défaut
-de qualité, mais à confirmer fonctionnellement.
+### `f_docligne` mélange ventes, achats et mouvements de stock
+`f_docligne` agrège **trois types de documents Sage** que le pipeline expose
+désormais explicitement via les colonnes `do_domaine` et `do_type` :
 
-→ Recommandation : si besoin Power BI de marquer ces ventes, ajouter une
-colonne `is_generic_customer` au staging plutôt que de filtrer.
+| `do_domaine` | Lignes (~) | Total HT | Sens |
+|---|---|---|---|
+| `0` | 224 901 | 10,2 M€ | **Ventes** (CT_Num = client Nunshen, jointure à `f_comptet` valide) |
+| `1` | 3 272 | 3,2 M€ | Achats / autre flux marginal |
+| `2` | **98 737** | 27,0 M€ | **Stock interne** (CT_Num = code d'entrepôt numérique, **pas** un client) |
+
+Les 98 737 lignes en `do_domaine = 2` sont les responsables des « 30 % de
+ventes orphelines » historiquement observés. Le `CT_Num` y prend des valeurs
+chiffrées (`1`, `2`, `3`, `7`, `8`…) qui sont en réalité des identifiants
+de dépôts Sage, pas des clients. Le `do_type` y vaut typiquement 20, 21,
+23, 24 ou 26 (entrée / sortie / transfert / ajustement / fabrication).
+
+**Conséquences pour les analystes** :
+- Pour un **P&L commercial Nunshen** : filtrer `do_domaine = 0` côté mart.
+- Pour une **analyse logistique** (rotation, mouvements inter-dépôts) :
+  filtrer `do_domaine = 2`.
+- Pour **ne pas casser** les jointures `ct_num → f_comptet` historiques :
+  toujours filtrer explicitement le domaine — ne pas joindre tel quel.
+
+Le staging ne filtre **pas** par domaine — il expose les trois pour
+permettre toutes les analyses en aval.
 
 ### Champs Sage non documentés
 Le YAML source recense plusieurs champs marqués « non documenté Sage » sur
