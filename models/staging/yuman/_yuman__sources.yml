@@ -96,10 +96,6 @@ sources:
               - unique
               - not_null
             description: "Identifiant unique du contact"
-          - name: client_id
-            description: "Identifiant du client rattaché"
-          - name: site_id
-            description: "Identifiant du site rattaché"
           - name: category_id
             description: "Identifiant de la catégorie du contact"
           - name: name

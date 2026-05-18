@@ -1,6 +1,6 @@
 # Architecture — Yuman
 
-> Dernière mise à jour : 2026-05-18
+> Dernière mise à jour : 2026-05-19
 
 ---
 
@@ -181,7 +181,9 @@ erDiagram
     }
 
     stg_yuman__storehouses {
-        int storehouses_id PK
+        int storehouses_id PK_FK
+        string storehouses_name
+        string storehouses_address
     }
 
     %% Hiérarchie client / site / matériel
@@ -218,6 +220,9 @@ erDiagram
 
     %% Purchase orders
     stg_yuman__products ||--o{ stg_yuman__purchase_orders : "product_id"
+
+    %% Storehouse = entrepôt mobile d'un user (technicien/manager)
+    stg_yuman__users ||--o| stg_yuman__storehouses : "user_id = storehouses_id"
 ```
 
 ---
@@ -237,7 +242,7 @@ erDiagram
 | `stg_yuman__products` | Catalogue des produits / pièces détachées | 4 000 |
 | `stg_yuman__workorders_categories` | Catégories d'intervention | 64 |
 | `stg_yuman__workorder_demands_categories` | Catégories de demandes d'intervention | 57 |
-| `stg_yuman__storehouses` | Entrepôts | 45 |
+| `stg_yuman__storehouses` | Entrepôts mobiles. `storehouses_id` correspond au `user_id` du technicien ou manager propriétaire (41/45). Exceptions : 4 ateliers physiques (Rungis/Lyon, Lyon, Strasbourg, Bordeaux) sans user associé | 45 |
 
 ### Facts — les événements
 
@@ -369,6 +374,24 @@ Ces deux modèles staging "explosent" un JSON array de la source :
 - `workorder_products` : 1 ligne = 1 produit utilisé sur 1 workorder, issu
   de `_embed_products` dans `yuman_workorders`. Cela évite d'avoir à
   re-parser le JSON dans chaque mart consommateur.
+
+### `storehouses_id` est identique au `user_id` du propriétaire
+Un storehouse Yuman représente l'entrepôt mobile (stock embarqué) d'un
+technicien ou d'un manager. La règle métier — non documentée par Yuman mais
+vérifiée empiriquement — est que `storehouses_id = user_id`. Sur 45
+storehouses : 38 matchent un technicien, 3 matchent un manager, et 4 sont des
+**ateliers physiques** sans user associé :
+
+| storehouses_id | Nom |
+|---|---|
+| 1891 | 06 - ATELIER RUNGIS DEPOT *(adresse Dardilly/69 — incohérence libellé)* |
+| 311335 | 07 - ATELIER LYON DEPOT |
+| 311336 | 09 - ATELIER STRASBOURG DEPOT |
+| 311337 | 08 - ATELIER BORDEAUX DEPOT |
+
+Un test `relationships` (severity = `warn`) entre `stg_yuman__storehouses.storehouses_id`
+et `stg_yuman__users.user_id` est en place dans `_yuman__models.yml` pour
+détecter toute dérive future (sortie de plus de 4 orphelins → alerte).
 
 ### Le rattachement technicien → agence passe par un mapping nom/prénom
 Yuman ne porte pas l'agence du technicien. Le mapping est fourni par un seed
