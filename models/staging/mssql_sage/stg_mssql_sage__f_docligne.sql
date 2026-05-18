@@ -1,13 +1,12 @@
 {{
     config(
         materialized='table',
-        unique_key='dl_no',
         partition_by={
             "field": "do_date",
             "data_type": "timestamp",
             "granularity": "day"
         },
-        description='Table des ventes Nunshen nettoyée et transformée depuis la table source dbo_f_docligne de MSSQL Sage'
+        description='Table des documents Sage Nunshen (ventes, achats, stock) nettoyée et transformée depuis dbo_f_docligne. Filtrer do_domaine = 0 pour ne garder que les ventes.'
     )
 }}
 
@@ -50,15 +49,3 @@ cleaned_data as (
 
 select *
 from cleaned_data
-
-
-{% if is_incremental() %}
-where
-    (
-        updated_at > (
-            select max(updated_at)
-            from {{ this }}
-        )
-        or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
-    )
-{% endif %}

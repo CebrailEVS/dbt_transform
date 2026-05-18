@@ -197,7 +197,7 @@ erDiagram
 |---|---|---|
 | `stg_mssql_sage__f_comptet` | Comptes clients Nunshen. Source raw stockée **en JSON** (colonne `data`). | 12 156 |
 | `stg_mssql_sage__f_collaborateur` | Commerciaux Nunshen. Source raw stockée **en JSON**. | 166 |
-| `stg_mssql_sage__f_docligne` | Lignes de documents Sage (ventes + achats + stock). Filtrer `do_domaine = 0` pour les ventes pures. Source raw stockée **en JSON**. Partitionné sur `do_date`. **Incremental** (filtre `updated_at` + 7 jours de marge). | 326 910 |
+| `stg_mssql_sage__f_docligne` | Lignes de documents Sage (ventes + achats + stock). Filtrer `do_domaine = 0` pour les ventes pures. Source raw stockée **en JSON**. Partitionné sur `do_date`. Matérialisé en `table` (full refresh). | 326 910 |
 
 ---
 
