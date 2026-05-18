@@ -314,7 +314,7 @@ de chaque domaine :
 |---|---|---|
 | `f_ecriturea.ec_no → f_ecriturec.ec_no` | testé en staging (100 % attendu) | Toute écriture analytique vient d'une écriture comptable |
 | `f_docligne.ct_num → f_comptet.ct_num` (domaine 0) | 100 % attendu | Voir gotcha ci-dessous : sans filtrage `do_domaine = 0`, 30 % d'orphelins illusoires |
-| `f_comptet.co_no → f_collaborateur.co_no` | 65 % (7 849 / 12 156) | 35 % des comptes clients n'ont pas de commercial attribué |
+| `f_comptet.co_no → f_collaborateur.co_no` | 65 % (7 849 / 12 156) | 35 % des comptes ont `co_no = 0` (valeur sentinelle Sage « non assigné »). Voir gotcha ci-dessous. |
 
 Les jointures sur ces FK doivent systématiquement être en `LEFT JOIN`,
 jamais en `INNER JOIN`.
@@ -388,6 +388,34 @@ de dépôts Sage, pas des clients. Le `do_type` y vaut typiquement 20, 21,
 
 Le staging ne filtre **pas** par domaine — il expose les trois pour
 permettre toutes les analyses en aval.
+
+### `co_no = 0` : valeur sentinelle pour « pas de commercial assigné »
+4 307 comptes (35 % de `f_comptet`) ont `co_no = 0`. Diagnostic posé via
+MCP :
+
+- **Ce n'est pas un commercial disparu** : la table `f_collaborateur` ne
+  contient aucune ligne avec `co_no = 0`. C'est la valeur sentinelle Sage
+  par défaut pour « non assigné ».
+- **Profil des comptes orphelins vs assignés** :
+
+  | | Orphelins | Avec commercial |
+  |---|---|---|
+  | Nombre | 4 307 | 7 849 |
+  | Avec email | **4,6 %** | 98,7 % |
+  | Avec téléphone | **4,4 %** | 98,2 % |
+  | Avec ligne de service | 70,6 % | 99,9 % |
+
+- **Activité commerciale quasi nulle** : 97 % des orphelins (4 188 / 4 307)
+  n'ont jamais généré de vente (`do_domaine = 0`). Les 3 % restants
+  cumulent 828 k€ HT sur l'histoire.
+- **Le champ custom `COMMERCIAL ORIGINE` n'est pas un fallback exploitable** :
+  vide ou NULL dans 99,98 % des cas.
+
+**Conclusion** : ce sont essentiellement des **prospects ou comptes
+coquilles** (importés sans contact ni commercial) et quelques résiduels
+ponctuels. Pas un défaut d'extraction, mais un état de la base Sage. Si
+un mart BI doit afficher uniquement les clients « vivants », filtrer
+`where co_no != 0`.
 
 ### Champs Sage non documentés
 Le YAML source recense plusieurs champs marqués « non documenté Sage » sur
