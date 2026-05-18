@@ -11,12 +11,23 @@ données de la base **MSSQL Sage** via Meltano (cadencement quotidien) et les
 rend disponibles dans BigQuery pour le **pilotage financier** (P&L par
 Business Unit) et l'analyse commerciale Nunshen.
 
-Données clés exposées :
+Le pipeline couvre **deux domaines fonctionnels indépendants** qui partagent
+seulement la base Sage comme système source :
+
+**1. Comptabilité / P&L (toutes BU)**
 - **Écritures comptables** (`f_ecriturec`) — journal comptable officiel
 - **Écritures analytiques** (`f_ecriturea`) — ventilation des écritures sur les axes analytiques (BU, projets…)
-- **Comptes tiers** (`f_comptet`) — clients Nunshen (commerce)
+
+**2. Commerce Nunshen (BU Nunshen uniquement)**
+- **Comptes clients** (`f_comptet`) — clients Nunshen
 - **Lignes de vente** (`f_docligne`) — détail des ventes Nunshen
 - **Collaborateurs** (`f_collaborateur`) — commerciaux Nunshen
+
+> **Important** : ces deux blocs ne sont **pas reliés fonctionnellement**.
+> Le `ct_num` présent dans `f_ecriturec` représente n'importe quel tiers
+> Sage (clients toutes BU + fournisseurs), tandis que `f_comptet` ne contient
+> que les clients Nunshen. Une jointure sur `ct_num` entre ces deux blocs
+> est techniquement possible mais sémantiquement piégeuse.
 
 Cas d'usage principal : le mart `fct_mssql_sage__pnl_bu_kpis` produit un
 **P&L mensuel par BU** avec budget, YTD, N-1 et écarts, alimenté par Power BI.
@@ -90,6 +101,11 @@ Quelques notions de comptabilité française que ce pipeline manipule :
 
 ### Diagramme des relations
 
+Les deux domaines fonctionnels sont représentés séparément — il n'existe
+pas de FK exploitable entre eux.
+
+### Domaine Comptabilité / P&L
+
 ```mermaid
 erDiagram
 
@@ -98,7 +114,7 @@ erDiagram
         int ec_no_link FK
         string jo_num
         string cg_num
-        string ct_num FK
+        string ct_num
         int ec_sens
         float ec_montant
         timestamp ec_date
@@ -113,6 +129,19 @@ erDiagram
         float ea_montant
         float ea_quantite
     }
+
+    %% Écritures : analytique ventile la comptable
+    stg_mssql_sage__f_ecriturec ||--o{ stg_mssql_sage__f_ecriturea : "ec_no (0..N)"
+```
+
+`ct_num` est exposé sur `f_ecriturec` mais représente n'importe quel tiers
+Sage (client toutes BU ou fournisseur). Aucun référentiel tiers global n'est
+extrait dans ce pipeline.
+
+### Domaine Commerce Nunshen
+
+```mermaid
+erDiagram
 
     stg_mssql_sage__f_comptet {
         string ct_num PK
@@ -139,9 +168,6 @@ erDiagram
         float dl_montant_ttc
     }
 
-    %% Écritures : analytique ventile la comptable
-    stg_mssql_sage__f_ecriturec ||--o{ stg_mssql_sage__f_ecriturea : "ec_no (0..N)"
-
     %% Comptes tiers → collaborateur (commercial attribué)
     stg_mssql_sage__f_collaborateur ||--o{ stg_mssql_sage__f_comptet : "co_no"
 
@@ -150,9 +176,6 @@ erDiagram
 
     %% Docligne → collaborateur (vendeur)
     stg_mssql_sage__f_collaborateur ||--o{ stg_mssql_sage__f_docligne : "cbco_no"
-
-    %% Écritures comptables → tiers (optionnel : OD/banque n'ont pas de tiers)
-    stg_mssql_sage__f_comptet ||--o{ stg_mssql_sage__f_ecriturec : "ct_num (optionnel)"
 ```
 
 ---
@@ -280,18 +303,22 @@ Le staging garde `ea_montant` brut. C'est l'intermediate qui calcule
 Cela permet de sommer directement le `montant_analytique_signe` pour
 obtenir un P&L net (CA - charges).
 
-### Couverture des FK : tout n'est pas relié
-Comparaison faite via MCP — taux de match réel des relations « logiques » :
+### Couverture des FK intra-domaine
+Comparaison faite via MCP — taux de match réel des relations à l'intérieur
+de chaque domaine :
 
 | Relation | Taux de match | Interprétation |
 |---|---|---|
-| `f_ecriturea.ec_no → f_ecriturec.ec_no` | testé en staging (100 % attendu) | Toute analytique vient d'une compta |
-| `f_docligne.ct_num → f_comptet.ct_num` | 70 % (228 173 / 326 910) | 30 % des ventes pointent vers des clients absents du référentiel Nunshen (probablement clients hors périmètre) |
+| `f_ecriturea.ec_no → f_ecriturec.ec_no` | testé en staging (100 % attendu) | Toute écriture analytique vient d'une écriture comptable |
+| `f_docligne.ct_num → f_comptet.ct_num` | 70 % (228 173 / 326 910) | 30 % des ventes pointent vers `ct_num = '1'` (cf. plus bas) |
 | `f_comptet.co_no → f_collaborateur.co_no` | 65 % (7 849 / 12 156) | 35 % des comptes clients n'ont pas de commercial attribué |
-| `f_ecriturec.ct_num → f_comptet.ct_num` | 39 % (117 359 / 302 523) | Normal : OD, banque, salaires n'ont pas de tiers |
 
-Les jointures sur ces FK doivent donc systématiquement être en `LEFT JOIN`,
+Les jointures sur ces FK doivent systématiquement être en `LEFT JOIN`,
 jamais en `INNER JOIN`.
+
+> Ne pas tenter de joindre `f_ecriturec.ct_num` à `f_comptet.ct_num` : ce sont
+> deux espaces de codes tiers différents (toutes BU vs Nunshen). Les
+> coïncidences de valeurs ne sont pas sémantiquement fiables.
 
 ### Comptes techniques `ZSITUATION` dans le P&L (344 lignes)
 Le code analytique `ZSITUATION` regroupe **toutes les écritures comptables
