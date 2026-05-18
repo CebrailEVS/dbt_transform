@@ -738,7 +738,7 @@ models:
         tests:
           - not_null
 
-  - name: int_oracle_lcdp__commande_interne
+  - name: int_oracle_lcdp__commande_interne_tasks
     description: >
       Table intermédiaire des mouvements internes (commandes internes).
       Filtrée sur les tâches de type LIVRAISON INTERNE (idtask_type = 132)
@@ -961,7 +961,7 @@ models:
         tests:
           - not_null
 
-  - name: int_oracle_lcdp__pointage
+  - name: int_oracle_lcdp__pointage_tasks
     description: >
       Table intermédiaire des tâches des pointages roadman sur les débuts et fin de journées
       1 ligne = 1 tâche pointage.
