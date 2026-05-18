@@ -27,20 +27,6 @@ models:
         tests:
           - unique
           - not_null
-#      - name: client_id
-#        description: "Référence vers le client rattaché"
-#        tests:
-#          - relationships:
-#              arguments:
-#                 to: ref('stg_yuman__clients')
-#                 field: client_id
-#       - name: site_id
-#         description: "Référence vers le site rattaché"
-#         tests:
-#           - relationships:
-#               arguments:
-#                 to: ref('stg_yuman__sites')
-#                 field: site_id
       - name: category_id
         description: "Identifiant de la catégorie du contact"
       - name: contact_name
@@ -412,10 +398,24 @@ models:
         description: "Date de dernière mise à jour de l'association produit-workorder dans Yuman"
 
   - name: stg_yuman__storehouses
-    description: "Storehouses clean depuis la table source yuman_storehouses"
+    description: >
+      Storehouses clean depuis la table source yuman_storehouses.
+      Règle métier : storehouses_id correspond au user_id du technicien ou
+      manager propriétaire de l'entrepôt mobile. Exception : les ateliers
+      physiques (Rungis/Lyon, Lyon, Strasbourg, Bordeaux) n'ont pas de user
+      associé — 4 enregistrements concernés.
     columns:
       - name: storehouses_id
-        description: "Identifiant unique du storehouses (clé primaire)"
+        description: >
+          Identifiant unique du storehouse. Correspond au user_id du technicien
+          ou manager propriétaire de l'entrepôt mobile. NULL match attendu pour
+          les ateliers physiques.
         tests:
           - unique
           - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_yuman__users')
+                field: user_id
+              config:
+                severity: warn
