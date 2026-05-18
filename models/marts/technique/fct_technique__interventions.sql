@@ -81,9 +81,9 @@ yuman_interventions as (
         0 as delai_heures_fin,
         type_delai as delai_tech,
         type_delai as delai_partenaire,
-        'NA' as alias_obj_type_inter,
-        'NA' as alias_obj_type_machine,
-        'NA' as alias_obj_grp_machine
+        upper(split(inter_yuman.pricing_key_used, '_')[0]) as alias_obj_type_inter,
+        upper(split(inter_yuman.pricing_key_used, '_')[1]) as alias_obj_type_machine,
+        upper(split(inter_yuman.pricing_key_used, '_')[1]) as alias_obj_grp_machine
     from {{ ref('fct_yuman__workorder_delais_neshu') }} as inter_yuman
     where inter_yuman.demand_status = 'Accepted'
 ),
