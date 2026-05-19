@@ -149,14 +149,19 @@ With folder-based tagging, **do not** set `tags=[...]` manually in each mart's `
 
 `staging:` and `intermediate:` subkeys stay per source, unchanged.
 
-### 5.2 Model renaming — decouple file rename from BQ table rename
+### 5.2 Model renaming — same-day rename, DA coordination
 
-| What | Recommended | How |
-|---|---|---|
-| Rename .sql file | **Yes** — `fct_oracle_neshu__device.sql` → `fct_neshu__device.sql` | `git mv` |
-| Rename BigQuery physical table | **No (phase 1)** — keep BQ name `fct_oracle_neshu__device` | Add `alias='fct_oracle_neshu__device'` in `{{ config() }}` |
+For each migrated mart we rename the .sql file **and** the BigQuery physical table at the same time. The Data Analyst updates the corresponding Power BI dataset(s) the same day so reports point to the new table.
 
-This keeps Power BI datasets working without changes during the refacto. Physical rename can be a later separate project, coordinated with each BI dataset owner.
+| What | How |
+|---|---|
+| Rename .sql file | `git mv` to new BU folder + new name (e.g. `fct_oracle_neshu__device.sql` → `neshu/fct_neshu__device.sql`) |
+| Rename BigQuery physical table | nothing to do — dbt builds the new table on next run; old table can be dropped after BI is repointed |
+| Update Power BI dataset | DA repoints the `.pbix` to the new `project.dataset.table` and republishes |
+
+**Tradeoff:** ~15-30 min of broken BI per migrated mart between dbt build and `.pbix` republish. Acceptable given solo DE + 1 DA. Each Phase 2 PR is announced to DA in advance so they can plan the .pbix update.
+
+**Why not `alias=`:** keeping the BQ name pinned to the old source-based name via `alias='fct_oracle_neshu__device'` would avoid the BI break but creates tech debt — a Phase 3 PR to remove all aliases later, plus a "physical rename" project that in practice would never happen. Our team size makes same-day coordination cheaper.
 
 ### 5.3 Refs in downstream marts and exposures
 - Every `ref()` to a renamed dbt resource must be updated in the same PR.
@@ -166,7 +171,7 @@ This keeps Power BI datasets working without changes during the refacto. Physica
 ### 5.4 Terraform state
 Renaming `google_workflows_workflow.transform_technique_daily` recreates the resource (delete + create) unless `terraform state mv` is run first.
 
-Since the refacto is **additive** in phase 1 (new workflows alongside old), no rename is needed initially. Cleanup phase removes old resources after all marts have migrated.
+Since the refacto is **additive** in phase 1 (new workflows alongside old), no Terraform rename is needed initially. Cleanup phase removes old resources after all marts have migrated.
 
 ### 5.5 Existing `dbt build tag:<source>` in EL pipelines
 Each `pipeline-<source>.yaml` today builds `tag:<source>` post-extraction (staging + intermediate + marts of that source). After refacto, scope down to staging + intermediate only:
@@ -211,15 +216,17 @@ Order suggestion (smallest first to rehearse the process):
 6. `technique/`, `commerce/` — scope reduction (move out partner-specific marts, keep transverse only)
 
 Per-BU checklist:
+- [ ] Announce upcoming PR to DA so they can plan the `.pbix` update window
 - [ ] Branch `feature/marts-refacto-<folder>`
-- [ ] Move .sql files; set `alias='<old_bq_name>'` in each
-- [ ] Rename dbt resources to `<prefix>_<folder>__<entity>` (e.g. `fct_neshu__device`)
+- [ ] `git mv` .sql files to new folder, rename to `<prefix>_<folder>__<entity>` (e.g. `fct_neshu__device`)
 - [ ] Update all `ref()` calls across the repo
 - [ ] Remove explicit `tags=[...]` in model configs (folder config handles it)
 - [ ] Merge YAML test files into `_<folder>__marts_models.yml`
 - [ ] Update `models/exposures/*.yml`
 - [ ] Activate the BU scheduler in Terraform (`paused = false`)
 - [ ] PR + merge
+- [ ] DA updates the `.pbix` to point to the new BigQuery table(s) and republishes
+- [ ] Drop the old BigQuery table(s) once BI is confirmed working
 
 ### Phase 3 — Cleanup (1 PR)
 - [ ] Delete empty `marts/oracle_neshu/`, `marts/oracle_lcdp/`, `marts/yuman/`, `marts/mssql_sage/`, `marts/gac/`, `marts/yuman_gcs/`, `marts/oracle_neshu_gcs/`, `marts/nesp_tech/` folders

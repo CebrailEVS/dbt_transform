@@ -11,7 +11,7 @@
 
 Documented in [`CONVENTIONS.md` § Nommage des marts](../../CONVENTIONS.md#nommage-des-marts--convention-by-bu-refacto-en-cours). Target names in §1 below apply that convention.
 
-**Tradeoff:** the new SQL name diverges from the physical BigQuery table name during the refacto. We rely on `alias='<old_bq_name>'` in `{{ config() }}` (see [`README.md` §5.2](./README.md#52-model-renaming--decouple-file-rename-from-bq-table-rename)) so Power BI datasets keep working. Physical BQ table rename = separate later project coordinated with the Data Analyst.
+**BQ table rename:** same-day with the SQL rename. DA updates the `.pbix` the same day to point to the new table. See [`README.md` §5.2](./README.md#52-model-renaming--same-day-rename-da-coordination).
 
 ---
 
