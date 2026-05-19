@@ -29,6 +29,34 @@ Le double underscore `__` separe la source de l'entite.
 > va dans un dossier BU (`marts/technique/`) et non dans un dossier source (`marts/oracle_neshu/`).
 > Le prefixe du nom reflete la BU, pas la source. Voir `docs/scheduling_and_tagging_decisions.md`.
 
+### Nommage des marts — convention by BU (refacto en cours)
+
+> **Statut :** convention cible documentee. Application planifiee lors du refacto
+> `marts/` by BU — voir `docs/migration-marts/`. Tant que la migration n'est pas
+> faite, les anciens noms `fct_<source>__...` restent en place.
+
+Apres refacto, les marts sont organises par **BU/domaine** (folder = BU), pas par source.
+Le nom du modele reflete la BU et l'entite metier, pas l'implementation source.
+
+| Element | Regle |
+|---------|-------|
+| Prefixe | `dim_` (dimension) ou `fct_` (fait) |
+| Cle BU/domaine | nom exact du folder : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain` |
+| Separateur | `__` entre BU et entite |
+| Entite | singulier, snake_case, nom metier (pas le nom source, pas le nom du rapport BI) |
+| Suffixe de grain | uniquement si agrege au-dessus du grain naturel (`_quinzaine`, `_mensuel`) |
+| Suffixe de source | uniquement en cas de collision dans le meme folder (ex. `fct_supply_chain__stock_neshu` vs `fct_supply_chain__stock_yuman`) |
+| Nom du rapport BI | jamais dans le nom du mart — va dans l'`exposure` |
+
+Exemples (avant → apres) :
+
+| Avant | Apres | Pourquoi |
+|-------|-------|----------|
+| `fct_oracle_neshu__conso_business_review` | `fct_neshu__consommation` | source droppee, nom de rapport BI deplace vers exposure |
+| `fct_mssql_sage__pnl_bu_kpis` | `fct_finance__pnl_bu` | `_kpis` implicite dans un fait |
+| `dim_yuman__materials` | `dim_technique__material` | singulier, pas de source |
+| `fct_oracle_neshu__chargement_par_quinzaine` | `fct_neshu__chargement_quinzaine` | suffixe de grain conserve |
+
 ### Fichiers YAML
 
 Chaque source a deux fichiers YAML dans son dossier staging :
