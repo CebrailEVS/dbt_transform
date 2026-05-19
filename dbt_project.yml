@@ -126,6 +126,23 @@ models:
       commerce:
         +tags: ['marts', 'commerce']
 
+      # New BU/domain subkeys for the marts refacto by BU.
+      # See docs/migration-marts/. Empty until Phase 2 populates them.
+      neshu:
+        +tags: ['marts', 'neshu']
+
+      lcdp:
+        +tags: ['marts', 'lcdp']
+
+      finance:
+        +tags: ['marts', 'finance']
+
+      services_generaux:
+        +tags: ['marts', 'services_generaux']
+
+      supply_chain:
+        +tags: ['marts', 'supply_chain']
+
 seeds:
   dbt_warehouse:
     +schema: reference

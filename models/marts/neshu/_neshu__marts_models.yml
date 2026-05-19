@@ -1,0 +1,6 @@
+version: 2
+
+# Placeholder — populated during Phase 2 of marts refacto by BU.
+# See docs/migration-marts/inventory.md for the list of marts targeting this folder.
+
+models: []
