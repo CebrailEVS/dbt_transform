@@ -196,44 +196,64 @@ Contains GCP project, dataset prefix, keyfile, dev/prod targets. No coupling to 
 - [ ] Confirm the 7 BI workspaces match the 7 mart folders.
 - [ ] Identify exposures impact: per Power BI report, which marts feed it.
 
-### Phase 1 — Additive scaffolding (1 PR)
-- [ ] Create empty folders: `neshu/`, `lcdp/`, `finance/`, `services_generaux/`, `supply_chain/`.
-- [ ] Add empty `_<folder>__marts_models.yml` in each.
-- [ ] Add new subkeys in `dbt_project.yml`.
-- [ ] Create 5 new `transform-<x>-daily.yaml` workflow files (copy `transform-technique-daily.yaml` template).
-- [ ] Add 5 Terraform `google_workflows_workflow` + `google_cloud_scheduler_job` blocks. **Schedulers paused** until phase 2 finishes for the corresponding BU.
-- [ ] Merge — no behavioral change.
+### Phase 1 — ⚠️ ABANDONED (decision 2026-05-19)
 
-### Phase 2 — Migrate marts, BU by BU (1 PR per BU/domain)
+Originally planned as one global "scaffolding PR" (create 5 empty folders + 5 paused workflows). Replaced by **option C: scaffolding is absorbed into each Phase 2 BU PR** — each PR becomes a single atomic unit (create folder + move marts + activate workflow). Rationale: empty folders + paused schedulers sitting in prod for weeks add no value and produce cosmetic warnings; an atomic per-BU PR is easier to review and rollback.
 
-Order suggestion (smallest first to rehearse the process):
+A first attempt at Phase 1 was opened as PR #75 and closed without merging.
 
-1. `finance/` (likely smallest — only mssql_sage marts)
-2. `services_generaux/` (gac marts)
-3. `supply_chain/` (gcs + neshu)
-4. `lcdp/` (oracle_lcdp marts + any technique mart that's actually LCDP-specific)
-5. `neshu/` (oracle_neshu marts + technique marts that are Neshu-specific, e.g. `fct_technique__neshu_maintenance_preventives`)
-6. `technique/`, `commerce/` — scope reduction (move out partner-specific marts, keep transverse only)
+### Phase 2 — Migrate marts, 1 PR per BU/domain (atomic, includes its own scaffolding)
 
-Per-BU checklist:
-- [ ] Announce upcoming PR to DA so they can plan the `.pbix` update window
-- [ ] Branch `feature/marts-refacto-<folder>`
-- [ ] `git mv` .sql files to new folder, rename to `<prefix>_<folder>__<entity>` (e.g. `fct_neshu__device`)
-- [ ] Update all `ref()` calls across the repo
-- [ ] Remove explicit `tags=[...]` in model configs (folder config handles it)
-- [ ] Merge YAML test files into `_<folder>__marts_models.yml`
-- [ ] Update `models/exposures/*.yml`
-- [ ] Activate the BU scheduler in Terraform (`paused = false`)
-- [ ] PR + merge
-- [ ] DA updates the `.pbix` to point to the new BigQuery table(s) and republishes
-- [ ] Drop the old BigQuery table(s) once BI is confirmed working
+Order (smallest first, to rehearse the pattern):
 
-### Phase 3 — Cleanup (1 PR)
-- [ ] Delete empty `marts/oracle_neshu/`, `marts/oracle_lcdp/`, `marts/yuman/`, `marts/mssql_sage/`, `marts/gac/`, `marts/yuman_gcs/`, `marts/oracle_neshu_gcs/`, `marts/nesp_tech/` folders
-- [ ] Remove source-named subkeys from `dbt_project.yml` `marts:` section
-- [ ] Scope down `dbt build` step in each `pipeline-<source>.yaml` to staging+intermediate only
-- [ ] Update `transform-technique-daily` schedule to 10:00 (fix latency bug for nesp data)
-- [ ] Update `README.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`, `CLAUDE.md` to document new layout
+1. **`finance/`** (1 mart: `fct_mssql_sage__pnl_bu_kpis` → `fct_finance__pnl_bu`) — source isolée, idéal pour roder
+2. **`services_generaux/`** (1 mart: `fct_gac__sinistres_sg` → `fct_services_generaux__sinistre`)
+3. **`commerce/`** (1 mart, rename in-place: `fct_commerce__machines_avec_interventions` → `fct_commerce__machine_intervention`)
+4. **`lcdp/`** (3 dims oracle_lcdp, no fact yet)
+5. **`supply_chain/`** (3 marts: 2 GCS stock + `fct_oracle_neshu__supply_flux` → `fct_supply_chain__flux_neshu`)
+6. **`technique/`** (9 marts: 5 yuman dims + 2 nesp_tech facts + workorder_pricing + intervention) — scope reduction of current `technique/`
+7. **`neshu/`** (13 marts, including 2 snapshots `ref()` updates) — le plus complexe, en dernier
+
+Per-BU PR checklist (single PR, single atomic unit):
+
+**Pre-PR**
+- [ ] Announce upcoming PR to DA — agree on a `.pbix` update window
+- [ ] Branch `feature/marts-refacto-<folder>` off master
+- [ ] Re-read [`inventory.md`](./inventory.md) §1 for this folder's target names; resolve any ⚠️ flag with DA before coding
+
+**dbt repo (`/mnt/data/transform`)**
+- [ ] Create folder `models/marts/<folder>/`
+- [ ] Add subkey `<folder>:` in `dbt_project.yml > models > dbt_warehouse > marts:` with `+tags: ['marts', '<folder>']`
+- [ ] `git mv` each .sql file into the new folder, renaming to the target name from `inventory.md`
+- [ ] Remove explicit `tags=[...]` in each model's `{{ config() }}` (folder config handles it)
+- [ ] Update every `ref('<old_name>')` across the repo (including `snapshots/` if any — Neshu PR will touch `snap_oracle_neshu__company` and `snap_oracle_neshu__device`)
+- [ ] Create `_<folder>__marts_models.yml` with the full doc/tests for the moved marts (merge from the old per-source YAML, drop the migrated entries from there)
+- [ ] If the old source folder becomes empty: delete it + remove its subkey from `dbt_project.yml` (in this same PR)
+- [ ] Update `models/exposures/*.yml` if the moved marts are referenced; ping DA to identify any missing exposure to backfill
+- [ ] Update `docs/migration-marts/inventory.md` — mark the migrated rows done (or move them to a "migrated" section)
+- [ ] `./dbt_venv/bin/dbt parse` → no errors; `./dbt_venv/bin/dbt build --select +tag:<folder> --exclude resource_type:snapshot` on dev → green
+
+**Workflow repo (`/mnt/data/workflows`)**
+- [ ] Create `transform-<folder>-daily.yaml` (copy `transform-technique-daily.yaml`, adjust `DBT_SOURCE_SELECTOR` and `DBT_TAG_SELECTOR=tag:<folder>`)
+
+**Terraform repo (`/mnt/data/infra`)**
+- [ ] Add `google_workflows_workflow.transform_<folder>_daily` in `workflows.tf`
+- [ ] Add `google_cloud_scheduler_job.transform_<folder>_daily` with schedule from README §4.2 — **`paused = false` directly** (no temporary paused state needed in option C)
+- [ ] `terraform plan` review, then merge + `terraform apply`
+
+**Post-merge coordination**
+- [ ] DA repoints the `.pbix` to the new BigQuery table(s) and republishes
+- [ ] Verify the new scheduler triggered successfully on day 1
+- [ ] Drop the old BigQuery physical table(s) (in `prod_marts`) once BI is confirmed green
+
+### Phase 3 — Final cleanup (1 PR, after all 7 BUs done)
+
+Most folder/subkey cleanup happens incrementally inside each Phase 2 PR (when a source folder becomes empty, its PR deletes it + removes its subkey). What remains:
+
+- [ ] Confirm all source-named folders under `models/marts/` are gone (`oracle_neshu/`, `oracle_lcdp/`, `yuman/`, `mssql_sage/`, `gac/`, `yuman_gcs/`, `oracle_neshu_gcs/`, `nesp_tech/`)
+- [ ] Scope down `dbt build` step in each `pipeline-<source>.yaml` to staging+intermediate only (drop `tag:<source>` from the marts scope — example: `DBT_TAG_SELECTOR=tag:<source>,path:models/staging models/intermediate`)
+- [ ] Move `transform-technique-daily` schedule from 03:00 to 10:00 (fix latency bug for nesp data — see [§4.2](#42-target-t-workflow-schedules-2h-margin-minimum))
+- [ ] Update `README.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`, `CLAUDE.md` to document the new layout (remove references to source-organized marts)
 
 ### Phase 4 — Validation
 - [ ] `dbt build` in dev → all green
