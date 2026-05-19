@@ -58,7 +58,7 @@ final as (
         user_type,
         user_phone,
         is_manager_as_technician,
-        lower(user_inactif) != 'oui' as is_active,
+        lower(user_inactif) not in ('oui', 'sì', 'si', 'yes', 'true') as is_active,
         created_at,
         updated_at,
         extracted_at,
