@@ -29,7 +29,7 @@ seulement la base Sage comme système source :
 > que les clients Nunshen. Une jointure sur `ct_num` entre ces deux blocs
 > est techniquement possible mais sémantiquement piégeuse.
 
-Cas d'usage principal : le mart `fct_mssql_sage__pnl_bu_kpis` produit un
+Cas d'usage principal : le mart `fct_finance__pnl_bu` produit un
 **P&L mensuel par BU** avec budget, YTD, N-1 et écarts, alimenté par Power BI.
 
 ---
@@ -245,7 +245,7 @@ where d.do_domaine = 0          -- 0 = ventes (exclut stock interne et achats)
 **P&L direct depuis le mart (cas Power BI) :**
 ```sql
 select annee, mois, bu, kpi, valeur, budget, ecart_vs_budget
-from prod_marts.fct_mssql_sage__pnl_bu_kpis
+from prod_marts.fct_finance__pnl_bu
 where scenario = 'AVEC_PROVISIONS_CP'
   and annee = 2026
   and kpi in ('CA', 'MARGE_BRUTE', 'MARGE_NETTE')
@@ -346,7 +346,7 @@ fausser un P&L mensuel. Trois options à arbitrer :
 3. Les conserver telles quelles si la convention métier l'exige
 
 ### Couverture incomplète du seed budget `ref_mssql_sage__pnl_budget`
-Le mart `fct_mssql_sage__pnl_bu_kpis` filtre `annee >= 2024` et calcule
+Le mart `fct_finance__pnl_bu` filtre `annee >= 2024` et calcule
 écart budget + budget YTD pour chaque BU/mois/KPI. Le seed actuel ne couvre
 qu'une partie du périmètre :
 
@@ -490,7 +490,7 @@ flowchart TB
 
 | Mart | Rôle BI |
 |---|---|
-| `fct_mssql_sage__pnl_bu_kpis` | P&L mensuel par BU avec budget, YTD, N-1 et écarts. Deux scénarios : `AVEC_PROVISIONS_CP` et `SANS_PROVISIONS_CP` (ce dernier exclut les comptes `645800` et `641200`). 6 KPIs : CA, CONSOMMATION_MP_SSTT, MASSE_SALARIALE, FRAIS_DIRECTS_AMORTISSEMENTS, MARGE_BRUTE, MARGE_NETTE. Filtré `annee >= 2024`. |
+| `fct_finance__pnl_bu` | P&L mensuel par BU avec budget, YTD, N-1 et écarts. Deux scénarios : `AVEC_PROVISIONS_CP` et `SANS_PROVISIONS_CP` (ce dernier exclut les comptes `645800` et `641200`). 6 KPIs : CA, CONSOMMATION_MP_SSTT, MASSE_SALARIALE, FRAIS_DIRECTS_AMORTISSEMENTS, MARGE_BRUTE, MARGE_NETTE. Filtré `annee >= 2024`. |
 
 ### Seeds & sources auxiliaires
 
