@@ -114,9 +114,6 @@ models:
       nesp_tech:
         +tags: ['marts', 'nesp_tech']
 
-      gac:
-        +tags: ['marts', 'gac']
-
       technique:
         +tags: ['marts', 'technique']
 
@@ -125,6 +122,9 @@ models:
 
       finance:
         +tags: ['marts', 'finance']
+
+      services_generaux:
+        +tags: ['marts', 'services_generaux']
 
 seeds:
   dbt_warehouse:

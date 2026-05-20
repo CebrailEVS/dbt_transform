@@ -1,9 +1,8 @@
-# models/marts/gac/_gac__marts_models.yml
 version: 2
 
 models:
-  - name: fct_gac__sinistres_sg
-    description: "Données de sinistres issues du modèle stg_gac__sinistres_sg"
+  - name: fct_services_generaux__sinistre
+    description: "Sinistres véhicules issus du fournisseur GAC, enrichis pour reporting Services Généraux."
     columns:
       # Infos Sinistre
       - name: n_de_sinistre
@@ -77,10 +76,9 @@ models:
 
       - name: cout_client
         description: "Coût restant à charge pour le client"
-      
+
       - name: dbt_updated_at
         description: "Metadata DBT"
 
       - name: dbt_invocation_id
         description: "Metadata DBT"
-
