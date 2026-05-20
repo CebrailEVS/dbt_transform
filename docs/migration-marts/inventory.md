@@ -78,15 +78,17 @@ Target names follow §0 convention. ⚠️ flags model names worth a second look
 |---|---|---|
 | ~~`gac/fct_gac__sinistres_sg.sql`~~ → `services_generaux/fct_services_generaux__sinistre.sql` | `fct_services_generaux__sinistre` | ✅ fully migrated. PR #78 merged. Leftover `alias='fct_gac__sinistres_sg'` removed during migration. `.pbix` repointed by DA. Old BQ tables dropped (dev + prod). Row count + aggregate parity verified (237 lignes, sum cout_global 617 136 €). |
 
-### → `supply_chain/` (3) ✅ migrated 2026-05-20
+### → `supply_chain/` (3) ✅ DONE 2026-05-20
 
 Three stock-related facts here. Source suffix kept to disambiguate them (rule §0 last row).
 
 | Current path | Target name | Notes |
 |---|---|---|
-| ~~`oracle_neshu_gcs/fct_oracle_neshu_gcs__stock_products.sql`~~ → `supply_chain/fct_supply_chain__stock_neshu.sql` | `fct_supply_chain__stock_neshu` | PR Phase 2 #3 |
-| ~~`yuman_gcs/fct_yuman_gcs__stock_articles.sql`~~ → `supply_chain/fct_supply_chain__stock_yuman.sql` | `fct_supply_chain__stock_yuman` | PR Phase 2 #3 |
-| ~~`oracle_neshu/fct_oracle_neshu__supply_flux.sql`~~ → `supply_chain/fct_supply_chain__flux_neshu.sql` | `fct_supply_chain__flux_neshu` | PR Phase 2 #3. BI consumer = Supply Chain workspace |
+| ~~`oracle_neshu_gcs/fct_oracle_neshu_gcs__stock_products.sql`~~ → `supply_chain/fct_supply_chain__stock_neshu.sql` | `fct_supply_chain__stock_neshu` | ✅ migrated. PR #79 merged. Parity check OK (416 785 lignes). |
+| ~~`yuman_gcs/fct_yuman_gcs__stock_articles.sql`~~ → `supply_chain/fct_supply_chain__stock_yuman.sql` | `fct_supply_chain__stock_yuman` | ✅ migrated. PR #79 merged. Parity check OK (980 471 lignes). YAML column name corrected `nom_du_stock` → `stock` (pre-existing drift). |
+| ~~`oracle_neshu/fct_oracle_neshu__supply_flux.sql`~~ → `supply_chain/fct_supply_chain__flux_neshu.sql` | `fct_supply_chain__flux_neshu` | ✅ migrated. PR #79 merged. Parity check OK (18 mois). |
+
+All 3 `.pbix` repointed by DA, old BQ tables dropped (dev + prod).
 
 ### → DELETE (2)
 
