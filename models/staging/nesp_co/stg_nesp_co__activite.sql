@@ -58,8 +58,8 @@ deduped as (
     select *
     from base_activite
     qualify row_number() over (
-        partition by activity_id, employee_responsible, activity_type
-        order by file_date desc
+        partition by activity_id
+        order by extracted_at desc
     ) = 1
 
 )
