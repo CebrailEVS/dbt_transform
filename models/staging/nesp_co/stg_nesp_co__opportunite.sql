@@ -71,8 +71,8 @@ deduped as (
     from base_opportunite
     where opportunity_id is not null
     qualify row_number() over (
-        partition by opportunity_id, employee_responsible, created_by
-        order by file_date desc
+        partition by opportunity_id
+        order by extracted_at desc
     ) = 1
 
 )
