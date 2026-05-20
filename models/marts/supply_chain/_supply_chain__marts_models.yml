@@ -56,7 +56,7 @@ models:
           - not_null
       - name: designation
         description: "Désignation de l'article"
-      - name: nom_du_stock
+      - name: stock
         description: "Nom du stock (dépôt ou technicien)"
       - name: quantite
         description: "Quantité de l'article dans le stock"
