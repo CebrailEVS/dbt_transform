@@ -1,7 +1,5 @@
 {{ config(
-    materialized='table',
-    schema='marts',
-    alias='fct_gac__sinistres_sg'
+    materialized='table'
 ) }}
 
 select

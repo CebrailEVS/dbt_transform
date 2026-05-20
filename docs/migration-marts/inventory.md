@@ -72,11 +72,11 @@ Target names follow §0 convention. ⚠️ flags model names worth a second look
 |---|---|---|
 | ~~`mssql_sage/fct_mssql_sage__pnl_bu_kpis.sql`~~ → `finance/fct_finance__pnl_bu.sql` | `fct_finance__pnl_bu` | ✅ fully migrated. PR #76 merged. `.pbix` repointed by DA. Old BQ tables dropped (dev + prod). Row count + aggregate parity verified before drop. |
 
-### → `services_generaux/` (1)
+### → `services_generaux/` (1) ✅ migrated 2026-05-20
 
 | Current path | Target name | Notes |
 |---|---|---|
-| `gac/fct_gac__sinistres_sg.sql` | `fct_services_generaux__sinistre` | `_sg` redundant once in folder, singular |
+| ~~`gac/fct_gac__sinistres_sg.sql`~~ → `services_generaux/fct_services_generaux__sinistre.sql` | `fct_services_generaux__sinistre` | PR Phase 2 #2. Existing `alias=` cleaned up during the migration. |
 
 ### → `supply_chain/` (3)
 
