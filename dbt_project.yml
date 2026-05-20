@@ -111,10 +111,7 @@ models:
       oracle_neshu_gcs:
         +tags: ['marts', 'oracle_neshu_gcs']
 
-      mssql_sage:
-        +tags: ['marts', 'mssql_sage']
-
-      nesp_tech:  
+      nesp_tech:
         +tags: ['marts', 'nesp_tech']
 
       gac:
@@ -125,6 +122,9 @@ models:
 
       commerce:
         +tags: ['marts', 'commerce']
+
+      finance:
+        +tags: ['marts', 'finance']
 
 seeds:
   dbt_warehouse:

@@ -66,11 +66,11 @@ Target names follow §0 convention. ⚠️ flags model names worth a second look
 |---|---|---|
 | `commerce/fct_commerce__machines_avec_interventions.sql` | `fct_commerce__machine_intervention` | singular, drop `_avec_` connector |
 
-### → `finance/` (1)
+### → `finance/` (1) ✅ migrated 2026-05-20
 
 | Current path | Target name | Notes |
 |---|---|---|
-| `mssql_sage/fct_mssql_sage__pnl_bu_kpis.sql` | `fct_finance__pnl_bu` | `_kpis` redundant |
+| ~~`mssql_sage/fct_mssql_sage__pnl_bu_kpis.sql`~~ → `finance/fct_finance__pnl_bu.sql` | `fct_finance__pnl_bu` | ✅ migrated. PR `feature/marts-refacto-finance`. Old BQ table to drop post-`.pbix` update. |
 
 ### → `services_generaux/` (1)
 
