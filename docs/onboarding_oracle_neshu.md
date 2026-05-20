@@ -274,7 +274,7 @@ Les faits décrivent « ce qui s'est passé » — les mesures, quantités et é
 | `fct_oracle_neshu__appro` | Passages appro détaillés avec durée, classement journalier, heures de travail (nettoyées) | `task_start_date` |
 | `fct_oracle_neshu__chargement_vs_conso` | Comparaison chargement vs. consommation télémétrie par machine/produit/fenêtre de date | — |
 | `fct_oracle_neshu__chargement_par_quinzaine` | Totaux de chargement bi-hebdomadaires par type de produit et société | — |
-| `fct_oracle_neshu__supply_flux` | Flux supply chain mensuel — stocks + réceptions + tous les types de mouvement consolidés | `mois_date` |
+| `fct_supply_chain__flux_neshu` (déplacé vers `marts/supply_chain/`) | Flux supply chain mensuel — stocks + réceptions + tous les types de mouvement consolidés | `mois_date` |
 
 ---
 

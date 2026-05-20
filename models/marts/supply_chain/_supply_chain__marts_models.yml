@@ -1,0 +1,195 @@
+version: 2
+
+models:
+  - name: fct_supply_chain__stock_neshu
+    description: "Suivi inventaire théorique véhicule roadman + dépôt (filtre véhicules actifs et dépôts 1-5, 10, 13), enrichi et nettoyé. Source : Oracle Neshu via GCS."
+    columns:
+      - name: id_entity
+        description: "Identifiant de l'entité (ressource ou dépôt)"
+        tests:
+          - not_null
+      - name: entity_name
+        description: "Nom de l'entité (en lowercase)"
+      - name: entity_type
+        description: "Type de l'entité (en lowercase)"
+      - name: date_system
+        description: "Date du système d'inventaire théorique (TIMESTAMP)"
+        tests:
+          - not_null
+      - name: entity_code
+        description: "Code de la ressource ou dépôt"
+      - name: product_code
+        description: "Code du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit"
+      - name: is_out_of_stock
+        description: "Boolean qui vaut TRUE si le stock_at_date est 0 pour un produit, FALSE sinon"
+      - name: date_inventaire
+        description: "Date du dernier inventaire réalisé (TIMESTAMP)"
+      - name: stock_inventaire
+        description: "Stock inventaire réel ou théorique à la date donnée"
+      - name: plus
+        description: "Quantité en plus par rapport au stock théorique"
+      - name: moins
+        description: "Quantité en moins par rapport au stock théorique"
+      - name: stock_at_date
+        description: "Stock théorique à la date donnée"
+      - name: dpa
+        description: "Dernier prix d'achat"
+      - name: purchase_price
+        description: "Prix d'achat unitaire"
+      - name: extraction_timestamp
+        description: "Timestamp d'extraction des données (TIMESTAMP)"
+      - name: file_datetime
+        description: "Date/heure du fichier source (TIMESTAMP)"
+        tests:
+          - not_null
+
+  - name: fct_supply_chain__stock_yuman
+    description: "Suivi inventaire théorique des pièces/articles Yuman pour suivre l'évolution des stocks des techniciens et dépôts Yuman."
+    columns:
+      - name: reference
+        description: "Référence de l'article"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation de l'article"
+      - name: nom_du_stock
+        description: "Nom du stock (dépôt ou technicien)"
+      - name: quantite
+        description: "Quantité de l'article dans le stock"
+      - name: stock_date
+        description: "Date du stock (TIMESTAMP)"
+        tests:
+          - not_null
+
+  - name: fct_supply_chain__flux_neshu
+    description: >
+      Table de faits mensuelle consolidant l'ensemble des flux supply Neshu.
+      Elle combine :
+      - Les stocks réels issus des inventaires (prioritaires)
+      - Les stocks théoriques (fallback si absence d'inventaire)
+      - Les flux opérationnels (réceptions, livraisons, chargements)
+      La granularité est mensuelle (mois_date).
+
+    columns:
+
+      # =========================
+      # DIMENSIONS TEMPORELLES
+      # =========================
+      - name: mois_date
+        description: >
+          Date du mois (premier jour du mois) utilisée pour la partition BigQuery
+          et la granularité principale du modèle.
+        tests:
+          - not_null
+          - unique
+
+      - name: annee
+        description: Année extraite de mois_date
+        tests:
+          - not_null
+
+      - name: mois
+        description: Numéro du mois (1 à 12)
+        tests:
+          - not_null
+
+      # =========================
+      # STOCKS REELS
+      # =========================
+      - name: stock_depot_rungis
+        description: Stock réel valorisé du dépôt de Rungis issu des inventaires
+
+      - name: stock_depot_lyon
+        description: Stock réel valorisé du dépôt de Lyon issu des inventaires
+
+      - name: stock_depot_marseille
+        description: Stock réel valorisé du dépôt de Marseille issu des inventaires
+
+      - name: stock_depot
+        description: Somme des stocks réels des dépôts (Rungis + Lyon + Marseille)
+
+      - name: stock_vehicule
+        description: Stock réel valorisé embarqué dans les véhicules
+
+      - name: stock_total
+        description: Stock total réel (dépôts + véhicules)
+
+      # =========================
+      # STOCKS THEORIQUES
+      # =========================
+      - name: stocks_theoriques_anim
+        description: >
+          Stock théorique des centres ANIM (utilisé uniquement en absence d'inventaire réel)
+
+      - name: stocks_theoriques_prepa
+        description: >
+          Stock théorique des centres de préparation (PREPA)
+
+      - name: stocks_theoriques_autre
+        description: >
+          Stock théorique des autres sources (principalement véhicules)
+
+      # =========================
+      # FLUX ENTRANTS
+      # =========================
+      - name: reception_fournisseur
+        description: >
+          Valeur des réceptions fournisseurs (entrées de stock externes)
+
+      # =========================
+      # FLUX SORTANTS
+      # =========================
+      - name: livraison_client
+        description: >
+          Valeur des livraisons vers les clients finaux
+
+      - name: livraison_vehicule
+        description: >
+          Flux de livraison interne vers véhicules ou sites assimilés
+
+      - name: livraison_anim
+        description: >
+          Flux de livraison interne vers centres ANIM
+
+      - name: livraison_prepa
+        description: >
+          Flux de livraison interne vers centres de préparation
+
+      - name: livraison_perime
+        description: >
+          Flux sortant vers destruction / rebut / périmé
+
+      - name: livraison_interne_autre
+        description: >
+          Autres flux internes non catégorisés
+
+      # =========================
+      # AUTRES FLUX
+      # =========================
+      - name: chargement_machine
+        description: >
+          Valeur des chargements de machines (approvisionnement terrain)
+
+    # =========================
+    # TESTS AU NIVEAU MODELE
+    # =========================
+    tests:
+
+      # cohérence simple : stock total = depot + véhicule
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "stock_total = stock_depot + stock_vehicule"
+
+      # cohérence : pas de valeurs négatives sur les stocks
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "stock_depot >= 0 and stock_vehicule >= 0"
+
+      # cohérence : flux principaux non négatifs
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "reception_fournisseur >= 0 and livraison_client >= 0"
