@@ -127,8 +127,8 @@ As of 2026-03-31. 7 cross-source models across all layers.
 | `fct_oracle_neshu__machines_maintenance_tracking` | marts | `marts/oracle_neshu/` | oracle_neshu + yuman | High | `cross_post_yuman` |
 | `fct_commerce__machines_avec_interventions` | marts | `marts/commerce/` ✅ | nesp_co + nesp_tech | Medium | `cross_post_nesp_co` |
 | `fct_technique__interventions` | marts | `marts/technique/` ✅ | nesp_tech + yuman | Medium | TBD — confirm which finishes last |
-| `fct_oracle_neshu__supply_flux` | marts | `marts/oracle_neshu/` | oracle_neshu + oracle_neshu_gcs | Low | Likely none — confirm same pipeline window |
-| `fct_oracle_neshu_gcs__stock_products` | marts | `marts/oracle_neshu_gcs/` | oracle_neshu + oracle_neshu_gcs | Low | Likely none — confirm same pipeline window |
+| `fct_supply_chain__flux_neshu` | marts | `marts/supply_chain/` ✅ | oracle_neshu + oracle_neshu_gcs | Low | `transform-supply-chain-daily` (08:00 daily) |
+| `fct_supply_chain__stock_neshu` | marts | `marts/supply_chain/` ✅ | oracle_neshu_gcs | Low | `transform-supply-chain-daily` (08:00 daily) |
 | `int_mssql_sage__pnl_bu` | intermediate | `intermediate/mssql_sage/` | mssql_sage + historic (static) | Low | None — historic source is not a pipeline |
 
 ### Notes on low-risk models
@@ -295,11 +295,11 @@ Migrated from `marts/technique/fct_technique__machines_avec_interventions` to `m
 2. Add `tags = ['cross_post_<last_source>']` to model config
 3. No file move needed
 
-### `fct_oracle_neshu__supply_flux` and `fct_oracle_neshu_gcs__stock_products`
+### `fct_supply_chain__flux_neshu` and `fct_supply_chain__stock_neshu` ✅ migrated 2026-05-20
 
-1. Confirm oracle_neshu and oracle_neshu_gcs run in the same pipeline window
-2. If yes → no scheduling change needed, migration is folder/tag rename only
-3. If no → treat as high-risk cross-source and assign a `cross_post_oracle_neshu_gcs` tag
+Resolved via a dedicated `transform-supply-chain-daily` workflow running daily at 08:00 Paris,
+after all 3 upstream EL pipelines finish (oracle_neshu 01:00, yuman_gcs 06:00 Mon-Sat,
+oracle_neshu_gcs 23:00 prev day).
 
 ---
 

@@ -99,17 +99,11 @@ models:
       yuman:
         +tags: ['marts', 'yuman']
 
-      yuman_gcs:
-        +tags: ['marts', 'yuman_gcs']
-
       oracle_neshu:
         +tags: ['marts', 'oracle_neshu']
 
       oracle_lcdp:
         +tags: ['marts', 'oracle_lcdp']
-
-      oracle_neshu_gcs:
-        +tags: ['marts', 'oracle_neshu_gcs']
 
       nesp_tech:
         +tags: ['marts', 'nesp_tech']
@@ -125,6 +119,9 @@ models:
 
       services_generaux:
         +tags: ['marts', 'services_generaux']
+
+      supply_chain:
+        +tags: ['marts', 'supply_chain']
 
 seeds:
   dbt_warehouse:
