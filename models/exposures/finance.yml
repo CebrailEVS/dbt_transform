@@ -1,0 +1,23 @@
+version: 2
+
+# ============================================================
+# EXPOSURES — Finance
+# ============================================================
+# Owner BI : Etienne Boulinier (Data Analyst)
+# ============================================================
+
+exposures:
+
+  - name: pnl_bu
+    label: "MIGRATION GCP - P&L PAR BU"
+    type: dashboard
+    maturity: medium
+    description: >
+      Rapport finance P&L par Business Unit. Vue mensuelle avec scénarios
+      (avec / sans provisions congés payés), KPI, YTD, N-1 et écarts.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('fct_finance__pnl_bu')
+      - ref('int_mssql_sage__pnl_bu')

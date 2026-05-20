@@ -1,0 +1,22 @@
+version: 2
+
+# ============================================================
+# EXPOSURES — Services Généraux
+# ============================================================
+# Owner BI : Etienne Boulinier (Data Analyst)
+# ============================================================
+
+exposures:
+
+  - name: sinistralite_flotte
+    label: "PROD SERVICES GENERAUX"
+    type: dashboard
+    maturity: medium
+    description: >
+      Rapport de sinistralité de la flotte de véhicules EVS. Détail des sinistres
+      (responsabilité, coûts, statuts, véhicules impliqués) à partir des données GAC.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('fct_services_generaux__sinistre')

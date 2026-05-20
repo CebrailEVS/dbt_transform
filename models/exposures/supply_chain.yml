@@ -1,0 +1,29 @@
+version: 2
+
+# ============================================================
+# EXPOSURES — Supply Chain
+# ============================================================
+# Owner BI : Etienne Boulinier (Data Analyst)
+#
+# Note : workspace BI "Supply Chain" — d'autres exposures à ajouter
+# au fil de l'eau quand on aura l'inventaire complet des rapports
+# consommant fct_supply_chain__stock_neshu et fct_supply_chain__stock_yuman.
+# ============================================================
+
+exposures:
+
+  - name: diagramme_flux_neshu
+    label: "DEV DIAGRAMME FLUX"
+    type: dashboard
+    maturity: low
+    description: >
+      Diagramme de flux mensuel supply chain Neshu. Visualisation consolidée
+      des stocks (dépôts + véhicules, réels et théoriques) et des flux
+      opérationnels (réceptions fournisseurs, livraisons clients/internes,
+      chargements machines). Granularité mensuelle (mois_date). En cours
+      de développement (label DEV).
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('fct_supply_chain__flux_neshu')
