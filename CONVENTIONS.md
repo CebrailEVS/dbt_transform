@@ -161,10 +161,18 @@ Pas de One Big Table.
   Aucune jointure fait-a-fait. Si un calcul croise deux faits, il vit
   dans l'intermediate ou dans la couche Power BI.
 - **Dimensions** (`dim_*`) : 1 ligne par entite metier (ticket, compte,
-  agent, machine, contrat...). Les attributs des dims parentes sont
-  **aplatis** dans la dim enfant via une jointure realisee en intermediate
-  (ex : `dim_oracle_neshu__device` contient deja le `company_name`, pas
-  besoin de joindre `dim_company`).
+  agent, machine, contrat...).
+  - **Aplatir uniquement les attributs d'affichage du parent direct** (1-3
+    colonnes max) pour eviter une jointure cote consommateur. Ex :
+    `dim_oracle_neshu__device` contient `company_name` pour les tooltips
+    et libelles, mais reste rattache a `dim_company` via `company_id`.
+  - **Ne JAMAIS aplatir une dim parente entiere** (toutes ses colonnes :
+    adresse, code postal, telephone, etc.) dans la dim enfant : c'est de
+    l'OBT (One Big Table) deguise. Garder les dims separees et conformes,
+    croiser via FK + relationships PBI ou SQL custom dans Power Query.
+    Voir `docs/migration-marts/inventory.md` §5 pour le pattern hybride
+    "star schema dbt + flatten en PBI quand besoin, promotion en mart si
+    duplique 3+ fois".
 - **Cles** : FKs en `<entite>_id` dans les faits. Cles surrogates via
   `dbt_utils.generate_surrogate_key` quand l'entite n'a pas de PK naturelle.
 - **Conformed dimensions** : une meme dim sert plusieurs faits
