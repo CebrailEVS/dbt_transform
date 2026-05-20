@@ -243,3 +243,185 @@ models:
 
       - name: flag_hors_delai_tech
         description: Indique si l'intervention est hors délai technicien (1/0)
+
+
+  - name: fct_technique__machines_appro_interventions
+    description: >
+      Modèle permettant de rapprocher les machines suivies en appro NESHU avec leurs interventions curatives Yuman.
+      Il présente les passages appro, les interventions récentes, en cours ou à venir, ainsi qu’une lecture synthétique de la situation par machine.
+
+    columns:
+
+      # ============================================================
+      # Informations client / machine
+      # ============================================================
+
+      - name: company_label
+        description: Libellé complet du client avec son nom et son code.
+
+      - name: company_code
+        description: Code du client.
+
+      - name: company_name
+        description: Nom du client.
+
+      - name: machine_serial_number
+        description: Numéro de série de la machine, utilisé pour le lien avec les interventions.
+        tests:
+          - not_null
+          - unique
+
+      - name: device_name
+        description: Nom de la machine.
+
+      - name: device_label
+        description: Libellé complet de la machine avec son nom et son code.
+
+      - name: roadman_code
+        description: Code du roadman rattaché au dernier passage appro connu.
+
+      - name: gea_code
+        description: Code GEA rattaché au dernier passage appro connu.
+
+      # ============================================================
+      # Suivi des passages appro
+      # ============================================================
+
+      - name: last_appro_date
+        description: Date du dernier passage appro réalisé sur la machine.
+
+      - name: next_appro_date
+        description: Date du prochain passage appro prévu sur la machine.
+
+      # ============================================================
+      # Dernière intervention curative sur les 15 derniers jours
+      # ============================================================
+
+      - name: last_intervention_date_15d
+        description: Date de la dernière intervention curative réalisée sur les 15 derniers jours.
+
+      - name: past_demand_description
+        description: Description de la demande liée à cette dernière intervention.
+
+      - name: past_demand_created_at
+        description: Date de création de la demande liée à cette dernière intervention.
+
+      - name: past_demand_category_name
+        description: Catégorie de la demande liée à cette dernière intervention.
+
+      - name: past_intervention_title
+        description: Intitulé de la dernière intervention curative réalisée.
+
+      - name: past_intervention_report
+        description: Compte rendu de la dernière intervention curative réalisée.
+
+      - name: past_intervention_technician_name
+        description: Technicien associé à la dernière intervention curative réalisée.
+
+      - name: past_client_category
+        description: Catégorie client associée à cette dernière intervention.
+
+      - name: past_material_brand
+        description: Marque du matériel concerné par cette dernière intervention.
+
+      - name: past_material_description
+        description: Description du matériel concerné par cette dernière intervention.
+
+      - name: past_technician_equipe
+        description: Équipe du technicien associé à cette dernière intervention.
+
+      - name: nb_interventions_15j
+        description: Nombre d’interventions curatives réalisées sur la machine sur les 15 derniers jours.
+
+      # ============================================================
+      # Intervention curative en cours
+      # ============================================================
+
+      - name: current_demand_description
+        description: Description de la demande liée à l’intervention en cours.
+
+      - name: current_demand_created_at
+        description: Date de création de la demande liée à l’intervention en cours.
+
+      - name: current_demand_category_name
+        description: Catégorie de la demande liée à l’intervention en cours.
+
+      - name: current_intervention_title
+        description: Intitulé de l’intervention curative en cours.
+
+      - name: current_intervention_report
+        description: Compte rendu renseigné pour l’intervention en cours.
+
+      - name: current_intervention_technician_name
+        description: Technicien associé à l’intervention curative en cours.
+
+      - name: current_date_done
+        description: Date de clôture de l’intervention en cours, si elle est renseignée.
+
+      - name: current_client_category
+        description: Catégorie client associée à l’intervention en cours.
+
+      - name: current_material_brand
+        description: Marque du matériel concerné par l’intervention en cours.
+
+      - name: current_material_description
+        description: Description du matériel concerné par l’intervention en cours.
+
+      - name: current_technician_equipe
+        description: Équipe du technicien associé à l’intervention en cours.
+
+      # ============================================================
+      # Prochaine intervention curative planifiée
+      # ============================================================
+
+      - name: future_intervention_planned_date
+        description: Date prévue de la prochaine intervention curative planifiée.
+
+      - name: future_demand_description
+        description: Description de la demande liée à la prochaine intervention planifiée.
+
+      - name: future_demand_created_at
+        description: Date de création de la demande liée à la prochaine intervention planifiée.
+
+      - name: future_demand_category_name
+        description: Catégorie de la demande liée à la prochaine intervention planifiée.
+
+      - name: future_intervention_title
+        description: Intitulé de la prochaine intervention curative planifiée.
+
+      - name: future_intervention_report
+        description: Compte rendu renseigné pour la prochaine intervention planifiée.
+
+      - name: future_intervention_technician_name
+        description: Technicien associé à la prochaine intervention curative planifiée.
+
+      - name: future_date_done
+        description: Date de clôture de l’intervention planifiée, si elle est renseignée.
+
+      - name: future_client_category
+        description: Catégorie client associée à la prochaine intervention planifiée.
+
+      - name: future_material_brand
+        description: Marque du matériel concerné par la prochaine intervention planifiée.
+
+      - name: future_material_description
+        description: Description du matériel concerné par la prochaine intervention planifiée.
+
+      - name: future_technician_equipe
+        description: Équipe du technicien associé à la prochaine intervention planifiée.
+
+      # ============================================================
+      # Indicateurs de lecture
+      # ============================================================
+
+      - name: has_past_intervention_15d
+        description: Indique si la machine a eu une intervention curative sur les 15 derniers jours.
+
+      - name: has_current_intervention
+        description: Indique si une intervention curative est actuellement en cours sur la machine.
+
+      - name: has_future_intervention
+        description: Indique si une intervention curative est déjà planifiée sur la machine.
+
+      - name: machine_intervention_timeline
+        description: Synthèse de la situation interventionnelle de la machine.
