@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Dimension device enrichie \u00e0 partir des labels associ\u00e9s (cat\u00e9gorie, \u00e9tat, statut, marque, types, etc.)\n"""
+      description="""[QUOI M\u00c9TIER] Dimension machine LCDP enrichie des labels m\u00e9tier (cat\u00e9gorie, \u00e9tat, types fontaine/broyeur/percolateur/SP).\n[COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__device joint \u00e0 stg_oracle_lcdp__company (company_code, company_name) et stg_oracle_lcdp__location (access_info \u2192 device_location). Pivot des labels via stg_oracle_lcdp__label_has_device sur les familles : CATMACH, MARQUE, ETAT_MACHINE, STATUT_MATERIEL, TYPEAUDIT, TYDA, LCDPMON, TYPFONT, TYPBROY, TYPPERCO, TYPSP, TYPDASA, MODSP, MARQSP, BADGE, ISACTIVE.\n[GRAIN] 1 ligne par device_id.\n[NOTES] device_iddevice = parent device (hi\u00e9rarchie). is_active converti en bool\u00e9en. Relationship vers dim_lcdp__company non encore d\u00e9clar\u00e9e (\u00e0 ajouter dans la PR FK tests).\n"""
     )
     as (
       

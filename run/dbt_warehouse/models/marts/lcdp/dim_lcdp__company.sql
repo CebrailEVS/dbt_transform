@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Dimension client/company enrichie \u00e0 partir des labels associ\u00e9s (zone g\u00e9o, domaine activit\u00e9, mod\u00e8les, etc.) et des informations de localisation.\n"""
+      description="""[QUOI M\u00c9TIER] Dimension client (company) LCDP enrichie des labels m\u00e9tier et de la localisation.\n[COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__company joint \u00e0 stg_oracle_lcdp__location pour les coordonn\u00e9es, et pivot des labels (stg_oracle_lcdp__label_has_company + label + label_family) sur les familles : ZGEO, DOMACT, BUSMOD, GC, ISACTIVE, MODEH, MODEOF, MODER, PROPRIO, REPRES, BL_GRP, MEF, Gestion reliquat.\n[GRAIN] 1 ligne par company_id.\n[NOTES] parent_company_id permet la hi\u00e9rarchie soci\u00e9t\u00e9-m\u00e8re/fille. is_active converti en bool\u00e9en (TRUE si label ISACTIVE='yes').\n"""
     )
     as (
       

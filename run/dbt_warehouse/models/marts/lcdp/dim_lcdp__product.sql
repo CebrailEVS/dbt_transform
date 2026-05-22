@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Dimension produit enrichie \u00e0 partir des labels associ\u00e9s (famille, groupe, marque, bio, etc.) filtr\u00e9 sur les produits de type 1 (produit) et 5 (Ligne de prix).\n"""
+      description="""[QUOI M\u00c9TIER] Dimension produit LCDP enrichie des labels m\u00e9tier (famille, groupe, marque, bio).\n[COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__product filtr\u00e9 sur product_type_id IN (1, 5), enrichi par pivot des labels via stg_oracle_lcdp__label_has_product : FAMIPRO, GROUPRO, MARQPRO, BIO, ISACTIVE. created_at corrig\u00e9 si NULL pour idproduct=1 (fallback updated_at).\n[GRAIN] 1 ligne par product_id.\n[NOTES] product_type_id : 1 = produit, 5 = ligne de prix. is_active converti en bool\u00e9en.\n"""
     )
     as (
       
