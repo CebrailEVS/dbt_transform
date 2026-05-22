@@ -145,7 +145,7 @@ models:
       [QUOI MÉTIER] Dimension machine LCDP enrichie des labels métier (catégorie, état, types fontaine/broyeur/percolateur/SP).
       [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__device joint à stg_oracle_lcdp__company (company_code, company_name) et stg_oracle_lcdp__location (access_info → device_location). Pivot des labels via stg_oracle_lcdp__label_has_device sur les familles : CATMACH, MARQUE, ETAT_MACHINE, STATUT_MATERIEL, TYPEAUDIT, TYDA, LCDPMON, TYPFONT, TYPBROY, TYPPERCO, TYPSP, TYPDASA, MODSP, MARQSP, BADGE, ISACTIVE.
       [GRAIN] 1 ligne par device_id.
-      [NOTES] device_iddevice = parent device (hiérarchie). is_active converti en booléen. Relationship vers dim_lcdp__company non encore déclarée (à ajouter dans la PR FK tests).
+      [NOTES] device_iddevice = parent device (hiérarchie). is_active converti en booléen.
     columns:
       - name: device_id
         description: "Identifiant unique du device"
@@ -161,6 +161,12 @@ models:
 
       - name: company_id
         description: "ID de l'entreprise cliente"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_lcdp__company')
+                field: company_id
 
       - name: location_id
         description: "ID de la localisation"
