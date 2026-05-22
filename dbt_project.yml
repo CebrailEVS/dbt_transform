@@ -99,9 +99,6 @@ models:
       yuman:
         +tags: ['marts', 'yuman']
 
-      oracle_lcdp:
-        +tags: ['marts', 'oracle_lcdp']
-
       nesp_tech:
         +tags: ['marts', 'nesp_tech']
 
@@ -122,6 +119,9 @@ models:
 
       neshu:
         +tags: ['marts', 'neshu']
+
+      lcdp:
+        +tags: ['marts', 'lcdp']
 
 seeds:
   dbt_warehouse:

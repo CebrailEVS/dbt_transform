@@ -43,13 +43,15 @@ Snapshots updated in this PR: `snap_oracle_neshu__company` (ref → `dim_neshu__
 - External Cloud Run table `fct_oracle_neshu__monitoring_passages_appro` rename → dedicated branch later
 - Dim refactor based on PBI architecture lessons (denormalize company attrs into device, drop bidirectionals, etc.) → separate follow-up
 
-### → `lcdp/` (3)
+### → `lcdp/` (3) ✅ migrated 2026-05-21
 
 | Current path | Target name | Notes |
 |---|---|---|
-| `oracle_lcdp/dim_oracle_lcdp__company.sql` | `dim_lcdp__company` | exposed by `passage_appro_monitoring_lcdp` |
-| `oracle_lcdp/dim_oracle_lcdp__device.sql` | `dim_lcdp__device` | |
-| `oracle_lcdp/dim_oracle_lcdp__product.sql` | `dim_lcdp__product` | |
+| ~~`oracle_lcdp/dim_oracle_lcdp__company.sql`~~ → `lcdp/dim_lcdp__company.sql` | `dim_lcdp__company` | exposed by `passage_appro_monitoring_lcdp` |
+| ~~`oracle_lcdp/dim_oracle_lcdp__device.sql`~~ → `lcdp/dim_lcdp__device.sql` | `dim_lcdp__device` | |
+| ~~`oracle_lcdp/dim_oracle_lcdp__product.sql`~~ → `lcdp/dim_lcdp__product.sql` | `dim_lcdp__product` | |
+
+External source `fct_lcdp__monitoring_passage_appro` already migrated in PR #82.
 
 > No fact today — facts to be built by DA later.
 

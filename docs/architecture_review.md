@@ -332,7 +332,7 @@ marts/logistique/
     fct_oracle_neshu__appro.sql             ✅
     fct_oracle_lcdp__livraison.sql          ✅
     dim_oracle_neshu__company.sql           ✅
-    dim_oracle_lcdp__company.sql            ✅
+    dim_lcdp__company.sql            ✅
 
     fct_logistique__appro.sql               ❌  which source? oracle_neshu or oracle_lcdp?
 ```
@@ -364,7 +364,7 @@ use the BU prefix. This is a new model, not a rename of either source model.
 ```
 marts/logistique/
     dim_oracle_neshu__company.sql       ← NESHU companies only (keep)
-    dim_oracle_lcdp__company.sql        ← LCDP companies only (keep)
+    dim_lcdp__company.sql        ← LCDP companies only (keep)
     dim_logistique__company.sql         ← union of both (new model, BU prefix)
 ```
 

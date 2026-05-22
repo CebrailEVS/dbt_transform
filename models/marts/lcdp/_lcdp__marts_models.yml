@@ -3,7 +3,7 @@ version: 2
 
 models:
   # COMPANY
-  - name: dim_oracle_lcdp__company
+  - name: dim_lcdp__company
     description: >
       Dimension client/company enrichie à partir des labels associés (zone géo, domaine activité, modèles, etc.)
       et des informations de localisation.
@@ -89,7 +89,7 @@ models:
         description: "Date de dernière modification"
 
   # PRODUCT
-  - name: dim_oracle_lcdp__product
+  - name: dim_lcdp__product
     description: >
       Dimension produit enrichie à partir des labels associés (famille, groupe, marque, bio, etc.)
       filtré sur les produits de type 1 (produit) et 5 (Ligne de prix).
@@ -136,7 +136,7 @@ models:
         description: "Date de dernière modification"
 
   # DEVICE
-  - name: dim_oracle_lcdp__device
+  - name: dim_lcdp__device
     description: >
       Dimension device enrichie à partir des labels associés (catégorie, état, statut, marque, types, etc.)
     columns:
