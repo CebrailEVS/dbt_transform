@@ -14,7 +14,7 @@ with inventaire_base as (
         date(i.task_start_date) as task_date,
         date_trunc(date(i.task_start_date), month) as mois
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__inventaire_tasks` as i
-    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__resources` as r on i.source_code = r.resources_code
+    left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__resource` as r on i.source_code = r.resources_code
     where
         i.task_status_code = 'VALIDE'
         and date(i.task_start_date) >= '2024-12-01'
@@ -79,11 +79,11 @@ stock_theorique as (
         st.product_code,
         p.purchase_unit_price * st.stock_at_date as valuation
     from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu_gcs__stock_theorique` as st
-    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` as p on st.product_code = p.product_code
+    left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__product` as p on st.product_code = p.product_code
     left join
         inventaire_sources_mois as ir
         on st.resources_code = ir.source_code and ir.mois = date_trunc(date(st.date_system), month)
-    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__resources` as rr on st.resources_code = rr.resources_code
+    left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__resource` as rr on st.resources_code = rr.resources_code
     where ir.source_code is null and rr.is_active = true
     qualify
         row_number()
@@ -219,5 +219,5 @@ select
     livraison_prepa,
     livraison_interne_autre,
     current_timestamp() as dbt_updated_at,
-    '02d2f2b4-23f6-47c9-8a7f-2d314c353eee' as dbt_invocation_id
+    '2c6f5f81-c9f9-4fff-944f-b1b8b2a82786' as dbt_invocation_id
 from agg

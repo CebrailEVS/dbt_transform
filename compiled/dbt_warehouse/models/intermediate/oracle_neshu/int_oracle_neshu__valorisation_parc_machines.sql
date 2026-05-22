@@ -6,7 +6,7 @@ companies_filtered as (
     select
         company_id,
         company_code
-    from `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__company`
+    from `evs-datastack-prod`.`prod_marts`.`dim_neshu__company`
     where
         is_active = true
         and company_type = "CLIENTNESHU"
@@ -20,7 +20,7 @@ active_devices as (
         d.company_id,
         cf.company_code,
         d.device_name
-    from `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__device` as d
+    from `evs-datastack-prod`.`prod_marts`.`dim_neshu__device` as d
     inner join companies_filtered as cf
         on d.company_id = cf.company_id
     where
@@ -73,7 +73,7 @@ devices_with_prices as (
         p.purchase_unit_price,
         (dwp.quantite * p.purchase_unit_price) as valorisation_produit
     from devices_with_products as dwp
-    left join `evs-datastack-prod`.`prod_marts`.`dim_oracle_neshu__product` as p
+    left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__product` as p
         on dwp.product_code = p.product_code
 ),
 
@@ -107,5 +107,5 @@ select
     valorisation_totale_machine,
     -- Métadonnées d'exécution
     current_timestamp() as dbt_updated_at,
-    '02d2f2b4-23f6-47c9-8a7f-2d314c353eee' as dbt_invocation_id  -- noqa: CV10, TMP
+    '2c6f5f81-c9f9-4fff-944f-b1b8b2a82786' as dbt_invocation_id  -- noqa: CV10, TMP
 from final_result

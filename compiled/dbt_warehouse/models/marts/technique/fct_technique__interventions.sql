@@ -74,7 +74,7 @@ yuman_interventions as (
         upper(split(inter_yuman.pricing_key_used, '_')[0]) as alias_obj_type_inter,
         upper(split(inter_yuman.pricing_key_used, '_')[1]) as alias_obj_type_machine,
         upper(split(inter_yuman.pricing_key_used, '_')[1]) as alias_obj_grp_machine
-    from `evs-datastack-prod`.`prod_marts`.`fct_yuman__workorder_delais_neshu` as inter_yuman
+    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__workorder_delai` as inter_yuman
     where inter_yuman.demand_status = 'Accepted'
 ),
 
