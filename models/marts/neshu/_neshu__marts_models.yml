@@ -3,7 +3,7 @@ version: 2
 
 models:
   # COMPANY
-  - name: dim_oracle_neshu__company
+  - name: dim_neshu__company
     description: >
       Dimension client/company enrichie à partir des labels associés (région, secteur, statut, etc.)
       et des informations de localisation.
@@ -95,7 +95,7 @@ models:
         description: "Date de dernière mise à jour dans la base source"
 
   # PRODUCT
-  - name: dim_oracle_neshu__product
+  - name: dim_neshu__product
     description: >
       Dimension produit enrichie à partir des labels associés (type, famille, groupe, marque, etc.)
       et filtrée sur les produits de type 1 (produit) et 5 (ligne de prix).
@@ -150,7 +150,7 @@ models:
         description: "Date de dernière mise à jour du produit dans la source"
 
     # DEVICE
-  - name: dim_oracle_neshu__device
+  - name: dim_neshu__device
     description: >
       Dimension device enrichie à partir des labels associés (état, statut, gamme, catégorie, marque, etc.),
       filtrée sur les machines (type 1).
@@ -173,7 +173,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('dim_oracle_neshu__company')
+                to: ref('dim_neshu__company')
                 field: company_id
 
       - name: location_id
@@ -218,7 +218,7 @@ models:
         description: "Date de dernière mise à jour de la machine dans la base source"
 
 # FACT BUSINESS REVIEW
-  - name: fct_oracle_neshu__conso_business_review
+  - name: fct_neshu__consommation
     description: >
       Table de faits des consommations clients pour la Business Review Neshu.
       Consolidation des données télémétrie, chargement et livraison avec application
@@ -233,7 +233,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('dim_oracle_neshu__company')
+                to: ref('dim_neshu__company')
                 field: company_id
 
       - name: device_id
@@ -241,7 +241,7 @@ models:
         tests:
           - relationships:
               arguments:
-                to: ref('dim_oracle_neshu__device')
+                to: ref('dim_neshu__device')
                 field: device_id
 
       - name: location_id
@@ -253,7 +253,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('dim_oracle_neshu__product')
+                to: ref('dim_neshu__product')
                 field: product_id
 
       # === COMPANY ===
@@ -375,7 +375,7 @@ models:
           name: device_id_required_except_livraison
 
 # FACT PASSAGES APPRO BUSINESS REVIEW
-  - name: fct_oracle_neshu__pa_business_review 
+  - name: fct_neshu__passage_appro 
     description: >
       Table de faits des passages appro (Business Review Neshu).
       Permet de tracer le passage des roadmen chez les clients à partir de 2025,
@@ -405,7 +405,7 @@ models:
           - not_null
           - relationships:
               arguments:  # ✅ Ajoutez cette ligne
-                to: ref('dim_oracle_neshu__device')
+                to: ref('dim_neshu__device')
                 field: device_id
 
       - name: device_info
@@ -442,7 +442,7 @@ models:
           - not_null
 
       # === CONTRACT ===
-  - name: dim_oracle_neshu__contract
+  - name: dim_neshu__contract
     description: |
       Dimension contrat : pivot des labels et sélection du contrat actif principal par client.
       Cette table contient un seul contrat actif par client (company_id), sélectionné selon
@@ -526,7 +526,7 @@ models:
 
 
   # marts/oracle_neshu/_oracle_neshu__marts_models.yml
-  - name: dim_oracle_neshu__vehicule_roadman
+  - name: dim_neshu__vehicule_roadman
     description: >
       Dimension regroupant les véhicules et roadmen issus de la table
       `stg_oracle_neshu__resources`, enrichie avec le code GEA provenant
@@ -564,11 +564,12 @@ models:
       - name: gea_code
         description: "Code GEA rattaché au roadman, issu du modèle ref_oracle_neshu__roadman_gea."
 
-  - name: fct_oracle_neshu__chargement_vs_conso
+  - name: fct_neshu__chargement_consommation
     description: >
-      Table intermédiaire calculant, pour chaque passage APPRO,
-      les quantités consommées (télémetries) et chargées,
-      en reconstruisant les intervalles de consommation entre deux passages.
+      Table de faits des chargements et consommations télémetrie par passage APPRO.
+      Pour chaque passage, mesure les quantités consommées entre le passage précédent
+      et le passage actuel, et les quantités chargées lors de ce passage.
+      Grain : (device, passage_appro, product).
 
     config:
       materialized: table
@@ -610,7 +611,7 @@ models:
         description: "Quantité chargée lors du passage APPRO."
 
 
-  - name: fct_oracle_neshu__chargement_par_quinzaine
+  - name: fct_neshu__chargement_quinzaine
     description: >
       Table de faits calculant les quantités chargées par type de produit,
       société, année et quinzaine (périodes de 14 jours démarrant un lundi).
@@ -640,7 +641,7 @@ models:
         description: Quantité totale chargée sur la période
 
 
-  - name: dim_oracle_neshu__resources
+  - name: dim_neshu__resource
     description: |
       Dimension des ressources Oracle Neshu regroupant les **roadmen** (PERSON) et les **véhicules** (VEHICULE).
 
@@ -726,7 +727,7 @@ models:
       - name: updated_at
         description: "Date de dernière mise à jour de la ressource dans Oracle"
 
-  - name: fct_oracle_neshu__appro
+  - name: fct_neshu__appro
     description: >
       Table de faits représentant les passages des roadmen,
       enrichie avec des métriques journalières de temps de travail
@@ -849,3 +850,280 @@ models:
 
       - name: dbt_invocation_id
         description: Identifiant unique de l'exécution dbt
+
+  - name: fct_neshu__maintenance_preventive
+    description: |
+      Table de faits pour le suivi des maintenances préventives des machines NESHU.
+
+      Cette table croise les données Oracle (DLOG) et Yuman pour :
+      - Identifier les machines en retard de maintenance préventive
+      - Calculer le délai de retard ou d'avance par rapport à l'échéance annuelle
+      - Suivre le statut des demandes d'intervention ouvertes ou planifiées
+
+      **Règles métier de calcul du retard :**
+      - Machine < 13 mois (395 jours) : pas de retard (période de grâce)
+      - Machine sans préventive : en retard si > 365 jours après installation
+      - Machine avec préventives : en retard si dernière préventive > 365 jours
+
+      **Sources de données :**
+      - Oracle NESHU (DLOG) : machines et interventions techniques (preventive dlog)
+      - Yuman : matériels, clients, sites et workorders
+
+    columns:
+      - name: device_id
+        description: Identifiant unique du device dans DLOG NESHU
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__device')
+                field: device_id
+
+      - name: device_code
+        description: Numéro de série du device de la source DLOG NESHU
+        tests:
+          - not_null
+
+      - name: device_name
+        description: Nom du device de la source DLOG NESHU
+        tests:
+          - not_null
+
+      - name: company_code
+        description: Code de l'entreprise/site client dans Oracle (format NESH_CNxxxx)
+        tests:
+          - not_null
+
+      - name: company_name
+        description: Nom de l'entreprise/site client dans Oracle
+        tests:
+          - not_null
+
+      - name: device_last_installation_date
+        description: Date de dernière installation du device (source Oracle)
+        tests:
+          - not_null
+
+      - name: material_id
+        description: Identifiant unique du matériel dans Yuman (peut être NULL si machine non référencée dans Yuman)
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_yuman__materials')
+                field: material_id
+              config:
+                where: "material_id is not null"
+
+      - name: material_serial_number
+        description:
+          Numéro de série du matériel Yuman (correspond au device_code Oracle avec préfixe NESH_).
+          Clé de liaison entre Oracle et Yuman. Peut être NULL si machine uniquement dans Oracle.
+
+      - name: material_name
+        description: Nom du type de machine ('MOMENTO 100', 'GEMINI 200', 'OPTIBEAN X 12' etc)
+
+      - name: client_code
+        description: Code client (source Yuman)
+
+      - name: client_name
+        description: Nom du client (source Yuman)
+
+      - name: client_category
+        description: Catégorie du client dans Yuman (OR / ARGENT / BRONZE)
+
+      - name: site_postal_code
+        description: Code postal du site d'installation (source Yuman)
+
+      - name: retard_bol
+        description: |
+          Indicateur booléen de retard de maintenance préventive.
+          - TRUE : machine en retard (nécessite une intervention)
+          - FALSE : machine à jour ou dans la période de grâce
+        tests:
+          - not_null
+
+      - name: retard_delai
+        description: |
+          Délai en jours par rapport à l'échéance de maintenance préventive.
+          - Valeur positive : nombre de jours restants avant l'échéance
+          - Valeur négative : nombre de jours de retard
+          - Ex: +30 = 30 jours d'avance, -45 = 45 jours de retard
+        tests:
+          - not_null
+
+      - name: source_last_preventive
+        description: |
+          Source de la dernière intervention préventive référencée.
+          - 'yuman' : dernière préventive enregistrée dans Yuman
+          - 'dlog' : dernière préventive enregistrée dans Oracle/DLOG
+          - 'aucune' : aucune préventive trouvée ou machine récente (< 13 mois)
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['yuman', 'dlog', 'aucune']
+
+      - name: status_inter
+        description: |
+          Statut de la demande d'intervention préventive en cours.
+          - 'Ouvert' : demande ouverte mais non planifiée
+          - 'Planifie' : intervention planifiée avec une date
+          - 'Aucune' : aucune demande en cours
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Ouvert', 'Planifie', 'Aucune']
+
+      - name: date_planned
+        description: Date planifiée de l'intervention préventive (si status_inter = 'Planifie')
+
+      - name: material_created_at
+        description: Date de création de l'enregistrement matériel dans Yuman (utilisée pour la déduplication)
+
+
+  - name: fct_neshu__workorder_delai
+    description: >
+      Table de fait marts de tarification automatique des interventions (workorders).
+      Ce modèle enrichit les données unifiées des interventions et des demandes issues de 
+      `int_yuman__demands_workorders_enriched` avec les référentiels de types d'intervention,
+      machines, tarifications et zones géographiques. 
+      Il calcule les prix automatiques des interventions selon les règles de récurrence, 
+      de partenaire et de localisation (métropole).
+
+    columns:
+      # --- IDENTIFIANTS ---
+      - name: demand_id
+        description: Identifiant unique de la demande d'intervention.
+        tests:
+          - unique
+      - name: workorder_id
+        description: Identifiant unique du bon de travail.
+        tests:
+          - unique
+      - name: material_id
+        description: Identifiant du matériel concerné.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_yuman__materials')
+                field: material_id
+      - name: site_id
+        description: Identifiant du site client.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_yuman__sites')
+                field: site_id
+      - name: client_id
+        description: Identifiant du client.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_yuman__clients')
+                field: client_id
+      - name: technician_id
+        description: Identifiant du technicien associé.
+      - name: manager_id
+        description: Identifiant du manager ou responsable associé.
+
+      # --- DEMANDE D'INTERVENTION ---
+      - name: demand_description
+        description: Description textuelle de la demande d’intervention.
+      - name: demand_status
+        description: Statut de la demande d’intervention.
+      - name: demand_created_at
+        description: Date de création de la demande.
+      - name: demand_updated_at
+        description: Date de dernière mise à jour de la demande.
+      - name: demand_category_name
+        description: Catégorie de la demande d’intervention.
+
+      # --- BON DE TRAVAIL ---
+      - name: workorder_number
+        description: Numéro unique du bon de travail.
+      - name: workorder_category
+        description: Catégorie ou type brut du bon de travail.
+      - name: workorder_status
+        description: Statut actuel du bon de travail.
+      - name: workorder_technician_name
+        description: Nom du technicien affecté au bon de travail.
+      - name: workorder_date_creation
+        description: Date de création du bon de travail.
+      - name: workorder_motif_non_intervention
+        description: Motif de non-intervention, si applicable.
+      - name: workorder_detail_non_intervention
+        description: Détail du motif de non-intervention, si applicable.
+      - name: date_planned
+        description: Date planifiée de l’intervention.
+      - name: date_started
+        description: Date de début de l’intervention.
+      - name: date_done
+        description: Date de clôture de l’intervention.
+
+      # --- CLIENT & SITE ---
+      - name: partner_name
+        description: Nom du partenaire ou marque associée au client.
+      - name: client_code
+        description: Code unique du client.
+      - name: client_name
+        description: Nom du client.
+      - name: client_category
+        description: Catégorie commerciale ou segment du client.
+      - name: client_is_active
+        description: Indique si le client est actif.
+      - name: site_code
+        description: Code unique du site.
+      - name: site_name
+        description: Nom du site client.
+      - name: site_address
+        description: Adresse complète du site client.
+      - name: site_postal_code
+        description: Code postal fourni dans le système Yuman.
+      - name: postal_code_site
+        description: Code postal normalisé du site (corrigé ou extrait de la description si manquant).
+
+      # --- MATERIEL ---
+      - name: material_serial_number
+        description: Numéro de série du matériel concerné.
+      - name: workorder_type_raw
+        description: Type brut de l’intervention avant normalisation.
+      - name: machine_raw
+        description: Catégorie brute du matériel avant nettoyage.
+      - name: workorder_type_clean
+        description: Type d’intervention normalisé (préventif, curatif, installation…).
+      - name: machine_clean
+        description: Catégorie de machine normalisée.
+
+      # --- LOCALISATION ---
+      - name: metropolitan
+        description: Indicateur binaire (1 = métropole, 0 = hors métropole).
+      - name: metropole_city
+        description: Ville de la métropole associée à l'intervention.
+      - name: recurrence_count
+        description: Nombre d’interventions réalisées pour un même client le même jour (récurrence).
+
+      # --- TARIFICATION ---
+      - name: pricing_type
+        description: Type de tarification appliquée (Tarif normal, Remise niv1, Remise niv2).
+      - name: pricing_key_used
+        description: Clé de tarification générée pour le matching avec la table de référence.
+      - name: amount
+        description: Montant appliqué selon la tarification automatique.
+      - name: prod_number
+        description: Code produit ou référence tarifaire associée.
+      - name: to_invoice
+        description: Indique si le bon d’intervention doit être facturé (true = à facturer).
+      - name: billing_validation_status
+        description: Statut de validation de la facturation (VALIDATED, MISSING_TARIF, NOT_BILLABLE).
+
+      # --- INDICATEURS DE DELAIS ---
+      - name: type_delai
+        description: Type de delai selon les règles NESHU (Resp Technique)
+      - name: delai_jours_ouvres
+        description: Nombre de jours ouvrés entre la date de creation de reference et la date de fin
+      - name: date_creation_ref
+        description: Date de creation de reference, selon les regles NESHU
+
+

@@ -46,11 +46,11 @@ with telemetry_data as (
         sum(t.telemetry_quantity) as quantity
 
     from {{ ref('int_oracle_neshu__telemetry_tasks') }} as t
-    left join {{ ref('dim_oracle_neshu__device') }} as d
+    left join {{ ref('dim_neshu__device') }} as d
         on t.device_id = d.device_id
-    left join {{ ref('dim_oracle_neshu__product') }} as p
+    left join {{ ref('dim_neshu__product') }} as p
         on t.product_id = p.product_id
-    left join {{ ref('dim_oracle_neshu__company') }} as c
+    left join {{ ref('dim_neshu__company') }} as c
         on t.company_id = c.company_id
     group by
         t.company_id, t.device_id, t.location_id, t.product_id,
@@ -117,11 +117,11 @@ chargement_data as (
         ) as quantity
 
     from {{ ref('int_oracle_neshu__chargement_tasks') }} as l
-    inner join {{ ref('dim_oracle_neshu__device') }} as d
+    inner join {{ ref('dim_neshu__device') }} as d
         on l.device_id = d.device_id
-    left join {{ ref('dim_oracle_neshu__product') }} as p
+    left join {{ ref('dim_neshu__product') }} as p
         on l.product_id = p.product_id
-    left join {{ ref('dim_oracle_neshu__company') }} as c
+    left join {{ ref('dim_neshu__company') }} as c
         on l.company_id = c.company_id
     where l.task_status_code in ('FAIT', 'VALIDE')
     group by
@@ -189,9 +189,9 @@ livraison_data as (
         ) as quantity
 
     from {{ ref('int_oracle_neshu__livraison_tasks') }} as lt
-    left join {{ ref('dim_oracle_neshu__product') }} as p
+    left join {{ ref('dim_neshu__product') }} as p
         on lt.product_id = p.product_id
-    left join {{ ref('dim_oracle_neshu__company') }} as c
+    left join {{ ref('dim_neshu__company') }} as c
         on lt.company_id = c.company_id
     where
         lt.task_status_code in ('FAIT', 'VALIDE')

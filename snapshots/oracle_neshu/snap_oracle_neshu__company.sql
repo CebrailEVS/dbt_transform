@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- SNAPSHOT: Oracle Neshu Company Dimension History
 -- ==============================================================================
--- Source: dim_oracle_neshu__company
+-- Source: dim_neshu__company
 -- Purpose: Track historical changes (modèle économique, statut, organisation)
 -- Strategy: Check - Only creates new records when tracked columns change
 -- Tracked columns: proadman, company_economic_model, is_active
@@ -26,7 +26,7 @@
     with source_table as (
 
         select *
-        from {{ ref('dim_oracle_neshu__company') }}
+        from {{ ref('dim_neshu__company') }}
 
     )
 

@@ -256,12 +256,12 @@ joindre les tables de labels toi-même.
 
 | Modèle | Ce qu'il fournit |
 |---|---|
-| `dim_oracle_neshu__company` | Sociétés avec région, secteur, statut client (OR/ARGENT/BRONZE), flag KA, tranche de collaborateurs, adresse — tous les attributs labels déjà en colonnes |
-| `dim_oracle_neshu__device` | Machines avec marque, gamme, catégorie, modèle économique, flag actif — tous pivotés depuis les labels |
-| `dim_oracle_neshu__product` | Produits avec marque, famille, groupe, type produit standardisé (CAFE CAPS, THE, CHOCOLATS…), flag actif |
-| `dim_oracle_neshu__contract` | Contrats actifs par société avec engagement nettoyé et nombre de collaborateurs |
-| `dim_oracle_neshu__resources` | Roadmen et véhicules avec code GEA, société, coût, dates d'arrivée/départ, flag actif |
-| `dim_oracle_neshu__vehicule_roadman` | Véhicules avec leur roadman associé et code GEA — une dimension d'aide pour l'analyse par véhicule |
+| `dim_neshu__company` | Sociétés avec région, secteur, statut client (OR/ARGENT/BRONZE), flag KA, tranche de collaborateurs, adresse — tous les attributs labels déjà en colonnes |
+| `dim_neshu__device` | Machines avec marque, gamme, catégorie, modèle économique, flag actif — tous pivotés depuis les labels |
+| `dim_neshu__product` | Produits avec marque, famille, groupe, type produit standardisé (CAFE CAPS, THE, CHOCOLATS…), flag actif |
+| `dim_neshu__contract` | Contrats actifs par société avec engagement nettoyé et nombre de collaborateurs |
+| `dim_neshu__resource` | Roadmen et véhicules avec code GEA, société, coût, dates d'arrivée/départ, flag actif |
+| `dim_neshu__vehicule_roadman` | Véhicules avec leur roadman associé et code GEA — une dimension d'aide pour l'analyse par véhicule |
 
 ### Les modèles de fait
 
@@ -269,11 +269,11 @@ Les faits décrivent « ce qui s'est passé » — les mesures, quantités et é
 
 | Modèle | Ce qu'il mesure | Partitionné par |
 |---|---|---|
-| `fct_oracle_neshu__conso_business_review` | **Consommation consolidée** sur 3 sources (télémétrie, chargement, livraison) avec contexte société/machine/produit. Le fait de consommation principal. | `consumption_date` |
-| `fct_oracle_neshu__pa_business_review` | Résumé des passages appro — planifié vs. réalisé par roadman/société/machine | — |
-| `fct_oracle_neshu__appro` | Passages appro détaillés avec durée, classement journalier, heures de travail (nettoyées) | `task_start_date` |
-| `fct_oracle_neshu__chargement_vs_conso` | Comparaison chargement vs. consommation télémétrie par machine/produit/fenêtre de date | — |
-| `fct_oracle_neshu__chargement_par_quinzaine` | Totaux de chargement bi-hebdomadaires par type de produit et société | — |
+| `fct_neshu__consommation` | **Consommation consolidée** sur 3 sources (télémétrie, chargement, livraison) avec contexte société/machine/produit. Le fait de consommation principal. | `consumption_date` |
+| `fct_neshu__passage_appro` | Résumé des passages appro — planifié vs. réalisé par roadman/société/machine | — |
+| `fct_neshu__appro` | Passages appro détaillés avec durée, classement journalier, heures de travail (nettoyées) | `task_start_date` |
+| `fct_neshu__chargement_consommation` | Comparaison chargement vs. consommation télémétrie par machine/produit/fenêtre de date | — |
+| `fct_neshu__chargement_quinzaine` | Totaux de chargement bi-hebdomadaires par type de produit et société | — |
 | `fct_supply_chain__flux_neshu` (déplacé vers `marts/supply_chain/`) | Flux supply chain mensuel — stocks + réceptions + tous les types de mouvement consolidés | `mois_date` |
 
 ---
@@ -345,7 +345,7 @@ conservent la convention de nommage Neshu (`idcompany`, `iddevice`, `idproduct`)
 
 ```bash
 # Construire un modèle et toutes ses dépendances en amont
-dbt build -s +dim_oracle_neshu__company
+dbt build -s +dim_neshu__company
 
 # Construire tout ce qui est taggé oracle_neshu
 dbt build --select tag:oracle_neshu
@@ -354,11 +354,11 @@ dbt build --select tag:oracle_neshu
 dbt build --select tag:staging,tag:oracle_neshu
 
 # Exécuter un modèle sans les tests (plus rapide pour l'exploration)
-dbt run -s dim_oracle_neshu__company
+dbt run -s dim_neshu__company
 
 # Voir le SQL compilé d'un modèle (utile pour comprendre ce qu'il fait)
 # Après dbt compile, regarder dans target/compiled/
-dbt compile -s dim_oracle_neshu__company
+dbt compile -s dim_neshu__company
 ```
 
 > **Rappel :** exécute toujours contre la cible `dev` (c'est la valeur par défaut). Cela
@@ -380,11 +380,11 @@ Voici un ordre de lecture suggéré pour bien démarrer :
 3. **Lis un modèle intermediate**, par exemple `int_oracle_neshu__chargement_tasks` —
    vois comment il filtre sur `idtask_type = 13` et s'enrichit avec les produits et ressources.
 
-4. **Lis `dim_oracle_neshu__company`** — vois comment le pivot de labels fonctionne en
+4. **Lis `dim_neshu__company`** — vois comment le pivot de labels fonctionne en
    pratique. C'est le pattern que tu reproduiras si tu ajoutes un jour une nouvelle
    colonne basée sur un label.
 
-5. **Lis `fct_oracle_neshu__conso_business_review`** — le modèle de fait le plus important ;
+5. **Lis `fct_neshu__consommation`** — le modèle de fait le plus important ;
    il consolide 3 sources de données (télémétrie, chargement, livraison) en une seule
    table de consommation propre.
 

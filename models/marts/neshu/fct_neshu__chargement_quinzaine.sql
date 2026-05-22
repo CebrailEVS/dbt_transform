@@ -25,9 +25,9 @@ with base as (
         ) + 1 as quinzaine_chgt,
         cm.load_quantity
     from {{ ref('int_oracle_neshu__chargement_tasks') }} as cm
-    left join {{ ref('dim_oracle_neshu__product') }} as p
+    left join {{ ref('dim_neshu__product') }} as p
         on cm.product_id = p.product_id
-    inner join {{ ref('dim_oracle_neshu__device') }} as d
+    inner join {{ ref('dim_neshu__device') }} as d
         on
             cm.device_id = d.device_id
             and d.device_economic_model = 'Gratuit'

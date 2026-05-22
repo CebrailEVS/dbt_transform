@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- SNAPSHOT: Oracle Neshu Device Dimension History
 -- ==============================================================================
--- Source: dim_oracle_neshu__device
+-- Source: dim_neshu__device
 -- Purpose: Track historical changes des label : modele economique, localisation, company, marque
 -- Strategy: Check - Only creates new records when tracked columns change
 -- Tracked columns: device_economic_model, company_code
@@ -25,7 +25,7 @@
 
     with source_table as (
         select *
-        from {{ ref('dim_oracle_neshu__device') }}
+        from {{ ref('dim_neshu__device') }}
     )
 
     select

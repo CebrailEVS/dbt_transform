@@ -12,7 +12,7 @@ companies_filtered as (
     select
         company_id,
         company_code
-    from {{ ref('dim_oracle_neshu__company') }}
+    from {{ ref('dim_neshu__company') }}
     where
         is_active = true
         and company_type = "CLIENTNESHU"
@@ -26,7 +26,7 @@ active_devices as (
         d.company_id,
         cf.company_code,
         d.device_name
-    from {{ ref('dim_oracle_neshu__device') }} as d
+    from {{ ref('dim_neshu__device') }} as d
     inner join companies_filtered as cf
         on d.company_id = cf.company_id
     where
@@ -79,7 +79,7 @@ devices_with_prices as (
         p.purchase_unit_price,
         (dwp.quantite * p.purchase_unit_price) as valorisation_produit
     from devices_with_products as dwp
-    left join {{ ref('dim_oracle_neshu__product') }} as p
+    left join {{ ref('dim_neshu__product') }} as p
         on dwp.product_code = p.product_code
 ),
 

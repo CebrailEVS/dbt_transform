@@ -40,9 +40,9 @@ select
     '{{ invocation_id }}' as dbt_invocation_id  -- noqa: TMP
 
 from {{ ref('int_oracle_neshu__appro_tasks') }} as pa
-inner join {{ ref('dim_oracle_neshu__device') }} as d
+inner join {{ ref('dim_neshu__device') }} as d
     on pa.device_id = d.device_id
-inner join {{ ref('dim_oracle_neshu__company') }} as c
+inner join {{ ref('dim_neshu__company') }} as c
     on pa.company_id = c.company_id
 where
     date(pa.task_start_date) >= '2025-01-01'

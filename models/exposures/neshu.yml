@@ -23,11 +23,11 @@ exposures:
       name: Cebrail Aksoy
       email: cebrail.aksoy@evs-pro.com
     depends_on:
-      - ref('fct_oracle_neshu__conso_business_review')
-      - ref('fct_oracle_neshu__appro')
-      - ref('dim_oracle_neshu__company')
-      - ref('dim_oracle_neshu__contract')
-      - ref('dim_oracle_neshu__device')
+      - ref('fct_neshu__consommation')
+      - ref('fct_neshu__appro')
+      - ref('dim_neshu__company')
+      - ref('dim_neshu__contract')
+      - ref('dim_neshu__device')
 
   - name: passage_appro_monitoring
     label: "Passage Appro Monitoring"
@@ -46,7 +46,7 @@ exposures:
     depends_on:
       - source('marts_oracle_neshu_external', 'fct_oracle_neshu__monitoring_passages_appro')
       - ref('ref_oracle_neshu__roadman_gea')
-      - ref('dim_oracle_neshu__company')
+      - ref('dim_neshu__company')
 
   - name: reporting_appro
     label: "Reporting Appro"
@@ -59,8 +59,8 @@ exposures:
       name: Cebrail Aksoy
       email: cebrail.aksoy@evs-pro.com
     depends_on:
-      - ref('fct_oracle_neshu__appro')
-      - ref('dim_oracle_neshu__company')
+      - ref('fct_neshu__appro')
+      - ref('dim_neshu__company')
       - ref('ref_oracle_neshu__roadman_gea')
 
   - name: maintenance_preventives
@@ -73,4 +73,4 @@ exposures:
       name: Cebrail Aksoy
       email: cebrail.aksoy@evs-pro.com
     depends_on:
-      - ref('fct_technique__neshu_maintenance_preventives')
+      - ref('fct_neshu__maintenance_preventive')

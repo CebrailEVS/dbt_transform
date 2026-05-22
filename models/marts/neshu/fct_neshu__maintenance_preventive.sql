@@ -16,7 +16,7 @@ with liste_machine_oracle as (
         d.last_installation_date,
         d.created_at as device_created_at,
         d.updated_at as device_updated_at
-    from {{ ref('dim_oracle_neshu__device') }} as d
+    from {{ ref('dim_neshu__device') }} as d
     where
         is_active
         and device_type_id in (1, 2)
