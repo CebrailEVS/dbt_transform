@@ -2,7 +2,11 @@ version: 2
 
 models:
   - name: fct_services_generaux__sinistre
-    description: "Sinistres véhicules issus du fournisseur GAC, enrichis pour reporting Services Généraux."
+    description: |
+      [QUOI MÉTIER] Sinistres de la flotte de véhicules EVS (assurance, responsabilité, coûts).
+      [COMMENT CONSTRUITE] Lecture directe de stg_gac__sinistres_sg (fichier CSV déposé par GAC sur SFTP), avec extraction de la date de sinistre depuis le timestamp source et ajout des métadonnées dbt. Pas d'enrichissement métier ni de jointure.
+      [GRAIN] 1 ligne par sinistre (n_de_sinistre).
+      [NOTES] Source GAC = gestionnaire de flotte externe. Coûts ventilés en : cout_assureur, auto_assurance, franchise, cout_global, cout_client.
     columns:
       # Infos Sinistre
       - name: n_de_sinistre
