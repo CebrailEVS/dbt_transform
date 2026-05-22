@@ -35,6 +35,7 @@ telemetry_agg as (
             when p.product_type in ('BOISSONS FRAICHES', 'SNACKING') then 'SODA + SNACKS'
             else p.product_type
         end) as product_type,
+        p.product_id,
         p.product_code,
         coalesce(sum(t.telemetry_quantity), 0) as q_consommee
     from passage_avec_suivant as pa
@@ -45,7 +46,7 @@ telemetry_agg as (
             between coalesce(pa.date_passage_precedent, timestamp('2024-12-30 00:00:00')) and pa.task_start_date
     left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__product` as p
         on t.product_id = p.product_id
-    group by 1, 2, 3, 4, 5
+    group by 1, 2, 3, 4, 5, 6
     having p.product_type is not null or sum(t.telemetry_quantity) > 0
 ),
 
@@ -62,6 +63,7 @@ chargement_agg as (
             when p.product_type in ('BOISSONS FRAICHES', 'SNACKING') then 'SODA + SNACKS'
             else p.product_type
         end) as product_type,
+        p.product_id,
         p.product_code,
         coalesce(sum(cm.load_quantity), 0) as q_chargee
     from passage_avec_suivant as pa
@@ -71,7 +73,7 @@ chargement_agg as (
             and date(pa.task_start_date) = date(cm.task_start_date)
     left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__product` as p
         on cm.product_id = p.product_id
-    group by 1, 2, 3, 4, 5
+    group by 1, 2, 3, 4, 5, 6
     having product_type is not null or sum(cm.load_quantity) > 0
 ),
 
@@ -87,6 +89,7 @@ fusion_telemetry_chargement as (
         min(pa.date_passage_precedent) as date_passage_precedent,
         max(pa.roadman_code) as roadman_code,
         coalesce(t.product_type, c.product_type) as product_type,
+        coalesce(t.product_id, c.product_id) as product_id,
         coalesce(t.product_code, c.product_code) as product_code,
         sum(coalesce(t.q_consommee, 0)) as q_consommee,
         max(coalesce(c.q_chargee, 0)) as q_chargee
@@ -96,13 +99,13 @@ fusion_telemetry_chargement as (
             t.device_id = c.device_id
             and t.task_start_date = c.task_start_date
             and t.product_type = c.product_type
-            and t.product_code = c.product_code
+            and t.product_id = c.product_id
     left join passage_avec_suivant as pa
         on
             pa.device_id = coalesce(t.device_id, c.device_id)
             and pa.task_start_date = coalesce(t.task_start_date, c.task_start_date)
     group by
-        1, 2, 6, 7
+        1, 2, 6, 7, 8
 )
 
 -- -----------------------------------------------------------------------------------
@@ -115,12 +118,13 @@ select
     date_passage_precedent,
     roadman_code,
     product_type,
+    product_id,
     product_code,
     q_consommee,
     q_chargee,
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '0278e6e4-b2b5-4495-97d5-3a1b233b27c4' as dbt_invocation_id  -- noqa: TMP
+    '24d99fa5-ed90-4b2c-9d17-040eefc08196' as dbt_invocation_id  -- noqa: TMP
 
 from fusion_telemetry_chargement
