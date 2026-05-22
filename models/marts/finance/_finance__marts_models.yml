@@ -2,9 +2,11 @@ version: 2
 
 models:
   - name: fct_finance__pnl_bu
-    description: >
-      P&L mensuel par Business Unit, avec scénarios avec et sans provisions congés payés.
-      Inclut KPI mensuels, YTD, N-1, écarts, évolutions et pourcentages du chiffre d'affaires.
+    description: |
+      [QUOI MÉTIER] P&L mensuel par Business Unit analytique, avec scénarios avec/sans provisions congés payés.
+      [COMMENT CONSTRUITE] Issu des écritures comptables Sage (int_sage__pnl) agrégées par BU et KPI ; deux scénarios calculés : AVEC_PROVISIONS_CP (toutes écritures) et SANS_PROVISIONS_CP (exclut comptes 645800, 641200). Enrichi des valeurs YTD, N-1 et écarts/évolutions.
+      [GRAIN] 1 ligne par (scenario, annee, mois, bu, kpi).
+      [NOTES] Les KPI couvrent : CA, CONSOMMATION_MP_SSTT, MASSE_SALARIALE, FRAIS_DIRECTS_AMORTISSEMENTS, MARGE_BRUTE, MARGE_NETTE. BU_NON_RENSEIGNEE pour les écritures sans imputation analytique.
 
     columns:
       - name: scenario
