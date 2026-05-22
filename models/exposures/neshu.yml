@@ -74,3 +74,23 @@ exposures:
       email: cebrail.aksoy@evs-pro.com
     depends_on:
       - ref('fct_neshu__maintenance_preventive')
+
+  - name: chargement_consommation
+    label: "PROD CHARGEMENT & CONSOS NESHU"
+    type: dashboard
+    maturity: high
+    description: >
+      Rapport de suivi des chargements machines et consommations Neshu.
+      Croise les vues bi-mensuelles agrégées (chargement_quinzaine), les cycles
+      conso/chargement par passage (chargement_consommation) et les tâches
+      chargement détaillées (intermediate) pour le contexte société/machine/produit.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('dim_neshu__company')
+      - ref('dim_neshu__product')
+      - ref('dim_neshu__device')
+      - ref('fct_neshu__chargement_quinzaine')
+      - ref('fct_neshu__chargement_consommation')
+      - ref('int_oracle_neshu__chargement_tasks')  # smell: consuming intermediate from PBI, candidate for mart promotion
