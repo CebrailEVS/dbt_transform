@@ -3,16 +3,25 @@
 Scope : 5 BUs migrées (`finance`, `services_generaux`, `supply_chain`, `neshu`, `lcdp`).
 Référence : `CONVENTIONS.md` § Marts — pattern complet (4 piliers : description 4 blocs, tests minimum, config hygiène, star schema).
 
-> **MAJ 2026-05-22 (post-PR description trame)** — branche `feature/marts-description-trame-4-blocs` : **18/18 descriptions reformatées** au standard `[QUOI MÉTIER] / [COMMENT CONSTRUITE] / [GRAIN] / [NOTES]`. Mentions BI laissées en place (à retirer dans une PR séparée).
+> **MAJ 2026-05-22 (PR #83, description trame mergée)** — **18/18 descriptions reformatées** au standard `[QUOI MÉTIER] / [COMMENT CONSTRUITE] / [GRAIN] / [NOTES]`. Mentions BI laissées en place (à retirer dans une PR séparée).
+>
+> **MAJ 2026-05-22 (PR #84, config hygiène mergée)** — `description=` retirée du `{{ config() }}` dans 17 marts ; doublon de config consolidé sur `dim_neshu__contract` et `fct_neshu__chargement_consommation`.
+>
+> **MAJ 2026-05-22 (PR #85, FK relationships en review)** — 7 FK `relationships` ajoutées sur `fct_neshu__appro` (×3, dont 1 warn), `fct_neshu__chargement_consommation` (×2), `dim_neshu__contract`, `dim_lcdp__device`. Colonne `product_id` exposée dans `fct_neshu__chargement_consommation` pour permettre une FK propre (vs `product_code` non-unique côté dim).
+>
+> **Anomalies prod détectées via MCP BQ (à investiguer hors-audit)** :
+> - `dim_neshu__company.company_code` : 1 doublon (EVS auto-référencée comme client + société) — à dédupliquer côté modèle
+> - `dim_neshu__resource.location_id` : 100 % NULL (218/218) — colonne morte à supprimer
+> - `fct_neshu__appro.device_id` : 1 NULL sur 540 448 (task_id 11460408, source Oracle) — laissé en warn
 
 ## Synthèse exécutive
 
 | Pilier | État global | Détail |
 |---|---|---|
-| 1. Description trame 4 blocs | ✅ 18/18 conformes (était 0/18) | finance, services_generaux, supply_chain (3), neshu (12), lcdp (3). |
-| 2. Tests obligatoires | ⚠️ 14/18 OK sur PK | PK dims/facts globalement testées. **FK relationships manquantes** sur ~60 % des facts. |
+| 1. Description trame 4 blocs | ✅ 18/18 conformes (PR #83) | finance, services_generaux, supply_chain (3), neshu (12), lcdp (3). |
+| 2. Tests obligatoires | ⚠️ Progression PR #85 | 7 FK `relationships` ajoutées. Reste FK warn (material_id, roadman_code, company_storehouse_id, etc.) en PR B. |
 | 3. Tests recommandés | ❌ Quasi-absents | `accepted_values`, `row_count_between`, `unique_combination_of_columns`, `expression_is_true` : 3 marts conformes sur 18. |
-| 4. Config hygiène | ❌ 14/18 violent la règle | `description=` présent dans `{{ config() }}` de 14 marts (interdit en marts depuis refacto — la description vit en YAML). Aucun `tags=[...]` constaté ✅. |
+| 4. Config hygiène | ✅ Résolu (PR #84) | `description=` retirée des 17 marts. Aucun `tags=[...]` constaté ✅. |
 | 5. Star schema | ✅ Globalement OK | Pas de fact-à-fact ni snowflake détecté. Cas à vérifier : `dim_neshu__vehicule_roadman` vs `dim_neshu__resource` (chevauchement périmètre). |
 | 6. Référence à un nom de rapport BI dans description | ⚠️ 3 cas | `fct_neshu__consommation`, `fct_neshu__chargement_consommation`, `fct_neshu__chargement_quinzaine` mentionnent "Business Review", "BI taux d'écoulement", etc. — à déplacer dans `models/exposures/neshu.yml`. |
 
@@ -106,7 +115,7 @@ Référence : `CONVENTIONS.md` § Marts — pattern complet (4 piliers : descrip
 ### dim_neshu__contract
 - **Description trame** : ✅ (MAJ 2026-05-22)
 - **Description trame (avant MAJ)** : ⚠️ 2 phrases, grain mentionné en prose ("un seul contrat actif par client") mais pas via balise [GRAIN].
-- **Tests obligatoires** : ✅ `unique` + `not_null` sur `contract_id`. ⚠️ `company_id` testé via `unique_combination_of_columns` warn — bon, mais idéalement `relationships` vers `dim_neshu__company` aussi.
+- **Tests obligatoires** : ✅ `unique` + `not_null` sur `contract_id`. ✅ **PR #85** : `not_null` + `relationships` ajoutés sur `company_id`. `unique_combination_of_columns` warn conservé.
 - **Tests recommandés** : ⚠️ `unique_combination_of_columns(company_id)` ✅. Manque `accepted_values` sur `is_active`. Pas de bornes sur `nombre_collab` (>= 0), `engagement_clean`.
 - **Config hygiène** : ❌ doublon : config dans le YAML (`config: materialized + cluster_by`) **et** dans le SQL (`{{ config(materialized=..., description=...) }}`). Supprimer le `description=` SQL + consolider config (préférer un seul endroit, idéalement SQL).
 - **Suggestion** : trancher l'endroit canonique du config block (SQL uniquement), ajouter trame.
@@ -139,7 +148,7 @@ Référence : `CONVENTIONS.md` § Marts — pattern complet (4 piliers : descrip
 ### fct_neshu__chargement_consommation
 - **Description trame** : ✅ (MAJ 2026-05-22) — trame canonique appliquée.
 - **Description trame (avant MAJ)** : ✅ mentionnait `Grain : (device, passage_appro, product)` en prose — meilleur que les autres mais sans balise.
-- **Tests obligatoires** : ⚠️ `not_null` sur device_id, date_debut_passage_appro, product_type, product_code. **Manque `relationships`** sur device_id → `dim_neshu__device`, product_code n'est pas un FK direct.
+- **Tests obligatoires** : ✅ **PR #85** — `not_null` + `relationships` ajoutés sur `device_id` → `dim_neshu__device` et `product_id` → `dim_neshu__product` (colonne `product_id` ajoutée à la sortie, propagée depuis la jointure interne existante).
 - **Tests recommandés** : ❌ Pas de `unique_combination_of_columns(device_id, date_debut_passage_appro, product_code)`. Pas de `>= 0` sur `q_consommee`/`q_chargee`. Pas de row_count.
 - **Config hygiène** : ❌ `description=` + mention BI ("BI de taux d ecoulement et Suivi des chargements machines gratuités") — à déplacer dans exposures.
 - **Suggestion** : ajouter relationships sur device_id, unique_combination, bornes >=0.
@@ -155,7 +164,7 @@ Référence : `CONVENTIONS.md` § Marts — pattern complet (4 piliers : descrip
 ### fct_neshu__appro
 - **Description trame** : ✅ (MAJ 2026-05-22)
 - **Description trame (avant MAJ)** : ⚠️ multi-paragraphe descriptive, pas de [GRAIN] explicite (grain = task_id).
-- **Tests obligatoires** : ✅ `not_null` + `unique` sur `task_id`, `not_null` sur `resources_roadman_id`. ❌ **Manque `relationships`** : device_id → `dim_neshu__device`, company_id → `dim_neshu__company`, resources_roadman_id → `dim_neshu__resource`.
+- **Tests obligatoires** : ✅ `not_null` + `unique` sur `task_id`. ✅ **PR #85** : `not_null` + `relationships` ajoutés sur `company_id` → `dim_neshu__company` et `resources_roadman_id` → `dim_neshu__resource` ; `relationships` warn sur `device_id` → `dim_neshu__device` (1 NULL prod toléré, task_id 11460408).
 - **Tests recommandés** : ❌ Pas d'`accepted_values` sur `task_status_code` (PLANIFIE/FAIT/ENCOURS reclassé). Pas de bornes sur durées (`passage_duration_min >= 0`, `work_duration_min between 0 and 720`). Pas de row_count.
 - **Config hygiène** : ❌ `description=` à supprimer.
 - **Suggestion** : prioriser ajout des 3 `relationships` (vraie valeur business). Ajouter bornes durées et accepted_values task_status_code.
@@ -200,7 +209,7 @@ Référence : `CONVENTIONS.md` § Marts — pattern complet (4 piliers : descrip
 ### dim_lcdp__device
 - **Description trame** : ✅ (MAJ 2026-05-22)
 - **Description trame (avant MAJ)** : ❌ 1 paragraphe, pas de [GRAIN].
-- **Tests obligatoires** : ⚠️ `not_null` + `unique` sur `device_id` ✅. ❌ **Manque `relationships`** sur company_id → `dim_lcdp__company` (présent dans dim_neshu__device, à reproduire ici).
+- **Tests obligatoires** : ✅ `not_null` + `unique` sur `device_id`. ✅ **PR #85** : `not_null` + `relationships` ajoutés sur `company_id` → `dim_lcdp__company` (pattern de `dim_neshu__device` reproduit).
 - **Tests recommandés** : ❌ Pas d'`accepted_values` sur device_state, device_material_status, audit_type, currency_mode, is_active, etc. Pas de row_count.
 - **Config hygiène** : ❌ `description=` à supprimer.
 - **Suggestion** : reproduire le pattern de `dim_neshu__device` (relationships sur company_id) + accepted_values sur labels.
@@ -209,23 +218,37 @@ Référence : `CONVENTIONS.md` § Marts — pattern complet (4 piliers : descrip
 
 ## Recommandations priorisées pour PRs séparées
 
-1. **PR "config hygiène"** (cosmétique, faible risque, gros impact lisibilité)
-   - Supprimer `description=` du `{{ config() }}` dans 14 marts. La description en YAML reste.
-   - Consolider `dim_neshu__contract` : config en SQL uniquement (retirer le bloc `config:` du YAML).
+1. ✅ **PR #84 — "config hygiène" (MERGÉE)** — `description=` retirée du `{{ config() }}` dans 17 marts, doublons consolidés sur `dim_neshu__contract` et `fct_neshu__chargement_consommation`.
 
-2. **PR "description trame 4 blocs"** (cosmétique)
-   - Reformater les 18 descriptions YAML avec `[QUOI MÉTIER] / [COMMENT CONSTRUITE] / [GRAIN] / [NOTES]`.
-   - Retirer les mentions de rapports BI dans `fct_neshu__consommation`, `fct_neshu__chargement_consommation`, `fct_neshu__chargement_quinzaine`.
+2. ✅ **PR #83 — "description trame 4 blocs" (MERGÉE)** — 18/18 descriptions au standard. Mentions BI conservées (à retirer dans une PR séparée).
 
-3. **PR "tests FK relationships"** (réelle valeur business)
-   - Ajouter `not_null + relationships` sur les FK manquantes : `fct_neshu__appro` (device_id, company_id, resources_roadman_id), `fct_neshu__chargement_consommation` (device_id), `fct_neshu__workorder_delai` (not_null sur FK), `dim_lcdp__device` (company_id).
+3. ✅ **PR #85 — "tests FK relationships" verts (en review)** — `not_null + relationships` sur 6 FK + 1 warn :
+   - `fct_neshu__appro` : `company_id`, `resources_roadman_id`, `device_id` (warn)
+   - `fct_neshu__chargement_consommation` : `device_id`, `product_id` (+ propagation `product_id` dans le SQL)
+   - `dim_neshu__contract` : `company_id`
+   - `dim_lcdp__device` : `company_id`
 
-4. **PR "tests accepted_values + bornes"** (qualité métier — explorer prod via BQ MCP avant de figer les listes)
+4. 🟠 **PR B "tests FK relationships warn"** (à faire) — FK avec NULLs tolérés :
+   - `fct_neshu__workorder_delai` : `material_id`, `site_id`, `client_id` (nullables, warn) — éventuellement `not_null` sur site/client si métier confirme bug
+   - `fct_neshu__chargement_consommation` : `roadman_code` → `dim_neshu__resource.resources_code` filtré PERSON (warn)
+   - `dim_neshu__resource` : `company_id`, `company_storehouse_id` (warn)
+   - `fct_neshu__appro` : retirer le warn sur `device_id` si métier confirme bug source (task_id 11460408)
+
+5. 🟠 **PR "tests accepted_values + bornes"** (qualité métier — explorer prod via BQ MCP avant de figer les listes)
    - Listes `accepted_values` sur statuts, types, modèles économiques, etc.
    - Bornes `>= 0` sur quantités, durées, montants.
    - `unique_combination_of_columns` sur clés composites des facts.
 
-5. **PR "row_count + plages dates"** (warn-only, garde-fou ordre de grandeur)
+6. 🟠 **PR "row_count + plages dates"** (warn-only, garde-fou ordre de grandeur)
    - `expect_table_row_count_to_be_between` et `expect_column_values_to_be_between` (dates) — bornes à calibrer via BQ MCP.
 
-6. **PR séparée à statuer** : `dim_neshu__vehicule_roadman` vs `dim_neshu__resource` — clarifier le périmètre et déprécier l'un des deux si redondant.
+7. 🟠 **PR data quality / cleanup** (suite aux explorations MCP) :
+   - Dédupliquer `dim_neshu__company.company_code` (1 doublon : EVS comme client + société)
+   - Supprimer `dim_neshu__resource.location_id` (100 % NULL en prod)
+   - Statuer sur `dim_neshu__vehicule_roadman` vs `dim_neshu__resource` (chevauchement périmètre)
+   - Investiguer/signaler côté Oracle la `task_id 11460408` (device NULL en source)
+
+8. 🟠 **PR exposures cleanup** — retirer les mentions de rapports BI dans descriptions :
+   - `fct_neshu__consommation` ("Business Review Neshu")
+   - `fct_neshu__chargement_consommation` ("BI taux d'écoulement")
+   - `fct_neshu__chargement_quinzaine` ("Suivi des chargements machines gratuités")
