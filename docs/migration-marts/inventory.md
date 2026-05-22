@@ -103,23 +103,20 @@ All 3 `.pbix` repointed by DA, old BQ tables dropped (dev + prod).
 | `yuman/fct_yuman__suivi_partenaires.sql` | not consumed today, confirmed by DE |
 | `yuman/dim_yuman__materials_clients.sql` | **OBT anti-pattern** — flattens client+site attrs into the material dim. Decided 2026-05-20 to drop. DA recreates an enriched view via Power Query / SQL custom in PBI when needed. If 3+ reports end up duplicating the same flatten, promote back to a dedicated dbt mart. See §5 architecture decision below. |
 
-### → External sources (not dbt models — 2)
+### → External sources (not dbt models — 2) ✅ migrated 2026-05-21
 
-Tables in `prod_marts` written directly by Cloud Run jobs (Oracle SQL → BQ → API call to refresh PBI, ×8 / day). Declared in dbt as `source()` in `_<source>__marts_sources.yml`, not as models.
+Tables in `prod_marts` written directly by Cloud Run jobs (Oracle SQL → BQ → PBI refresh, ×8 / day). Declared in dbt as `source()` in `_<bu>__marts_sources.yml`.
 
-| Current table | Target table name | Where it's declared today | Where it moves |
-|---|---|---|---|
-| `prod_marts.fct_oracle_neshu__monitoring_passages_appro` | `fct_neshu__monitoring_passage_appro` | `models/marts/oracle_neshu/_oracle_neshu__marts_sources.yml` | new `models/marts/neshu/_neshu__marts_sources.yml` |
-| `prod_marts.fct_oracle_lcdp__monitoring_passages_appro` | `fct_lcdp__monitoring_passage_appro` | `models/marts/oracle_lcdp/_oracle_lcdp__marts_sources.yml` | new `models/marts/lcdp/_lcdp__marts_sources.yml` |
+| Current table | Target table name | dbt source declaration |
+|---|---|---|
+| ~~`prod_marts.fct_oracle_neshu__monitoring_passages_appro`~~ → `prod_marts.fct_neshu__monitoring_passage_appro` | `fct_neshu__monitoring_passage_appro` | `models/marts/neshu/_neshu__marts_sources.yml` (source: `marts_neshu_external`) |
+| ~~`prod_marts.fct_oracle_lcdp__monitoring_passages_appro`~~ → `prod_marts.fct_lcdp__monitoring_passage_appro` | `fct_lcdp__monitoring_passage_appro` | `models/marts/lcdp/_lcdp__marts_sources.yml` (source: `marts_lcdp_external`) |
 
-> ⚠️ **Rename complexity** — these tables are NOT under dbt control. Renaming requires coordinated update across:
-> 1. Cloud Run job code (Oracle SQL pipeline writing to BQ)
-> 2. Cloud Run job config (target table name)
-> 3. PBI API refresh call (if table name is passed as arg)
-> 4. dbt `source()` declaration
-> 5. `.pbix` dataset connector
->
-> To handle inside the `neshu/` and `lcdp/` Phase 2 PRs, with extra coordination.
+**Migration done in a dedicated PR** (separate from the main neshu/lcdp marts PRs):
+1. Cloud Run repo (`/mnt/data/extract_load/ingest_oracle_passages_appro`): `TABLE` constant updated in `neshu_to_bq.py` + `lcdp_to_bq.py` + README. Direct master commit (solo repo).
+2. dbt repo: source YAMLs moved to `marts/neshu/` and `marts/lcdp/`, identifiers renamed (`marts_<old>_external` → `marts_<bu>_external`), exposures updated.
+3. DA repointed both `.pbix` (PROD APPRO MONITORING Neshu + DEV APPRO MONITORING LCDP).
+4. Old BQ tables dropped.
 
 ---
 
