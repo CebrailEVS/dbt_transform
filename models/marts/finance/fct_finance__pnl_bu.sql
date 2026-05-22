@@ -1,4 +1,4 @@
-{{ config(materialized='table',description='PnL complet avec réel, budget, YTD, N-1 et écarts') }}
+{{ config(materialized='table') }}
 
 with scenarios as (
 -- Scénarios

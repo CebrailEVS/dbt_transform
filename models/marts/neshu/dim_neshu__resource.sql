@@ -1,9 +1,4 @@
-{{
-  config(
-    materialized='table',
-    description='Dimension des ressources Oracle (roadmen et véhicules) enrichie avec les labels (ISACTIVE, Fonction) et le code GEA. Filtrée sur les types PERSON et VEHICLE. Le code GEA est jointé uniquement sur les PERSON via ref_oracle_neshu__roadman_gea.'
-  )
-}}
+{{ config(materialized='table') }}
 
 with resources_labels as (
     select

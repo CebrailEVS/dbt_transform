@@ -1,9 +1,4 @@
-{{
-  config(
-    materialized='table',
-    description='Dimension Vehicules et Roadman pour les taches'
-  )
-}}
+{{ config(materialized='table') }}
 
 select
     r.idresources as resources_vehicule_id,
