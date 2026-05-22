@@ -107,3 +107,20 @@ exposures:
       email: etienne.boulinier@evs-pro.com
     depends_on:
       - ref('fct_neshu__workorder_delai')
+
+  - name: scorecard_nespresso
+    label: "PROD SCORECARD NESHU - NESPRESSO"
+    type: dashboard
+    maturity: medium
+    description: >
+      Scorecard partenaire Nespresso pour la BU Neshu. Croise les contrats actifs,
+      la consommation consolidée et les réceptions fournisseurs pour produire
+      les indicateurs de performance suivis par le partenaire.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('dim_neshu__contract')
+      - ref('dim_neshu__company')
+      - ref('fct_neshu__consommation')
+      - ref('int_oracle_neshu__reception_tasks')  # smell: consuming intermediate from PBI, candidate for mart promotion
