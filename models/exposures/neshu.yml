@@ -46,7 +46,6 @@ exposures:
     depends_on:
       - source('marts_neshu_external', 'fct_neshu__monitoring_passage_appro')
       - ref('ref_oracle_neshu__roadman_gea')
-      - ref('dim_neshu__company')
 
   - name: reporting_appro
     label: "Reporting Appro"

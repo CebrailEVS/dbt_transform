@@ -26,4 +26,3 @@ exposures:
       email: cebrail.aksoy@evs-pro.com
     depends_on:
       - source('marts_lcdp_external', 'fct_lcdp__monitoring_passage_appro')
-      - ref('dim_lcdp__company')
