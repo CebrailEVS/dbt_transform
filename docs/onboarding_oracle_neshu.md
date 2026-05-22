@@ -270,7 +270,6 @@ Les faits décrivent « ce qui s'est passé » — les mesures, quantités et é
 | Modèle | Ce qu'il mesure | Partitionné par |
 |---|---|---|
 | `fct_neshu__consommation` | **Consommation consolidée** sur 3 sources (télémétrie, chargement, livraison) avec contexte société/machine/produit. Le fait de consommation principal. | `consumption_date` |
-| `fct_neshu__passage_appro` | Résumé des passages appro — planifié vs. réalisé par roadman/société/machine | — |
 | `fct_neshu__appro` | Passages appro détaillés avec durée, classement journalier, heures de travail (nettoyées) | `task_start_date` |
 | `fct_neshu__chargement_consommation` | Comparaison chargement vs. consommation télémétrie par machine/produit/fenêtre de date | — |
 | `fct_neshu__chargement_quinzaine` | Totaux de chargement bi-hebdomadaires par type de produit et société | — |

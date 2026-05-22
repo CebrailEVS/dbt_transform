@@ -33,7 +33,7 @@ Target names follow §0 convention. ⚠️ flags model names worth a second look
 | ~~`oracle_neshu/fct_oracle_neshu__chargement_par_quinzaine.sql`~~ → `neshu/fct_neshu__chargement_quinzaine.sql` | `fct_neshu__chargement_quinzaine` | grain suffix |
 | ~~`oracle_neshu/fct_oracle_neshu__chargement_vs_conso.sql`~~ → `neshu/fct_neshu__chargement_consommation.sql` | `fct_neshu__chargement_consommation` | Resolved: mart (not intermediate). Drop `_vs_` connector. YAML description updated to remove "Table intermédiaire" wording. |
 | ~~`oracle_neshu/fct_oracle_neshu__conso_business_review.sql`~~ → `neshu/fct_neshu__consommation.sql` | `fct_neshu__consommation` | BI name moves to exposure |
-| ~~`oracle_neshu/fct_oracle_neshu__pa_business_review.sql`~~ → `neshu/fct_neshu__passage_appro.sql` | `fct_neshu__passage_appro` | |
+| ~~`oracle_neshu/fct_oracle_neshu__pa_business_review.sql`~~ | ❌ **deleted post-migration** | Obsolete — not consumed by any PBI report (confirmed via PBI MCP audit). Renamed during the neshu PR then deleted in a follow-up commit. BQ table to be dropped manually. |
 | ~~`technique/fct_technique__neshu_maintenance_preventives.sql`~~ → `neshu/fct_neshu__maintenance_preventive.sql` | `fct_neshu__maintenance_preventive` | partner-specific → moves out of `technique/`, exposed by `maintenance_preventives` |
 | ~~`yuman/fct_yuman__workorder_delais_neshu.sql`~~ → `neshu/fct_neshu__workorder_delai.sql` | `fct_neshu__workorder_delai` | leftover `alias=` cleaned up during migration |
 
