@@ -19,23 +19,29 @@ Documented in [`CONVENTIONS.md` § Nommage des marts](../../CONVENTIONS.md#nomma
 
 Target names follow §0 convention. ⚠️ flags model names worth a second look before migration.
 
-### → `neshu/` (12)
+### → `neshu/` (13) ✅ migrated 2026-05-21
 
 | Current path | Target name | Notes |
 |---|---|---|
-| `oracle_neshu/dim_oracle_neshu__company.sql` | `dim_neshu__company` | exposed by `business_review`, `passage_appro_monitoring`, `reporting_appro` |
-| `oracle_neshu/dim_oracle_neshu__contract.sql` | `dim_neshu__contract` | exposed by `business_review` |
-| `oracle_neshu/dim_oracle_neshu__device.sql` | `dim_neshu__device` | exposed by `business_review` |
-| `oracle_neshu/dim_oracle_neshu__product.sql` | `dim_neshu__product` | |
-| `oracle_neshu/dim_oracle_neshu__resources.sql` | `dim_neshu__resource` | singular |
-| `oracle_neshu/dim_oracle_neshu__vehicule_roadman.sql` | `dim_neshu__vehicule_roadman` | |
-| `oracle_neshu/fct_oracle_neshu__appro.sql` | `fct_neshu__appro` | exposed by `reporting_appro` |
-| `oracle_neshu/fct_oracle_neshu__chargement_par_quinzaine.sql` | `fct_neshu__chargement_quinzaine` | grain suffix |
-| `oracle_neshu/fct_oracle_neshu__chargement_vs_conso.sql` | ⏸️ **pending DA** | BQ description says "Table intermédiaire" — may need to move to `intermediate/` instead of marts. Decision deferred until DA confirms direct PBI consumer vs downstream mart usage. |
-| `oracle_neshu/fct_oracle_neshu__conso_business_review.sql` | `fct_neshu__consommation` | BI name moves to exposure |
-| `oracle_neshu/fct_oracle_neshu__pa_business_review.sql` | `fct_neshu__passage_appro` | PA = Passage Appro (confirmed via BQ description audit 2026-05-20) |
-| `technique/fct_technique__neshu_maintenance_preventives.sql` | `fct_neshu__maintenance_preventive` | partner-specific → moves out of `technique/`, exposed by `maintenance_preventives` |
-| `yuman/fct_yuman__workorder_delais_neshu.sql` | `fct_neshu__workorder_delai` | ⚠️ Neshu-specific yuman fact moves to neshu folder |
+| ~~`oracle_neshu/dim_oracle_neshu__company.sql`~~ → `neshu/dim_neshu__company.sql` | `dim_neshu__company` | exposed by `business_review`, `passage_appro_monitoring`, `reporting_appro` |
+| ~~`oracle_neshu/dim_oracle_neshu__contract.sql`~~ → `neshu/dim_neshu__contract.sql` | `dim_neshu__contract` | exposed by `business_review` |
+| ~~`oracle_neshu/dim_oracle_neshu__device.sql`~~ → `neshu/dim_neshu__device.sql` | `dim_neshu__device` | exposed by `business_review` |
+| ~~`oracle_neshu/dim_oracle_neshu__product.sql`~~ → `neshu/dim_neshu__product.sql` | `dim_neshu__product` | |
+| ~~`oracle_neshu/dim_oracle_neshu__resources.sql`~~ → `neshu/dim_neshu__resource.sql` | `dim_neshu__resource` | singular |
+| ~~`oracle_neshu/dim_oracle_neshu__vehicule_roadman.sql`~~ → `neshu/dim_neshu__vehicule_roadman.sql` | `dim_neshu__vehicule_roadman` | |
+| ~~`oracle_neshu/fct_oracle_neshu__appro.sql`~~ → `neshu/fct_neshu__appro.sql` | `fct_neshu__appro` | exposed by `reporting_appro`, `business_review` |
+| ~~`oracle_neshu/fct_oracle_neshu__chargement_par_quinzaine.sql`~~ → `neshu/fct_neshu__chargement_quinzaine.sql` | `fct_neshu__chargement_quinzaine` | grain suffix |
+| ~~`oracle_neshu/fct_oracle_neshu__chargement_vs_conso.sql`~~ → `neshu/fct_neshu__chargement_consommation.sql` | `fct_neshu__chargement_consommation` | Resolved: mart (not intermediate). Drop `_vs_` connector. YAML description updated to remove "Table intermédiaire" wording. |
+| ~~`oracle_neshu/fct_oracle_neshu__conso_business_review.sql`~~ → `neshu/fct_neshu__consommation.sql` | `fct_neshu__consommation` | BI name moves to exposure |
+| ~~`oracle_neshu/fct_oracle_neshu__pa_business_review.sql`~~ → `neshu/fct_neshu__passage_appro.sql` | `fct_neshu__passage_appro` | |
+| ~~`technique/fct_technique__neshu_maintenance_preventives.sql`~~ → `neshu/fct_neshu__maintenance_preventive.sql` | `fct_neshu__maintenance_preventive` | partner-specific → moves out of `technique/`, exposed by `maintenance_preventives` |
+| ~~`yuman/fct_yuman__workorder_delais_neshu.sql`~~ → `neshu/fct_neshu__workorder_delai.sql` | `fct_neshu__workorder_delai` | leftover `alias=` cleaned up during migration |
+
+Snapshots updated in this PR: `snap_oracle_neshu__company` (ref → `dim_neshu__company`), `snap_oracle_neshu__device` (ref → `dim_neshu__device`). File names and BQ table names of snapshots unchanged (history preservation).
+
+**Out of scope (separate PRs):**
+- External Cloud Run table `fct_oracle_neshu__monitoring_passages_appro` rename → dedicated branch later
+- Dim refactor based on PBI architecture lessons (denormalize company attrs into device, drop bidirectionals, etc.) → separate follow-up
 
 ### → `lcdp/` (3)
 

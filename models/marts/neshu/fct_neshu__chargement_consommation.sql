@@ -24,7 +24,7 @@ with passage_avec_suivant as (
             order by ta.task_start_date
         ) as date_passage_precedent
     from {{ ref('int_oracle_neshu__appro_tasks') }} as ta
-    left join {{ ref('dim_oracle_neshu__vehicule_roadman') }} as rm
+    left join {{ ref('dim_neshu__vehicule_roadman') }} as rm
         on ta.product_source_id = rm.resources_vehicule_id
     where
         ta.task_start_date >= '2025-01-01'
@@ -53,7 +53,7 @@ telemetry_agg as (
             pa.device_id = t.device_id
             and t.task_start_date
             between coalesce(pa.date_passage_precedent, timestamp('2024-12-30 00:00:00')) and pa.task_start_date
-    left join {{ ref('dim_oracle_neshu__product') }} as p
+    left join {{ ref('dim_neshu__product') }} as p
         on t.product_id = p.product_id
     group by 1, 2, 3, 4, 5
     having p.product_type is not null or sum(t.telemetry_quantity) > 0
@@ -79,7 +79,7 @@ chargement_agg as (
         on
             pa.device_id = cm.device_id
             and date(pa.task_start_date) = date(cm.task_start_date)
-    left join {{ ref('dim_oracle_neshu__product') }} as p
+    left join {{ ref('dim_neshu__product') }} as p
         on cm.product_id = p.product_id
     group by 1, 2, 3, 4, 5
     having product_type is not null or sum(cm.load_quantity) > 0
