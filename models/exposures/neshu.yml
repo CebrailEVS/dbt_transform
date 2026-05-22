@@ -94,3 +94,16 @@ exposures:
       - ref('fct_neshu__chargement_quinzaine')
       - ref('fct_neshu__chargement_consommation')
       - ref('int_oracle_neshu__chargement_tasks')  # smell: consuming intermediate from PBI, candidate for mart promotion
+
+  - name: workorder_delai
+    label: "PROD DELAIS CURATIVES NESHU"
+    type: dashboard
+    maturity: high
+    description: >
+      Rapport de suivi des délais des interventions techniques curatives Neshu
+      (work orders Yuman) : délais d'intervention, indicateurs de respect des SLA.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('fct_neshu__workorder_delai')
