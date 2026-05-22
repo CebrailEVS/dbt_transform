@@ -25,5 +25,5 @@ exposures:
       name: Cebrail Aksoy
       email: cebrail.aksoy@evs-pro.com
     depends_on:
-      - source('marts_oracle_lcdp_external', 'fct_oracle_lcdp__monitoring_passages_appro')
+      - source('marts_lcdp_external', 'fct_lcdp__monitoring_passage_appro')
       - ref('dim_oracle_lcdp__company')
