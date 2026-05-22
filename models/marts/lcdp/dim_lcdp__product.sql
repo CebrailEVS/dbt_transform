@@ -1,9 +1,4 @@
-{{
-  config(
-    materialized='table',
-    description='Dimension produit enrichie à partir des labels associés (famille, groupe, marque, bio, etc.) filtré sur les produits de type 1 (produit) et 5 (Ligne de prix).'
-  )
-}}
+{{ config(materialized='table') }}
 
 with product_labels as (
     select

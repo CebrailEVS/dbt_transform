@@ -1,9 +1,4 @@
-{{
-  config(
-    materialized='table',
-    description='Dimension contrat : pivot des labels et sélection du contrat actif principal par client.'
-  )
-}}
+{{ config(materialized='table', cluster_by=['contract_id']) }}
 
 with contract_labels as (
     select

@@ -1,8 +1,5 @@
 -- models/fct_chargement_quinzaine.sql
-{{ config(
-    materialized='table',
-    description='Table de faits des chargement et consommation (telemetrie) par type de produit, par machine et date de passage appro - Utilisée pour les BI de taux d ecoulement et Suivi des chargements machines gratuités'
-) }}
+{{ config(materialized='table') }}
 
 with base as (
     select

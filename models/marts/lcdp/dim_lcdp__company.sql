@@ -1,9 +1,4 @@
-{{
-  config(
-    materialized='table',
-    description='Dimension client/company enrichie à partir des labels associés (zone géo, domaine activité, modèles, etc.) et des informations de localisation.'
-  )
-}}
+{{ config(materialized='table') }}
 
 with company_labels as (
     select

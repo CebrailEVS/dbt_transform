@@ -1,8 +1,7 @@
 -- fct_technique__machines_maintenance_tracking.sql
 {{ config(
-    materialized = "table",
-    cluster_by = ['company_code', 'device_code'],
-    description = "Table de faits du suivi des maintenances préventives des machines NESHU (Oracle + Yuman)."
+    materialized='table',
+    cluster_by=['company_code', 'device_code']
 ) }}
 
 -- LISTE MACHINE DLOG filtré & clean

@@ -1,9 +1,4 @@
-{{
-  config(
-    materialized='table',
-    description='Dimension device enrichie à partir des labels associés (état, statut, gamme, catégorie, marque, etc.)'
-  )
-}}
+{{ config(materialized='table') }}
 
 with device_labels as (
     select
