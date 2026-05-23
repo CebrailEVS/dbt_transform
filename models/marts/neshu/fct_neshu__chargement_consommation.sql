@@ -19,6 +19,7 @@ with passage_avec_suivant as (
         ta.task_start_date,
         rm.roadman_code,
         ta.product_source_id,
+        r.resources_code as product_source_code,
         lag(ta.task_start_date) over (
             partition by ta.device_id
             order by ta.task_start_date
@@ -26,6 +27,8 @@ with passage_avec_suivant as (
     from {{ ref('int_oracle_neshu__appro_tasks') }} as ta
     left join {{ ref('dim_neshu__vehicule_roadman') }} as rm
         on ta.product_source_id = rm.resources_vehicule_id
+    left join {{ ref('dim_neshu__resource') }} as r
+        on ta.product_source_id = r.resources_id
     where
         ta.task_start_date >= '2025-01-01'
         and ta.task_status_code = 'FAIT'
@@ -99,6 +102,7 @@ fusion_telemetry_chargement as (
         min(pa.date_passage_precedent) as date_passage_precedent,
         max(pa.roadman_code) as roadman_code,
         max(pa.product_source_id) as product_source_id,
+        max(pa.product_source_code) as product_source_code,
         coalesce(t.product_type, c.product_type) as product_type,
         coalesce(t.product_id, c.product_id) as product_id,
         coalesce(t.product_code, c.product_code) as product_code,
@@ -116,7 +120,7 @@ fusion_telemetry_chargement as (
             pa.device_id = coalesce(t.device_id, c.device_id)
             and pa.task_start_date = coalesce(t.task_start_date, c.task_start_date)
     group by
-        1, 2, 7, 8, 9
+        1, 2, 8, 9, 10
 )
 
 -- -----------------------------------------------------------------------------------
@@ -129,6 +133,7 @@ select
     date_passage_precedent,
     roadman_code,
     product_source_id,
+    product_source_code,
     product_type,
     product_id,
     product_code,
