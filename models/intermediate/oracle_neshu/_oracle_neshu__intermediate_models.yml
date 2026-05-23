@@ -880,6 +880,87 @@ models:
           - not_null
 
 
+  - name: int_oracle_neshu__appro_tasks_enriched
+    description: |
+      Tâches appro enrichies du référentiel (company, device, roadman, GEA)
+      et du statut normalisé (ENCOURS reclassé en FAIT après validation métier).
+      Base partagée entre fct_neshu__appro (analyse roadman/jour avec pointage
+      et métriques journalières) et tout fact dérivé au grain machine.
+      Grain : 1 ligne par task_id (passage appro).
+    columns:
+      - name: task_id
+        description: "ID de la tâche"
+        tests:
+          - unique
+          - not_null
+      - name: device_id
+        description: "ID du device (NULL toléré, cf. task_id 11460408 - source Oracle)"
+      - name: company_id
+        description: "ID de la company cliente"
+        tests:
+          - not_null
+      - name: resources_roadman_id
+        description: "ID du roadman (resources type=2)"
+        tests:
+          - not_null
+      - name: roadman_code
+        description: "Code roadman"
+      - name: gea_code
+        description: "Code GEA mappé depuis ref_oracle_neshu__roadman_gea"
+      - name: device_code
+        description: "Code device"
+      - name: device_name
+        description: "Nom device"
+      - name: device_info
+        description: "Libellé concat 'nom - code'"
+      - name: company_code
+        description: "Code company"
+      - name: company_name
+        description: "Nom company"
+      - name: company_info
+        description: "Libellé concat 'nom - code'"
+      - name: task_status_code
+        description: "Statut normalisé (ENCOURS reclassé en FAIT)"
+        tests:
+          - not_null
+      - name: is_done
+        description: "Indicateur binaire : 1 si FAIT ou ENCOURS"
+      - name: is_planned
+        description: "Indicateur binaire : 1 si PREVU, FAIT ou ENCOURS"
+      - name: task_start_date
+        description: "Date début passage"
+        tests:
+          - not_null
+      - name: task_end_date
+        description: "Date fin passage"
+      - name: start_date_day
+        description: "task_start_date tronqué au jour"
+      - name: passage_duration_min
+        description: "Durée du passage en minutes (NULL si non FAIT ou dates manquantes)"
+      - name: passage_duration_hours
+        description: "Durée du passage en heures"
+      - name: passage_duration_interval
+        description: "Durée brute en INTERVAL (audit)"
+      - name: product_source_id
+        description: "ID source du produit (idresources)"
+      - name: product_destination_id
+        description: "ID destination du produit"
+      - name: product_source_type
+        description: "Type de la source produit (RESOURCES, etc.)"
+      - name: product_destination_type
+        description: "Type de la destination produit"
+      - name: task_location_info
+        description: "Infos de localisation de la tâche"
+      - name: created_at
+        description: "Timestamp création source"
+        tests:
+          - not_null
+      - name: updated_at
+        description: "Timestamp dernière modif source"
+        tests:
+          - not_null
+
+
   - name: int_oracle_neshu__inter_techinique_tasks
     description: >
       Table intermédiaire des inter technique.
