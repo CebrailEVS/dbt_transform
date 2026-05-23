@@ -535,7 +535,17 @@ models:
         description: "Date du passage APPRO précédent pour ce device."
 
       - name: roadman_code
-        description: "Nom du roadman associé au véhicule source (ou libellé site/dépôt si la source n'est pas un véhicule). Attribut d'affichage uniquement — utiliser product_source_id pour la FK."
+        description: |
+          ⚠️ Naming hérité trompeur — alias historique de dim_neshu__vehicule_roadman.roadman_code,
+          qui est en réalité le `name` de stg_oracle_neshu__resources (et non un code).
+          Contient un mélange hétérogène :
+            - nom de famille d'un roadman pour les véhicules avec PERSON associée (ex. "DUPONT")
+            - libellé de véhicule contrat (ex. "VARKEMA")
+            - libellé de site logistique (ex. "PREPA RUNGIS")
+            - état temporaire (ex. "LIBRE ( ANCIEN SJEROME)")
+          Conséquence : ne pas utiliser comme clé de filtre/jointure côté BI sans
+          discriminer la nature via product_source_type. Attribut d'affichage uniquement.
+          Pour identifier proprement la source : product_source_id (+ product_source_type).
 
       - name: product_source_id
         description: "Identifiant de la ressource source du chargement (idresources). Non testé en FK : ce mart combine plusieurs intermediates et la sémantique de source mélange véhicules, dépôts et anomalies Oracle (cf. idresources=278). Exposé pour diagnostic."
