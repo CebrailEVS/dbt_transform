@@ -13,9 +13,9 @@
 
 
 
-select is_active
-from `evs-datastack-prod`.`prod_marts`.`dim_neshu__resource`
-where is_active is null
+select device_id
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__chargement_consommation`
+where device_id is null
 
 
 

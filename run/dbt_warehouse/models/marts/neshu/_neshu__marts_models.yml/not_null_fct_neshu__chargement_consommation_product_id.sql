@@ -13,9 +13,9 @@
 
 
 
-select resources_code
-from `evs-datastack-prod`.`prod_marts`.`dim_neshu__resource`
-where resources_code is null
+select product_id
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__chargement_consommation`
+where product_id is null
 
 
 

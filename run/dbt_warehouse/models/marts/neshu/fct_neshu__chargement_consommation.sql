@@ -1,4 +1,18 @@
 
+  
+    
+
+    create or replace table `evs-datastack-prod`.`prod_marts`.`fct_neshu__chargement_consommation`
+      
+    partition by date_debut_passage_appro
+    cluster by device_id
+
+    
+    OPTIONS(
+      description="""[QUOI M\u00c9TIER] Quantit\u00e9s charg\u00e9es vs consomm\u00e9es par machine et par passage APPRO (taux d'\u00e9coulement).\n[COMMENT CONSTRUITE] Pour chaque passage APPRO d'une machine, calcul via LAG du passage pr\u00e9c\u00e9dent pour borner la p\u00e9riode d'\u00e9coulement ; q_consommee = somme des t\u00e9l\u00e9m\u00e9tries entre les deux passages ; q_chargee = somme des chargements lors du passage actuel. Sources : int_oracle_neshu__chargement_tasks, int_oracle_neshu__telemetry_tasks, jointes par device_id et period bounds.\n[GRAIN] 1 ligne par (device_id, date_debut_passage_appro, product_id).\n[NOTES] roadman_code = nom du roadman associ\u00e9 au v\u00e9hicule source (attribut d'affichage). product_source_id / product_source_type = identifiant et type Oracle de la source du chargement (expos\u00e9s pour diagnostic, pas de test FK car mart combinant plusieurs intermediates). product_type aplati pour filtre BI. product_code conserv\u00e9 en attribut d'affichage.\n"""
+    )
+    as (
+      
 
 -- -----------------------------------------------------------------------------------
 -- CTE 1 : Récupération des passages APPRO avec leur passage précédent
@@ -131,6 +145,8 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '8cb7e936-9072-4fa0-9350-d626931b9c94' as dbt_invocation_id  -- noqa: TMP
+    '94b11724-7d58-411d-bb29-61e82fa0bd2d' as dbt_invocation_id  -- noqa: TMP
 
 from fusion_telemetry_chargement
+    );
+  

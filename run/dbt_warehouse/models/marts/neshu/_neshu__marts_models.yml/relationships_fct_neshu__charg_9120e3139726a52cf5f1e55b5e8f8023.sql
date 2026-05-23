@@ -12,14 +12,14 @@
     
 
 with child as (
-    select resources_roadman_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__appro`
-    where resources_roadman_id is not null
+    select product_id as from_field
+    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__chargement_consommation`
+    where product_id is not null
 ),
 
 parent as (
-    select resources_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_neshu__resource`
+    select product_id as to_field
+    from `evs-datastack-prod`.`prod_marts`.`dim_neshu__product`
 )
 
 select

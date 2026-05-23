@@ -13,9 +13,9 @@
 
 
 
-select resources_id
-from `evs-datastack-prod`.`prod_marts`.`dim_neshu__resource`
-where resources_id is null
+select date_debut_passage_appro
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__chargement_consommation`
+where date_debut_passage_appro is null
 
 
 

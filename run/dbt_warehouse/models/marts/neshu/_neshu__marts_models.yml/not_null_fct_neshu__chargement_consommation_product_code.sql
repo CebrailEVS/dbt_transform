@@ -8,14 +8,15 @@
       
     
   
+    
+    
 
 
 
-select
-    1
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__flux_neshu`
+select product_code
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__chargement_consommation`
+where product_code is null
 
-where not(stock_total = stock_depot + stock_vehicule)
 
 
   

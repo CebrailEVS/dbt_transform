@@ -13,7 +13,7 @@
 
 with child as (
     select device_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__appro`
+    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__chargement_consommation`
     where device_id is not null
 ),
 
