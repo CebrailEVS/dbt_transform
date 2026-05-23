@@ -7,10 +7,16 @@ Référence : `CONVENTIONS.md` § Marts — pattern complet (4 piliers : descrip
 >
 > **MAJ 2026-05-22 (PR #84, config hygiène mergée)** — `description=` retirée du `{{ config() }}` dans 17 marts ; doublon de config consolidé sur `dim_neshu__contract` et `fct_neshu__chargement_consommation`.
 >
-> **MAJ 2026-05-22 (PR #85, FK relationships en review)** — 7 FK `relationships` ajoutées sur `fct_neshu__appro` (×3, dont 1 warn), `fct_neshu__chargement_consommation` (×2), `dim_neshu__contract`, `dim_lcdp__device`. Colonne `product_id` exposée dans `fct_neshu__chargement_consommation` pour permettre une FK propre (vs `product_code` non-unique côté dim).
+> **MAJ 2026-05-22 (PR #85, FK relationships mergée)** — 7 FK `relationships` ajoutées sur `fct_neshu__appro` (×3, dont 1 warn), `fct_neshu__chargement_consommation` (×2), `dim_neshu__contract`, `dim_lcdp__device`. Colonne `product_id` exposée dans `fct_neshu__chargement_consommation` pour permettre une FK propre (vs `product_code` non-unique côté dim).
+>
+> **MAJ 2026-05-22 (PR B, FK FK warn → error nullable-tolérant)** — Vérification BQ : 6 FK à NULLs tolérés ont 0 fantôme en prod. Tests `relationships` ajoutés en sévérité error (le test dbt ignore les NULLs par défaut). Modifs :
+> - `dim_neshu__resource.company_id` et `company_storehouse_id` : `relationships` ajoutés
+> - `fct_neshu__appro.device_id` : passage de warn → error (excès de prudence, 0 fantôme prod)
+> - `fct_neshu__workorder_delai` : tests existants (material/site/client_id) conservés en error (0 fantôme)
+> - **Reporté** : `roadman_code` → 37 606 codes orphelins (VARKEMA, vappro, PREPA RUNGIS) — sujet de refacto naming, pas de test FK.
 >
 > **Anomalies prod détectées via MCP BQ (à investiguer hors-audit)** :
-> - `dim_neshu__company.company_code` : 1 doublon (EVS auto-référencée comme client + société) — à dédupliquer côté modèle
+> - `dim_neshu__company.company_code` : 1 doublon (EVS auto-référencée comme client + société). **Non bloquant** : aucun mart ne joint sur `company_code` (tous joignent sur `company_id`). `company_code` est purement un attribut d'affichage BI. À garder en l'état.
 > - `dim_neshu__resource.location_id` : 100 % NULL (218/218) — colonne morte à supprimer
 > - `fct_neshu__appro.device_id` : 1 NULL sur 540 448 (task_id 11460408, source Oracle) — laissé en warn
 
@@ -243,10 +249,10 @@ Référence : `CONVENTIONS.md` § Marts — pattern complet (4 piliers : descrip
    - `expect_table_row_count_to_be_between` et `expect_column_values_to_be_between` (dates) — bornes à calibrer via BQ MCP.
 
 7. 🟠 **PR data quality / cleanup** (suite aux explorations MCP) :
-   - Dédupliquer `dim_neshu__company.company_code` (1 doublon : EVS comme client + société)
    - Supprimer `dim_neshu__resource.location_id` (100 % NULL en prod)
    - Statuer sur `dim_neshu__vehicule_roadman` vs `dim_neshu__resource` (chevauchement périmètre)
    - Investiguer/signaler côté Oracle la `task_id 11460408` (device NULL en source)
+   - ~~Doublon `company_code`~~ : non bloquant (purement affichage, jointures internes sur `company_id`)
 
 8. 🟠 **PR exposures cleanup** — retirer les mentions de rapports BI dans descriptions :
    - `fct_neshu__consommation` ("Business Review Neshu")
