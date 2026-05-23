@@ -617,10 +617,20 @@ models:
           Pour un roadman (PERSON) : NULL.
 
       - name: company_id
-        description: "Identifiant de l'entreprise à laquelle est rattachée la ressource"
+        description: "Identifiant de l'entreprise à laquelle est rattachée la ressource (NULL toléré : ressources génériques, comptes API, véhicules sans rattachement)"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
 
       - name: company_storehouse_id
-        description: "Identifiant de l'entreprise entrepôt associée à la ressource"
+        description: "Identifiant de l'entreprise entrepôt associée à la ressource (NULL toléré : véhicules itinérants sans dépôt fixe)"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
 
       - name: location_id
         description: "Identifiant de la localisation de la ressource"
@@ -693,14 +703,12 @@ models:
           - unique
 
       - name: device_id
-        description: Identifiant du device associé à la tâche
+        description: Identifiant du device associé à la tâche (NULL toléré, cf. task_id 11460408 — source Oracle)
         tests:
           - relationships:
               arguments:
                 to: ref('dim_neshu__device')
                 field: device_id
-              config:
-                severity: warn
 
       - name: company_id
         description: Identifiant de l'entreprise cliente
