@@ -18,6 +18,7 @@ with passage_avec_suivant as (
         ta.device_id,
         ta.task_start_date,
         rm.roadman_code,
+        ta.product_source_id,
         lag(ta.task_start_date) over (
             partition by ta.device_id
             order by ta.task_start_date
@@ -97,6 +98,7 @@ fusion_telemetry_chargement as (
         min(coalesce(t.task_start_date, c.task_start_date)) as task_start_date_min,
         min(pa.date_passage_precedent) as date_passage_precedent,
         max(pa.roadman_code) as roadman_code,
+        max(pa.product_source_id) as product_source_id,
         coalesce(t.product_type, c.product_type) as product_type,
         coalesce(t.product_id, c.product_id) as product_id,
         coalesce(t.product_code, c.product_code) as product_code,
@@ -114,7 +116,7 @@ fusion_telemetry_chargement as (
             pa.device_id = coalesce(t.device_id, c.device_id)
             and pa.task_start_date = coalesce(t.task_start_date, c.task_start_date)
     group by
-        1, 2, 6, 7, 8
+        1, 2, 7, 8, 9
 )
 
 -- -----------------------------------------------------------------------------------
@@ -126,6 +128,7 @@ select
     task_start_date_min,
     date_passage_precedent,
     roadman_code,
+    product_source_id,
     product_type,
     product_id,
     product_code,
