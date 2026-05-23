@@ -257,4 +257,45 @@ Référence : `CONVENTIONS.md` § Marts — pattern complet (4 piliers : descrip
 8. 🟠 **PR exposures cleanup** — retirer les mentions de rapports BI dans descriptions :
    - `fct_neshu__consommation` ("Business Review Neshu")
    - `fct_neshu__chargement_consommation` ("BI taux d'écoulement")
+
+---
+
+## Refactos d'architecture planifiées (post-migration BU)
+
+### PR — `int_oracle_neshu__appro_machine_context` (à coder après refacto BU complète)
+
+**Contexte** : suite de la PR #88 (qui a extrait `int_oracle_neshu__appro_tasks_enriched`). Permettra à PR #77 (Rim) et à tout futur mart à grain machine de consommer un contexte appro déjà préparé, sans dupliquer la logique ni violer la règle "no fact-to-fact".
+
+**Architecture cible** :
+```
+int_oracle_neshu__appro_tasks_enriched  (PR #88, grain task)
+    ↓
+int_oracle_neshu__appro_machine_context (NOUVEAU, grain device)
+    ↓
+fct_neshu__machines_appro_interventions (refacto PR #77 ; jointure Yuman)
+```
+
+**Contenu prévu** (grain : 1 ligne par device_id) :
+- IDs propres : device_id (PK), company_id, last_appro_roadman_id, next_appro_roadman_id
+- Dernier passage FAIT : `last_appro_task_id`, `last_appro_date`, `last_appro_roadman_code`, `last_appro_gea_code`, `days_since_last_appro`
+- Prochain PRÉVU : `next_appro_task_id`, `next_appro_date`, `next_appro_roadman_code`, `next_appro_gea_code`, `days_until_next_appro`
+- Compteurs : `nb_appros_realises_total`, `nb_appros_planifies_a_venir`, `nb_appros_realises_30d`, `nb_appros_realises_90d`
+
+**Décisions à trancher avant code** :
+1. Périmètre temporel (>= 2025-01-01 ou plus large ?)
+2. Filtre `is_active` sur `dim_neshu__device` (machines inactives incluses ?)
+3. Fenêtres de compteurs (30/90 jours suffisent ou besoin de 7j / 365j aussi ?)
+4. Référentiel device : partir de `dim_neshu__device` ou des seuls devices ayant ≥ 1 passage ?
+
+**Pré-requis** : refacto BU complète terminée (notamment commerce + technique).
+
+### PR — Refacto PR #77 (Rim) — `fct_neshu__machines_appro_interventions`
+
+À traiter **après** l'intermediate ci-dessus. Adresse en parallèle :
+- Renommage `technique/` → `neshu/` (le mart filtre `partner_name='NESHU'`)
+- Mise à jour `ref('fct_oracle_neshu__appro')` → consommation de `int_oracle_neshu__appro_machine_context`
+- Trame description 4 blocs + retrait `description=` du config
+- FK relationships sur `device_id`, `material_id`, `company_id`
+- Réduction OBT (40+ attributs aplatis → IDs + 1-3 attributs d'affichage par dim)
+- Nettoyage du YAML (retirer `fct_technique__neshu_maintenance_preventives` et `fct_technique__interventions` déjà migrés en master)
    - `fct_neshu__chargement_quinzaine` ("Suivi des chargements machines gratuités")
