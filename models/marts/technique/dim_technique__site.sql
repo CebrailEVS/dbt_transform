@@ -1,6 +1,5 @@
 {{ config(
-    materialized='table',
-    description='Dimension sites Yuman'
+    materialized='table'
 ) }}
 
 select

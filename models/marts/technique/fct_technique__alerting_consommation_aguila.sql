@@ -1,6 +1,5 @@
 {{ config(
-    materialized='table',
-    description='Liste des intervnetion preventives aguila avec flag d alerting sur les pièces connsommées'
+    materialized='table'
 ) }}
 
 -- ============================================================
