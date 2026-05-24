@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Interventions techniques clôturées sur les 6 derniers mois, enrichies des informations client et machine. Granularité : 1 ligne par intervention.'
+        materialized='table'
     )
 }}
 
