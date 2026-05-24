@@ -11,17 +11,19 @@ models:
     config:
       tags: ['nesp_tech', 'staging']
     tests:
-      # Freshness fallback (tier Hebdomadaire — source STRING timestamp, cf. docs/freshness.md)
+      # Freshness fallback (tier Hebdomadaire — extracted_at est NULL sur les fichiers
+      # récents côté source, on monitore date_heure_fin qui reflète l'activité réelle
+      # cf. docs/freshness.md)
       - dbt_expectations.expect_row_values_to_have_recent_data:
           arguments:
-            column_name: extracted_at
+            column_name: date_heure_fin
             datepart: day
             interval: 8
           config:
             severity: warn
       - dbt_expectations.expect_row_values_to_have_recent_data:
           arguments:
-            column_name: extracted_at
+            column_name: date_heure_fin
             datepart: day
             interval: 14
           config:
@@ -102,17 +104,18 @@ models:
     config:
       tags: ['nesp_tech', 'staging']
     tests:
-      # Freshness fallback (tier Hebdomadaire — source STRING timestamp, cf. docs/freshness.md)
+      # Freshness fallback (tier Hebdomadaire — extracted_at NULL sur fichiers récents,
+      # on monitore date_intervention — cf. docs/freshness.md)
       - dbt_expectations.expect_row_values_to_have_recent_data:
           arguments:
-            column_name: extracted_at
+            column_name: date_intervention
             datepart: day
             interval: 8
           config:
             severity: warn
       - dbt_expectations.expect_row_values_to_have_recent_data:
           arguments:
-            column_name: extracted_at
+            column_name: date_intervention
             datepart: day
             interval: 14
           config:

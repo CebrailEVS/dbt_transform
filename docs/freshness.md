@@ -128,8 +128,11 @@ le staging.
 - Seuil : **2 jours / warn** (équivalent 26h/48h en granularité jour)
 
 ### `nesp_tech` — tier *Hebdomadaire*, méthode B
-Source brute : `extracted_at` STRING. Test sur les 2 staging
-(`stg_nesp_tech__interventions`, `stg_nesp_tech__articles`).
+Source brute : `extracted_at` est **STRING et NULL sur les fichiers récents**
+(le champ a été abandonné par l'export Arbiter). Bascule sur les colonnes
+business qui restent peuplées :
+- `stg_nesp_tech__interventions` : test sur **`date_heure_fin`** (TIMESTAMP)
+- `stg_nesp_tech__articles` : test sur **`date_intervention`** (DATE)
 - Seuil : **8 jours warn / 14 jours error**
 
 ### `oracle_neshu_gcs` — tier *Relaxe*, méthode B
