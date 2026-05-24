@@ -1,0 +1,240 @@
+
+  
+    
+
+    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_yuman__demands_workorders_enriched`
+      
+    partition by timestamp_trunc(demand_created_at, day)
+    
+
+    
+    OPTIONS(
+      description="""Vue interm\u00e9diaire unifi\u00e9e regroupant les demandes d'intervention (workorder_demands) et les interventions (workorders).  Ce mod\u00e8le combine \u00e9galement les informations associ\u00e9es aux clients, sites, mat\u00e9riels,  cat\u00e9gories et utilisateurs.  Il sert de base de donn\u00e9es centrale pour les analyses et mod\u00e8les marts relatifs aux  op\u00e9rations de maintenance et d'intervention.\n"""
+    )
+    as (
+      
+
+with workorder_demands as (
+    select
+        demand_id,
+        workorder_id,
+        material_id,
+        site_id,
+        client_id,
+        contact_id,
+        user_id,
+        demand_description,
+        demand_status,
+        demand_reject_comment,
+        created_at as demand_created_at,
+        updated_at as demand_updated_at,
+        demand_category_id
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__workorder_demands`
+),
+
+workorder_demands_categories as (
+    select
+        demand_category_id,
+        demand_category_name
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__workorder_demands_categories`
+),
+
+workorders as (
+    select
+        workorder_id,
+        technician_id,
+        workorder_number,
+        workorder_category,
+        workorder_type,
+        workorder_status,
+        workorder_title,
+        workorder_description,
+        workorder_report,
+        workorder_technician_name,
+        workorder_date_creation,
+        workorder_motif_non_intervention,
+        workorder_detail_non_intervention,
+        workorder_raison_mise_en_pause,
+        workorder_explication_mise_en_pause,
+        workorder_necessite_intervenir,
+        workorder_si_non_pourquoi,
+        date_planned,
+        date_started,
+        date_done,
+        workorder_time_taken
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__workorders`
+),
+
+clients as (
+    select
+        client_id,
+        partner_name,
+        client_code,
+        client_name,
+        client_category,
+        is_active as client_is_active
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__clients`
+),
+
+sites as (
+    select
+        site_id,
+        site_code,
+        site_name,
+        site_address,
+        site_postal_code
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__sites`
+),
+
+materials as (
+    select
+        material_id,
+        material_name,
+        material_serial_number,
+        material_brand,
+        material_description,
+        material_in_service_date,
+        category_id
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__materials`
+),
+
+materials_categories as (
+    select
+        category_id,
+        category_name as material_category
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__materials_categories`
+),
+
+users as (
+    select
+        user_id,
+        manager_id,
+        user_name,
+        user_type,
+        is_manager_as_technician
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__users`
+),
+
+tech_agence_mapping as (
+    select
+        nom,
+        prenom,
+        agence,
+        equipe
+    from `evs-datastack-prod`.`prod_reference`.`ref_yuman__tech_agence`
+),
+
+contacts as (
+    select
+        contact_id,
+        contact_name,
+        contact_title,
+        contact_phone,
+        contact_mobile,
+        contact_email
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__contacts`
+)
+
+select
+    -- Demandes d'intervention
+    wd.demand_id,
+    wd.workorder_id,
+    wd.material_id,
+    wd.site_id,
+    wd.client_id,
+    wd.user_id,
+    wd.demand_description,
+    wd.demand_status,
+    wd.demand_reject_comment,
+    wd.demand_created_at,
+    wd.demand_updated_at,
+
+    -- Categorie demande
+    wdc.demand_category_name,
+
+    -- Interventions
+    wo.technician_id,
+    wo.workorder_number,
+    wo.workorder_category,
+    wo.workorder_type,
+    wo.workorder_status,
+    wo.workorder_title,
+    wo.workorder_description,
+    wo.workorder_report,
+    wo.workorder_technician_name,
+    wo.workorder_date_creation,
+    wo.workorder_motif_non_intervention,
+    wo.workorder_detail_non_intervention,
+    wo.workorder_raison_mise_en_pause,
+    wo.workorder_explication_mise_en_pause,
+    wo.workorder_necessite_intervenir,
+    wo.workorder_si_non_pourquoi,
+    wo.date_planned,
+    wo.date_started,
+    wo.date_done,
+    wo.workorder_time_taken,
+
+    -- Clients
+    cl.partner_name,
+    cl.client_code,
+    cl.client_name,
+    cl.client_category,
+    cl.client_is_active,
+
+    -- Sites
+    s.site_code,
+    s.site_name,
+    s.site_address,
+    s.site_postal_code,
+
+    -- Contact du site
+    c.contact_id,
+    c.contact_name,
+    c.contact_title,
+    c.contact_phone,
+    c.contact_mobile,
+    c.contact_email,
+
+    -- Materiels
+    m.material_name,
+    m.material_serial_number,
+    m.material_brand,
+    m.material_description,
+    m.material_in_service_date,
+
+    -- Categories de materiels
+    mc.material_category,
+
+    -- Utilisateurs
+    u.manager_id,
+    u.user_name,
+    u.user_type,
+    u.is_manager_as_technician,
+
+    -- Agence du technicien (via mapping)
+    tam.agence as technician_agency_stock,
+    tam.equipe as technician_equipe
+
+from workorder_demands as wd
+left join workorder_demands_categories as wdc
+    on wd.demand_category_id = wdc.demand_category_id
+full join workorders as wo
+    on wd.workorder_id = wo.workorder_id
+left join clients as cl
+    on wd.client_id = cl.client_id
+left join sites as s
+    on wd.site_id = s.site_id
+left join contacts as c
+    on wd.contact_id = c.contact_id
+left join materials as m
+    on wd.material_id = m.material_id
+left join materials_categories as mc
+    on m.category_id = mc.category_id
+left join users as u
+    on wd.user_id = u.user_id
+left join tech_agence_mapping as tam
+    on
+        upper(trim(regexp_replace(wo.workorder_technician_name, r'\[INACTIF\]\s*', '')))
+        = upper(trim(tam.nom || ' ' || tam.prenom))
+    );
+  
