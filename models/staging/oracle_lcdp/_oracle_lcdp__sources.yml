@@ -110,10 +110,6 @@ sources:
       # COMPANY
       - name: lcdp_company
         description: "Table des entreprises/clients"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idcompany
             tests:
@@ -135,10 +131,6 @@ sources:
 
       - name: lcdp_company_has_location
         description: "Lien entreprise-location"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idcompany
             tests:
@@ -156,10 +148,6 @@ sources:
       # CONTACT
       - name: lcdp_contact
         description: "Table des contacts"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idcontact
             tests:
@@ -198,10 +186,6 @@ sources:
       # DEVICE
       - name: lcdp_device
         description: "Table des machines/équipements parc"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: iddevice
             tests:
@@ -218,10 +202,6 @@ sources:
       # LOCATION
       - name: lcdp_location
         description: "Table des localisations"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlocation
             tests:
@@ -234,10 +214,6 @@ sources:
       # PRODUCT
       - name: lcdp_product
         description: "Produits catalogue"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idproduct
             tests:
@@ -254,10 +230,6 @@ sources:
       # RESOURCES
       - name: lcdp_resources
         description: "Ressources (roadmen, véhicules)"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idresources
             tests:
@@ -280,10 +252,6 @@ sources:
       # LABEL JUNCTION TABLES (operational)
       - name: lcdp_label_has_company
         description: "Labels par entreprise"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlabel
             tests:
@@ -310,10 +278,6 @@ sources:
 
       - name: lcdp_label_has_device
         description: "Labels par device"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlabel
             tests:
@@ -326,10 +290,6 @@ sources:
 
       - name: lcdp_label_has_product
         description: "Labels par produit"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlabel
             tests:
@@ -342,10 +302,6 @@ sources:
 
       - name: lcdp_label_has_resources
         description: "Labels par ressource"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlabel
             tests:

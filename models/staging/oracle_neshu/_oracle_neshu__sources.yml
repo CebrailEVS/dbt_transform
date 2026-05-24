@@ -110,10 +110,6 @@ sources:
       # COMPANY
       - name: evs_company
         description: "Table des entreprises/clients"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idcompany
             tests:
@@ -135,10 +131,6 @@ sources:
 
       - name: evs_company_has_location
         description: "Lien entreprise-location"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idcompany
             tests:
@@ -156,10 +148,6 @@ sources:
       # CONTACT
       - name: evs_contact
         description: "Table des contacts"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idcontact
             tests:
@@ -174,10 +162,6 @@ sources:
       # CONTRACT
       - name: evs_contract
         description: "Table des contrats"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idcontract
             tests:
@@ -217,10 +201,6 @@ sources:
       # DEVICE
       - name: evs_device
         description: "Table des machines/équipements parc"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: iddevice
             tests:
@@ -237,10 +217,6 @@ sources:
       # LOCATION
       - name: evs_location
         description: "Table des localisations"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlocation
             tests:
@@ -253,10 +229,6 @@ sources:
       # PRODUCT
       - name: evs_product
         description: "Produits catalogue"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idproduct
             tests:
@@ -273,10 +245,6 @@ sources:
       # RESOURCES
       - name: evs_resources
         description: "Ressources (roadmen, véhicules)"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idresources
             tests:
@@ -299,10 +267,6 @@ sources:
       # LABEL JUNCTION TABLES (operational)
       - name: evs_label_has_company
         description: "Labels par entreprise"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlabel
             tests:
@@ -315,10 +279,6 @@ sources:
 
       - name: evs_label_has_contract
         description: "Labels par contrat"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlabel
             tests:
@@ -331,10 +291,6 @@ sources:
 
       - name: evs_label_has_device
         description: "Labels par device"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlabel
             tests:
@@ -347,10 +303,6 @@ sources:
 
       - name: evs_label_has_product
         description: "Labels par produit"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlabel
             tests:
@@ -363,10 +315,6 @@ sources:
 
       - name: evs_label_has_resources
         description: "Labels par ressource"
-        config:
-          freshness:
-            warn_after: {count: 26, period: hour}
-            error_after: {count: 36, period: hour}
         columns:
           - name: idlabel
             tests:

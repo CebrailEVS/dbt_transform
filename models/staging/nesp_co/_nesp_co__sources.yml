@@ -142,6 +142,13 @@ sources:
 
       - name: nespresso_base_client
         description: "Table des bases clients Nespresso EVS importé depuis le SFTP EVS du fichier Base - Clients"
+        # Freshness: tier Manuel — 60j warn / 90j error
+        # Livraison manuelle uniquement (pipeline-sftp-nesp-client). Cf. docs/freshness.md
+        config:
+          loaded_at_field: _sdc_extracted_at
+          freshness:
+            warn_after: {count: 60, period: day}
+            error_after: {count: 90, period: day}
         columns:
           - name: third
             description: "Identifiant unique du client."

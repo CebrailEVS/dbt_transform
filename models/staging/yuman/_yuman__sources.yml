@@ -9,13 +9,12 @@ sources:
     config:
       tags: ['yuman', 'source']
 
-      # Freshness: column containing extraction timestamp
+      # Freshness: tier Standard — 26h warn / 48h error
+      # Cf. docs/freshness.md
       loaded_at_field: _sdc_extracted_at
-      
-      # Freshness thresholds for daily full refresh
       freshness:
-        warn_after: {count: 26, period: hour}   # Warn if > 26h (buffer for load delays)
-        error_after: {count: 36, period: hour}  # Error if missed a full day
+        warn_after: {count: 26, period: hour}
+        error_after: {count: 48, period: hour}
 
     tables:
       # ═══════════════════════════════════════════════════════════════════
