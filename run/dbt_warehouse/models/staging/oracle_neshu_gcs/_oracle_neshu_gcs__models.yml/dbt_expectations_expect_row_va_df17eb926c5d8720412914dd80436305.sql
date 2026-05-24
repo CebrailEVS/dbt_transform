@@ -13,7 +13,7 @@
 
     select max(cast(extracted_at as timestamp)) as max_timestamp
     from
-        `evs-datastack-prod`.`prod_staging`.`stg_nesp_co__opportunite`
+        `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu_gcs__stock_theorique`
     where
         -- to exclude erroneous future dates
         cast(extracted_at as timestamp) <= timestamp(datetime(current_timestamp(), 'Europe/Paris'))
@@ -32,7 +32,7 @@ where
 
         datetime_add(
             cast( timestamp(datetime(current_timestamp(), 'Europe/Paris')) as datetime),
-        interval -2 day
+        interval -48 hour
         )
 
  as timestamp)

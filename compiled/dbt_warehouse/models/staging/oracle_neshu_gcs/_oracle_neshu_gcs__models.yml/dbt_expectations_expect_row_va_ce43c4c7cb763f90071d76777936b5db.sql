@@ -1,22 +1,13 @@
 
-    
-    select
-      count(*) as failures,
-      count(*) != 0 as should_warn,
-      count(*) != 0 as should_error
-    from (
-      
-    
-  
 
  with max_recency as (
 
-    select max(cast(date_heure_fin as timestamp)) as max_timestamp
+    select max(cast(extracted_at as timestamp)) as max_timestamp
     from
-        `evs-datastack-prod`.`prod_staging`.`stg_nesp_tech__interventions`
+        `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu_gcs__stock_theorique`
     where
         -- to exclude erroneous future dates
-        cast(date_heure_fin as timestamp) <= timestamp(datetime(current_timestamp(), 'Europe/Paris'))
+        cast(extracted_at as timestamp) <= timestamp(datetime(current_timestamp(), 'Europe/Paris'))
         
 )
 select
@@ -32,15 +23,10 @@ where
 
         datetime_add(
             cast( timestamp(datetime(current_timestamp(), 'Europe/Paris')) as datetime),
-        interval -14 day
+        interval -26 hour
         )
 
  as timestamp)
 
 
 
-
-  
-  
-      
-    ) dbt_internal_test

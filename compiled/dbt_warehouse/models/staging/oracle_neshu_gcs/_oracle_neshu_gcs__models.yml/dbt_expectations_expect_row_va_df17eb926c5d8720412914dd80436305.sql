@@ -23,7 +23,7 @@ where
 
         datetime_add(
             cast( timestamp(datetime(current_timestamp(), 'Europe/Paris')) as datetime),
-        interval -14 day
+        interval -48 hour
         )
 
  as timestamp)
