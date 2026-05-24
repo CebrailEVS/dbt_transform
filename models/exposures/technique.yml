@@ -1,0 +1,43 @@
+version: 2
+
+# ============================================================
+# EXPOSURES — Technique
+# ============================================================
+# Owner BI : Etienne Boulinier (Data Analyst)
+# ============================================================
+
+exposures:
+
+  - name: pilotage_technique
+    label: "PILOTAGE TECHNIQUE"
+    type: dashboard
+    maturity: high
+    description: >
+      Pilotage de l'activité technique EVS : suivi des techniciens, managers,
+      productivité, interventions consolidées (Yuman + Nespresso), alerting
+      consommation pièces, pricing pièces détachées.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('fct_technique__intervention')
+      - ref('fct_technique__alerting_consommation_aguila')
+      - ref('fct_technique__piece_detachee_pricing_nespresso')
+      - ref('dim_technique__technician')
+      - ref('ref_nesp_tech__objectifs_volumes')
+      - ref('ref_general__feries_metropole')
+
+  - name: cartographie_partenaires
+    label: "CARTOGRAPHIE PARTENAIRES"
+    type: dashboard
+    maturity: high
+    description: >
+      Cartographie du parc machine de nos différents partenaires (clients chez
+      qui EVS intervient techniquement). Vue parc machine enrichie + référentiel
+      des codes postaux par technicien.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('dim_technique__parc_machine')
+      - ref('ref_yuman__cp_tech')
