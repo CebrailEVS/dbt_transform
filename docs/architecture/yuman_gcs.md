@@ -147,13 +147,31 @@ récurrent, envisager un mart helper de mapping.
 Tier *Relaxe* (7j/14j). Comme pour `oracle_neshu_gcs`, donnée d'analyse
 supply chain, pas du temps réel.
 
-### **28 % des lignes ont `nom_du_stock` NULL**
-Constat majeur observé en prod (mai 2026) : 383 k lignes sur 1,38 M n'ont pas
-d'entrepôt renseigné — soit ~28 % du volume. Ces lignes portent malgré tout
-3 234 références distinctes (≈ 80 % du catalogue), ce qui suggère que l'export
-Yuman ne renseigne pas toujours le champ entrepôt, et **non pas** que ces
-références sont rares. Sur `fct_supply_chain__stock_yuman`, ces lignes
-risquent d'être agrégées dans un bucket « inconnu ».
+### **`nom_du_stock IS NULL` ⇔ `quantite = 0` — règle stricte (sémantique, pas data quality)**
 
-À investiguer côté export Yuman : est-ce un stock par défaut implicite
-(entrepôt non assigné) ou une perte d'information à l'extraction ?
+Constat investigué en mai 2026 sur l'ensemble du dataset (1,38 M lignes) :
+
+| Bucket | Lignes | `quantite = 0` | `quantite > 0` |
+|---|---|---|---|
+| `nom_du_stock IS NULL` | 383 109 (28 %) | **100 %** | 0 % |
+| `nom_du_stock` renseigné | 1 001 079 (72 %) | 0 % | **100 %** |
+
+L'équivalence est **universelle** : aucune exception sur la fenêtre observée.
+Ce n'est donc pas une perte d'information à l'extraction, mais une **règle de
+l'export Yuman lui-même** : une référence sans stock physique n'est rattachée
+à aucun entrepôt (logique — un article à 0 n'est dans aucun stock).
+
+Au niveau brut (`prod_raw.ext_gcs_yuman__stock_theorique`), ces lignes
+arrivent avec `nom_du_stock = ''` (chaîne vide), converties en NULL par le
+`nullif(trim(nom_du_stock), '')` du staging.
+
+**Conséquence métier** : le « catalogue stockable » Yuman = ~4 000 références,
+mais seulement ~1 000 sont effectivement détenues en stock à un instant donné
+(jour 2026-05-23 : 922 refs avec stock, 3 073 refs à zéro partout). Sur
+`fct_supply_chain__stock_yuman`, filtrer `quantite > 0` (ou
+`nom_du_stock IS NOT NULL`, équivalent) si l'on veut seulement les positions
+réelles de stock. Garder les NULL si l'on veut le catalogue complet.
+
+> Aucun ticket à ouvrir côté Yuman : comportement attendu confirmé par
+> profiling. Documenter ce point dans les marts consommateurs pour éviter une
+> ré-investigation future.
