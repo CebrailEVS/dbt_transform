@@ -961,6 +961,82 @@ models:
           - not_null
 
 
+  - name: int_oracle_neshu__appro_machine_context
+    description: |
+      [QUOI MÉTIER]
+      Contexte appro par machine : pour chaque device ayant eu au moins un
+      passage appro, expose son dernier passage FAIT, son prochain PRÉVU, et
+      des compteurs (total, à venir, 30j, 90j).
+
+      [COMMENT CONSTRUITE]
+      Agrégation de `int_oracle_neshu__appro_tasks_enriched` (grain task)
+      vers le grain device. Utilise `row_number() over (partition by device_id
+      order by task_start_date)` pour identifier le dernier FAIT et le
+      prochain PRÉVU. Référentiel devices = uniquement les machines avec ≥ 1
+      passage (pas de jointure sur `dim_neshu__device`).
+
+      [GRAIN]
+      1 ligne par device_id (PK).
+
+      [NOTES]
+      Pas de filtre temporel ni de filtre `is_active` ici — l'intermediate
+      reste agnostique, les marts en aval filtrent. `company_id` est extrait
+      via `any_value()` car normalement stable par device ; à surveiller via
+      data quality. Pattern factorisé pour éviter de dupliquer la logique
+      "dernier appro / prochain appro / compteurs" dans plusieurs marts
+      consommateurs.
+    columns:
+      - name: device_id
+        description: "ID du device (PK)"
+        tests:
+          - unique
+          - not_null
+      - name: company_id
+        description: "ID company stable par device (any_value sur les tasks)"
+        tests:
+          - not_null
+      - name: last_appro_task_id
+        description: "ID du dernier passage FAIT (NULL si jamais d'appro FAIT)"
+      - name: last_appro_date
+        description: "Date du dernier passage FAIT"
+      - name: last_appro_roadman_id
+        description: "ID du roadman du dernier passage FAIT"
+      - name: last_appro_roadman_code
+        description: "Code du roadman du dernier passage FAIT"
+      - name: last_appro_gea_code
+        description: "Code GEA du dernier passage FAIT"
+      - name: days_since_last_appro
+        description: "Nombre de jours depuis le dernier passage FAIT (NULL si aucun)"
+      - name: next_appro_task_id
+        description: "ID du prochain passage PRÉVU à venir (NULL si rien de planifié)"
+      - name: next_appro_date
+        description: "Date du prochain passage PRÉVU"
+      - name: next_appro_roadman_id
+        description: "ID du roadman planifié sur le prochain passage"
+      - name: next_appro_roadman_code
+        description: "Code du roadman planifié"
+      - name: next_appro_gea_code
+        description: "Code GEA planifié"
+      - name: days_until_next_appro
+        description: "Nombre de jours jusqu'au prochain passage PRÉVU (NULL si aucun)"
+      - name: nb_appros_realises_total
+        description: "Compteur total des passages FAIT (toute période)"
+        tests:
+          - not_null
+      - name: nb_appros_planifies_a_venir
+        description: "Compteur des passages PRÉVU encore à venir"
+        tests:
+          - not_null
+      - name: nb_appros_realises_30d
+        description: "Compteur des passages FAIT sur les 30 derniers jours"
+        tests:
+          - not_null
+      - name: nb_appros_realises_90d
+        description: "Compteur des passages FAIT sur les 90 derniers jours"
+        tests:
+          - not_null
+
+
   - name: int_oracle_neshu__inter_techinique_tasks
     description: >
       Table intermédiaire des inter technique.
