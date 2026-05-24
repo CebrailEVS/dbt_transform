@@ -462,15 +462,62 @@ models:
 
 ## Source freshness
 
-Configuree dans les fichiers `_<source>__sources.yml` avec `loaded_at_field: _sdc_extracted_at`.
+> Voir `docs/freshness.md` pour l'audit complet et la justification par source.
+
+### Tiers
 
 | Tier | warn_after | error_after | Sources |
 |------|-----------|-------------|---------|
 | Critique | 26h | 36h | oracle_neshu, oracle_lcdp |
-| Standard | 26h | 48h | yuman, mssql_sage, nesp_tech |
-| Relaxe | 7j | 14j | gac, yuman_gcs, oracle_neshu_gcs |
+| Standard | 26h | 48h | yuman, mssql_sage, nesp_co (activite/opportunite) |
+| Hebdomadaire | 8j | 14j | nesp_tech |
+| Relaxe | 7j | 14j | gac, yuman_gcs, oracle_neshu_gcs, zoho_desk |
+| Manuel | 60j | 90j | nesp_co (nespresso_base_client) |
+
+### Deux mecanismes selon le type de timestamp source
+
+**Methode A — `dbt source freshness` natif** quand la source brute a un champ TIMESTAMP ou DATE :
+
+```yaml
+# _<source>__sources.yml
+sources:
+  - name: <source>
+    config:
+      loaded_at_field: _sdc_extracted_at
+      freshness:
+        warn_after: {count: 26, period: hour}
+        error_after: {count: 48, period: hour}
+    tables:
+      - name: <referentiel_stable>
+        config:
+          freshness: null   # desactive — table immuable
+```
 
 Commande : `dbt source freshness`
+
+**Methode B — test `dbt_expectations` sur staging** quand la source brute n'a qu'un champ STRING (external tables GCS, taps custom dlt). Le staging fait le cast en TIMESTAMP, on monitore a ce niveau :
+
+```yaml
+# _<source>__models.yml
+models:
+  - name: stg_<source>__<table>
+    tests:
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          arguments:
+            column_name: extracted_at
+            datepart: day
+            interval: 8
+          config:
+            severity: warn
+```
+
+Commande : couvert par `dbt test` standard.
+
+### Regles
+
+- **`freshness: null` uniquement sur les referentiels vraiment immuables** (codes, libellés, types). Toute source qui porte des evenements doit avoir un seuil, quitte a le mettre tres large.
+- **Ne jamais repeter** le freshness par table quand il est identique au defaut source — c'est du bruit YAML.
+- **Toujours commenter le tier** en regard du bloc freshness (`# Freshness: tier Standard — 26h warn / 48h error`).
 
 ---
 
