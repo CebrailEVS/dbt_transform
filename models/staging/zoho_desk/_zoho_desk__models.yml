@@ -231,6 +231,23 @@ models:
       Pour les métriques temporelles (tickets fermés/rouverts par mois),
       utiliser stg_zoho_desk__ticket_history — ne pas utiliser closed_time
       qui ne reflète que la fermeture la plus récente.
+    tests:
+      # Freshness fallback (tier Relaxe — source _dlt_load_id est STRING, cf. docs/freshness.md)
+      # On monitore created_time : ticketerie active → tickets créés régulièrement.
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          arguments:
+            column_name: created_time
+            datepart: day
+            interval: 7
+          config:
+            severity: warn
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          arguments:
+            column_name: created_time
+            datepart: day
+            interval: 14
+          config:
+            severity: error
     columns:
       - name: ticket_id
         description: "PK — identifiant unique du ticket (renommé depuis id)"

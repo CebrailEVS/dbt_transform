@@ -127,4 +127,10 @@ snapshots:
   dbt_warehouse:
     +target_schema: "{{ 'snapshots_dev' if target.name == 'dev' else 'snapshots' }}"
     +tags: ['snapshots']
+
+# Vars
+vars:
+  # Required by dbt_date (transitive dep of dbt_expectations) for recency checks.
+  # Cf. docs/freshness.md méthode B.
+  'dbt_date:time_zone': 'Europe/Paris'
     

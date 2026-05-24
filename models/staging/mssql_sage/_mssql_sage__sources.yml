@@ -8,19 +8,16 @@ sources:
     config:
       tags: ['mssql_sage', 'source']  # Déplacé dans config
 
-      # Freshness: column containing extraction timestamp
+      # Freshness: tier Standard — 26h warn / 48h error
+      # Cf. docs/freshness.md
       loaded_at_field: _sdc_extracted_at
-
-      # Default freshness thresholds for all tables
       freshness:
-        warn_after: {count: 26, period: hour}    # Warn if > 26h old
-        error_after: {count: 36, period: hour}  # Error before next business day
-        
+        warn_after: {count: 26, period: hour}
+        error_after: {count: 48, period: hour}
+
     tables:
       - name: dbo_f_ecriturea
         description: "Table des écritures analytiques (f_ecriturea) — détail des montants et quantités analytiques par écriture comptable"
-        config:  # ✅ Ajoutez cette section
-          loaded_at_field: _sdc_received_at
 
         columns:
           - name: ec_no
@@ -80,8 +77,6 @@ sources:
       # TABLE ECRITURE COMPTABLE
       - name: dbo_f_ecriturec
         description: "Table des écritures comptables (f_ecriturec) — enregistre les mouvements comptables avec leurs montants, comptes, dates et statuts"
-        config:
-          loaded_at_field: _sdc_received_at
 
         columns:
           - name: ec_no
