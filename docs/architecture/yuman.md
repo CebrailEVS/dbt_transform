@@ -43,10 +43,11 @@ Données clés exposées :
                                                   │ dbt marts
                                                   ▼
                                        ┌──────────────────────────┐
-                                       │  marts                   │
-                                       │  dim_yuman__* / fct_*    │
-                                       │  + marts technique &     │
-                                       │    commerce              │
+                                       │  marts/technique/        │
+                                       │  dim_technique__* /      │
+                                       │  fct_technique__*        │
+                                       │  (+ neshu/, commerce/    │
+                                       │   selon le partenaire)   │
                                        └──────────────────────────┘
 ```
 
@@ -467,12 +468,12 @@ flowchart TB
 
 ## Marts consommateurs
 
-Les modèles Yuman alimentent deux familles de marts :
+Les modèles Yuman alimentent deux familles de marts (post-refacto BU 2026-05) :
 
 | Dossier | Marts | Usage BI |
 |---|---|---|
-| `marts/yuman/` | `dim_technique__client`, `dim_technique__site`, `dim_technique__material`, `dim_technique__parc_machine`, `dim_technique__technician`, `fct_technique__suivi_partenaire`, `fct_neshu__workorder_delai`, `fct_technique__workorder_pricing` | Pilotage partenaires, délais, pricing |
-| `marts/technique/` | `fct_technique__intervention`, `fct_technique__neshu_maintenance_preventives` | Suivi opérationnel SAV (croisement avec Oracle Neshu) |
+| `marts/technique/` | 5 dims conformed (`dim_technique__client/site/material/parc_machine/technician`) + facts transverses (`fct_technique__workorder_pricing`, `fct_technique__suivi_partenaire`, `fct_technique__intervention`) | Pilotage technique transverse (tous partenaires Yuman) |
+| `marts/neshu/` | `fct_neshu__workorder_delai`, `fct_neshu__maintenance_preventive` | Logique métier Neshu-specific sur données Yuman |
 
-> Note : `marts/commerce/fct_commerce__machines_avec_interventions` ne
+> Note : `marts/commerce/fct_commerce__machine_intervention` ne
 > consomme **pas** de données Yuman (il s'appuie sur `nesp_tech` et `nesp_co`).

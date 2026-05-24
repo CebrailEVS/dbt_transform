@@ -1,6 +1,13 @@
 # dbt_warehouse — Architecture Review & Migration Plan
 
 > Internal doc — for team discussion. Last updated: 2026-03-26.
+>
+> ⚠️ **Status (2026-05-22)** : ce document est le brainstorming initial du refacto marts by BU.
+> Le mapping final appliqué diffère du draft ci-dessous (noms `bu_*` abandonnés, folders comme
+> `parc_machines`/`logistique`/`assets`/`stock` non retenus au profit de `neshu`/`supply_chain`/
+> `services_generaux`/etc.). **Source de vérité du mapping final** :
+> [`docs/migration-marts/inventory.md`](./migration-marts/inventory.md).
+> Garder ce doc comme référence historique des décisions prises.
 
 ---
 

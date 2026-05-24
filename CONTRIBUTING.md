@@ -247,7 +247,7 @@ Un modele est cross-source s'il consomme des `ref()` provenant de sources differ
 Les exposures declarent quels rapports Power BI consomment quels modeles dbt. Cela permet de :
 
 - **Visualiser la lignee complete** dans `dbt docs` — de la source raw jusqu'au rapport BI
-- **Mesurer l'impact d'un changement** : si on modifie `fct_oracle_neshu__appro`, on voit immediatement quels rapports sont affectes
+- **Mesurer l'impact d'un changement** : si on modifie `fct_neshu__appro`, on voit immediatement quels rapports sont affectes
 - **Cibler un rebuild** : `dbt build -s +exposure:reporting_appro` reconstruit uniquement les modeles qui alimentent ce rapport
 - **Documenter qui est responsable** de chaque rapport (owner) et son niveau de maturite
 

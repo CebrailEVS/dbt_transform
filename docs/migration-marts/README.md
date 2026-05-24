@@ -204,15 +204,18 @@ A first attempt at Phase 1 was opened as PR #75 and closed without merging.
 
 ### Phase 2 — Migrate marts, 1 PR per BU/domain (atomic, includes its own scaffolding)
 
-Order (smallest first, to rehearse the pattern):
+Ordre réellement appliqué (différent de la suggestion initiale "smallest first" — neshu fait en 4ème, technique en dernier) :
 
-1. **`finance/`** (1 mart: `fct_mssql_sage__pnl_bu_kpis` → `fct_finance__pnl_bu`) — source isolée, idéal pour roder
-2. **`services_generaux/`** (1 mart: `fct_gac__sinistres_sg` → `fct_services_generaux__sinistre`)
-3. **`commerce/`** (1 mart, rename in-place: `fct_commerce__machines_avec_interventions` → `fct_commerce__machine_intervention`)
-4. **`lcdp/`** (3 dims oracle_lcdp, no fact yet)
-5. **`supply_chain/`** (3 marts: 2 GCS stock + `fct_oracle_neshu__supply_flux` → `fct_supply_chain__flux_neshu`)
-6. **`technique/`** (9 marts: 5 yuman dims + 2 nesp_tech facts + workorder_pricing + intervention) — scope reduction of current `technique/`
-7. **`neshu/`** (13 marts, including 2 snapshots `ref()` updates) — le plus complexe, en dernier
+| # | BU | Statut | PR | Marts |
+|---|---|---|---|---|
+| 1 | `finance/` | ✅ DONE 2026-05-20 | #76 | 1 (`fct_finance__pnl_bu`) |
+| 2 | `services_generaux/` | ✅ DONE 2026-05-20 | #78 | 1 (`fct_services_generaux__sinistre`) |
+| 3 | `supply_chain/` | ✅ DONE 2026-05-20 | #79 | 3 (stock_neshu + stock_yuman + flux_neshu) |
+| 4 | `neshu/` | ✅ DONE 2026-05-21 | #81 | 13 marts + 2 snapshots refs |
+| 5 | External Cloud Run (neshu + lcdp) | ✅ DONE 2026-05-21 | #82 | 2 tables monitoring_passage_appro |
+| 6 | `lcdp/` | ✅ DONE 2026-05-21 | direct master | 3 dims |
+| 7 | `technique/` | ✅ DONE 2026-05-22 | #90 | 10 marts (5 dims yuman + workorder_pricing + suivi_partenaire + intervention + 2 nesp_tech) |
+| 8 | `commerce/` | ⏳ Pending | — | 1 mart rename in-place (`fct_commerce__machines_avec_interventions` → `fct_commerce__machine_intervention`) |
 
 Per-BU PR checklist (single PR, single atomic unit):
 
@@ -246,14 +249,14 @@ Per-BU PR checklist (single PR, single atomic unit):
 - [ ] Verify the new scheduler triggered successfully on day 1
 - [ ] Drop the old BigQuery physical table(s) (in `prod_marts`) once BI is confirmed green
 
-### Phase 3 — Final cleanup (1 PR, after all 7 BUs done)
+### Phase 3 — Final cleanup (1 PR, après que les 7 BUs soient migrées)
 
-Most folder/subkey cleanup happens incrementally inside each Phase 2 PR (when a source folder becomes empty, its PR deletes it + removes its subkey). What remains:
+La plupart du cleanup folder/subkey s'est fait incrémentalement dans chaque PR Phase 2 (quand un folder source devenait vide, sa PR le supprimait + retirait la subkey). État actuel :
 
-- [ ] Confirm all source-named folders under `models/marts/` are gone (`oracle_neshu/`, `oracle_lcdp/`, `yuman/`, `mssql_sage/`, `gac/`, `yuman_gcs/`, `oracle_neshu_gcs/`, `nesp_tech/`)
-- [ ] Scope down `dbt build` step in each `pipeline-<source>.yaml` to staging+intermediate only (drop `tag:<source>` from the marts scope — example: `DBT_TAG_SELECTOR=tag:<source>,path:models/staging models/intermediate`)
-- [ ] Move `transform-technique-daily` schedule from 03:00 to 10:00 (fix latency bug for nesp data — see [§4.2](#42-target-t-workflow-schedules-2h-margin-minimum))
-- [ ] Update `README.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`, `CLAUDE.md` to document the new layout (remove references to source-organized marts)
+- [x] **Folders source-named supprimés** : `oracle_neshu/`, `oracle_lcdp/`, `yuman/`, `mssql_sage/`, `gac/`, `yuman_gcs/`, `oracle_neshu_gcs/`, `nesp_tech/` — tous supprimés au fil des migrations.
+- [x] **Schedule `transform-technique-daily`** : passé de `0 3 * * *` à `0 3,8 * * *` (run additionnel à 08:00 pour rattraper nesp_tech le lundi — terraform commit `0b06cf3`). Solution choisie au lieu du décalage à 10:00 originellement prévu.
+- [ ] **Scope down `dbt build` step in each `pipeline-<source>.yaml`** to staging+intermediate only (drop `tag:<source>` from the marts scope — example: `DBT_TAG_SELECTOR=tag:<source>,path:models/staging models/intermediate`). À faire dans une PR dédiée Phase 3 quand commerce sera migrée.
+- [ ] Update `README.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`, `CLAUDE.md` to document the new layout (remove references to source-organized marts) — partiellement fait au fil de l'eau.
 
 ### Phase 4 — Validation
 - [ ] `dbt build` in dev → all green
