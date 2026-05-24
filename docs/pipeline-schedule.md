@@ -176,7 +176,7 @@ dans les workflows transform.
 | technique | Pilotage Technique, Cartographie Partenaires | Etienne Boulinier |
 | finance | P&L par BU | Etienne Boulinier |
 | supply_chain | Diagramme Flux Neshu (dev) | Etienne Boulinier |
-| commerce | *(aucune exposure déclarée — à créer si rapport PBI existe)* | — |
+| commerce | PROD Machines & Interventions | Rim Bouchikhi |
 | services_generaux | *(aucune exposure déclarée)* | — |
 
 ---

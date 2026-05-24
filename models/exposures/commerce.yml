@@ -1,0 +1,24 @@
+version: 2
+
+# ============================================================
+# EXPOSURES — Commerce
+# ============================================================
+# Owner BI : Rim Bouchikhi (Data Analyst)
+# ============================================================
+
+exposures:
+
+  - name: machines_interventions
+    label: "PROD MACHINES & INTERVENTIONS"
+    type: dashboard
+    maturity: medium
+    description: >
+      Suivi commercial des interventions techniques EVS sur le parc machines
+      Nespresso (6 derniers mois glissants). Vue consolidée client / machine
+      / intervention basée sur les fichiers nesp_tech (hebdo) et nesp_co
+      (quotidien).
+    owner:
+      name: Rim Bouchikhi
+      email: rim.bouchikhi@evs-pro.com
+    depends_on:
+      - ref('fct_commerce__machine_intervention')
