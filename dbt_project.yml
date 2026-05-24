@@ -96,12 +96,6 @@ models:
       +schema: marts
       +tags: ['marts']
 
-      yuman:
-        +tags: ['marts', 'yuman']
-
-      nesp_tech:
-        +tags: ['marts', 'nesp_tech']
-
       technique:
         +tags: ['marts', 'technique']
 

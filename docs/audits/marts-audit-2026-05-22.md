@@ -297,5 +297,5 @@ fct_neshu__machines_appro_interventions (refacto PR #77 ; jointure Yuman)
 - Trame description 4 blocs + retrait `description=` du config
 - FK relationships sur `device_id`, `material_id`, `company_id`
 - Réduction OBT (40+ attributs aplatis → IDs + 1-3 attributs d'affichage par dim)
-- Nettoyage du YAML (retirer `fct_technique__neshu_maintenance_preventives` et `fct_technique__interventions` déjà migrés en master)
+- Nettoyage du YAML (retirer `fct_technique__neshu_maintenance_preventives` et `fct_technique__intervention` déjà migrés en master)
    - `fct_neshu__chargement_quinzaine` ("Suivi des chargements machines gratuités")

@@ -962,7 +962,7 @@ models:
   - name: fct_neshu__workorder_delai
     description: |
       [QUOI MÉTIER] Délai de traitement des interventions Yuman (workorders) et tarification automatique associée.
-      [COMMENT CONSTRUITE] Issu de fct_yuman__workorder_pricing (qui consolide demandes + bons de travail Yuman avec tarification automatique). Calcul du délai en jours ouvrés via generate_date_array entre date_creation_ref (créa workorder, ou demande si workorder NULL ; décalée au lendemain si > 16h) et date_done. Type de délai selon règles NESHU validées par le Responsable Technique.
+      [COMMENT CONSTRUITE] Issu de fct_technique__workorder_pricing (qui consolide demandes + bons de travail Yuman avec tarification automatique). Calcul du délai en jours ouvrés via generate_date_array entre date_creation_ref (créa workorder, ou demande si workorder NULL ; décalée au lendemain si > 16h) et date_done. Type de délai selon règles NESHU validées par le Responsable Technique.
       [GRAIN] 1 ligne par workorder_id (et par demand_id — bijection testée par unique).
       [NOTES] billing_validation_status ∈ {VALIDATED, MISSING_TARIF, NOT_BILLABLE}. pricing_type ∈ {Tarif normal, Remise niv1, Remise niv2}.
 
@@ -981,21 +981,21 @@ models:
         tests:
           - relationships:
               arguments:
-                to: ref('dim_yuman__materials')
+                to: ref('dim_technique__material')
                 field: material_id
       - name: site_id
         description: Identifiant du site client.
         tests:
           - relationships:
               arguments:
-                to: ref('dim_yuman__sites')
+                to: ref('dim_technique__site')
                 field: site_id
       - name: client_id
         description: Identifiant du client.
         tests:
           - relationships:
               arguments:
-                to: ref('dim_yuman__clients')
+                to: ref('dim_technique__client')
                 field: client_id
       - name: technician_id
         description: Identifiant du technicien associé.

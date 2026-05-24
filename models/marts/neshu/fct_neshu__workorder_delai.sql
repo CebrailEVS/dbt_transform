@@ -14,7 +14,7 @@ with adjusted_dates as (
                 then timestamp(date(coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at)) + 1)
             else coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at)
         end as date_creation_ref
-    from {{ ref('fct_yuman__workorder_pricing') }} as sfp
+    from {{ ref('fct_technique__workorder_pricing') }} as sfp
 ),
 
 dates_range as (
@@ -100,7 +100,7 @@ final_table as (
             else 'ERREUR'
         end as type_delai,
         fm.famille_neshu
-    from {{ ref('fct_yuman__workorder_pricing') }} as sfp
+    from {{ ref('fct_technique__workorder_pricing') }} as sfp
     left join delai_calcul as dc
         on sfp.workorder_id = dc.sfp_numero
     left join famille_machine as fm

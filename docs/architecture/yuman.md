@@ -471,8 +471,8 @@ Les modèles Yuman alimentent deux familles de marts :
 
 | Dossier | Marts | Usage BI |
 |---|---|---|
-| `marts/yuman/` | `dim_yuman__clients`, `dim_yuman__sites`, `dim_yuman__materials`, `dim_yuman__materials_clients`, `dim_yuman__technicians`, `fct_yuman__suivi_partenaires`, `fct_yuman__workorder_delais_neshu`, `fct_yuman__workorder_pricing` | Pilotage partenaires, délais, pricing |
-| `marts/technique/` | `fct_technique__interventions`, `fct_technique__neshu_maintenance_preventives` | Suivi opérationnel SAV (croisement avec Oracle Neshu) |
+| `marts/yuman/` | `dim_technique__client`, `dim_technique__site`, `dim_technique__material`, `dim_technique__parc_machine`, `dim_technique__technician`, `fct_technique__suivi_partenaire`, `fct_neshu__workorder_delai`, `fct_technique__workorder_pricing` | Pilotage partenaires, délais, pricing |
+| `marts/technique/` | `fct_technique__intervention`, `fct_technique__neshu_maintenance_preventives` | Suivi opérationnel SAV (croisement avec Oracle Neshu) |
 
 > Note : `marts/commerce/fct_commerce__machines_avec_interventions` ne
 > consomme **pas** de données Yuman (il s'appuie sur `nesp_tech` et `nesp_co`).

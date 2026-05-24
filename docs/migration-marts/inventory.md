@@ -55,18 +55,24 @@ External source `fct_lcdp__monitoring_passage_appro` already migrated in PR #82.
 
 > No fact today — facts to be built by DA later.
 
-### → `technique/` (8)
+### → `technique/` (10) ✅ migrated 2026-05-21
+
+5 dims (conformed yuman) + 5 facts (3 yuman + 2 nesp_tech après rename).
 
 | Current path | Target name | Notes |
 |---|---|---|
-| `yuman/dim_yuman__clients.sql` | `dim_technique__client` | singular |
-| `yuman/dim_yuman__sites.sql` | `dim_technique__site` | singular |
-| `yuman/dim_yuman__materials.sql` | `dim_technique__material` | singular. Add `client_id` + `site_id` FK columns if not present, for relationships with `dim_technique__client` / `dim_technique__site` in PBI |
-| `yuman/dim_yuman__technicians.sql` | `dim_technique__technician` | singular |
-| `technique/fct_technique__interventions.sql` | `fct_technique__intervention` | singular |
-| `yuman/fct_yuman__workorder_pricing.sql` | `fct_technique__workorder_pricing` | transverse (ad-hoc reporting for intervention pricing) |
-| `nesp_tech/fct_nesp_tech__alerting_conso_pieces_aguila.sql` | `fct_technique__alerting_consommation_piece_aguila` | long name accepté |
-| `nesp_tech/fct_nesp_tech__pieces_detachees_pricing.sql` | `fct_technique__piece_detachee_pricing` | |
+| ~~`yuman/dim_yuman__clients.sql`~~ → `technique/dim_technique__client.sql` | `dim_technique__client` | singular |
+| ~~`yuman/dim_yuman__sites.sql`~~ → `technique/dim_technique__site.sql` | `dim_technique__site` | singular |
+| ~~`yuman/dim_yuman__materials.sql`~~ → `technique/dim_technique__material.sql` | `dim_technique__material` | singular |
+| ~~`yuman/dim_yuman__materials_clients.sql`~~ → `technique/dim_technique__parc_machine.sql` | `dim_technique__parc_machine` | renommé en métier (parc machine) — OBT préservée car consommée directement par un BI |
+| ~~`yuman/dim_yuman__technicians.sql`~~ → `technique/dim_technique__technician.sql` | `dim_technique__technician` | singular |
+| ~~`technique/fct_technique__interventions.sql`~~ → `technique/fct_technique__intervention.sql` | `fct_technique__intervention` | singular (rename in-place) |
+| ~~`yuman/fct_yuman__workorder_pricing.sql`~~ → `technique/fct_technique__workorder_pricing.sql` | `fct_technique__workorder_pricing` | transverse (pricing Yuman, tous partenaires) |
+| ~~`yuman/fct_yuman__suivi_partenaires.sql`~~ → `technique/fct_technique__suivi_partenaire.sql` | `fct_technique__suivi_partenaire` | conservé finalement (pas consommé aujourd'hui mais gardé pour follow-up) |
+| ~~`nesp_tech/fct_nesp_tech__alerting_conso_pieces_aguila.sql`~~ → `technique/fct_technique__alerting_consommation_aguila.sql` | `fct_technique__alerting_consommation_aguila` | Nespresso machine type Aguila |
+| ~~`nesp_tech/fct_nesp_tech__pieces_detachees_pricing.sql`~~ → `technique/fct_technique__piece_detachee_pricing_nespresso.sql` | `fct_technique__piece_detachee_pricing_nespresso` | suffixe `_nespresso` pour distinguer de workorder_pricing (Yuman) |
+
+Folders `yuman/` et `nesp_tech/` supprimés (vides après le move). Subkeys `yuman:` et `nesp_tech:` retirés de `dbt_project.yml`.
 
 ### → `commerce/` (1)
 
@@ -98,12 +104,13 @@ Three stock-related facts here. Source suffix kept to disambiguate them (rule §
 
 All 3 `.pbix` repointed by DA, old BQ tables dropped (dev + prod).
 
-### → DELETE (2)
+### → DELETE — none (decisions reversed 2026-05-21)
 
-| Current path | Reason |
-|---|---|
-| `yuman/fct_yuman__suivi_partenaires.sql` | not consumed today, confirmed by DE |
-| `yuman/dim_yuman__materials_clients.sql` | **OBT anti-pattern** — flattens client+site attrs into the material dim. Decided 2026-05-20 to drop. DA recreates an enriched view via Power Query / SQL custom in PBI when needed. If 3+ reports end up duplicating the same flatten, promote back to a dedicated dbt mart. See §5 architecture decision below. |
+Initialement 2 fichiers étaient marqués à supprimer, finalement conservés lors de la PR `technique/` :
+- `fct_yuman__suivi_partenaires` → migré vers `fct_technique__suivi_partenaire` (gardé même si non consommé aujourd'hui, pourrait servir plus tard)
+- `dim_yuman__materials_clients` → migré vers `dim_technique__parc_machine` (OBT préservée car consommée par un BI ; le renaming en métier "parc machine" clarifie son usage)
+
+L'OBT reste un anti-pattern à surveiller (cf. §5) — règle de promotion à un vrai mart inchangée.
 
 ### → External sources (not dbt models — 2) ✅ migrated 2026-05-21
 
@@ -126,7 +133,7 @@ Tables in `prod_marts` written directly by Cloud Run jobs (Oracle SQL → BQ →
 
 ### 2026-05-19
 - Yuman dims and `workorder_pricing` → `technique/` (Yuman is transverse for all non-Nespresso partners).
-- `fct_yuman__suivi_partenaires` → **delete**.
+- `fct_technique__suivi_partenaire` → **delete**.
 - `fct_yuman__workorder_delais_neshu` → `neshu/`.
 - `fct_oracle_neshu__supply_flux` → `supply_chain/` (BI in Supply Chain workspace).
 - `gac` BU confirmed: **Services Généraux**.
@@ -137,7 +144,7 @@ Tables in `prod_marts` written directly by Cloud Run jobs (Oracle SQL → BQ →
 ### 2026-05-20 (BigQuery audit)
 - `fct_oracle_neshu__pa_business_review` → `fct_neshu__passage_appro` (PA = Passage Appro, confirmed via BQ table description).
 - `fct_oracle_neshu__chargement_vs_conso` → **pending DA**: may belong to `intermediate/` rather than marts (BQ description says "Table intermédiaire").
-- `dim_yuman__materials_clients` → **delete** (OBT anti-pattern, see §5).
+- `dim_technique__parc_machine` → **delete** (OBT anti-pattern, see §5).
 - 2 external Cloud Run tables identified (`monitoring_passages_appro` neshu + lcdp) — must be coordinated separately.
 - Initial inventory said 32 marts. Correct count: **33 dbt models + 2 external sources = 35 objects** in `prod_marts`.
 
@@ -164,18 +171,18 @@ Tables in `prod_marts` written directly by Cloud Run jobs (Oracle SQL → BQ →
 | `services_generaux/` | 1 | 0 |
 | `supply_chain/` | 3 | 0 |
 | **Migrated total** | **30** | **2** |
-| Deleted | 2 (`fct_yuman__suivi_partenaires`, `dim_yuman__materials_clients`) | — |
+| Deleted | 2 (`fct_technique__suivi_partenaire`, `dim_technique__parc_machine`) | — |
 | **Grand total** | **32 dbt + 2 external = 34 BQ tables** | |
 
 ---
 
 ## 5. Architecture decision (2026-05-20) — flatten in dbt vs flatten in PBI
 
-Triggered by the review of `dim_yuman__materials_clients` (OBT-style dim aggregating material + client + site attrs into one table, 9500 rows). Three options were debated:
+Triggered by the review of `dim_technique__parc_machine` (OBT-style dim aggregating material + client + site attrs into one table, 9500 rows). Three options were debated:
 
 | Option | Where the flatten logic lives | Verdict |
 |---|---|---|
-| 1. Flatten in dbt (current `dim_yuman__materials_clients`) | dbt | **Rejected** — OBT anti-pattern: conflates 3 distinct entities (material, client, site), duplicates storage, breaks conformed dimensions principle |
+| 1. Flatten in dbt (current `dim_technique__parc_machine`) | dbt | **Rejected** — OBT anti-pattern: conflates 3 distinct entities (material, client, site), duplicates storage, breaks conformed dimensions principle |
 | 2. Star schema in dbt + PBI relationships | PBI semantic model | Valid but constrains the DA's data model |
 | 3. **Star schema in dbt + custom SQL in Power Query when needed** | PBI Power Query (per report) | **Chosen as default** — clean dbt, DA flexibility |
 
