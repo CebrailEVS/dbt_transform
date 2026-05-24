@@ -62,6 +62,25 @@ Grain : **1 ligne par (`_sdc_source_file`, `_sdc_source_lineno`, `export_date`)*
 Test de grain en place : `dbt_utils.unique_combination_of_columns` sur la clé
 ci-dessus.
 
+**Volumétrie (mai 2026)** :
+- ~1,38 M lignes, ~3 996 références distinctes, 54 stocks
+- 148 jours d'historique (2025-11-28 → 2026-05-23)
+- Couverture quotidienne sur les 148 jours
+
+**Répartition par stock (top 5)** :
+
+| `nom_du_stock` | # refs | # lignes |
+|---|---|---|
+| *(NULL)* — voir point d'attention | 3 234 | 383 109 (28 %) |
+| `06 - ATELIER RUNGIS DEPOT` | 817 | 89 630 |
+| `07 - ATELIER LYON DEPOT` | 654 | 73 493 |
+| `ST - DIDION FRANCK` (stock perso roadman) | 324 | 43 073 |
+| `ST - HEIDINGER YANNICK` | 295 | 34 773 |
+
+Les stocks `ST - NOM PRENOM` correspondent aux **stocks personnels embarqués
+des techniciens** (équivalent des `storehouses` Yuman — cf. `docs/architecture/yuman.md`
+§ storehouses). Les `XX - DEPOT` sont les ateliers physiques.
+
 | Colonne | Type | Source / Transformation |
 |---|---|---|
 | `reference` | string | `trim(r_f_rence)` — référence article |
@@ -127,3 +146,14 @@ récurrent, envisager un mart helper de mapping.
 ### Pas de freshness stricte
 Tier *Relaxe* (7j/14j). Comme pour `oracle_neshu_gcs`, donnée d'analyse
 supply chain, pas du temps réel.
+
+### **28 % des lignes ont `nom_du_stock` NULL**
+Constat majeur observé en prod (mai 2026) : 383 k lignes sur 1,38 M n'ont pas
+d'entrepôt renseigné — soit ~28 % du volume. Ces lignes portent malgré tout
+3 234 références distinctes (≈ 80 % du catalogue), ce qui suggère que l'export
+Yuman ne renseigne pas toujours le champ entrepôt, et **non pas** que ces
+références sont rares. Sur `fct_supply_chain__stock_yuman`, ces lignes
+risquent d'être agrégées dans un bucket « inconnu ».
+
+À investiguer côté export Yuman : est-ce un stock par défaut implicite
+(entrepôt non assigné) ou une perte d'information à l'extraction ?

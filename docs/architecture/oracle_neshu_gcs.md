@@ -63,11 +63,27 @@ marts `supply_chain`.
 
 Grain : **1 ligne par (entité, produit, date_system)**.
 
+**Volumétrie (mai 2026)** :
+- ~620 k lignes, ~3 000 lignes/jour (très stable : min 2 630 / max 3 322)
+- 204 jours d'historique (depuis ~2025-11)
+- 76 entités stockantes × 204 produits
+- Couverture quotidienne — pas de jour manquant sur la fenêtre observée
+
+**Répartition des entités (`entity_type`)** :
+
+| `entity_type` | # entités | % lignes | Exemples |
+|---|---|---|---|
+| `company` | 15 | 22 % | `06 - atelier rungis depot`, `02 - lyon depot produits`, `13 - marseille depot produits`, `10 - rebus depot`, `05 - perimes depot`… (dépôts physiques EVS, préfixe numérique) |
+| `resource` | 65 | 78 % | `anim rungis`, `prepa rungis`, `ksaadouni`, `asoumare`… (roadmen + ressources de préparation) |
+
+> Les deux seules valeurs possibles aujourd'hui sont `company` et `resource` —
+> à durcir éventuellement avec un test `accepted_values`.
+
 | Colonne | Type | Source / Transformation |
 |---|---|---|
 | `id_entity` | int64 | Cast de la colonne brute |
 | `entity_name` | string | `lower(...)` |
-| `entity_type` | string | `lower(...)` — ex. `resources`, `depot` |
+| `entity_type` | string | `lower(...)` — `company` (dépôt) ou `resource` (roadman / ressource interne) |
 | `date_system` | timestamp | **Partition** — date du système d'inventaire |
 | `resources_code` | string | Code ressource (camion / roadman) |
 | `product_code` | string | Renommé depuis `code_source` |
@@ -137,3 +153,20 @@ regex échoue silencieusement (`NULL`). Audit possible via `where file_datetime 
 ### Pas de freshness stricte
 Tier *Relaxe* (7j/14j) — utiliser ce modèle pour des analyses de stock pas
 pour du temps réel. Une donnée à J-1 est attendue mais pas garantie.
+
+### Taux de NULL observés (mai 2026)
+
+| Colonne | % NULL | Lecture |
+|---|---|---|
+| `stock_at_date` | 0 % | Toujours renseigné — c'est la mesure principale |
+| `stock_inventaire` | 0 % | Toujours renseigné |
+| `resources_code` | 0 % | Toujours renseigné |
+| `pump` | 0 % | Toujours renseigné |
+| `purchase_price` | 2 % | Quelques produits sans prix |
+| `dpa` | 9 % | Produits sans historique d'achat récent |
+| `date_inventaire` | **25 %** | Significatif — produits sans inventaire physique récent |
+
+Le quart des lignes sans `date_inventaire` correspond à des produits sur
+lesquels aucun inventaire physique n'a été remonté côté Oracle. La colonne
+`stock_at_date` reste utilisable (calculée même sans point d'ancrage récent),
+mais les écarts `plus`/`moins` sont à interpréter avec prudence sur ces lignes.
