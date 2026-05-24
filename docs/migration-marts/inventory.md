@@ -74,11 +74,11 @@ External source `fct_lcdp__monitoring_passage_appro` already migrated in PR #82.
 
 Folders `yuman/` et `nesp_tech/` supprimés (vides après le move). Subkeys `yuman:` et `nesp_tech:` retirés de `dbt_project.yml`.
 
-### → `commerce/` (1)
+### → `commerce/` (1) ✅ migrated 2026-05-22
 
 | Current path | Target name | Notes |
 |---|---|---|
-| `commerce/fct_commerce__machines_avec_interventions.sql` | `fct_commerce__machine_intervention` | singular, drop `_avec_` connector |
+| ~~`commerce/fct_commerce__machines_avec_interventions.sql`~~ → `commerce/fct_commerce__machine_intervention.sql` | `fct_commerce__machine_intervention` | rename in-place (singular, drop `_avec_` connector). YAML enrichi avec trame description 4 blocs + tests (accepted_values, expect_column_values_to_be_between, expect_table_row_count_to_be_between). Workflow `transform-commerce-daily` créé en même temps avec 2 schedulers weekdays 08:30 + 10:00. |
 
 ### → `finance/` (1) ✅ DONE 2026-05-20
 
