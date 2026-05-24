@@ -1,0 +1,11 @@
+
+    
+    
+
+
+
+select n_serie_machine
+from `evs-datastack-prod`.`prod_marts`.`fct_commerce__machine_intervention`
+where n_serie_machine is null
+
+
