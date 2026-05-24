@@ -4,19 +4,20 @@ models:
   - name: stg_oracle_neshu_gcs__stock_theorique
     description: "Table staging des fichiers CSV quotidiens de stock théorique Oracle Neshu depuis GCS. Les colonnes sont typées et les dates converties en TIMESTAMP."
     tests:
-      # Freshness fallback (tier Relaxe — source STRING timestamp, cf. docs/freshness.md)
+      # Freshness fallback (tier Standard — extract quotidien 23:00 Paris, gap typique
+      # observé 23-24h ; source STRING timestamp cf. docs/freshness.md)
       - dbt_expectations.expect_row_values_to_have_recent_data:
           arguments:
             column_name: extracted_at
-            datepart: day
-            interval: 7
+            datepart: hour
+            interval: 26
           config:
             severity: warn
       - dbt_expectations.expect_row_values_to_have_recent_data:
           arguments:
             column_name: extracted_at
-            datepart: day
-            interval: 14
+            datepart: hour
+            interval: 48
           config:
             severity: error
     columns:

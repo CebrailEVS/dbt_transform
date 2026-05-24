@@ -469,9 +469,10 @@ models:
 | Tier | warn_after | error_after | Sources |
 |------|-----------|-------------|---------|
 | Critique | 26h | 36h | oracle_neshu, oracle_lcdp |
-| Standard | 26h | 48h | yuman, mssql_sage, nesp_co (activite/opportunite) |
+| Standard | 26h | 48h | yuman, mssql_sage, nesp_co (activite/opportunite), oracle_neshu_gcs |
+| Quotidien Mon-Sat | 36h | 80h | yuman_gcs |
 | Hebdomadaire | 8j | 14j | nesp_tech |
-| Relaxe | 7j | 14j | gac, yuman_gcs, oracle_neshu_gcs, zoho_desk |
+| Relaxe | 7j | 14j | gac, zoho_desk |
 | Manuel | 60j | 90j | nesp_co (nespresso_base_client) |
 
 ### Deux mecanismes selon le type de timestamp source

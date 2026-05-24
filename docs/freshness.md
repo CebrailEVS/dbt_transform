@@ -17,9 +17,10 @@ pour les sources à timestamp STRING.
 | Tier | Cadence typique | `warn_after` | `error_after` | Sources |
 |---|---|---|---|---|
 | **Critique** | quotidien, business-day SLA | 26h | 36h | `oracle_neshu`, `oracle_lcdp` |
-| **Standard** | quotidien tolérant | 26h | 48h | `yuman`, `mssql_sage`, `nesp_co` (activite/opportunite) |
+| **Standard** | quotidien tolérant (tous les jours) | 26h | 48h | `yuman`, `mssql_sage`, `nesp_co` (activite/opportunite), `oracle_neshu_gcs` |
+| **Quotidien Mon-Sat** | extraction Mon-Sat, dimanche skippé + lag snapshot DATE | 36h | 80h | `yuman_gcs` |
 | **Hebdomadaire** | extraction 1×/semaine | 8 jours | 14 jours | `nesp_tech` |
-| **Relaxe** | batch journalier non critique / GCS | 7 jours | 14 jours | `gac`, `oracle_neshu_gcs`, `yuman_gcs`, `zoho_desk` |
+| **Relaxe** | batch journalier non critique | 7 jours | 14 jours | `gac`, `zoho_desk` |
 | **Manuel** | livraison ponctuelle uniquement | 60 jours | 90 jours | `nesp_co.nespresso_base_client` |
 
 > **Principe directeur** : `freshness: null` se justifie *uniquement* sur les
@@ -111,9 +112,13 @@ Symétrique de `oracle_neshu`. Même action : nettoyer les overrides redondants.
 - `loaded_at_field: _sdc_batched_at`
 - Défaut source : **7j / 14j** (à activer, actuellement `null`)
 
-### `yuman_gcs` — tier *Relaxe*, méthode A
+### `yuman_gcs` — tier *Quotidien Mon-Sat*, méthode A
 - `loaded_at_field: export_date` (DATE — dbt accepte)
-- Défaut source : **7j / 14j**
+- Défaut source : **36h warn / 80h error**
+- Pipeline Mon-Sat 06:00 Paris (cron `0 6 * * 1-6`). `export_date` est le
+  snapshot (DATE = minuit), structurellement en retard d'~1 jour. Pire cas
+  observable : lundi matin avant 06:00, max = samedi soir = ~78h d'âge — le
+  seuil 80h absorbe cette fenêtre.
 
 ### `nesp_co.nespresso_base_client` — tier *Manuel*, méthode A
 - `loaded_at_field: _sdc_extracted_at`
@@ -135,10 +140,11 @@ business qui restent peuplées :
 - `stg_nesp_tech__articles` : test sur **`date_intervention`** (DATE)
 - Seuil : **8 jours warn / 14 jours error**
 
-### `oracle_neshu_gcs` — tier *Relaxe*, méthode B
+### `oracle_neshu_gcs` — tier *Standard*, méthode B
 Source brute : `extracted_at` STRING. Test sur
 `stg_oracle_neshu_gcs__stock_theorique`.
-- Seuil : **7 jours warn / 14 jours error**
+- Pipeline quotidien (cron `0 23 * * *`, gap observé 23-24h très régulier).
+- Seuil : **26h warn / 48h error** (en heures via `datepart: hour`).
 
 ### `zoho_desk` — tier *Relaxe*, méthode B
 Source brute : `_dlt_load_id` est un STRING (Unix epoch). Test sur les
@@ -156,11 +162,11 @@ staging zoho_desk qui exposent un timestamp cast.
 | `yuman` | Standard | A | source | 26h / 48h |
 | `mssql_sage` | Standard | A | source | 26h / 48h |
 | `gac` | Relaxe | A | source | 7j / 14j |
-| `yuman_gcs` | Relaxe | A | source | 7j / 14j |
+| `yuman_gcs` | Quotidien Mon-Sat | A | source | 36h / 80h |
 | `nesp_co.base_client` | Manuel | A | table | 60j / 90j |
 | `nesp_co.activite/opp` | Standard | B | staging | 2j |
 | `nesp_tech` | Hebdomadaire | B | staging | 8j / 14j |
-| `oracle_neshu_gcs` | Relaxe | B | staging | 7j / 14j |
+| `oracle_neshu_gcs` | Standard | B | staging | 26h / 48h |
 | `zoho_desk` | Relaxe | B | staging | 7j / 14j |
 
 **Toutes les sources sont désormais monitorées**, soit nativement, soit via
