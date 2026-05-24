@@ -247,6 +247,7 @@ dbt ls --select +mon_modele            # Voir les dependances d'un modele
 - [dbt_expectations](https://github.com/metaplane/dbt-expectations)
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Workflow Git et collaboration
 - [CONVENTIONS.md](CONVENTIONS.md) — Conventions de nommage et qualite
+- [docs/pipeline-schedule.md](docs/pipeline-schedule.md) — Horaires extract/transform/snapshot et synchro par BU
 
 ---
 
