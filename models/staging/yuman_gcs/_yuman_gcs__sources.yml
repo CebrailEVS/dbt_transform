@@ -5,12 +5,16 @@ sources:
     schema: "prod_raw"
     config:
       tags: ['yuman_gcs', 'source']
-      # Freshness: tier Relaxe — 7j warn / 14j error
+      # Freshness: tier Quotidien Mon-Sat — 36h warn / 80h error
+      # Pipeline Mon-Sat 06:00 Paris (cron `0 6 * * 1-6`), dimanche skippé.
+      # export_date est la date du snapshot (DATE = minuit), structurellement
+      # en retard d'~1 jour. Pire cas observable : lundi matin avant 06:00,
+      # max(export_date) = samedi = ~78h d'âge.
       # Cf. docs/freshness.md
       loaded_at_field: export_date
       freshness:
-        warn_after: {count: 7, period: day}
-        error_after: {count: 14, period: day}
+        warn_after: {count: 36, period: hour}
+        error_after: {count: 80, period: hour}
     tables:
       - name: ext_gcs_yuman__stock_theorique
         description: "External table pointing to JSON extracts from Yuman SFTP"
