@@ -11,6 +11,21 @@ models:
     config:
       tags: ['nesp_tech', 'staging']
     tests:
+      # Freshness fallback (tier Hebdomadaire — source STRING timestamp, cf. docs/freshness.md)
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          arguments:
+            column_name: extracted_at
+            datepart: day
+            interval: 8
+          config:
+            severity: warn
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          arguments:
+            column_name: extracted_at
+            datepart: day
+            interval: 14
+          config:
+            severity: error
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
@@ -87,6 +102,21 @@ models:
     config:
       tags: ['nesp_tech', 'staging']
     tests:
+      # Freshness fallback (tier Hebdomadaire — source STRING timestamp, cf. docs/freshness.md)
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          arguments:
+            column_name: extracted_at
+            datepart: day
+            interval: 8
+          config:
+            severity: warn
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          arguments:
+            column_name: extracted_at
+            datepart: day
+            interval: 14
+          config:
+            severity: error
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
