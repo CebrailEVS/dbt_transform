@@ -1,6 +1,5 @@
 {{ config(
-    materialized='table',
-    description='Dimension techniciens Yuman, crée à partir de la table stg_yuman__users et stg_yuman__storehouses. Un technicien est défini comme un utilisateur ayant le user_type "technician" ou "manager" avec is_manager_as_technician à true.',
+    materialized='table'
 ) }}
 
 with source as (

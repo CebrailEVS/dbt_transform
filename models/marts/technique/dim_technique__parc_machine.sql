@@ -1,6 +1,5 @@
 {{ config(
-    materialized='table',
-    description='Dimension materials enrichie avec les informations de sites et de clients'
+    materialized='table'
 ) }}
 
 select

@@ -1,6 +1,5 @@
 {{ config(
-    materialized='table',
-    description='Dimension clients Yuman'
+    materialized='table'
 ) }}
 
 select

@@ -3,11 +3,26 @@ version: 2
 models:
   - name: fct_technique__intervention
     description: |
-      Table de fait consolidant les interventions techniques provenant des
-      systèmes NESP et YUMAN. Sert de base pour les indicateurs opérationnels,
-      la facturation partenaire et les primes techniciens.
+      [QUOI MÉTIER]
+      Vue consolidée des interventions techniques EVS, tous partenaires
+      confondus (Nespresso via Nomad Repair + Neshu/Brita/Auum/... via Yuman).
+      Base pour les indicateurs opérationnels, la facturation partenaire et les
+      primes techniciens.
 
-      **Sources :** nesp_tech (interventions nomad) · yuman (interventions yuman)
+      [COMMENT CONSTRUITE]
+      UNION ALL entre 2 chaînes :
+      - branche NESP : `int_nesp_tech__interventions_dedup` + `int_nesp_tech__facturation_interventions` + `int_nesp_tech__delais_interventions` + `ref_nesp_tech__key_facturation`
+      - branche YUMAN : `fct_neshu__workorder_delai` + `stg_yuman__users` + `ref_nesp_tech__cps_montagne_primes`
+      Une colonne `partenaire` (NESPRESSO / NESHU / BRITA / AUUM / ...) sépare
+      les deux sources dans le résultat.
+
+      [GRAIN]
+      1 ligne par intervention (`key_inter` = intervention_id + partenaire).
+
+      [NOTES]
+      Source nesp_tech rafraîchie hebdo (Mon 07:30), yuman daily 01:00. Le mart
+      est rebuilt 2× par jour weekdays via `transform-technique-daily`
+      (cron `0 3,8 * * *`).
 
     columns:
       - name: key_inter
@@ -115,7 +130,22 @@ models:
 
 
   - name: dim_technique__client
-    description: "Clients Marts Yuman"
+    description: |
+      [QUOI MÉTIER]
+      Dimension client Yuman — conformed entre tous les partenaires EVS hors
+      Nespresso (Neshu, Brita, Auum, ...). Décrit qui sont les clients chez qui
+      EVS intervient techniquement via la plateforme Yuman.
+
+      [COMMENT CONSTRUITE]
+      Lecture directe de `stg_yuman__clients`. Sélection des colonnes utiles
+      au BI : code, nom, catégorie, adresse, partenaire, état actif.
+
+      [GRAIN]
+      1 ligne par `client_id` (PK Yuman).
+
+      [NOTES]
+      Conformed dim — référencée par les facts `fct_technique__*`, et aussi
+      par certains marts `fct_neshu__*` (workorder_delai notamment).
     columns:
       - name: client_id
         description: "Identifiant unique du client"
@@ -143,7 +173,17 @@ models:
 
 
   - name: dim_technique__site
-    description: "Sites Marts Yuman"
+    description: |
+      [QUOI MÉTIER]
+      Dimension site Yuman — adresses physiques où sont installées les machines
+      des clients EVS. Un client peut avoir plusieurs sites.
+
+      [COMMENT CONSTRUITE]
+      Lecture directe de `stg_yuman__sites`. Inclut le rattachement
+      `client_id` (FK) et `agency_id` (agence EVS responsable du site).
+
+      [GRAIN]
+      1 ligne par `site_id` (PK Yuman).
     columns:
       - name: site_id
         description: "Identifiant unique du site"
@@ -183,7 +223,22 @@ models:
 
 
   - name: dim_technique__material
-    description: "Matériaux Marts Yuman enrichie avec les informations catégorie material"
+    description: |
+      [QUOI MÉTIER]
+      Dimension matériel (machine) Yuman — chaque machine déployée chez un
+      client EVS, enrichie avec sa catégorie technique (machine à café, fontaine,
+      etc.).
+
+      [COMMENT CONSTRUITE]
+      Lecture de `stg_yuman__materials` joint à `stg_yuman__materials_categories`
+      sur `category_id` pour ajouter `category_name`.
+
+      [GRAIN]
+      1 ligne par `material_id` (PK Yuman).
+
+      [NOTES]
+      `site_id` aplati directement pour faciliter les jointures BI (FK vers
+      `dim_technique__site`).
     columns:
       - name: material_id
         description: "Identifiant unique du matériau"
@@ -226,8 +281,26 @@ models:
 
 
   - name: dim_technique__parc_machine
-    description: >
-      Dimension materials enrichie avec les informations de sites et de clients
+    description: |
+      [QUOI MÉTIER]
+      Vue parc machine consolidée — chaque machine déployée chez un client
+      EVS avec ses attributs site et client aplatis. Consommée directement par
+      un BI cartographie partenaires.
+
+      [COMMENT CONSTRUITE]
+      Lecture de `stg_yuman__materials` joint à `stg_yuman__sites` (sur site_id)
+      et `stg_yuman__clients` (sur client_id via site) + catégorie via
+      `stg_yuman__materials_categories`. C'est une dim "enrichie" qui aplatit
+      les attributs de 2 dims parentes (site + client).
+
+      [GRAIN]
+      1 ligne par `material_id` (PK).
+
+      [NOTES]
+      OBT-like : l'aplatissement multi-dim est volontaire car le BI parc
+      machine consomme directement cette table sans jointure côté Power Query.
+      Si 3+ rapports répètent ce flatten, voir si on consolide ; sinon on garde.
+      Pattern doc dans `CONVENTIONS.md` § Marts.
     columns:
       # Informations Machine
       - name: material_id
@@ -286,13 +359,28 @@ models:
 
 
   - name: fct_technique__workorder_pricing
-    description: >
-      Table de fait marts de tarification automatique des interventions (workorders).
-      Ce modèle enrichit les données unifiées des interventions et des demandes issues de 
-      `int_yuman__demands_workorders_enriched` avec les référentiels de types d'intervention,
-      machines, tarifications et zones géographiques. 
-      Il calcule les prix automatiques des interventions selon les règles de récurrence, 
-      de partenaire et de localisation (métropole).
+    description: |
+      [QUOI MÉTIER]
+      Tarification automatique des interventions (workorders) Yuman tous
+      partenaires. Calcule le prix de chaque intervention selon les règles
+      métier (récurrence, partenaire, zone géographique).
+
+      [COMMENT CONSTRUITE]
+      Lecture de `int_yuman__demands_workorders_enriched` (interventions +
+      demandes unifiées) enrichie avec :
+      - référentiels types d'intervention
+      - tarifications par partenaire / catégorie / zone
+      - flag métropole pour localisation
+      Application des règles de calcul de prix automatique.
+
+      [GRAIN]
+      1 ligne par workorder (`workorder_id`) avec sa demand associée
+      (`demand_id`).
+
+      [NOTES]
+      Base réutilisée par `fct_neshu__workorder_delai` (logique de calcul de
+      délais Neshu-specific appliquée par-dessus). Transverse à tous les
+      partenaires Yuman.
 
     columns:
       # --- IDENTIFIANTS ---
@@ -423,13 +511,26 @@ models:
         description: Statut de validation de la facturation (VALIDATED, MISSING_TARIF, NOT_BILLABLE).
 
   - name: fct_technique__suivi_partenaire
-    description: >
-      Table de suivi opérationnel des demandes et interventions par partenaire.
-      Remplace le DAG Airflow MAIL_Yuman_Module_Notification (emails automatiques).
-      Chaque ligne correspond à une demande d'intervention enrichie avec son workorder,
-      son client, son site, son matériel et son technicien.
-      Les 7 flags d'alerte (alerte_*) permettent de filtrer dans Power BI chaque type
-      de situation qui déclenchait auparavant un email.
+    description: |
+      [QUOI MÉTIER]
+      Suivi opérationnel des demandes et interventions Yuman par partenaire.
+      Remplace l'ancien DAG Airflow `MAIL_Yuman_Module_Notification` qui envoyait
+      des emails d'alerte automatiques.
+
+      [COMMENT CONSTRUITE]
+      Chaque ligne = 1 demande d'intervention enrichie avec son workorder
+      associé + client + site + matériel + technicien. 7 flags d'alerte
+      (`alerte_*`) sont calculés pour permettre au PBI de filtrer les
+      situations qui déclenchaient auparavant un email automatique.
+
+      [GRAIN]
+      1 ligne par demande Yuman (`demand_id`).
+
+      [NOTES]
+      Les flags `alerte_*` sont la valeur business clé — utilisés comme
+      slicers dans le rapport de monitoring partenaires. Mart conservé même
+      s'il n'est pas activement consommé aujourd'hui (anciennement utilisé
+      pour les emails, à reprendre dans une vue BI future).
 
     columns:
       - name: demand_id
@@ -528,11 +629,25 @@ models:
 
 
   - name: dim_technique__technician
-    description: >
-      Dimension techniciens Yuman. Inclut les techniciens purs et les managers intervenant
-      également comme technicien (is_manager_as_technician = true).
-      Enrichie avec le nom du manager direct et le nom du dépôt (storehouse) rattaché
-      au technicien via la jointure storehouses_id = user_id.
+    description: |
+      [QUOI MÉTIER]
+      Dimension technicien EVS — chaque utilisateur Yuman ayant un rôle
+      technique (techniciens purs + managers intervenant aussi comme
+      technicien).
+
+      [COMMENT CONSTRUITE]
+      Lecture de `stg_yuman__users` filtré sur user_type IN ('technician',
+      'manager') avec flag `is_manager_as_technician`. Enrichie avec :
+      - le nom du manager direct (via self-join sur stg_yuman__users)
+      - le dépôt (storehouse) rattaché via jointure `storehouses_id = user_id`
+        sur `stg_yuman__storehouses`.
+
+      [GRAIN]
+      1 ligne par `user_id` (PK Yuman du technicien).
+
+      [NOTES]
+      Conformed dim — utilisée par les facts intervention/pricing. Inclut
+      les snapshots history via `snap_yuman__users` en aval si besoin SCD2.
 
     columns:
       - name: user_id
@@ -580,10 +695,25 @@ models:
       - name: updated_at
         description: Date de dernière mise à jour de l'utilisateur dans Yuman.
   - name: fct_technique__piece_detachee_pricing_nespresso
-    description: >
-      Ce modèle combine les interventions terminées/signées issues des agences EVS 
-      avec les consommations d’articles techniques et leurs tarifs. 
-      Il permet de suivre les ventes d’articles par technicien, par jour et par intervention.
+    description: |
+      [QUOI MÉTIER]
+      Pricing des pièces détachées consommées lors des interventions Nespresso
+      (Nomad Repair). Suit les ventes d'articles techniques par technicien, par
+      jour et par intervention.
+
+      [COMMENT CONSTRUITE]
+      Filtre les interventions Nespresso terminées/signées issues des agences
+      EVS (evs, evs paris, evs idf, evs paris 2) depuis
+      `int_nesp_tech__interventions_dedup`. Joint aux consommations d'articles
+      techniques et leur tarif catalogue.
+
+      [GRAIN]
+      1 ligne par (intervention `n_planning`, article consommé).
+
+      [NOTES]
+      Source nesp_tech = fichier Excel hebdomadaire (Mon 07:30). Suffixe
+      `_nespresso` au nom du mart pour distinguer du `workorder_pricing` qui
+      lui concerne Yuman tous partenaires.
 
     columns:
       - name: n_planning
@@ -623,11 +753,24 @@ models:
         description: Montant total calculé pour cet article sur l’intervention (quantité × prix unitaire).
 
   - name: fct_technique__alerting_consommation_aguila
-    description: >
-      Modèle analytique de contrôle des consommations des interventions techniques Aguila.
-      Ce modèle consolide les consommations d’articles et applique les règles métier
-      permettant de détecter les incohérences de conso de pièces lors de maintenance préventive,
-      kits, filtres et pièces hors kit.
+    description: |
+      [QUOI MÉTIER]
+      Contrôle qualité des consommations de pièces lors des interventions
+      techniques Nespresso sur machines Aguila. Détecte les incohérences
+      (maintenance préventive, kits, filtres, pièces hors kit) via des règles
+      métier d'alerting.
+
+      [COMMENT CONSTRUITE]
+      Consolidation des consommations d'articles par intervention (depuis
+      `int_nesp_tech__*`) avec application des règles métier d'alerting :
+      flags binaires sur chaque type d'incohérence détectable.
+
+      [GRAIN]
+      1 ligne par intervention Aguila.
+
+      [NOTES]
+      Aguila = type de machine Nespresso. Le mart est consommé par le BI
+      PILOTAGE TECHNIQUE pour les alertes opérationnelles techniciens.
 
     columns:
 

@@ -4,8 +4,7 @@
         'field': 'date_fin',
         'data_type': 'date'
     },
-    cluster_by=['n_tech'],
-    description='Table de pricing de la consommation des pièces détachées'
+    cluster_by=['n_tech']
 ) }}
 
 with inters as (
