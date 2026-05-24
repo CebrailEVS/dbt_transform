@@ -14,11 +14,18 @@ Professionnelle France pour le pilotage de l'activité de vente :
 - **Base clients** Nespresso côté EVS (référentiel `third`)
 
 À la différence des sources API/ERP, **les trois tables proviennent de fichiers
-Excel/CSV** :
-- Les deux premières (`activite`, `opportunite`) sont des **exports
-  hebdomadaires** du CRM Nespresso C4C, déposés sur GCS (external table)
-- La troisième (`base_client`) vient du **SFTP EVS** (extraction Singer
-  classique avec `_sdc_*`)
+Excel/CSV** déposés sur SFTP, avec deux pipelines distincts (cf.
+`infra/workflows.tf` et `workflows/pipeline-nesp-co.yaml` /
+`workflows/pipeline-sftp-nesp-client.yaml`) :
+
+| Table | Pipeline Cloud Workflow | Déclenchement | Mode d'extraction |
+|---|---|---|---|
+| `nespresso_commerce_activite` | `pipeline-nesp-co` | **Quotidien à 08:00 Europe/Paris** (`cron 0 8 * * *`) | SFTP → GCS (Cloud Run `ingest-nespresso-commerce-gcs`) puis external table BigQuery |
+| `nespresso_commerce_opportunite` | `pipeline-nesp-co` | **Quotidien à 08:00** (même pipeline) | SFTP → GCS puis external table |
+| `nespresso_base_client` | `pipeline-sftp-nesp-client` | **Manuel** (déclenché à chaque livraison d'un fichier Excel "Base client - EVS" sur le SFTP) — pas de Cloud Scheduler | `tap-spreadsheets-anywhere` → BigQuery (`target-bigquery-upsert`) |
+
+Les deux pipelines exécutent ensuite un `dbt build` avec
+`DBT_SOURCE_SELECTOR=source:nesp_co` + `DBT_TAG_SELECTOR=tag:nesp_co`.
 
 > Source historiquement **WIP** (cf. memory) — l'export reste artisanal, les
 > colonnes Excel sans en-tête se traduisent par des champs `unnamed_*` au
@@ -71,8 +78,10 @@ Excel/CSV** :
                                        └──────────────────────────────────┘
 ```
 
-**Fraîcheur** : tier *Standard* — warn 26h / error 48h. En pratique l'export
-Nespresso est hebdomadaire ; surveiller plutôt `file_date` que `_sdc_extracted_at`.
+**Fraîcheur** : tier *Standard* — warn 26h / error 48h sur `_sdc_extracted_at`.
+Cohérent avec le rythme quotidien de `pipeline-nesp-co`. Le `base_client` étant
+manuel, sa fraîcheur peut être plus dégradée — ne pas alerter sur lui comme
+sur une source quotidienne.
 
 ---
 
