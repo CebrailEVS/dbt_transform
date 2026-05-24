@@ -1101,3 +1101,154 @@ models:
         description: Date de creation de reference, selon les regles NESHU
 
 
+
+  - name: fct_neshu__machine_appro_intervention
+    description: |
+      [QUOI MÉTIER]
+      Vue cross-source Neshu × Yuman par machine en appro : pour chaque
+      device Neshu ayant au moins un passage appro, expose son contexte appro
+      (dernier FAIT, prochain PRÉVU, compteurs) et ses interventions curatives
+      Yuman dans 3 buckets (récente 15j, en cours, prochaine planifiée).
+
+      [COMMENT CONSTRUITE]
+      Joint `int_oracle_neshu__appro_machine_context` (intermediate
+      factorisé, grain device) avec `dim_neshu__device` et
+      `dim_neshu__company` (attributs display). Côté Yuman, filtre
+      `int_yuman__demands_workorders_enriched` sur partenaire NESHU et
+      catégorie CURATIVE*, puis dispatch en 3 buckets selon le statut
+      (workorder_status + demand_status). Cross-source join sur
+      `UPPER(TRIM(device_code))` = `serial_clean` (normalisation Yuman :
+      strip 'NESH_' prefix).
+
+      [GRAIN]
+      1 ligne par device_id Neshu (ayant ≥ 1 passage appro).
+
+      [NOTES]
+      ⚠️ Jointure cross-source actuellement fragile (string match
+      device_code ↔ serial). Une table de mapping device Yuman ↔ device
+      Oracle Neshu est prévue en suivant PR pour remplacer ce match string.
+      Replace l'ancienne PR #77 (Rim) qui plaçait ce mart à tort dans
+      `marts/technique/` avec un nom au pluriel et une logique appro
+      enfouie en 7 CTEs (factorisée via l'intermediate).
+
+      OBT controlled : seuls les IDs (device_id, company_id, material_id par
+      bucket) + 1-3 attributs d'affichage par dim sont exposés. Les autres
+      attributs dim (brand, technician_equipe, client_category) sont
+      accessibles via jointure depuis le BI (dim_technique__material,
+      dim_technique__technician).
+    columns:
+      - name: device_id
+        description: Identifiant unique de la machine Neshu (PK + FK vers dim_neshu__device).
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__device')
+                field: device_id
+      - name: company_id
+        description: FK vers dim_neshu__company (client de la machine).
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+      - name: device_code
+        description: Code interne machine — utilisé pour la jointure cross-source vers Yuman.
+      - name: device_name
+        description: Nom de la machine (display).
+      - name: company_name
+        description: Nom du client (display).
+
+      # === Contexte appro ===
+      - name: last_appro_date
+        description: Date du dernier passage appro FAIT (NULL si aucun).
+      - name: last_appro_roadman_code
+        description: Code roadman du dernier passage FAIT.
+      - name: last_appro_gea_code
+        description: Code GEA du dernier passage FAIT.
+      - name: days_since_last_appro
+        description: Nombre de jours depuis le dernier passage FAIT.
+      - name: next_appro_date
+        description: Date du prochain passage appro PRÉVU (NULL si rien planifié).
+      - name: next_appro_roadman_code
+        description: Code roadman du prochain passage PRÉVU.
+      - name: next_appro_gea_code
+        description: Code GEA du prochain passage PRÉVU.
+      - name: days_until_next_appro
+        description: Nombre de jours jusqu'au prochain passage PRÉVU.
+      - name: nb_appros_realises_total
+        description: Compteur total des passages FAIT (toute période).
+        tests:
+          - not_null
+      - name: nb_appros_planifies_a_venir
+        description: Compteur des passages PRÉVU encore à venir.
+        tests:
+          - not_null
+      - name: nb_appros_realises_30d
+        description: Compteur des passages FAIT sur les 30 derniers jours.
+        tests:
+          - not_null
+      - name: nb_appros_realises_90d
+        description: Compteur des passages FAIT sur les 90 derniers jours.
+        tests:
+          - not_null
+
+      # === Bucket : intervention curative récente (15j) ===
+      - name: past_material_id
+        description: FK Yuman vers dim_technique__material — material concerné par la dernière intervention 15j (NULL si pas d'intervention 15j).
+      - name: past_intervention_id
+        description: ID Yuman du workorder de la dernière intervention 15j.
+      - name: past_intervention_date
+        description: Date de la dernière intervention curative dans les 15 derniers jours.
+      - name: past_demand_description
+        description: Description de la demande Yuman (texte libre).
+      - name: past_demand_created_at
+        description: Date de création de la demande Yuman.
+      - name: past_demand_category_name
+        description: Catégorie de demande Yuman (filtrée sur CURATIVE*).
+      - name: past_intervention_title
+        description: Titre du workorder.
+      - name: past_intervention_report
+        description: Rapport d'intervention saisi par le technicien.
+      - name: nb_interventions_15j
+        description: Nombre total d'interventions curatives sur les 15 derniers jours pour cette machine.
+        tests:
+          - not_null
+
+      # === Bucket : intervention en cours ===
+      - name: current_material_id
+        description: FK Yuman vers dim_technique__material — material de l'intervention en cours.
+      - name: current_intervention_id
+        description: ID Yuman du workorder en cours.
+      - name: current_demand_description
+        description: Description de la demande Yuman en cours.
+      - name: current_demand_created_at
+        description: Date de création de la demande Yuman en cours.
+      - name: current_demand_category_name
+        description: Catégorie de demande Yuman en cours.
+      - name: current_intervention_title
+        description: Titre du workorder en cours.
+      - name: current_intervention_report
+        description: Rapport (peut être vide si pas encore renseigné).
+      - name: current_date_done
+        description: Date done (normalement NULL si en cours, valeur si transition).
+
+      # === Bucket : prochaine intervention planifiée ===
+      - name: future_material_id
+        description: FK Yuman vers dim_technique__material — material de l'intervention planifiée.
+      - name: future_intervention_id
+        description: ID Yuman du workorder planifié.
+      - name: future_intervention_planned_date
+        description: Date planifiée du workorder.
+      - name: future_demand_description
+        description: Description de la demande Yuman planifiée.
+      - name: future_demand_created_at
+        description: Date de création de la demande Yuman planifiée.
+      - name: future_demand_category_name
+        description: Catégorie de demande Yuman planifiée.
+      - name: future_intervention_title
+        description: Titre du workorder planifié.
+      - name: future_intervention_report
+        description: Rapport (normalement vide pour un planifié).
