@@ -1,4 +1,4 @@
-# Source freshness — état des lieux et conventions
+# Source freshness — audit et conventions
 
 > Dernière mise à jour : 2026-05-24
 
@@ -6,168 +6,159 @@
 
 ## À quoi sert ce document
 
-Ce document **audite** la configuration `dbt source freshness` de
-l'ensemble des 10 sources du projet, et fixe les conventions cibles par
-tier. C'est l'outil de référence pour :
-- savoir quelles sources sont monitorées et lesquelles ne le sont pas
-- repérer les drifts entre tier théorique (cf. CLAUDE.md / memory) et
-  config YAML réelle
-- décider quoi corriger
+Référence unique pour la stratégie de monitoring de fraîcheur des 10 sources
+du projet : tiers définis, configuration par source, mécanisme de fallback
+pour les sources à timestamp STRING.
 
 ---
 
-## Tiers de freshness — convention cible
+## Tiers de freshness
 
-| Tier | Cadence typique | `warn_after` | `error_after` | Sources concernées |
+| Tier | Cadence typique | `warn_after` | `error_after` | Sources |
 |---|---|---|---|---|
 | **Critique** | quotidien, business-day SLA | 26h | 36h | `oracle_neshu`, `oracle_lcdp` |
-| **Standard** | quotidien tolérant (full refresh ou rythme moins serré) | 26h | 48h | `yuman`, `mssql_sage`, `nesp_co` |
+| **Standard** | quotidien tolérant | 26h | 48h | `yuman`, `mssql_sage`, `nesp_co` (activite/opportunite) |
 | **Hebdomadaire** | extraction 1×/semaine | 8 jours | 14 jours | `nesp_tech` |
-| **Relaxe** | extraction batch / journalier non critique | 7 jours | 14 jours | `gac`, `oracle_neshu_gcs`, `yuman_gcs` |
-| **Non applicable** | source sans champ timestamp exploitable | — | — | `zoho_desk` |
+| **Relaxe** | batch journalier non critique / GCS | 7 jours | 14 jours | `gac`, `oracle_neshu_gcs`, `yuman_gcs`, `zoho_desk` |
+| **Manuel** | livraison ponctuelle uniquement | 60 jours | 90 jours | `nesp_co.nespresso_base_client` |
 
-> Le tier **Hebdomadaire** est nouveau — `nesp_tech` (cron `30 7 * * 1`)
-> mérite son propre niveau plutôt que d'être catalogué *Standard* (ce qui
-> alerterait à tort tous les jours).
+> **Principe directeur** : `freshness: null` se justifie *uniquement* sur les
+> référentiels vraiment immuables (codes, libellés, types). Toute source qui
+> porte des événements ou des données vivantes mérite un seuil — quitte à
+> le mettre très large.
 
 ---
 
-## État des lieux — par source
+## Mécanismes de monitoring — deux familles
 
-### ✅ Configurée — `oracle_neshu`
+### A. `dbt source freshness` natif
 
+Pour les sources dont la table brute expose un champ **TIMESTAMP ou DATE
+nativement** (Singer `_sdc_*`, ou colonne dédiée typée).
+
+Configuré dans `_<source>__sources.yml` au niveau source :
+
+```yaml
+sources:
+  - name: <source>
+    config:
+      loaded_at_field: _sdc_extracted_at
+      freshness:
+        warn_after: {count: 26, period: hour}
+        error_after: {count: 48, period: hour}
+    tables:
+      - name: <table_référentiel_stable>
+        config:
+          freshness: null   # désactivé — table immuable (codes, libellés)
+```
+
+> **Ne jamais répéter** le `freshness` par table quand il est identique au
+> défaut source. C'est du bruit YAML.
+
+### B. Tests `dbt_expectations` sur le staging
+
+Pour les sources dont la table brute n'a **que des champs STRING** (les
+external tables GCS et certains taps custom). Le staging fait déjà le cast
+en TIMESTAMP via `safe.parse_timestamp` — on monitore donc **à ce niveau**.
+
+Configuré dans `_<source>__models.yml` :
+
+```yaml
+models:
+  - name: stg_<source>__<table>
+    tests:
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          column: extracted_at   # déjà cast TIMESTAMP en staging
+          datepart: day
+          interval: 8            # ex. tier Hebdomadaire
+          config:
+            severity: warn
+```
+
+**Avantage** : pas de vue technique en amont. **Inconvénient** : pas
+remonté dans `dbt source freshness` ni dans le rapport HTML standard — c'est
+un test data quality classique.
+
+---
+
+## État cible par source
+
+### `oracle_neshu` — tier *Critique*, méthode A
 - `loaded_at_field: _sdc_extracted_at`
-- **Défaut source** : warn 26h / error 36h ✅ cohérent tier *Critique*
-- **Overrides par table** :
-  - 14 tables actives répètent `freshness: 26h/36h` — **redondant** avec le défaut (à nettoyer)
-  - 8 référentiels stables en `freshness: null` (désactivé) : `evs_company_type`, `evs_product_type`, `evs_resources_type`, `evs_task_status`, `evs_task_type`, `evs_label`, `evs_label_family`, `evs_contract_parsed` — **intentionnel et justifié**
+- Défaut source : **26h / 36h**
+- Référentiels en `freshness: null` (intentionnel) : `evs_company_type`,
+  `evs_product_type`, `evs_resources_type`, `evs_task_status`, `evs_task_type`,
+  `evs_label`, `evs_label_family`, `evs_contract_parsed`
+- **Action** : nettoyer les overrides 26h/36h redondants sur les tables actives
 
-### ✅ Configurée — `oracle_lcdp`
+### `oracle_lcdp` — tier *Critique*, méthode A
+Symétrique de `oracle_neshu`. Même action : nettoyer les overrides redondants.
 
-Symétrique de `oracle_neshu` : mêmes seuils 26h/36h, mêmes overrides
-redondants à nettoyer, mêmes référentiels en `null`.
-
-### ✅ Configurée — `yuman`
-
+### `yuman` — tier *Standard*, méthode A
 - `loaded_at_field: _sdc_extracted_at`
-- **Défaut source** : warn 26h / error 36h
-- **Overrides par table** : 5 tables référentielles stables en `freshness: null` (`yuman_products`, `yuman_material_categories`, `yuman_workorder_categories`, `yuman_workorder_demands_categories`, `yuman_storehouses`) — **intentionnel**
+- Défaut source : **26h / 48h** (à passer de 36h actuel)
+- Référentiels en `null` : `yuman_products`, `yuman_material_categories`,
+  `yuman_workorder_categories`, `yuman_workorder_demands_categories`,
+  `yuman_storehouses`
 
-> Seuil error actuel **36h** alors que tier cible *Standard* est **48h**.
-> À aligner (passer error à 48h) — l'API Yuman est moins critique qu'Oracle,
-> 12h de marge supplémentaire évite des alertes inutiles.
+### `mssql_sage` — tier *Standard*, méthode A
+- `loaded_at_field: _sdc_extracted_at` partout (supprimer l'override
+  `_sdc_received_at` sur `dbo_f_ecriturea` / `dbo_f_ecriturec` — écart
+  observé = 0 minute, override inutile)
+- Défaut source : **26h / 48h** (à passer de 36h actuel)
 
-### ✅ Configurée — `mssql_sage`
-
-- `loaded_at_field: _sdc_extracted_at` au défaut
-- **Override** sur `dbo_f_ecriturea` et `dbo_f_ecriturec` :
-  `loaded_at_field: _sdc_received_at`
-- **Défaut source** : warn 26h / error 36h
-
-> Deux questions :
-> 1. **Le tier cible *Standard* attend `error_after: 48h`** — la conf actuelle
->    (36h) est plus stricte. À aligner ?
-> 2. **Pourquoi `_sdc_received_at` sur deux tables seulement ?** Si c'est un
->    drift, harmoniser sur `_sdc_extracted_at`. Si c'est intentionnel (les
->    écritures comptables seraient timestampées différemment), documenter le
->    pourquoi dans la YAML.
-
-### ⚠️ Désactivée explicitement — `gac`
-
+### `gac` — tier *Relaxe*, méthode A
 - `loaded_at_field: _sdc_batched_at`
-- `freshness: null` (désactivé)
+- Défaut source : **7j / 14j** (à activer, actuellement `null`)
 
-> Tier cible *Relaxe* (7j/14j). La désactivation totale est défendable (240
-> lignes, fichier livré ponctuellement), mais on **perd toute visibilité**
-> si l'export GAC s'arrête. **Proposition** : activer 7j/14j plutôt que
-> `null`.
+### `yuman_gcs` — tier *Relaxe*, méthode A
+- `loaded_at_field: export_date` (DATE — dbt accepte)
+- Défaut source : **7j / 14j**
 
-### ❌ Non configurée — `nesp_tech`
+### `nesp_co.nespresso_base_client` — tier *Manuel*, méthode A
+- `loaded_at_field: _sdc_extracted_at`
+- **60j / 90j** (table-level override, distinct du défaut source si défini
+  pour activite/opportunite)
 
-- Pas de `loaded_at_field`, pas de bloc `freshness`. `dbt source freshness`
-  **ignore** cette source.
+### `nesp_co.nespresso_commerce_activite` + `nespresso_commerce_opportunite` — tier *Standard*, méthode B
+Source brute : `extracted_at` est STRING → fallback `dbt_expectations` sur
+le staging.
+- Test sur `stg_nesp_co__activite` et `stg_nesp_co__opportunite`
+- Colonne : `extracted_at` (cast en TIMESTAMP en staging)
+- Seuil : **2 jours / warn** (équivalent 26h/48h en granularité jour)
 
-> Pipeline hebdomadaire (lundi 07:30). **Proposition** :
-> ```yaml
-> loaded_at_field: _sdc_extracted_at   # ou cast(extracted_at as timestamp)
-> freshness:
->   warn_after: {count: 8, period: day}
->   error_after: {count: 14, period: day}
-> ```
-> Tier *Hebdomadaire* à créer formellement.
+### `nesp_tech` — tier *Hebdomadaire*, méthode B
+Source brute : `extracted_at` STRING. Test sur les 2 staging
+(`stg_nesp_tech__interventions`, `stg_nesp_tech__articles`).
+- Seuil : **8 jours warn / 14 jours error**
 
-### ❌ Non configurée — `nesp_co`
+### `oracle_neshu_gcs` — tier *Relaxe*, méthode B
+Source brute : `extracted_at` STRING. Test sur
+`stg_oracle_neshu_gcs__stock_theorique`.
+- Seuil : **7 jours warn / 14 jours error**
 
-- Pas de `loaded_at_field`, pas de bloc `freshness`.
-
-> Pipeline quotidien (08:00) pour `activite` + `opportunite`. **Proposition** :
-> tier *Standard* (26h/48h) sur ces deux tables. Pour `nespresso_base_client`
-> (déclenchement **manuel**), garder `freshness: null` ou tier *Relaxe*
-> très large (30j ?) — à débattre.
-
-### ❌ Non configurée — `oracle_neshu_gcs`
-
-- Aucun bloc `freshness` ni `loaded_at_field`. External table pointant sur
-  un bucket GCS.
-
-> Pipeline quotidien (23:00). **Proposition** : tier *Relaxe* (7j/14j) sur
-> `extracted_at` (colonne déjà présente après staging).
-
-### ❌ Non configurée — `yuman_gcs`
-
-- Aucun bloc `freshness` ni `loaded_at_field`.
-
-> Pipeline Mon-Sat 06:00. **Proposition** : tier *Relaxe* (7j/14j) sur
-> `export_date` ou `_sdc_received_at` selon ce qui est exposé.
-
-### ⛔ Non applicable — `zoho_desk`
-
-- `loaded_at_field` documenté en commentaire : `_dlt_load_id` est une
-  **STRING** (unix timestamp en texte) issue de `dlt`, donc
-  `dbt source freshness` ne peut pas l'utiliser.
-
-> **Workaround possible** : exposer un champ calculé
-> `cast(_dlt_load_id as int64) → timestamp_seconds(...)` dans la source ou
-> dans une vue technique. À évaluer selon l'effort vs. l'utilité (Zoho est
-> une source secondaire aujourd'hui).
+### `zoho_desk` — tier *Relaxe*, méthode B
+Source brute : `_dlt_load_id` est un STRING (Unix epoch). Test sur les
+staging zoho_desk qui exposent un timestamp cast.
+- Seuil : **7 jours warn / 14 jours error**
 
 ---
 
-## Synthèse — tableau de couverture
+## Synthèse — couverture finale visée
 
-| Source | Tier cible | `loaded_at_field` | Config actuelle | État | Action |
-|---|---|---|---|---|---|
-| `oracle_neshu` | Critique | `_sdc_extracted_at` | 26h/36h + 8 nulls référentiels | ✅ | Nettoyer overrides redondants |
-| `oracle_lcdp` | Critique | `_sdc_extracted_at` | 26h/36h + nulls référentiels | ✅ | Idem |
-| `yuman` | Standard | `_sdc_extracted_at` | 26h/**36h** + 5 nulls référentiels | ⚠️ | Passer error 36h → **48h** |
-| `mssql_sage` | Standard | `_sdc_extracted_at` (+ 2 overrides `_sdc_received_at`) | 26h/**36h** | ⚠️ | Passer error → **48h** + clarifier override `_sdc_received_at` |
-| `nesp_co` | Standard | — | aucune | ❌ | Ajouter 26h/48h sur `activite` + `opportunite` ; `base_client` à part |
-| `nesp_tech` | Hebdomadaire | — | aucune | ❌ | Ajouter 8j/14j (créer tier *Hebdomadaire*) |
-| `gac` | Relaxe | `_sdc_batched_at` | **null** explicite | ⚠️ | Activer 7j/14j au lieu de désactiver |
-| `oracle_neshu_gcs` | Relaxe | — | aucune | ❌ | Ajouter 7j/14j |
-| `yuman_gcs` | Relaxe | — | aucune | ❌ | Ajouter 7j/14j |
-| `zoho_desk` | N/A | — (string) | aucune | ⛔ | Workaround `dlt_load_id` à évaluer |
+| Source | Tier | Méthode | Niveau | Seuils |
+|---|---|---|---|---|
+| `oracle_neshu` | Critique | A | source | 26h / 36h |
+| `oracle_lcdp` | Critique | A | source | 26h / 36h |
+| `yuman` | Standard | A | source | 26h / 48h |
+| `mssql_sage` | Standard | A | source | 26h / 48h |
+| `gac` | Relaxe | A | source | 7j / 14j |
+| `yuman_gcs` | Relaxe | A | source | 7j / 14j |
+| `nesp_co.base_client` | Manuel | A | table | 60j / 90j |
+| `nesp_co.activite/opp` | Standard | B | staging | 2j |
+| `nesp_tech` | Hebdomadaire | B | staging | 8j / 14j |
+| `oracle_neshu_gcs` | Relaxe | B | staging | 7j / 14j |
+| `zoho_desk` | Relaxe | B | staging | 7j / 14j |
 
-**Bilan** :
-- 4 sources sur 10 ✅ configurées correctement
-- 2 sources ⚠️ configurées mais à harmoniser (seuils trop stricts)
-- 4 sources ❌ pas configurées du tout
-- 1 source ⛔ non applicable techniquement
-
----
-
-## Convention cible (à valider)
-
-Pour chaque nouvelle source :
-1. **Déterminer le tier** parmi Critique / Standard / Hebdomadaire / Relaxe
-2. **Définir `loaded_at_field`** au niveau source (`_sdc_extracted_at`
-   par défaut Singer ; sinon adapter)
-3. **Appliquer le `freshness` du tier au niveau source** (pas par table)
-4. **Désactiver explicitement** (`freshness: null`) sur les tables
-   référentielles stables (codes, libellés, types) — **documenter le pourquoi
-   en commentaire YAML**
-5. **Ne jamais répéter** le freshness par table quand il est identique au
-   défaut source — c'est du bruit YAML
-
-> Cette convention est à reporter dans `CONVENTIONS.md` § Source freshness
-> une fois validée.
+**Toutes les sources sont désormais monitorées**, soit nativement, soit via
+`dbt_expectations`.
