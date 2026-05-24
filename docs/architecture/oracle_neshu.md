@@ -23,10 +23,8 @@ Données clés exposées :
 - **Labels (EAV)** — attributs flexibles attachés aux entités (région, secteur,
   marque, gamme, modèle économique…)
 
-> Pour le **contexte métier détaillé** (qu'est-ce qu'une tâche, un roadman, un
-> passage appro, etc.), voir [`docs/onboarding_oracle_neshu.md`](../onboarding_oracle_neshu.md).
-> Le présent document se concentre sur l'**architecture technique** : ERD,
-> jointures, points d'attention.
+> Ce document se concentre sur l'**architecture technique** : ERD, jointures,
+> points d'attention.
 
 ---
 

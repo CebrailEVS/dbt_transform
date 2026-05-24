@@ -27,15 +27,11 @@ Le double underscore `__` separe la source de l'entite.
 
 > **Modeles cross-source :** un modele qui consomme des donnees de plusieurs sources differentes
 > va dans un dossier BU (`marts/technique/`) et non dans un dossier source (`marts/oracle_neshu/`).
-> Le prefixe du nom reflete la BU, pas la source. Voir `docs/scheduling_and_tagging_decisions.md`.
+> Le prefixe du nom reflete la BU, pas la source.
 
-### Nommage des marts — convention by BU (refacto en cours)
+### Nommage des marts — convention by BU
 
-> **Statut :** convention cible documentee. Application planifiee lors du refacto
-> `marts/` by BU — voir `docs/migration-marts/`. Tant que la migration n'est pas
-> faite, les anciens noms `fct_<source>__...` restent en place.
-
-Apres refacto, les marts sont organises par **BU/domaine** (folder = BU), pas par source.
+Les marts sont organises par **BU/domaine** (folder = BU), pas par source.
 Le nom du modele reflete la BU et l'entite metier, pas l'implementation source.
 
 | Element | Regle |
@@ -173,9 +169,8 @@ Pas de One Big Table.
     adresse, code postal, telephone, etc.) dans la dim enfant : c'est de
     l'OBT (One Big Table) deguise. Garder les dims separees et conformes,
     croiser via FK + relationships PBI ou SQL custom dans Power Query.
-    Voir `docs/migration-marts/inventory.md` §5 pour le pattern hybride
-    "star schema dbt + flatten en PBI quand besoin, promotion en mart si
-    duplique 3+ fois".
+    Pattern hybride accepte : "star schema dbt + flatten en PBI quand besoin,
+    promotion en mart si duplique 3+ fois".
 - **Cles** : FKs en `<entite>_id` dans les faits. Cles surrogates via
   `dbt_utils.generate_surrogate_key` quand l'entite n'a pas de PK naturelle.
 - **Conformed dimensions** : une meme dim sert plusieurs faits, voire
@@ -258,7 +253,7 @@ est automatiquement poussee vers BigQuery.
 
 Pas non plus de `tags=[...]` dans le `{{ config() }}` — les tags sont
 geres au niveau folder via `dbt_project.yml`. Exception : `cross_post_*`
-si pertinent (cf. `docs/scheduling_and_tagging_decisions.md`).
+si pertinent (cf. `docs/pipeline-schedule.md`).
 
 ### 4. Tests minimum par layer
 

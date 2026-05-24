@@ -240,7 +240,7 @@ Un modele est cross-source s'il consomme des `ref()` provenant de sources differ
 
 > **Scheduling :** les modeles cross-source ne sont pas construits par le pipeline de leur source.
 > Ils sont construits par le workflow `transform-technique-daily` (03:00 quotidien).
-> Voir `docs/scheduling_and_tagging_decisions.md` pour le detail.
+> Voir `docs/pipeline-schedule.md` pour le detail.
 
 ### Exposures (rapport Power BI)
 

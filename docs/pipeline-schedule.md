@@ -3,9 +3,7 @@
 > Vue synchronisée extract → transform → snapshot → BI. Source de vérité pour répondre à :
 > *"À quelle heure telle donnée est-elle dispo, et quand est-elle transformée ?"*
 >
-> **Companion docs :**
-> - `scheduling_and_tagging_decisions.md` — le **pourquoi** des choix de tags/scheduling
-> - `architecture_review.md` — vue archi globale
+> **Companion doc :** `docs/architecture/` — un fichier par source avec l'ERD et les points d'attention.
 >
 > **Dernière revue :** 2026-05-24
 > **Source du contenu :** scan automatique de `infra/workflows.tf`, `workflows/*.yaml`,
