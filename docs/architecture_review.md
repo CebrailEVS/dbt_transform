@@ -1,13 +1,14 @@
-# dbt_warehouse — Architecture Review & Migration Plan
+# dbt_warehouse — Architecture Review
 
-> Internal doc — for team discussion. Last updated: 2026-03-26.
+> Internal doc — Last updated: 2026-05-22.
 >
-> ⚠️ **Status (2026-05-22)** : ce document est le brainstorming initial du refacto marts by BU.
-> Le mapping final appliqué diffère du draft ci-dessous (noms `bu_*` abandonnés, folders comme
-> `parc_machines`/`logistique`/`assets`/`stock` non retenus au profit de `neshu`/`supply_chain`/
-> `services_generaux`/etc.). **Source de vérité du mapping final** :
-> [`docs/migration-marts/inventory.md`](./migration-marts/inventory.md).
-> Garder ce doc comme référence historique des décisions prises.
+> **Scope** : inventaire des sources/pipelines + problèmes en production
+> non encore corrigés + todos court-terme.
+>
+> Pour le refacto marts by BU (mapping, structure cible, progression) :
+> voir [`docs/migration-marts/`](./migration-marts/). Sections §5-7 obsolètes
+> supprimées 2026-05-22 (brainstorming BU structure et naming convention
+> remplacés par `CONVENTIONS.md` § Marts — pattern complet).
 
 ---
 
@@ -157,21 +158,20 @@ external (insurance claims), a silent ingestion failure would go undetected.
 
 ## 4. Todo List — Short Term Fixes
 
-### Fix 1 — Move `fct_nesp_co__machines_avec_interventions` out of nesp_co tag
-- [ ] Move the model file to `models/marts/technique/`
-- [ ] Update `dbt_project.yml`: remove from `nesp_co` tags, add `technique` tag
-- [ ] The nesp_tech workflow already triggers `tag:technique` after `tag:nesp_tech`
-      → this model will be built correctly on Monday after nesp_tech refresh
-- [ ] Verify downstream BI reports still reference the same BigQuery table name
-      (alias may need to stay the same or reports updated)
+### ~~Fix 1~~ — superseded by commerce migration
+~~Move `fct_nesp_co__machines_avec_interventions` out of nesp_co tag~~
 
-### Fix 2 — Add cross-source tags to `int_oracle_neshu__machines_yuman_maintenance_base`
-- [ ] Add `cross_source` tag (or `technique`) in the model config or dbt_project.yml
-- [ ] Document the yuman dependency clearly in the model description in `_models.yml`
-- [ ] Consider whether this intermediate model should live under a shared folder
-      (`intermediate/technique/` or `intermediate/cross/`)
+Le modèle est déjà dans `marts/commerce/` (déplacé/renommé avant le refacto BU). Tagué `commerce` via folder. Sera renommé `fct_commerce__machine_intervention` lors de la PR commerce (Phase 2 #8).
+
+### ~~Fix 2~~ — model no longer exists
+~~Add cross-source tags to `int_oracle_neshu__machines_yuman_maintenance_base`~~
+
+Ce modèle a été supprimé ou renommé entre 2026-03 (date du doc) et aujourd'hui. Seul `int_oracle_neshu__valorisation_parc_machines` subsiste dans `intermediate/oracle_neshu/`.
 
 ### Fix 3 — Add freshness checks to unconfigured sources
+
+⏳ **Still TODO**. À vérifier dans `models/staging/<source>/_<source>__sources.yml` si chaque source a `loaded_at_field` + `freshness` configurés. Sources concernées :
+
 - [ ] `nesp_tech`: add `warn_after: {count: 8, period: day}`, `error_after: {count: 10, period: day}`
       (weekly source, so warn if >8 days without refresh)
 - [ ] `nesp_co`: add `warn_after: {count: 26, period: hour}`, `error_after: {count: 36, period: hour}`
@@ -179,256 +179,3 @@ external (insurance claims), a silent ingestion failure would go undetected.
 - [ ] `yuman_gcs`, `oracle_neshu_gcs`: add appropriate freshness based on ingestion cadence
 
 ---
-
-## 5. Proposed Architecture — Marts by Business Unit (Migration Plan)
-
-### Rationale
-
-The current source-based mart organization works well as long as marts stay within
-a single source domain. As the project grows, more cross-source business questions
-will arise (machine lifetime from oracle + maintenance from yuman + interventions
-from nesp_tech). Organizing marts by **business unit** makes the data model answer
-business questions directly, rather than by technical source system.
-
-### Proposed BU Structure
-
-```
-models/
-├── staging/
-│   └── {source}/           ← NO CHANGE. Keep source-based forever.
-│
-├── intermediate/
-│   └── {source}/           ← Keep source-based for single-source logic.
-│   └── cross/              ← NEW: intermediate models joining 2+ sources
-│       └── int_cross__{process}.sql
-│
-└── marts/
-    ├── logistique/          ← oracle_neshu + oracle_lcdp supply chain
-    ├── technique/           ← nesp_tech + yuman maintenance (already exists)
-    ├── commerce/            ← nesp_co + yuman commercial activity
-    ├── finance/             ← mssql_sage P&L and accounting
-    ├── parc_machines/       ← machine tracking: oracle_neshu + oracle_lcdp + yuman + nesp_tech
-    ├── stock/               ← yuman_gcs + oracle_neshu_gcs stock snapshots
-    └── assets/              ← gac vehicle claims
-```
-
-### BU Tag Strategy
-
-```yaml
-# dbt_project.yml
-models:
-  dbt_warehouse:
-    marts:
-      logistique:
-        +tags: ['marts', 'bu_logistique']
-      technique:
-        +tags: ['marts', 'bu_technique']
-      commerce:
-        +tags: ['marts', 'bu_commerce']
-      finance:
-        +tags: ['marts', 'bu_finance']
-      parc_machines:
-        +tags: ['marts', 'bu_parc_machines']
-      stock:
-        +tags: ['marts', 'bu_stock']
-      assets:
-        +tags: ['marts', 'bu_assets']
-```
-
-### Model Mapping — Current → Proposed BU
-
-| Current location | Current tag | Proposed BU folder | Proposed tag |
-|---|---|---|---|
-| marts/oracle_neshu/ (supply facts) | oracle_neshu | marts/logistique/ | bu_logistique |
-| marts/oracle_lcdp/ (dims) | oracle_lcdp | marts/logistique/ | bu_logistique |
-| marts/oracle_neshu/ (machine dims) | oracle_neshu | marts/parc_machines/ | bu_parc_machines |
-| marts/yuman/ (workorder facts) | yuman | marts/technique/ or commerce/ | bu_technique / bu_commerce |
-| marts/technique/ | technique | marts/technique/ | bu_technique ← keep |
-| marts/nesp_co/ | nesp_co | marts/commerce/ | bu_commerce |
-| marts/mssql_sage/ | mssql_sage | marts/finance/ | bu_finance |
-| marts/gac/ | gac | marts/assets/ | bu_assets |
-| marts/yuman_gcs/ | yuman_gcs | marts/stock/ | bu_stock |
-| marts/oracle_neshu_gcs/ | oracle_neshu_gcs | marts/stock/ | bu_stock |
-
-### Scheduling in the BU Model
-
-Cross-source BU marts need a dedicated scheduler that fires after all their
-upstream source pipelines are complete. Proposed approach:
-
-**Option A — BU trigger at the end of the last upstream pipeline**
-
-For each BU, identify the "last source to land" and append a BU dbt build step
-at the end of that pipeline workflow.
-
-| BU | Upstream sources | Last to land | Add BU build to |
-|---|---|---|---|
-| bu_logistique | oracle_neshu, oracle_lcdp | Both at 01:00 — add step after both | Dedicated Cloud Scheduler at 02:30 |
-| bu_technique | nesp_tech, yuman | nesp_tech (Monday 07:30) | Already done: pipeline-nesp-tech runs `tag:technique` |
-| bu_commerce | nesp_co, yuman | nesp_co at 08:00 (yuman is 01:00) | pipeline-sftp-nesp-client: add `tag:bu_commerce` step |
-| bu_parc_machines | oracle_neshu, yuman, nesp_tech | nesp_tech (Monday 07:30) | pipeline-nesp-tech: add `tag:bu_parc_machines` step |
-| bu_finance | mssql_sage | mssql_sage at 01:00 | pipeline-mssql-sage: add `tag:bu_finance` step |
-| bu_stock | yuman_gcs, oracle_neshu_gcs | oracle_neshu_gcs at 23:00 | pipeline-oracle-stock-theorique: add `tag:bu_stock` step |
-| bu_assets | gac | gac at 08:00 | pipeline-sftp-evs: add `tag:bu_assets` step |
-
-**Option B — Dedicated cross-source Cloud Scheduler (simpler, less coupled)**
-
-Add a single Cloud Scheduler at 09:30 Paris on weekdays that triggers a
-dedicated workflow running all cross-source BU tags in order:
-
-```
-09:30 → dbt build --select tag:bu_logistique tag:bu_commerce tag:bu_parc_machines tag:bu_finance tag:bu_assets
-```
-
-This is less real-time but simpler to maintain and guarantees all upstream sources
-(all running between 01:00–09:00) are complete before BU marts are rebuilt.
-
-### Migration Steps
-
-**Phase 1 — Fix current bugs without restructuring (1–2 days)**
-1. Fix `fct_nesp_co__machines_avec_interventions` tag → move to `technique/`
-2. Add cross-source tag to `int_oracle_neshu__machines_yuman_maintenance_base`
-3. Add missing freshness checks
-
-**Phase 2 — Create BU mart folders and move cross-source models (1 week)**
-1. Create new BU folders under `marts/`
-2. Move cross-source models to their BU folder
-3. Update `dbt_project.yml` tags
-4. Keep single-source marts in existing folders OR move them too (full migration)
-5. Update `intermediate/cross/` for any intermediate models that span sources
-
-**Phase 3 — Update Cloud Workflows for BU scheduling**
-1. Add BU dbt build steps to relevant pipeline workflows
-2. Or deploy the dedicated cross-source Cloud Scheduler
-3. Update monitoring alerts if any are scoped by tag
-
-**What to keep in mind during migration:**
-- BigQuery table names are driven by `schema` + `alias` in model config, not by
-  folder path. Moving a model file does NOT rename the BigQuery table as long as
-  `alias` is set or the model name stays the same.
-- If a model doesn't have an explicit `alias`, the BigQuery table name = model file name.
-  Moving the file is safe in that case, but double-check before migrating.
-- BI reports (Power BI etc.) reference the BigQuery table names, not dbt model paths.
-  Table names will not break if you only move files and update tags.
-
----
-
-## 6. Naming Convention for Marts Models
-
-### The Core Rule
-
-The **folder** gives the business context (BU). The **model name prefix** gives the
-technical origin (source or BU). Both layers of information are useful independently
-and should never be collapsed into one.
-
-```
-marts/logistique/fct_oracle_neshu__appro.sql
-│               │   │             │
-│               │   └─ source     └─ event/entity
-│               └─ prefix type (fct / dim)
-└─ BU folder
-```
-
-### Rule 1 — Pure single-source model → use source prefix
-
-When a model reads from one source only, keep `{source}` as prefix regardless of
-which BU folder it lives in. The source tells you exactly where the data comes from.
-Renaming it to the BU prefix would lose that information without adding anything.
-
-```
-marts/logistique/
-    fct_oracle_neshu__appro.sql             ✅
-    fct_oracle_lcdp__livraison.sql          ✅
-    dim_oracle_neshu__company.sql           ✅
-    dim_lcdp__company.sql            ✅
-
-    fct_logistique__appro.sql               ❌  which source? oracle_neshu or oracle_lcdp?
-```
-
-### Rule 2 — Cross-source model → use BU prefix
-
-When a model joins 2 or more sources, there is no single source to put in the name.
-The BU becomes the owner. This is already established in the project with
-`fct_technique__intervention` — follow that pattern.
-
-```
-marts/technique/
-    fct_technique__intervention.sql        ✅  joins nesp_tech + yuman
-    fct_technique__machines_avec_inter.sql  ✅  joins nesp_tech + nesp_co (renamed from fct_nesp_co__)
-
-marts/commerce/
-    fct_commerce__activite_commerciale.sql  ✅  joins nesp_co + yuman
-
-marts/parc_machines/
-    dim_parc_machines__machines.sql         ✅  joins oracle_neshu + yuman + nesp_tech
-```
-
-### Rule 3 — Unified model (union of two sources) → use BU prefix
-
-If you create a model that unions or merges the same entity from two sources
-(e.g. NESHU companies + LCDP companies into a single company dimension),
-use the BU prefix. This is a new model, not a rename of either source model.
-
-```
-marts/logistique/
-    dim_oracle_neshu__company.sql       ← NESHU companies only (keep)
-    dim_lcdp__company.sql        ← LCDP companies only (keep)
-    dim_logistique__company.sql         ← union of both (new model, BU prefix)
-```
-
-### Rule 4 — Never rename a single-source model just because it moved folders
-
-Moving a file to a BU folder does not require a rename. The BigQuery table name
-stays the same, BI reports are unaffected, and all `ref()` calls continue to work.
-Only rename when the model's scope changes (i.e. it becomes cross-source).
-
-```
-Before migration:
-    marts/oracle_neshu/fct_oracle_neshu__appro.sql    → BigQuery: marts.fct_oracle_neshu__appro
-
-After moving to BU folder (no rename needed):
-    marts/logistique/fct_oracle_neshu__appro.sql      → BigQuery: marts.fct_oracle_neshu__appro ✅ unchanged
-```
-
-### Summary Table
-
-| Situation | Pattern | Example |
-|---|---|---|
-| Single-source fact | `fct_{source}__{event}` | `fct_oracle_neshu__appro` |
-| Single-source dimension | `dim_{source}__{entity}` | `dim_oracle_neshu__company` |
-| Cross-source fact | `fct_{bu}__{event}` | `fct_technique__intervention` |
-| Cross-source dimension | `dim_{bu}__{entity}` | `dim_parc_machines__machines` |
-| Unified dim (union of 2 sources) | `dim_{bu}__{entity}` | `dim_logistique__company` |
-
-### Models to Rename During Migration
-
-Only cross-source models that currently carry a misleading single-source prefix
-need to be renamed. Everything else: move the file, keep the name.
-
-| Current name | Current folder | Proposed name | Proposed folder | Reason |
-|---|---|---|---|---|
-| `fct_nesp_co__machines_avec_interventions` | `marts/nesp_co/` | `fct_technique__machines_avec_interventions` | `marts/technique/` | Joins nesp_tech + nesp_co — misleading nesp_co prefix |
-| `int_oracle_neshu__machines_yuman_maintenance_base` | `intermediate/oracle_neshu/` | `int_cross__machines_yuman_maintenance_base` | `intermediate/cross/` | Joins oracle_neshu + yuman — misleading oracle_neshu prefix |
-
-All other existing models: **move the file, do not rename**.
-
----
-
-## 7. Decision Points for the Team
-
-
-1. **Do we do Phase 2 now or after other priorities?**
-   Phase 1 fixes the real bugs. Phase 2 is a structural improvement for long-term
-   maintainability. Recommend Phase 1 now, Phase 2 when there is a quiet period.
-
-2. **BU trigger: append to pipeline workflow (Option A) or dedicated scheduler (Option B)?**
-   Option B is simpler and decoupled. Option A gives fresher data but adds complexity
-   to each workflow. Given most BU reports are not real-time, Option B is recommended.
-
-3. **Do we keep source-based marts alongside BU marts, or do a full migration?**
-   A full migration is cleaner but higher risk. A hybrid (BU for cross-source,
-   source-based for pure single-source) is acceptable and lower effort.
-
-4. **Who owns the `parc_machines` BU?**
-   This BU spans oracle_neshu (device registry), yuman (material/maintenance),
-   and nesp_tech (interventions). It touches multiple teams. Ownership should be
-   agreed before building it out.
