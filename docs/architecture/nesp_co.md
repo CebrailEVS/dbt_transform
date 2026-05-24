@@ -13,23 +13,17 @@ Professionnelle France pour le pilotage de l'activité de vente :
 - **Opportunités** de vente (pipeline commercial)
 - **Base clients** Nespresso côté EVS (référentiel `third`)
 
-À la différence des sources API/ERP, **les trois tables proviennent de fichiers
-Excel/CSV** déposés sur SFTP, avec deux pipelines distincts (cf.
-`infra/workflows.tf` et `workflows/pipeline-nesp-co.yaml` /
-`workflows/pipeline-sftp-nesp-client.yaml`) :
+À la différence des sources API/ERP, **les trois tables proviennent de
+fichiers Excel/CSV** déposés sur SFTP :
+- `nespresso_commerce_activite` et `nespresso_commerce_opportunite` arrivent
+  via GCS (external table BigQuery)
+- `nespresso_base_client` arrive via un tap Singer `tap-spreadsheets-anywhere`
+  → BigQuery direct, livraison manuelle
 
-| Table | Pipeline Cloud Workflow | Déclenchement | Mode d'extraction |
-|---|---|---|---|
-| `nespresso_commerce_activite` | `pipeline-nesp-co` | **Quotidien à 08:00 Europe/Paris** (`cron 0 8 * * *`) | SFTP → GCS (Cloud Run `ingest-nespresso-commerce-gcs`) puis external table BigQuery |
-| `nespresso_commerce_opportunite` | `pipeline-nesp-co` | **Quotidien à 08:00** (même pipeline) | SFTP → GCS puis external table |
-| `nespresso_base_client` | `pipeline-sftp-nesp-client` | **Manuel** (déclenché à chaque livraison d'un fichier Excel "Base client - EVS" sur le SFTP) — pas de Cloud Scheduler | `tap-spreadsheets-anywhere` → BigQuery (`target-bigquery-upsert`) |
+> Voir `docs/pipeline-schedule.md` pour le cron et l'orchestration.
 
-Les deux pipelines exécutent ensuite un `dbt build` avec
-`DBT_SOURCE_SELECTOR=source:nesp_co` + `DBT_TAG_SELECTOR=tag:nesp_co`.
-
-> Source historiquement **WIP** (cf. memory) — l'export reste artisanal, les
-> colonnes Excel sans en-tête se traduisent par des champs `unnamed_*` au
-> niveau brut.
+> Source historiquement artisanale : les colonnes Excel sans en-tête se
+> traduisent par des champs `unnamed_*` au niveau brut.
 
 ---
 
@@ -38,7 +32,7 @@ Les deux pipelines exécutent ensuite un `dbt build` avec
 ```
 ┌──────────────────────┐   SFTP / GCS       ┌─────────────────────────────┐
 │  Nespresso C4C       │ ─────────────────► │  GCS bucket                 │
-│  (CRM)               │   CSV hebdo        │  *.csv (activite, opp)      │
+│  (CRM)               │                    │  *.csv (activite, opp)      │
 └──────────────────────┘                    └──────────┬──────────────────┘
                                                        │
 ┌──────────────────────┐   SFTP EVS         ┌─────────────────────────────┐
@@ -78,10 +72,6 @@ Les deux pipelines exécutent ensuite un `dbt build` avec
                                        └──────────────────────────────────┘
 ```
 
-**Fraîcheur** : tier *Standard* — warn 26h / error 48h sur `_sdc_extracted_at`.
-Cohérent avec le rythme quotidien de `pipeline-nesp-co`. Le `base_client` étant
-manuel, sa fraîcheur peut être plus dégradée — ne pas alerter sur lui comme
-sur une source quotidienne.
 
 ---
 

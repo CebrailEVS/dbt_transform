@@ -72,25 +72,7 @@ Données clés :
                                        └──────────────────────────────────┘
 ```
 
-### Orchestration (vérifié sur `infra/workflows.tf` + `workflows/pipeline-nesp-tech.yaml`)
-
-| Pipeline | Cron | Effet |
-|---|---|---|
-| `pipeline-nesp-tech` | **`30 7 * * 1`** — lundi 07:30 Europe/Paris | EL (`ingest-nesp-tech` → GCS) puis `dbt build tag:nesp_tech` puis `dbt build tag:technique tag:commerce` (recompute des marts aval) |
-| `export-nesp-tech-stock-yuman` | `0 10 * * 1` — lundi 10:00 Europe/Paris | Cloud Run dédié qui requête BigQuery, transforme et **uploade un CSV des mouvements de stock vers le SFTP Yuman** (export sortant, T+2h30 après l'extract) |
-
-> **⚠️ Drift documentaire à corriger** : le commentaire d'en-tête de
-> `workflows/pipeline-nesp-tech.yaml` indique *"Schedule: every day at 07:30,
-> cron: 30 7 * * *"*. Le **Cloud Scheduler réel** (Terraform) est
-> `30 7 * * 1` — **lundi uniquement**, pas tous les jours. La doc
-> `docs/pipeline-schedule.md` documente bien l'hebdomadaire ; seul le YAML
-> est désaligné.
-
-**Fraîcheur source** : aucune config `loaded_at_field` / `freshness` dans
-`_nesp_tech__sources.yml` aujourd'hui — `dbt source freshness` ne couvre
-donc **pas** cette source. À aligner sur le tier *Standard* (26h / 48h) si
-suivi voulu, en tenant compte du rythme hebdomadaire (warn 8j / error 14j
-plus réaliste).
+> Voir `docs/pipeline-schedule.md` pour le cron et l'orchestration.
 
 ---
 
@@ -270,30 +252,6 @@ d'abord un `safe_cast(... as timestamp)`, puis fallback sur
 `safe.parse_timestamp('%d/%m/%Y %H:%M', regexp_replace(..., '00xx', '20xx'))`.
 Si ce traitement échoue, la valeur passe en NULL — surveiller via
 `countif(pickup_date is null)`.
-
-### Pas de freshness configurée
-`_nesp_tech__sources.yml` n'a aucune section `freshness` / `loaded_at_field`
-à ce jour. `dbt source freshness` ignore la source. Si suivi voulu, ajouter
-un tier *Standard adapté* (rythme hebdomadaire) : warn 8j / error 14j sur
-`extracted_at`. Cf. memory project tier (actuel = Standard 26h/48h, à
-réaligner).
-
-### Pipeline lance aussi les marts aval directement
-À la fin de `pipeline-nesp-tech`, en plus de `dbt build tag:nesp_tech`, le
-workflow exécute **`dbt build tag:technique tag:commerce`** dans la foulée
-(cf. step `run_dbt_technique_commerce`). Conséquence : les marts technique
-et commerce sont rebuilt **chaque lundi vers 07:35-08:00**, en plus des
-runs quotidiens `transform-technique-daily` (03:00, 08:00) et
-`transform-commerce-daily` (08:30, 10:30). Voir
-`docs/pipeline-schedule.md` pour la matrice complète.
-
-### Export aller-retour vers Yuman (lundi 10:00)
-Le Cloud Run `export-nesp-tech-stock-yuman` (lancé par
-`export-nesp-tech-stock-yuman.yaml`, cron `0 10 * * 1`) requête BigQuery,
-construit un CSV de mouvements de stock et l'**uploade sur le SFTP Yuman**.
-Cela permet à Yuman d'intégrer les consommations nesp_tech dans son propre
-stock. L'écart de 2h30 avec `pipeline-nesp-tech` (07:30) garantit que les
-données BQ sont fraîches au moment de l'export.
 
 ---
 
