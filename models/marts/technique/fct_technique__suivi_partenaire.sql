@@ -1,7 +1,7 @@
 {{ config(
     materialized='table',
     schema='marts',
-    alias='fct_yuman__suivi_partenaires',
+    alias='fct_technique__suivi_partenaire',
     partition_by={"field": "date_done", "data_type": "timestamp"},
     cluster_by=['partner_name', 'demand_status', 'workorder_status']
 ) }}

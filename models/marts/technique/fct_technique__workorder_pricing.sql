@@ -1,7 +1,7 @@
 {{ config(
     materialized='table',
     schema='marts',
-    alias='fct_yuman__workorder_pricing',
+    alias='fct_technique__workorder_pricing',
     partition_by={"field": "date_done", "data_type": "timestamp"},
     cluster_by=['client_id', 'site_id', 'material_id']
 ) }}

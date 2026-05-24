@@ -15,7 +15,7 @@ select
     pricing_key_used,
     pricing_type,
     billing_validation_status
-from {{ ref('fct_yuman__workorder_pricing') }}
+from {{ ref('fct_technique__workorder_pricing') }}
 where to_invoice = true
     and date_done is not null
     and amount is null

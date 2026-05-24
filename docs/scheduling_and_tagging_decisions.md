@@ -126,7 +126,7 @@ As of 2026-03-31. 7 cross-source models across all layers.
 | `int_oracle_neshu__machines_yuman_maintenance_base` | intermediate | `intermediate/oracle_neshu/` | oracle_neshu + yuman | High | `cross_post_yuman` |
 | `fct_oracle_neshu__machines_maintenance_tracking` | marts | `marts/oracle_neshu/` | oracle_neshu + yuman | High | `cross_post_yuman` |
 | `fct_commerce__machines_avec_interventions` | marts | `marts/commerce/` ✅ | nesp_co + nesp_tech | Medium | `cross_post_nesp_co` |
-| `fct_technique__interventions` | marts | `marts/technique/` ✅ | nesp_tech + yuman | Medium | TBD — confirm which finishes last |
+| `fct_technique__intervention` | marts | `marts/technique/` ✅ | nesp_tech + yuman | Medium | TBD — confirm which finishes last |
 | `fct_supply_chain__flux_neshu` | marts | `marts/supply_chain/` ✅ | oracle_neshu + oracle_neshu_gcs | Low | `transform-supply-chain-daily` (08:00 daily) |
 | `fct_supply_chain__stock_neshu` | marts | `marts/supply_chain/` ✅ | oracle_neshu_gcs | Low | `transform-supply-chain-daily` (08:00 daily) |
 | `int_mssql_sage__pnl_bu` | intermediate | `intermediate/mssql_sage/` | mssql_sage + historic (static) | Low | None — historic source is not a pipeline |
@@ -215,7 +215,7 @@ self-documenting, and fails independently.
 All technique models live in `marts/technique/` and share the same `tag:technique` folder tag.
 Using `tag:technique` directly is simpler — no model-level tag overrides needed.
 
-nesp_tech-dependent models (`fct_technique__interventions`, `fct_commerce__machines_avec_interventions`)
+nesp_tech-dependent models (`fct_technique__intervention`, `fct_commerce__machines_avec_interventions`)
 rebuild daily with the previous Monday's nesp_tech data. This is intentional and acceptable:
 yuman and nesp_co data still refresh daily. The Monday nesp_tech pipeline rebuilds them again
 with fresh nesp_tech data. Idempotent, no data integrity issue.
@@ -289,7 +289,7 @@ Migrated from `marts/technique/fct_technique__machines_avec_interventions` to `m
 6. ✅ Updated `pipeline-nesp-tech.yaml` — added `tag:commerce` alongside `tag:technique` in cross-source step
 7. ⬜ Verify Power BI reports: table name changed → update BigQuery dataset reference in Power BI if consumed
 
-### `fct_technique__interventions` (already in `marts/technique/`)
+### `fct_technique__intervention` (already in `marts/technique/`)
 
 1. Confirm which source finishes last (nesp_tech vs yuman) to pick the right `cross_post_*` tag
 2. Add `tags = ['cross_post_<last_source>']` to model config

@@ -139,7 +139,7 @@ external (insurance claims), a silent ingestion failure would go undetected.
 - Naming conventions (`stg_`, `int_`, `fct_`, `dim_` with `{source}__` prefix) are
   clean and consistent throughout. No ambiguity on model provenance.
 - Tag-per-source + layer approach is correct for single-source pipelines.
-- `fct_technique__interventions` cross-source scenario is **already handled correctly**:
+- `fct_technique__intervention` cross-source scenario is **already handled correctly**:
   the nesp_tech workflow runs `tag:nesp_tech` then `tag:technique` sequentially,
   and yuman runs at 01:00 so it's fresh by 07:30 Monday.
 - Incremental merge strategy on high-frequency fact tables (oracle_neshu tasks,
@@ -341,11 +341,11 @@ marts/logistique/
 
 When a model joins 2 or more sources, there is no single source to put in the name.
 The BU becomes the owner. This is already established in the project with
-`fct_technique__interventions` — follow that pattern.
+`fct_technique__intervention` — follow that pattern.
 
 ```
 marts/technique/
-    fct_technique__interventions.sql        ✅  joins nesp_tech + yuman
+    fct_technique__intervention.sql        ✅  joins nesp_tech + yuman
     fct_technique__machines_avec_inter.sql  ✅  joins nesp_tech + nesp_co (renamed from fct_nesp_co__)
 
 marts/commerce/
@@ -388,7 +388,7 @@ After moving to BU folder (no rename needed):
 |---|---|---|
 | Single-source fact | `fct_{source}__{event}` | `fct_oracle_neshu__appro` |
 | Single-source dimension | `dim_{source}__{entity}` | `dim_oracle_neshu__company` |
-| Cross-source fact | `fct_{bu}__{event}` | `fct_technique__interventions` |
+| Cross-source fact | `fct_{bu}__{event}` | `fct_technique__intervention` |
 | Cross-source dimension | `dim_{bu}__{entity}` | `dim_parc_machines__machines` |
 | Unified dim (union of 2 sources) | `dim_{bu}__{entity}` | `dim_logistique__company` |
 
