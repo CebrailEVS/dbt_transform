@@ -5,7 +5,10 @@ on:
     branches:
       - master
     paths:
-      - 'models/**'
+      # models/** except models/exposures/** (meta objects, not materialized)
+      - 'models/staging/**'
+      - 'models/intermediate/**'
+      - 'models/marts/**'
       - 'data/**'
       - 'snapshots/**'
       - 'macros/**'

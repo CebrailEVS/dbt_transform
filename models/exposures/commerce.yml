@@ -22,3 +22,20 @@ exposures:
       email: rim.bouchikhi@evs-pro.com
     depends_on:
       - ref('fct_commerce__machine_intervention')
+
+  - name: scorecard
+    label: "SCORECARD"
+    type: dashboard
+    maturity: high
+    description: >
+      Scorecard commerciale Nespresso : suivi de l'activité des commerciaux
+      (rendez-vous, appels, opportunités) croisée avec le référentiel client
+      et le mapping des commerciaux.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('dim_commerce__client')
+      - ref('fct_commerce__activite')
+      - ref('fct_commerce__opportunite')
+      - ref('ref_nesp_co__commerciaux')
