@@ -17,7 +17,7 @@ with passage_avec_suivant as (
     select
         ta.device_id,
         ta.task_start_date,
-        rm.roadman_code,
+        rm.resources_name as roadman_code,
         ta.product_source_id,
         ta.product_source_type,
         lag(ta.task_start_date) over (
@@ -25,8 +25,10 @@ with passage_avec_suivant as (
             order by ta.task_start_date
         ) as date_passage_precedent
     from {{ ref('int_oracle_neshu__appro_tasks') }} as ta
-    left join {{ ref('dim_neshu__vehicule_roadman') }} as rm
-        on ta.product_source_id = rm.resources_vehicule_id
+    left join {{ ref('dim_neshu__resource') }} as rm
+        on
+            ta.product_source_id = rm.resources_id
+            and rm.resources_type = 'VEHICLE'
     where
         ta.task_start_date >= '2025-01-01'
         and ta.task_status_code = 'FAIT'
