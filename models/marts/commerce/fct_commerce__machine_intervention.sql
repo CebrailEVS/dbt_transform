@@ -36,7 +36,7 @@ clients as (
         third_address_2,
         third_city,
         third_post_code
-    from {{ ref('int_nesp_co__clients_enrichis') }}
+    from {{ ref('dim_commerce__client') }}
 ),
 
 machines_clean as (
