@@ -117,3 +117,304 @@ models:
             max_value: 100000
           config:
             severity: warn
+
+  - name: dim_commerce__client
+    description: |
+      [QUOI MÉTIER]
+      Dimension client commerciale Nespresso : référentiel des tiers (clients
+      et prospects) avec leurs attributs descriptifs (adresse, donneur d'ordre,
+      segmentation, métier, région, SIRET, adhésion club) enrichi de l'ID C4C
+      le plus récent observé pour ce tiers.
+
+      [COMMENT CONSTRUITE]
+      Construit à partir de la base clients Nespresso (`stg_nesp_co__client`,
+      issu du fichier Excel `nespresso_base_client`). Le tiers (`third`) est
+      la clé métier Nessoft. L'identifiant C4C (`third_c4c_id`) est dérivé
+      par déduplication temporelle : pour chaque tiers, on cherche dans les
+      opportunités (`stg_nesp_co__opportunite`) et les activités
+      (`stg_nesp_co__activite`) l'ID C4C le plus récent (max sur la date de
+      création de l'opportunité ou de début de l'activité).
+
+      [GRAIN]
+      1 ligne par `third`.
+
+      [NOTES]
+      Source : fichier Excel daily nesp_co (rafraîchi 08:00 weekdays). Noms
+      de colonnes en français pour préserver la compatibilité avec les
+      rapports Power BI existants. Un renommage vers les conventions marts
+      EN pourra être proposé dans un PR ultérieur, coordonné avec le DA.
+
+    columns:
+      - name: third
+        description: Identifiant tiers Nessoft (clé métier client). PK.
+        tests:
+          - unique
+          - not_null
+
+      - name: third_name
+        description: Raison sociale du client.
+
+      - name: third_status_descr
+        description: Statut du client.
+
+      - name: third_address_1
+        description: Ligne 1 de l'adresse postale.
+
+      - name: third_address_2
+        description: Ligne 2 de l'adresse postale.
+
+      - name: third_post_code
+        description: Code postal du client.
+
+      - name: third_city
+        description: Ville du client.
+
+      - name: order_placer_name
+        description: Nom du donneur d'ordre côté client.
+
+      - name: order_placer_adr_ln1
+        description: Adresse du donneur d'ordre.
+
+      - name: order_placer_post_code
+        description: Code postal du donneur d'ordre.
+
+      - name: order_placer_city
+        description: Ville du donneur d'ordre.
+
+      - name: order_placer_phone
+        description: Téléphone du donneur d'ordre.
+
+      - name: segmentation_hypercare
+        description: Indicateur de segmentation Hypercare.
+
+      - name: metier
+        description: Catégorie métier du client.
+
+      - name: region
+        description: Région commerciale.
+
+      - name: third_secteur
+        description: Secteur commercial associé.
+
+      - name: third_groupe
+        description: Groupe du client (utile notamment pour la FID).
+
+      - name: third_siret
+        description: Numéro SIRET du client.
+
+      - name: third_club_date
+        description: Date d'adhésion au club.
+
+      - name: third_c4c_id
+        description: >
+          Identifiant C4C le plus récent issu des activités ou opportunités
+          via déduplication par date métier. NULL si le client n'a aucune
+          activité ni opportunité.
+
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 1000
+            max_value: 100000
+          config:
+            severity: warn
+
+  - name: fct_commerce__opportunite
+    description: |
+      [QUOI MÉTIER]
+      Faits des opportunités commerciales Nespresso : pipeline pré-vente avec
+      statut, dates, valeur nette attendue, probabilité de succès, commercial
+      responsable, campagne marketing et indicateur première commande café.
+
+      [COMMENT CONSTRUITE]
+      Construit à partir de `stg_nesp_co__opportunite` (fichier Excel
+      `nespresso_opportunites`). Renommage des colonnes en préfixe `opp_*`,
+      traduction en français des statuts (`Won`→`Gagné`, `Lost`→`Perdu`,
+      `Open`/`In Process`→`En cours`) et des rôles (`Customer`→`Client`,
+      `Prospect`→`Client potentiel`), conversion de la probabilité en
+      ratio 0-1, et nettoyage des ID C4C (`#`→NULL).
+
+      [GRAIN]
+      1 ligne par opportunité (`opp_id`).
+
+      [NOTES]
+      Source : fichier Excel daily nesp_co (rafraîchi 08:00 weekdays). Lien
+      client : `opp_id_compte` (format `FR_<nessoft>`) ou `opp_id_client_c4c`
+      (ID C4C). Pas de FK directe vers `dim_commerce__client` : la jointure
+      se fait côté BI ou via un modèle dédié (cf.
+      `fct_commerce__machine_intervention` pour le pattern d'extraction du
+      tiers depuis le code Nessoft via regex).
+
+    columns:
+      - name: opp_id
+        description: Identifiant unique de l'opportunité. PK.
+        tests:
+          - unique
+          - not_null
+
+      - name: opp_nom
+        description: Nom de l'opportunité.
+
+      - name: opp_ez
+        description: Indicateur équivalent Zenius.
+
+      - name: opp_date_creation
+        description: Date de création de l'opportunité.
+        tests:
+          - not_null
+
+      - name: opp_source
+        description: Source de l'opportunité.
+
+      - name: opp_compte
+        description: Nom du compte associé.
+
+      - name: opp_id_compte
+        description: Identifiant Nessoft du compte (format `FR_<id>`).
+
+      - name: opp_id_client_c4c
+        description: Identifiant C4C du compte ('#' remplacé par NULL).
+
+      - name: opp_statut
+        description: Statut de cycle de vie traduit en français.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Gagné', 'Perdu', 'En cours']
+              config:
+                severity: warn
+
+      - name: opp_date_cloture
+        description: Date de clôture de l'opportunité.
+
+      - name: opp_role
+        description: Rôle du compte (Client / Client potentiel).
+
+      - name: opp_id_commercial
+        description: Identifiant C4C du commercial responsable.
+
+      - name: opp_campagne
+        description: Nom de la campagne marketing associée.
+
+      - name: opp_campagne_id
+        description: Identifiant numérique de la campagne.
+
+      - name: opp_first_order_cafe
+        description: Indicateur première commande café.
+
+      - name: opp_ns_attendu
+        description: Valeur nette attendue.
+
+      - name: opp_probabilite
+        description: Probabilité de succès normalisée entre 0 et 1.
+
+      - name: opp_nb_opport
+        description: Nombre de machines liées à l'opportunité.
+
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 1000
+            max_value: 100000
+          config:
+            severity: warn
+
+  - name: fct_commerce__activite
+    description: |
+      [QUOI MÉTIER]
+      Faits des activités commerciales Nespresso : rendez-vous, appels
+      téléphoniques, tâches et e-mails saisis par les commerciaux dans C4C
+      pour suivre la relation client / prospect.
+
+      [COMMENT CONSTRUITE]
+      Construit à partir de `stg_nesp_co__activite` (fichier Excel
+      `nespresso_activites`). Unification des champs selon le type d'activité
+      (`Phone Call` / `Appointment` / `Activity Task`) : créateur, nom et
+      date de début sont sélectionnés via CASE selon le type. Traduction en
+      français des types, rôles, statuts et catégories métier (R1
+      Découverte, R2 Animation, R3 Négociation, R4 Signature, R5
+      Fidélisation, etc.). Filtre des lignes totalement vides (id/compte/
+      nom/date tous NULL).
+
+      [GRAIN]
+      1 ligne par activité (`act_id`).
+
+      [NOTES]
+      Source : fichier Excel daily nesp_co (rafraîchi 08:00 weekdays). Lien
+      client : `act_id_nessoft` (format `FR_<nessoft>`) ou `act_compte_id`
+      (ID C4C). Pas de FK directe vers `dim_commerce__client` (sémantique
+      conservée pour compatibilité BI). Contient des dates futures pour les
+      RDV programmés.
+
+    columns:
+      - name: act_id
+        description: Identifiant unique de l'activité. PK.
+        tests:
+          - unique
+          - not_null
+
+      - name: act_id_resp
+        description: Identifiant C4C du collaborateur responsable.
+
+      - name: act_cree_par
+        description: Identifiant du créateur de l'activité selon le type.
+
+      - name: act_compte_nom
+        description: Nom du compte principal.
+
+      - name: act_compte_id
+        description: Identifiant C4C du compte lié.
+
+      - name: act_id_nessoft
+        description: Identifiant Nessoft du compte lié (format `FR_<id>`).
+
+      - name: act_note
+        description: Notes saisies sur l'activité.
+
+      - name: act_mois_creation
+        description: Mois de création (format calendrier).
+
+      - name: act_nom
+        description: Nom de l'activité (sujet RDV / appel).
+
+      - name: act_date_debut
+        description: Date de début normalisée de l'activité.
+
+      - name: act_type
+        description: Type d'activité traduit en français.
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - Rendez-vous
+                  - Tâche dactivité
+                  - Appel téléphonique
+                  - e-mail
+              config:
+                severity: warn
+
+      - name: act_role
+        description: Rôle du compte (Client / Client potentiel).
+
+      - name: act_statut
+        description: Statut du cycle de vie de l'activité.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['En cours', 'Terminé']
+              config:
+                severity: warn
+
+      - name: act_categorie
+        description: Catégorie métier traduite.
+
+      - name: act_semaine_creation
+        description: Semaine ISO au format SS.AAAA.
+
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 10000
+            max_value: 1000000
+          config:
+            severity: warn
