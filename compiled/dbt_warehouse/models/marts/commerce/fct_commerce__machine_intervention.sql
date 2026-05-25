@@ -32,7 +32,7 @@ clients as (
         third_address_2,
         third_city,
         third_post_code
-    from `evs-datastack-prod`.`prod_intermediate`.`int_nesp_co__clients_enrichis`
+    from `evs-datastack-prod`.`prod_marts`.`dim_commerce__client`
 ),
 
 machines_clean as (
