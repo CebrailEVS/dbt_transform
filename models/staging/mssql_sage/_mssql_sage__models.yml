@@ -2,10 +2,16 @@ version: 2
 
 models:
   - name: stg_mssql_sage__f_ecriturea
-    description: "Écritures analytiques nettoyées issues du système MSSQL Sage"
+    description: "Écritures analytiques nettoyées issues du système MSSQL Sage. Déduplication staging sur (ec_no, n_analytique, ea_ligne) — clé unique métier Sage — en gardant le cb_marq le plus récent."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - ec_no
+            - n_analytique
+            - ea_ligne
     columns:
       - name: cb_marq
-        description: "Identifiant unique de l'écriture analytique"
+        description: "Identifiant technique Sage (PK)"
         tests:
           - unique
           - not_null
@@ -15,10 +21,16 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('stg_mssql_sage__f_ecriturec') 
-                field: ec_no                             
+                to: ref('stg_mssql_sage__f_ecriturec')
+                field: ec_no
+      - name: n_analytique
+        description: "Numéro de plan analytique"
+        tests:
+          - not_null
       - name: ea_ligne
         description: "Numéro de la ligne dans l'écriture analytique"
+        tests:
+          - not_null
       - name: ca_num
         description: "Code analytique"
       - name: ea_montant
@@ -39,16 +51,17 @@ models:
         description: "Timestamp de suppression logique"
 
   - name: stg_mssql_sage__f_ecriturec
-    description: "Écritures comptables nettoyées issues du système MSSQL Sage"
+    description: "Écritures comptables nettoyées issues du système MSSQL Sage. Déduplication staging sur ec_no — clé unique métier Sage — en gardant le cb_marq le plus récent (Sage crée parfois un nouveau cb_marq sur update au lieu de modifier la ligne existante, l'ancien étant supprimé)."
     columns:
       - name: ec_no
-        description: "Numéro de l'écriture comptable (PK)"
+        description: "Numéro de l'écriture comptable (clé unique métier Sage)"
         tests:
           - unique
           - not_null
       - name: cb_marq
-        description: "Identifiant unique de l'écriture comptable"
+        description: "Identifiant technique Sage (PK)"
         tests:
+          - unique
           - not_null
       - name: ec_no_link
         description: "Lien vers l'écriture parent, si existant"
@@ -57,7 +70,12 @@ models:
       - name: cg_num
         description: "Compte général"
       - name: ct_num
-        description: "Compte tiers"
+        description: "Compte tiers (nullable pour les écritures sans tiers)"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_comptet')
+                field: ct_num
       - name: ec_intitule
         description: "Libellé de l'écriture"
       - name: ec_sens
