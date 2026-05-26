@@ -5,10 +5,11 @@ models:
     description: "Écritures analytiques nettoyées issues du système MSSQL Sage. Déduplication staging sur (ec_no, n_analytique, ea_ligne) — clé unique métier Sage — en gardant le cb_marq le plus récent."
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - ec_no
-            - n_analytique
-            - ea_ligne
+          arguments:
+            combination_of_columns:
+              - ec_no
+              - n_analytique
+              - ea_ligne
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK)"

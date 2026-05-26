@@ -396,6 +396,14 @@ Description et tests vivent dans `_<bu>__marts_models.yml` (voir §2 et §4).
 
 ## Tests de qualite
 
+> **Syntaxe obligatoire (dbt ≥ 1.11)** : tout test générique prenant des paramètres
+> (`accepted_values`, `relationships`, `unique_combination_of_columns`, `expression_is_true`,
+> tous les `dbt_expectations.*`) doit imbriquer ses arguments sous `arguments:`, et la severity
+> sous `config:`. La forme à plat (`combination_of_columns:` directement sous le test) est
+> **dépréciée** et lève `MissingArgumentsPropertyInGenericTestDeprecation` — c'est un warning
+> aujourd'hui, une erreur en 1.12. Le `dbt build` du CI ne bloque PAS sur ce warning, donc
+> à vérifier manuellement en relecture de PR. Voir les exemples de la section Marts ci-dessus.
+
 ### Tests dbt natifs
 
 | Test | Usage |
