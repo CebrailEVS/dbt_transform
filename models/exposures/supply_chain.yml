@@ -27,3 +27,130 @@ exposures:
       email: etienne.boulinier@evs-pro.com
     depends_on:
       - ref('fct_supply_chain__flux_neshu')
+
+  - name: analyse_conso_stocks
+    label: "PROD ANALYSE CONSO & STOCKS"
+    type: dashboard
+    maturity: medium
+    description: >
+      Analyse de la consommation des stocks supply chain Neshu. Visualisation
+      consolidée des consommations (livraisons clients/internes, chargements
+      machines) et des stocks (dépôts + véhicules, réels et théoriques) sur
+      une période donnée. Granularité mensuelle (mois_date). En cours de
+      développement (label DEV).
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com 
+    depends_on:
+      - ref('fct_supply_chain__stock_neshu')
+      - ref('dim_neshu__product')
+      - ref('int_oracle_neshu__livraison_interne_tasks')
+      - ref('int_oracle_neshu__livraison_tasks')
+
+  - name: activite_depot
+    label: "PROD ACTIVITE DEPOTS"
+    type: dashboard
+    maturity: medium
+    description: >
+      Analyse de l'activité des dépôts supply chain Neshu. Visualisation
+      consolidée des flux opérationnels (réceptions fournisseurs, livraisons
+      clients/internes, chargements machines) par dépôt et par mois. En cours
+      de développement (label DEV).
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('int_oracle_neshu__reception_tasks')
+      - ref('int_oracle_neshu__livraison_interne_tasks')
+      - ref('int_oracle_neshu__inventaire_tasks')
+      - ref('int_oracle_neshu__chargement_tasks')
+      - ref('int_oracle_neshu__livraison_tasks')
+      - ref('dim_neshu__product')
+
+  - name: analyse_conso_produits
+    label: "PROD ANALYSE CONSO PRODUITS"
+    type: dashboard
+    maturity: medium
+    description: >
+      Analyse de la consommation des produits supply chain Neshu. Visualisation
+      consolidée des consommations (livraisons clients/internes, chargements
+      machines) par produit et par mois. En cours de développement (label DEV).
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('int_oracle_neshu__reception_tasks')
+      - ref('int_oracle_neshu__livraison_interne_tasks')
+      - ref('int_oracle_neshu__inventaire_tasks')
+      - ref('int_oracle_neshu__chargement_tasks')
+      - ref('int_oracle_neshu__livraison_tasks')
+      - ref('dim_neshu__product')
+
+  - name: article_360
+    label: "PROD ARTICLE 360°"
+    type: dashboard
+    maturity: medium
+    description: >
+      Vue à 360° d'un article supply chain Neshu. Visualisation consolidée des
+      stocks (dépôts + véhicules, réels et théoriques) et des flux opérationnels
+      (réceptions fournisseurs, livraisons clients/internes, chargements machines)
+      pour un article donné sur une période donnée. En cours de développement
+      (label DEV).
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('fct_supply_chain__stock_neshu')
+      - ref('int_oracle_neshu__reception_tasks')
+      - ref('int_oracle_neshu__livraison_interne_tasks')
+      - ref('int_oracle_neshu__inventaire_tasks')
+      - ref('dim_neshu__product')
+      - ref('dim_neshu__company')
+
+  - name: controle_chargement
+    label: "PROD CONTROLE CHARGEMENTS"
+    type: dashboard
+    maturity: medium
+    description: >
+      Contrôle des chargements supply chain Neshu. Visualisation consolidée des
+      chargements machines par dépôt, par produit et par mois. En cours de
+      développement (label DEV).
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('int_oracle_neshu__chargement_tasks')
+      - ref('int_oracle_neshu__livraison_interne_tasks')
+      - ref('int_oracle_neshu__invendus_tasks')
+      - ref('dim_neshu__company')
+      - ref('dim_neshu__device')
+
+  - name: controle_livraison_interne
+    label: "PROD CONTROLE LIVRAISONS INTERNES"
+    type: dashboard
+    maturity: medium
+    description: >
+      Contrôle des livraisons internes supply chain Neshu. Visualisation
+      consolidée des livraisons internes par dépôt, par produit et par mois.
+      En cours de développement (label DEV).
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('int_oracle_neshu__livraison_interne_tasks')
+      - ref('int_oracle_neshu__chargement_tasks')
+
+  - name: stock
+    label: "PROD STOCKS"
+    type: dashboard
+    maturity: medium
+    description: >
+      a remplir.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('fct_supply_chain__stock_neshu')
+      - ref('int_oracle_neshu__livraison_interne_tasks')
+      - ref('int_oracle_neshu__livraison_tasks')
+      - ref('dim_neshu__product')
