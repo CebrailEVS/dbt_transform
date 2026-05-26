@@ -1,6 +1,20 @@
 
 
-with telemetry_tasks as (
+with task_label_pivot as (
+    select
+        lht.idtask,
+        max(case when lf.code = 'TELEM_SOURCE' then la.code end) as telemetry_source,
+        max(case when lf.code = 'TELEM_SEND_CAUSE' then la.code end) as telemetry_send_cause
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` as lht
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` as la
+        on lht.idlabel = la.idlabel
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_family` as lf
+        on la.idlabel_family = lf.idlabel_family
+    where lf.code in ('TELEM_SOURCE', 'TELEM_SEND_CAUSE')
+    group by lht.idtask
+),
+
+telemetry_tasks as (
     select
         -- PK naturelle de task_has_product
         thp.idtask_has_product as task_product_id,
@@ -21,6 +35,10 @@ with telemetry_tasks as (
         c.name as company_name,
         l.access_info as task_location_info,
 
+        -- Attributs télémétrie (labels pivotés)
+        tlp.telemetry_source,
+        tlp.telemetry_send_cause,
+
         -- Dates business
         t.real_start_date as task_start_date,
 
@@ -38,6 +56,12 @@ with telemetry_tasks as (
     inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_product` as thp
         on t.idtask = thp.idtask
 
+    -- Filtrage sur la présence d'un label TELEM_SOURCE + récupération des valeurs
+    inner join task_label_pivot as tlp
+        on
+            t.idtask = tlp.idtask
+            and tlp.telemetry_source is not null
+
     -- Jointures pour enrichissement
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` as c
         on t.idcompany_peer = c.idcompany
@@ -48,22 +72,11 @@ with telemetry_tasks as (
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__location` as l
         on t.idlocation = l.idlocation
 
-    -- Jointures pour le filtrage sur labels télémétrie
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` as lht
-        on t.idtask = lht.idtask
-
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` as la
-        on lht.idlabel = la.idlabel
-
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_family` as lf
-        on la.idlabel_family = lf.idlabel_family
-
     where 1 = 1
     -- Filtres business critiques
     and t.idtask_status in (1, 4)  -- FAIT et VALIDE uniquement
     and t.code_status_record = '1'   -- Enregistrement actif (string)
     and t.idtask_type = 3           -- Type télémétrie
-    and lf.code = 'TELEM_SOURCE'    -- Label famille télémétrie source
 
     -- Filtre qualité données
     and t.real_start_date is not null  -- Éviter les tâches sans date de début
