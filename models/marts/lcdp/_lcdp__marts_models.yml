@@ -143,9 +143,9 @@ models:
   - name: dim_lcdp__device
     description: |
       [QUOI MÉTIER] Dimension machine LCDP enrichie des labels métier (catégorie, état, types fontaine/broyeur/percolateur/SP).
-      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__device joint à stg_oracle_lcdp__company (company_code, company_name) et stg_oracle_lcdp__location (access_info → device_location). Pivot des labels via stg_oracle_lcdp__label_has_device sur les familles : CATMACH, MARQUE, ETAT_MACHINE, STATUT_MATERIEL, TYPEAUDIT, TYDA, LCDPMON, TYPFONT, TYPBROY, TYPPERCO, TYPSP, TYPDASA, MODSP, MARQSP, BADGE, ISACTIVE.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__device joint à stg_oracle_lcdp__company (company_code, company_name) et stg_oracle_lcdp__location (access_info → device_location). Pivot des labels via stg_oracle_lcdp__label_device (vue aplatie lcdp_v_label_device) sur les familles : CATMACH, MARQUE, ETAT_MACHINE, STATUT_MATERIEL, TYPEAUDIT, TYDA, LCDPMON, TYPFONT, TYPBROY, TYPPERCO, TYPSP, TYPDASA, MODSP, MARQSP, BADGE, ISACTIVE.
       [GRAIN] 1 ligne par device_id.
-      [NOTES] device_iddevice = parent device (hiérarchie). is_active converti en booléen.
+      [NOTES] device_iddevice = parent device (hiérarchie). Les attributs label exposent désormais le libellé FR (label_text_fr, ex. "DA CHAUD") au lieu du code (ex. "CATMACH01"). Exception : is_active reste basé sur le code (YES/NO) pour la conversion booléenne. is_active converti en booléen.
     columns:
       - name: device_id
         description: "Identifiant unique du device"
