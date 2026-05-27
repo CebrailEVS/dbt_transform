@@ -31,8 +31,7 @@ with appro_context as (
 
         -- Display attributes via conformed dims
         d.device_code,
-        d.device_name,
-        c.company_name,
+        c.company_code,
 
         -- Appro context (depuis l'intermediate)
         ctx.last_appro_task_id,
@@ -81,6 +80,9 @@ yuman_workorders as (
         any_value(demand_category_name) as demand_category_name,
         any_value(workorder_title) as intervention_title,
         any_value(workorder_report) as intervention_report,
+
+        -- Technicien Yuman (FK vers dim_technique__technician.user_id)
+        any_value(technician_id) as technician_id,
 
         -- Statuts (pour les flags)
         any_value(demand_status) as demand_status,
@@ -146,6 +148,7 @@ past_15d_ranked as (
     select
         serial_clean,
         material_id,
+        technician_id,
         intervention_id,
         date_done,
         demand_description,
@@ -166,6 +169,7 @@ past_15d as (
     select
         serial_clean,
         material_id as past_material_id,
+        technician_id as past_technician_id,
         intervention_id as past_intervention_id,
         date_done as past_intervention_date,
         demand_description as past_demand_description,
@@ -185,6 +189,7 @@ current_ranked as (
     select
         serial_clean,
         material_id,
+        technician_id,
         intervention_id,
         demand_description,
         demand_created_at,
@@ -205,6 +210,7 @@ current_inter as (
     select
         serial_clean,
         material_id as current_material_id,
+        technician_id as current_technician_id,
         intervention_id as current_intervention_id,
         demand_description as current_demand_description,
         demand_created_at as current_demand_created_at,
@@ -224,6 +230,7 @@ future_ranked as (
     select
         serial_clean,
         material_id,
+        technician_id,
         intervention_id,
         date_planned,
         demand_description,
@@ -244,6 +251,7 @@ future_inter as (
     select
         serial_clean,
         material_id as future_material_id,
+        technician_id as future_technician_id,
         intervention_id as future_intervention_id,
         date_planned as future_intervention_planned_date,
         demand_description as future_demand_description,
@@ -265,8 +273,7 @@ select
 
     -- Display attributes (1-3 par dim parente)
     ac.device_code,
-    ac.device_name,
-    ac.company_name,
+    ac.company_code,
 
     -- Contexte appro
     ac.last_appro_date,
@@ -284,6 +291,7 @@ select
 
     -- Bucket : intervention curative récente (15j)
     p15.past_material_id,
+    p15.past_technician_id,
     p15.past_intervention_id,
     p15.past_intervention_date,
     p15.past_demand_description,
@@ -295,6 +303,7 @@ select
 
     -- Bucket : intervention en cours
     ci.current_material_id,
+    ci.current_technician_id,
     ci.current_intervention_id,
     ci.current_demand_description,
     ci.current_demand_created_at,
@@ -305,6 +314,7 @@ select
 
     -- Bucket : prochaine intervention planifiée
     fi.future_material_id,
+    fi.future_technician_id,
     fi.future_intervention_id,
     fi.future_intervention_planned_date,
     fi.future_demand_description,
