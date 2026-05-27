@@ -178,6 +178,32 @@ models:
       - name: code
         description: "Code de la famille de labels"
 
+  - name: stg_oracle_lcdp__label_device
+    description: "Labels device nettoyés depuis la vue aplatie lcdp_v_label_device (1 ligne par device/label). Porte code, famille et libellé FR du label, prêt pour le pivot dans dim_lcdp__device."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - device_id
+              - idlabel
+    columns:
+      - name: device_id
+        description: "Identifiant de la machine (FK vers stg_oracle_lcdp__device.iddevice)"
+        tests:
+          - not_null
+      - name: idlabel
+        description: "Identifiant du label"
+        tests:
+          - not_null
+      - name: idlabel_family
+        description: "Identifiant de la famille de label"
+      - name: label_code
+        description: "Code du label (ex. CATMACH01)"
+      - name: label_family_code
+        description: "Code de la famille de label, clé de pivot dans le mart (ex. CATMACH)"
+      - name: label_text_fr
+        description: "Libellé français du label, valeur d'affichage (ex. DA CHAUD)"
+
   # LABEL_HAS_COMPANY
   - name: stg_oracle_lcdp__label_has_company
     description: "Association entre les labels et les entreprises"

@@ -15,15 +15,12 @@ with device_labels as (
         c.code as company_code,
         c.name as company_name,
         lo.access_info,
-        l.code as label_code,
-        lf.code as label_family_code
+        ld.label_code,
+        ld.label_text_fr,
+        ld.label_family_code
     from {{ ref('stg_oracle_lcdp__device') }} as d
-    left join {{ ref('stg_oracle_lcdp__label_has_device') }} as lhd
-        on d.iddevice = lhd.iddevice and lhd.idlabel is not null
-    left join {{ ref('stg_oracle_lcdp__label') }} as l
-        on lhd.idlabel = l.idlabel
-    left join {{ ref('stg_oracle_lcdp__label_family') }} as lf
-        on l.idlabel_family = lf.idlabel_family
+    left join {{ ref('stg_oracle_lcdp__label_device') }} as ld
+        on d.iddevice = ld.device_id
     left join {{ ref('stg_oracle_lcdp__company') }} as c
         on d.idcompany_customer = c.idcompany
     left join {{ ref('stg_oracle_lcdp__location') }} as lo
@@ -46,22 +43,23 @@ aggregated_labels as (
         last_installation_date,
         created_at,
         updated_at,
-        MAX(case when label_family_code = 'CATMACH' then label_code end) as device_category,
-        MAX(case when label_family_code = 'STATUT_MATERIEL' then label_code end) as device_material_status,
-        MAX(case when label_family_code = 'TYPEAUDIT' then label_code end) as audit_type,
-        MAX(case when label_family_code = 'TYPFONT' then label_code end) as fountain_type,
-        MAX(case when label_family_code = 'TYPSP' then label_code end) as type_sp,
-        MAX(case when label_family_code = 'TYPBROY' then label_code end) as grinder_type,
-        MAX(case when label_family_code = 'ETAT_MACHINE' then label_code end) as device_state,
-        MAX(case when label_family_code = 'TYDA' then label_code end) as typology_da,
-        MAX(case when label_family_code = 'BADGE' then label_code end) as badge,
-        MAX(case when label_family_code = 'MARQUE' then label_code end) as device_brand,
-        MAX(case when label_family_code = 'MODSP' then label_code end) as model_sp,
+        MAX(case when label_family_code = 'CATMACH' then label_text_fr end) as device_category,
+        MAX(case when label_family_code = 'STATUT_MATERIEL' then label_text_fr end) as device_material_status,
+        MAX(case when label_family_code = 'TYPEAUDIT' then label_text_fr end) as audit_type,
+        MAX(case when label_family_code = 'TYPFONT' then label_text_fr end) as fountain_type,
+        MAX(case when label_family_code = 'TYPSP' then label_text_fr end) as type_sp,
+        MAX(case when label_family_code = 'TYPBROY' then label_text_fr end) as grinder_type,
+        MAX(case when label_family_code = 'ETAT_MACHINE' then label_text_fr end) as device_state,
+        MAX(case when label_family_code = 'TYDA' then label_text_fr end) as typology_da,
+        MAX(case when label_family_code = 'BADGE' then label_text_fr end) as badge,
+        MAX(case when label_family_code = 'MARQUE' then label_text_fr end) as device_brand,
+        MAX(case when label_family_code = 'MODSP' then label_text_fr end) as model_sp,
+        -- is_active conservé sur le code (YES/NO) pour le test lower(...) = 'yes' ci-dessous
         MAX(case when label_family_code = 'ISACTIVE' then label_code end) as is_active,
-        MAX(case when label_family_code = 'TYPDASA' then label_code end) as type_dasa,
-        MAX(case when label_family_code = 'MARQSP' then label_code end) as brand_sp,
-        MAX(case when label_family_code = 'TYPPERCO' then label_code end) as percolator_type,
-        MAX(case when label_family_code = 'LCDPMON' then label_code end) as currency_mode
+        MAX(case when label_family_code = 'TYPDASA' then label_text_fr end) as type_dasa,
+        MAX(case when label_family_code = 'MARQSP' then label_text_fr end) as brand_sp,
+        MAX(case when label_family_code = 'TYPPERCO' then label_text_fr end) as percolator_type,
+        MAX(case when label_family_code = 'LCDPMON' then label_text_fr end) as currency_mode
     from device_labels
     group by
         device_id,
