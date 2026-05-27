@@ -25,6 +25,9 @@ models:
       - name: company_name
         description: "Nom de la société"
 
+      - name: company_label
+        description: "Libellé d'affichage = concaténation `company_code - company_name`."
+
       - name: region
         description: "Région géographique de la société (label REGION)"
 
@@ -190,6 +193,9 @@ models:
 
       - name: device_name
         description: "Nom de la machine"
+
+      - name: device_label
+        description: "Libellé d'affichage = concaténation `device_code - device_name`."
 
       - name: company_code
         description: "Code client associé à la machine"
@@ -1165,10 +1171,8 @@ models:
                 field: company_id
       - name: device_code
         description: Code interne machine — utilisé pour la jointure cross-source vers Yuman.
-      - name: device_name
-        description: Nom de la machine (display).
-      - name: company_name
-        description: Nom du client (display).
+      - name: company_code
+        description: Code client (display) — issu de dim_neshu__company.
 
       # === Contexte appro ===
       - name: last_appro_date
@@ -1212,6 +1216,15 @@ models:
               arguments:
                 to: ref('dim_technique__material')
                 field: material_id
+      - name: past_technician_id
+        description: FK Yuman vers dim_technique__technician (user_id) — technicien de la dernière intervention 15j (NULL si pas d'intervention 15j).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__technician')
+                field: user_id
+              config:
+                severity: warn
       - name: past_intervention_id
         description: ID Yuman du workorder de la dernière intervention 15j.
       - name: past_intervention_date
@@ -1239,6 +1252,15 @@ models:
               arguments:
                 to: ref('dim_technique__material')
                 field: material_id
+      - name: current_technician_id
+        description: FK Yuman vers dim_technique__technician (user_id) — technicien de l'intervention en cours.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__technician')
+                field: user_id
+              config:
+                severity: warn
       - name: current_intervention_id
         description: ID Yuman du workorder en cours.
       - name: current_demand_description
@@ -1262,6 +1284,15 @@ models:
               arguments:
                 to: ref('dim_technique__material')
                 field: material_id
+      - name: future_technician_id
+        description: FK Yuman vers dim_technique__technician (user_id) — technicien de l'intervention planifiée.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__technician')
+                field: user_id
+              config:
+                severity: warn
       - name: future_intervention_id
         description: ID Yuman du workorder planifié.
       - name: future_intervention_planned_date

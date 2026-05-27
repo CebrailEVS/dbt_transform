@@ -81,6 +81,7 @@ select
     -- 📇 Codes et noms
     device_code,
     device_name,
+    CONCAT(device_code, ' - ', device_name) as device_label,
     company_code,
     company_name,
 
