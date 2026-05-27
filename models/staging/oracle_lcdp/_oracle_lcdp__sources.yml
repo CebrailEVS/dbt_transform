@@ -373,6 +373,42 @@ sources:
           - name: l_text_fr
             description: "Libellé français du label (valeur d'affichage)"
 
+      - name: lcdp_v_label_company
+        description: "Vue aplatie company × label × label_family (1 ligne par idcompany/idlabel) — porte le code (l_code), la famille (lf_code) et le libellé FR (l_text_fr)"
+        config:
+          freshness: null
+        columns:
+          - name: idcompany
+            description: "Identifiant de l'entreprise (FK vers lcdp_company)"
+          - name: idlabel
+            description: "Identifiant du label"
+          - name: idlabel_family
+            description: "Identifiant de la famille de label"
+          - name: lf_code
+            description: "Code de la famille de label (clé de pivot)"
+          - name: l_code
+            description: "Code du label"
+          - name: l_text_fr
+            description: "Libellé français du label (valeur d'affichage)"
+
+      - name: lcdp_v_label_product
+        description: "Vue aplatie product × label × label_family (1 ligne par idproduct/idlabel) — porte le code (l_code), la famille (lf_code) et le libellé FR (l_text_fr)"
+        config:
+          freshness: null
+        columns:
+          - name: idproduct
+            description: "Identifiant du produit (FK vers lcdp_product)"
+          - name: idlabel
+            description: "Identifiant du label"
+          - name: idlabel_family
+            description: "Identifiant de la famille de label"
+          - name: lf_code
+            description: "Code de la famille de label (clé de pivot)"
+          - name: l_code
+            description: "Code du label"
+          - name: l_text_fr
+            description: "Libellé français du label (valeur d'affichage)"
+
       - name: lcdp_product_type
         description: "Types de produit"
         config:

@@ -9,20 +9,17 @@ with company_labels as (
         c.name as company_name,
         c.created_at,
         c.updated_at,
-        l.code as label_code,
-        lf.code as label_family_code,
+        lc.label_code,
+        lc.label_text_fr,
+        lc.label_family_code,
         loc.address1,
         loc.address2,
         loc.city,
         loc.postal as postal_code,
         loc.country
     from {{ ref('stg_oracle_lcdp__company') }} as c
-    left join {{ ref('stg_oracle_lcdp__label_has_company') }} as lhc
-        on c.idcompany = lhc.idcompany and lhc.idlabel is not null
-    left join {{ ref('stg_oracle_lcdp__label') }} as l
-        on lhc.idlabel = l.idlabel
-    left join {{ ref('stg_oracle_lcdp__label_family') }} as lf
-        on l.idlabel_family = lf.idlabel_family
+    left join {{ ref('stg_oracle_lcdp__label_company') }} as lc
+        on c.idcompany = lc.company_id
     left join {{ ref('stg_oracle_lcdp__company_has_location') }} as chl
         on c.idcompany = chl.idcompany and chl.idlocation_type = 1
     left join {{ ref('stg_oracle_lcdp__location') }} as loc
@@ -44,19 +41,20 @@ aggregated_labels as (
         city,
         postal_code,
         country,
-        MAX(case when label_family_code = 'BL_GRP' then label_code end) as bl_group,
-        MAX(case when label_family_code = 'BUSMOD' then label_code end) as business_model,
-        MAX(case when label_family_code = 'DOMACT' then label_code end) as activity_domain,
-        MAX(case when label_family_code = 'GC' then label_code end) as key_account,
-        MAX(case when label_family_code = 'Gestion reliquat' then label_code end) as remainder_management,
+        MAX(case when label_family_code = 'BL_GRP' then label_text_fr end) as bl_group,
+        MAX(case when label_family_code = 'BUSMOD' then label_text_fr end) as business_model,
+        MAX(case when label_family_code = 'DOMACT' then label_text_fr end) as activity_domain,
+        MAX(case when label_family_code = 'GC' then label_text_fr end) as key_account,
+        MAX(case when label_family_code = 'Gestion reliquat' then label_text_fr end) as remainder_management,
+        -- is_active conservé sur le code (YES/NO) pour le test lower(...) = 'yes' ci-dessous
         MAX(case when label_family_code = 'ISACTIVE' then label_code end) as is_active,
-        MAX(case when label_family_code = 'MEF' then label_code end) as invoice_delivery_mode,
-        MAX(case when label_family_code = 'MODEH' then label_code end) as model_horeca,
-        MAX(case when label_family_code = 'MODEOF' then label_code end) as model_office,
-        MAX(case when label_family_code = 'MODER' then label_code end) as model_revendeur,
-        MAX(case when label_family_code = 'PROPRIO' then label_code end) as owner,
-        MAX(case when label_family_code = 'REPRES' then label_code end) as representative,
-        MAX(case when label_family_code = 'ZGEO' then label_code end) as geo_zone
+        MAX(case when label_family_code = 'MEF' then label_text_fr end) as invoice_delivery_mode,
+        MAX(case when label_family_code = 'MODEH' then label_text_fr end) as model_horeca,
+        MAX(case when label_family_code = 'MODEOF' then label_text_fr end) as model_office,
+        MAX(case when label_family_code = 'MODER' then label_text_fr end) as model_revendeur,
+        MAX(case when label_family_code = 'PROPRIO' then label_text_fr end) as owner,
+        MAX(case when label_family_code = 'REPRES' then label_text_fr end) as representative,
+        MAX(case when label_family_code = 'ZGEO' then label_text_fr end) as geo_zone
     from company_labels
     group by
         company_id,

@@ -6,9 +6,9 @@ models:
   - name: dim_lcdp__company
     description: |
       [QUOI MÉTIER] Dimension client (company) LCDP enrichie des labels métier et de la localisation.
-      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__company joint à stg_oracle_lcdp__location pour les coordonnées, et pivot des labels (stg_oracle_lcdp__label_has_company + label + label_family) sur les familles : ZGEO, DOMACT, BUSMOD, GC, ISACTIVE, MODEH, MODEOF, MODER, PROPRIO, REPRES, BL_GRP, MEF, Gestion reliquat.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__company joint à stg_oracle_lcdp__location pour les coordonnées, et pivot des labels via stg_oracle_lcdp__label_company (vue aplatie lcdp_v_label_company) sur les familles : ZGEO, DOMACT, BUSMOD, GC, ISACTIVE, MODEH, MODEOF, MODER, PROPRIO, REPRES, BL_GRP, MEF, Gestion reliquat.
       [GRAIN] 1 ligne par company_id.
-      [NOTES] parent_company_id permet la hiérarchie société-mère/fille. is_active converti en booléen (TRUE si label ISACTIVE='yes').
+      [NOTES] parent_company_id permet la hiérarchie société-mère/fille. Les attributs label exposent désormais le libellé FR (label_text_fr) au lieu du code. Exception : is_active reste basé sur le code (YES/NO) pour la conversion booléenne (TRUE si label ISACTIVE='yes').
     columns:
       - name: company_id
         description: "Identifiant unique de la société"
@@ -94,9 +94,9 @@ models:
   - name: dim_lcdp__product
     description: |
       [QUOI MÉTIER] Dimension produit LCDP enrichie des labels métier (famille, groupe, marque, bio).
-      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__product filtré sur product_type_id IN (1, 5), enrichi par pivot des labels via stg_oracle_lcdp__label_has_product : FAMIPRO, GROUPRO, MARQPRO, BIO, ISACTIVE. created_at corrigé si NULL pour idproduct=1 (fallback updated_at).
+      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__product filtré sur product_type_id IN (1, 5), enrichi par pivot des labels via stg_oracle_lcdp__label_product (vue aplatie lcdp_v_label_product) : FAMIPRO, GROUPRO, MARQPRO, BIO, ISACTIVE. created_at corrigé si NULL pour idproduct=1 (fallback updated_at).
       [GRAIN] 1 ligne par product_id.
-      [NOTES] product_type_id : 1 = produit, 5 = ligne de prix. is_active converti en booléen.
+      [NOTES] product_type_id : 1 = produit, 5 = ligne de prix. Les attributs label exposent désormais le libellé FR (label_text_fr) au lieu du code. Exception : is_active reste basé sur le code (YES/NO) pour la conversion booléenne.
     columns:
       - name: product_id
         description: "Identifiant unique du produit"

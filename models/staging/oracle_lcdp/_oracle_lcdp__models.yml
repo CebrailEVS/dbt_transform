@@ -204,6 +204,58 @@ models:
       - name: label_text_fr
         description: "Libellé français du label, valeur d'affichage (ex. DA CHAUD)"
 
+  - name: stg_oracle_lcdp__label_company
+    description: "Labels company nettoyés depuis la vue aplatie lcdp_v_label_company (1 ligne par company/label). Porte code, famille et libellé FR du label, prêt pour le pivot dans dim_lcdp__company."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - company_id
+              - idlabel
+    columns:
+      - name: company_id
+        description: "Identifiant de l'entreprise (FK vers stg_oracle_lcdp__company.idcompany)"
+        tests:
+          - not_null
+      - name: idlabel
+        description: "Identifiant du label"
+        tests:
+          - not_null
+      - name: idlabel_family
+        description: "Identifiant de la famille de label"
+      - name: label_code
+        description: "Code du label (ex. BUSMOD01)"
+      - name: label_family_code
+        description: "Code de la famille de label, clé de pivot dans le mart (ex. BUSMOD)"
+      - name: label_text_fr
+        description: "Libellé français du label, valeur d'affichage"
+
+  - name: stg_oracle_lcdp__label_product
+    description: "Labels product nettoyés depuis la vue aplatie lcdp_v_label_product (1 ligne par product/label). Porte code, famille et libellé FR du label, prêt pour le pivot dans dim_lcdp__product."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - product_id
+              - idlabel
+    columns:
+      - name: product_id
+        description: "Identifiant du produit (FK vers stg_oracle_lcdp__product.idproduct)"
+        tests:
+          - not_null
+      - name: idlabel
+        description: "Identifiant du label"
+        tests:
+          - not_null
+      - name: idlabel_family
+        description: "Identifiant de la famille de label"
+      - name: label_code
+        description: "Code du label (ex. FAMIPRO01)"
+      - name: label_family_code
+        description: "Code de la famille de label, clé de pivot dans le mart (ex. FAMIPRO)"
+      - name: label_text_fr
+        description: "Libellé français du label, valeur d'affichage"
+
   # LABEL_HAS_COMPANY
   - name: stg_oracle_lcdp__label_has_company
     description: "Association entre les labels et les entreprises"
