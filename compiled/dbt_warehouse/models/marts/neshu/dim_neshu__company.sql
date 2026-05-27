@@ -88,6 +88,7 @@ select
     -- 📇 Codes et noms
     company_code,
     company_name,
+    CONCAT(company_code, ' - ', company_name) as company_label,
 
     -- 🏢 Caractéristiques entreprise
     region,
