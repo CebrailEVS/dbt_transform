@@ -64,6 +64,14 @@ with appro_context as (
 -- CTE 2 : Interventions Yuman NESHU curatives, normalisées
 -- Grain : 1 ligne par (material, workorder).
 -- ⚠️ serial_clean = jointure fragile vers Neshu device_code.
+--
+-- Périmètre métier : uniquement les "vraies" interventions.
+--   - Closed avec workorder_motif_non_intervention ou
+--     workorder_detail_non_intervention renseigné = déplacement
+--     sans réparation → exclus du fait (~248 lignes).
+--   - In progress avec workorder_raison_mise_en_pause renseigné
+--     = intervention en pause, pas active → exclus du bucket
+--     current (filtré dans le flag is_current_intervention).
 -- ============================================================
 yuman_workorders as (
 
@@ -104,6 +112,7 @@ yuman_workorders as (
             when
                 any_value(workorder_status) = 'In progress'
                 and any_value(demand_status) = 'Accepted'
+                and any_value(workorder_raison_mise_en_pause) is null
                 then 1
             else 0
         end as is_current_intervention,
@@ -121,6 +130,9 @@ yuman_workorders as (
         material_serial_number is not null
         and upper(trim(partner_name)) = 'NESHU'
         and upper(trim(demand_category_name)) like 'CURATIVE%'
+        -- Exclure les déplacements sans réparation (Closed sans intervention réelle)
+        and workorder_motif_non_intervention is null
+        and workorder_detail_non_intervention is null
     group by
         material_id, material_serial_number, serial_clean, workorder_id
 
