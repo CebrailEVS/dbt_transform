@@ -4,6 +4,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2004,mai,2004-05-01,1er_mai
 2004,mai,2004-05-08,8_mai
 2004,mai,2004-05-20,ascension
+2004,mai,2004-05-31,pentecote
 2004,juillet,2004-07-14,14_juillet
 2004,aout,2004-08-15,assomption
 2004,novembre,2004-11-01,toussaint
@@ -14,6 +15,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2005,mai,2005-05-01,1er_mai
 2005,mai,2005-05-05,ascension
 2005,mai,2005-05-08,8_mai
+2005,mai,2005-05-16,pentecote
 2005,juillet,2005-07-14,14_juillet
 2005,aout,2005-08-15,assomption
 2005,novembre,2005-11-01,toussaint
@@ -24,6 +26,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2006,mai,2006-05-01,1er_mai
 2006,mai,2006-05-08,8_mai
 2006,mai,2006-05-25,ascension
+2006,juin,2006-06-05,pentecote
 2006,juillet,2006-07-14,14_juillet
 2006,aout,2006-08-15,assomption
 2006,novembre,2006-11-01,toussaint
@@ -34,6 +37,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2007,mai,2007-05-01,1er_mai
 2007,mai,2007-05-08,8_mai
 2007,mai,2007-05-17,ascension
+2007,mai,2007-05-28,pentecote
 2007,juillet,2007-07-14,14_juillet
 2007,aout,2007-08-15,assomption
 2007,novembre,2007-11-01,toussaint
@@ -44,6 +48,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2008,mai,2008-05-01,1er_mai
 2008,mai,2008-05-01,ascension
 2008,mai,2008-05-08,8_mai
+2008,mai,2008-05-12,pentecote
 2008,juillet,2008-07-14,14_juillet
 2008,aout,2008-08-15,assomption
 2008,novembre,2008-11-01,toussaint
@@ -54,6 +59,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2009,mai,2009-05-01,1er_mai
 2009,mai,2009-05-08,8_mai
 2009,mai,2009-05-21,ascension
+2009,juin,2009-06-01,pentecote
 2009,juillet,2009-07-14,14_juillet
 2009,aout,2009-08-15,assomption
 2009,novembre,2009-11-01,toussaint
@@ -64,6 +70,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2010,mai,2010-05-01,1er_mai
 2010,mai,2010-05-08,8_mai
 2010,mai,2010-05-13,ascension
+2010,mai,2010-05-24,pentecote
 2010,juillet,2010-07-14,14_juillet
 2010,aout,2010-08-15,assomption
 2010,novembre,2010-11-01,toussaint
@@ -74,6 +81,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2011,mai,2011-05-01,1er_mai
 2011,mai,2011-05-08,8_mai
 2011,juin,2011-06-02,ascension
+2011,juin,2011-06-13,pentecote
 2011,juillet,2011-07-14,14_juillet
 2011,aout,2011-08-15,assomption
 2011,novembre,2011-11-01,toussaint
@@ -84,6 +92,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2012,mai,2012-05-01,1er_mai
 2012,mai,2012-05-08,8_mai
 2012,mai,2012-05-17,ascension
+2012,mai,2012-05-28,pentecote
 2012,juillet,2012-07-14,14_juillet
 2012,aout,2012-08-15,assomption
 2012,novembre,2012-11-01,toussaint
@@ -94,6 +103,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2013,mai,2013-05-01,1er_mai
 2013,mai,2013-05-08,8_mai
 2013,mai,2013-05-09,ascension
+2013,mai,2013-05-20,pentecote
 2013,juillet,2013-07-14,14_juillet
 2013,aout,2013-08-15,assomption
 2013,novembre,2013-11-01,toussaint
@@ -104,6 +114,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2014,mai,2014-05-01,1er_mai
 2014,mai,2014-05-08,8_mai
 2014,mai,2014-05-29,ascension
+2014,juin,2014-06-09,pentecote
 2014,juillet,2014-07-14,14_juillet
 2014,aout,2014-08-15,assomption
 2014,novembre,2014-11-01,toussaint
@@ -114,6 +125,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2015,mai,2015-05-01,1er_mai
 2015,mai,2015-05-08,8_mai
 2015,mai,2015-05-14,ascension
+2015,mai,2015-05-25,pentecote
 2015,juillet,2015-07-14,14_juillet
 2015,aout,2015-08-15,assomption
 2015,novembre,2015-11-01,toussaint
@@ -124,6 +136,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2016,mai,2016-05-01,1er_mai
 2016,mai,2016-05-05,ascension
 2016,mai,2016-05-08,8_mai
+2016,mai,2016-05-16,pentecote
 2016,juillet,2016-07-14,14_juillet
 2016,aout,2016-08-15,assomption
 2016,novembre,2016-11-01,toussaint
@@ -134,6 +147,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2017,mai,2017-05-01,1er_mai
 2017,mai,2017-05-08,8_mai
 2017,mai,2017-05-25,ascension
+2017,juin,2017-06-05,pentecote
 2017,juillet,2017-07-14,14_juillet
 2017,aout,2017-08-15,assomption
 2017,novembre,2017-11-01,toussaint
@@ -144,6 +158,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2018,mai,2018-05-01,1er_mai
 2018,mai,2018-05-08,8_mai
 2018,mai,2018-05-10,ascension
+2018,mai,2018-05-21,pentecote
 2018,juillet,2018-07-14,14_juillet
 2018,aout,2018-08-15,assomption
 2018,novembre,2018-11-01,toussaint
@@ -154,6 +169,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2019,mai,2019-05-01,1er_mai
 2019,mai,2019-05-08,8_mai
 2019,mai,2019-05-30,ascension
+2019,juin,2019-06-10,pentecote
 2019,juillet,2019-07-14,14_juillet
 2019,aout,2019-08-15,assomption
 2019,novembre,2019-11-01,toussaint
@@ -164,6 +180,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2020,mai,2020-05-01,1er_mai
 2020,mai,2020-05-08,8_mai
 2020,mai,2020-05-21,ascension
+2020,juin,2020-06-01,pentecote
 2020,juillet,2020-07-14,14_juillet
 2020,aout,2020-08-15,assomption
 2020,novembre,2020-11-01,toussaint
@@ -174,6 +191,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2021,mai,2021-05-01,1er_mai
 2021,mai,2021-05-08,8_mai
 2021,mai,2021-05-13,ascension
+2021,mai,2021-05-24,pentecote
 2021,juillet,2021-07-14,14_juillet
 2021,aout,2021-08-15,assomption
 2021,novembre,2021-11-01,toussaint
@@ -184,6 +202,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2022,mai,2022-05-01,1er_mai
 2022,mai,2022-05-08,8_mai
 2022,mai,2022-05-26,ascension
+2022,juin,2022-06-06,pentecote
 2022,juillet,2022-07-14,14_juillet
 2022,aout,2022-08-15,assomption
 2022,novembre,2022-11-01,toussaint
@@ -194,6 +213,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2023,mai,2023-05-01,1er_mai
 2023,mai,2023-05-08,8_mai
 2023,mai,2023-05-18,ascension
+2023,mai,2023-05-29,pentecote
 2023,juillet,2023-07-14,14_juillet
 2023,aout,2023-08-15,assomption
 2023,novembre,2023-11-01,toussaint
@@ -204,6 +224,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2024,mai,2024-05-01,1er_mai
 2024,mai,2024-05-08,8_mai
 2024,mai,2024-05-09,ascension
+2024,mai,2024-05-20,pentecote
 2024,juillet,2024-07-14,14_juillet
 2024,aout,2024-08-15,assomption
 2024,novembre,2024-11-01,toussaint
@@ -214,6 +235,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2025,mai,2025-05-01,1er_mai
 2025,mai,2025-05-08,8_mai
 2025,mai,2025-05-29,ascension
+2025,juin,2025-06-09,pentecote
 2025,juillet,2025-07-14,14_juillet
 2025,aout,2025-08-15,assomption
 2025,novembre,2025-11-01,toussaint
@@ -224,6 +246,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2026,mai,2026-05-01,1er_mai
 2026,mai,2026-05-08,8_mai
 2026,mai,2026-05-14,ascension
+2026,mai,2026-05-25,pentecote
 2026,juillet,2026-07-14,14_juillet
 2026,aout,2026-08-15,assomption
 2026,novembre,2026-11-01,toussaint
@@ -234,6 +257,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2027,mai,2027-05-01,1er_mai
 2027,mai,2027-05-06,ascension
 2027,mai,2027-05-08,8_mai
+2027,mai,2027-05-17,pentecote
 2027,juillet,2027-07-14,14_juillet
 2027,aout,2027-08-15,assomption
 2027,novembre,2027-11-01,toussaint
@@ -244,6 +268,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2028,mai,2028-05-01,1er_mai
 2028,mai,2028-05-08,8_mai
 2028,mai,2028-05-25,ascension
+2028,juin,2028-06-05,pentecote
 2028,juillet,2028-07-14,14_juillet
 2028,aout,2028-08-15,assomption
 2028,novembre,2028-11-01,toussaint
@@ -253,6 +278,7 @@ annee,mois,date_ferie,nom_jour_ferie
 2029,avril,2029-04-02,lundi_paques
 2029,mai,2029-05-01,1er_mai
 2029,mai,2029-05-08,8_mai
+2029,mai,2029-05-21,pentecote
 2029,juillet,2029-07-14,14_juillet
 2029,aout,2029-08-15,assomption
 2029,novembre,2029-11-01,toussaint
