@@ -70,6 +70,18 @@ models:
         description: "Quantité télémétrique (toujours 1 par convention métier)"
         data_type: int64
 
+      - name: sale_unit_price_eur
+        description: "Prix de vente unitaire HT remonté par Nayax sur l'event (€). Rempli à ~100% sur DA FROID, NULL sur autres catégories."
+        data_type: float64
+
+      - name: sale_amount_net_eur
+        description: "Montant de vente net HT (€) — équivalent à sale_unit_price_eur car telemetry_quantity = 1."
+        data_type: float64
+
+      - name: sale_amount_net_tax_eur
+        description: "Montant de vente net TTC (€) — inclut la TVA applicable au produit."
+        data_type: float64
+
       - name: updated_at
         description: "Timestamp de dernière modification (pour incrément)"
         data_type: timestamp
