@@ -45,6 +45,11 @@ telemetry_tasks as (
         -- Métrique business
         cast(1 as int64) as telemetry_quantity,  -- 1 Tâche = 1 unité de télémétrie
 
+        -- Valorisation Nayax (prix de vente remonté par la télémétrie sur l'event)
+        thp.sale_unit_price as sale_unit_price_eur,
+        thp.sale_amount_net as sale_amount_net_eur,
+        thp.sale_amount_net_tax as sale_amount_net_tax_eur,
+
         -- Timestamps techniques pour l'incrément
         t.updated_at,
         t.created_at,
