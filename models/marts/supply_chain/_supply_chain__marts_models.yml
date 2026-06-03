@@ -46,10 +46,6 @@ models:
         description: "Prix d'achat unitaire"
       - name: extraction_timestamp
         description: "Timestamp d'extraction des données (TIMESTAMP)"
-      - name: file_datetime
-        description: "Date/heure du fichier source (TIMESTAMP)"
-        tests:
-          - not_null
 
   - name: fct_supply_chain__stock_yuman
     description: |
