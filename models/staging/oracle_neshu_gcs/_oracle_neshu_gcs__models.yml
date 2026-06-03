@@ -61,7 +61,3 @@ models:
         description: "Timestamp d'extraction des données (TIMESTAMP)"
       - name: row_count
         description: "Nombre de lignes du fichier CSV source"
-      - name: file_datetime
-        description: "Date/heure du fichier source (TIMESTAMP)"
-        tests:
-          - not_null

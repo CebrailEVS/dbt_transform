@@ -23,6 +23,5 @@ select
     cast(pump as numeric) as pump,
     cast(purchase_price as numeric) as purchase_price,
     cast(extracted_at as timestamp) as extracted_at,
-    row_count,
-    parse_datetime('%Y_%m_%d_%H%M', regexp_extract(_file_name, r'(\d{4}_\d{2}_\d{2}_\d{4})')) as file_datetime
+    row_count
 from {{ source('oracle_neshu_gcs', 'ext_gcs_oracle_neshu__stock_theorique') }}
