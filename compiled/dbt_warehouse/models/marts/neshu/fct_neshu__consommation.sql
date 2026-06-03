@@ -206,8 +206,15 @@ combined_and_filtered_data as (
     where
         device_serial_number = 'AS00446'
         and company_code = 'CN1046'
-        and consumption_date < '2025-08-28'
-        and product_type in ('THE', 'CAFE CAPS', 'CHOCOLATS VAN HOUTEN')
+        and (
+            (
+                consumption_date < '2025-08-28'
+                and product_type in ('THE', 'CAFE CAPS', 'CHOCOLATS VAN HOUTEN')
+            )
+            -- Les accessoires ne sont pas couverts par la télémétrie :
+            -- toujours comptés via CHARGEMENT, sans borne de date
+            or product_type = 'ACCESSOIRES'
+        )
 
     union all
 
@@ -237,6 +244,27 @@ combined_and_filtered_data as (
                 or device_economic_model is null
             )
             and product_type = 'THE'
+        )
+        -- Miroir de l'inclusion CHARGEMENT NESPRESSO : les machines à capsules
+        -- gratuites sont comptées via CHARGEMENT, jamais via TELEMETRIE
+        and not (
+            device_brand = 'NESPRESSO'
+            and (
+                device_economic_model not in (
+                    'Participatif valeurs', 'Participatif unités', 'Payant'
+                )
+                or device_economic_model is null
+            )
+            and product_type in ('THE', 'CAFE CAPS')
+            and (
+                company_code <> 'CN1070'
+                or consumption_date >= '2025-03-01'
+            )
+        )
+        -- Miroir de l'inclusion CHARGEMENT chocolats : comptés via CHARGEMENT
+        and not (
+            device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
+            and product_type = 'CHOCOLATS VAN HOUTEN'
         )
         and not (company_code = 'CN1071' and product_type = 'THE')
         and not (
@@ -279,9 +307,11 @@ combined_and_filtered_data as (
         )
         or (product_type = 'ACCESSOIRES')
         or (company_code = 'CN1071' and product_type = 'THE')
-        and not (
-            device_serial_number = 'AS00446' and company_code = 'CN1046'
-        )
+    )
+    -- Exclusion appliquée à toutes les branches ci-dessus (le cas AS00446
+    -- est géré par le bloc dédié en tête de union)
+    and not (
+        device_serial_number = 'AS00446' and company_code = 'CN1046'
     )
 
     union all
@@ -330,6 +360,6 @@ select
 
     -- Métadonnées d'exécution
     current_timestamp() as dbt_updated_at,
-    '09bea2b9-0fcd-49b3-9011-91844ad334ee' as dbt_invocation_id  -- noqa: TMP
+    '28f36e73-d016-449b-aa58-4631d934ebed' as dbt_invocation_id  -- noqa: TMP
 
 from combined_and_filtered_data
