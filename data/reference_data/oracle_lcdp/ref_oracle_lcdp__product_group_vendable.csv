@@ -1,0 +1,11 @@
+product_group,is_vendable
+BOISSON FROIDE,true
+SNACK,true
+PRODUIT FRAIS,true
+PISCINE,false
+ACCESSOIRE,false
+BOISSON CHAUDE,false
+NESPRESSO,false
+CAFE GRAIN,false
+EMBALLAGE,false
+THE NUNSHEN,false

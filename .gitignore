@@ -29,3 +29,7 @@ keyfile.b64.txt
 keyfile.json
 *-keyfile.json
 *-sa-key.json
+
+# Local working files (not versioned)
+scripts/
+docs/audits/
