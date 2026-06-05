@@ -245,6 +245,93 @@ models:
       - name: updated_at
         description: "Date de dernière modification"
 
+  # RESOURCE
+  - name: dim_lcdp__resource
+    description: |
+      [QUOI MÉTIER] Dimension ressource Oracle LCDP : personnes (PERSON) + véhicules (VEHICLE) avec hiérarchie.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__resources, pivot des labels via stg_oracle_lcdp__label_has_resources : ISACTIVE, Fonction. Miroir de dim_neshu__resource sans l'enrichissement GEA (pas de seed côté LCDP).
+      [GRAIN] 1 ligne par resources_id.
+      [NOTES] Hiérarchie : resources_idresources d'un VEHICLE pointe vers l'ID de la PERSON associée ; NULL pour les personnes. code_status_record conservé (1=actif) sans filtre — filtrage à la volée côté BI. is_active converti en booléen.
+    columns:
+      - name: resources_id
+        description: "Identifiant unique de la ressource dans Oracle"
+        tests:
+          - not_null
+          - unique
+
+      - name: resources_type_id
+        description: "Identifiant du type de ressource (clé vers resources_type)"
+
+      - name: resources_idresources
+        description: >
+          Lien vers la ressource associée. Pour un véhicule (VEHICLE) : pointe vers l'ID de la personne (PERSON) associée.
+          Pour une personne (PERSON) : NULL.
+
+      - name: company_id
+        description: "Identifiant de l'entreprise à laquelle est rattachée la ressource"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_lcdp__company')
+                field: company_id
+
+      - name: company_storehouse_id
+        description: "Identifiant de l'entreprise entrepôt associée à la ressource"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_lcdp__company')
+                field: company_id
+
+      - name: location_id
+        description: "Identifiant de la localisation de la ressource"
+
+      - name: resources_code
+        description: "Code métier de la ressource (ex : code personne ou immatriculation véhicule)"
+        tests:
+          - not_null
+
+      - name: resources_name
+        description: "Nom de la ressource"
+
+      - name: resources_type
+        description: "Type de ressource : PERSON (personne) ou VEHICLE (véhicule)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['PERSON', 'VEHICLE']
+
+      - name: is_active
+        description: >
+          Indique si la ressource est active (label ISACTIVE).
+          Converti en booléen : TRUE si 'yes', FALSE sinon.
+        tests:
+          - not_null
+
+      - name: fonction
+        description: "Fonction de la personne (label Fonction, ex : APPRO, DIRECT). NULL pour les véhicules."
+
+      - name: cost
+        description: "Coût associé à la ressource"
+
+      - name: arrival
+        description: "Date d'arrivée de la ressource dans l'entreprise"
+
+      - name: departure
+        description: "Date de départ de la ressource (NULL si toujours en poste/en service)"
+
+      - name: code_status_record
+        description: >
+          Code de statut de l'enregistrement Oracle (1 = actif, autre = inactif).
+          Non filtré dans ce modèle — utilisable côté BI pour exclure les inactifs.
+
+      - name: created_at
+        description: "Date de création de la ressource dans Oracle"
+
+      - name: updated_at
+        description: "Date de dernière mise à jour de la ressource dans Oracle"
+
   # CHARGEMENT vs SORTIE (taux d'écoulement Nayax)
   - name: fct_lcdp__chargement_sortie
     description: |

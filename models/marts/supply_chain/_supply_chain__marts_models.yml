@@ -47,6 +47,71 @@ models:
       - name: extraction_timestamp
         description: "Timestamp d'extraction des données (TIMESTAMP)"
 
+  - name: fct_supply_chain__stock_lcdp
+    description: |
+      [QUOI MÉTIER] Stock théorique journalier des produits LCDP, par véhicule et par dépôt.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp_gcs__stock_theorique (export GCS quotidien Oracle LCDP, 23h15 Paris). Aucun filtre : les 11 dépôts (entity_type='company') et tous les véhicules (entity_type='resource') sont exposés. is_active aplati depuis dim_lcdp__resource pour les véhicules (FALSE si absent de la dim), NULL pour les dépôts. is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
+      [GRAIN] 1 ligne par (id_entity, product_code, date_system).
+      [NOTES] Source GCS = export Oracle vers Cloud Storage, démarré le 2026-06-04 (pas d'historique antérieur). plus/moins = écarts d'inventaire vs théorique. Stocks négatifs possibles (stock théorique). date_inventaire NULL ≈ 30 % (entités/produits jamais inventoriés).
+    columns:
+      - name: id_entity
+        description: "Identifiant de l'entité (véhicule ou dépôt)"
+        tests:
+          - not_null
+      - name: entity_type
+        description: "Type de l'entité : company (dépôt) ou resource (véhicule)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['company', 'resource']
+      - name: entity_code
+        description: "Code de la ressource (immatriculation véhicule), NULL pour les dépôts"
+      - name: entity_name
+        description: "Nom de l'entité (en lowercase)"
+      - name: is_active
+        description: "TRUE si le véhicule porte le label ISACTIVE=YES, FALSE sinon. NULL pour les dépôts"
+      - name: product_code
+        description: "Code du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit"
+      - name: stock_at_date
+        description: "Stock théorique à la date donnée"
+      - name: is_out_of_stock
+        description: "Boolean qui vaut TRUE si le stock_at_date est 0 pour un produit, FALSE sinon"
+      - name: date_inventaire
+        description: "Date du dernier inventaire réalisé (TIMESTAMP), NULL si jamais inventorié"
+      - name: stock_inventaire
+        description: "Stock constaté au dernier inventaire"
+      - name: plus
+        description: "Quantité en plus par rapport au stock inventaire"
+      - name: moins
+        description: "Quantité en moins par rapport au stock inventaire"
+      - name: dpa
+        description: "Dernier prix d'achat (fallback purchase_price si manquant)"
+      - name: purchase_price
+        description: "Prix d'achat unitaire"
+      - name: date_system
+        description: "Date du système d'inventaire théorique (TIMESTAMP), colonne de partition"
+        tests:
+          - not_null
+      - name: extracted_at
+        description: "Timestamp d'extraction des données (TIMESTAMP)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - id_entity
+              - product_code
+              - date_system
+      # cohérence : le stock théorique se déduit de l'inventaire et des écarts
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >
+              stock_at_date = coalesce(stock_inventaire, 0) + coalesce(plus, 0) - coalesce(moins, 0)
+
   - name: fct_supply_chain__stock_yuman
     description: |
       [QUOI MÉTIER] Stock journalier des pièces détachées Yuman, par technicien et par dépôt.
