@@ -6,37 +6,7 @@
     }
 ) }}
 
-with resources_labels as (
-    select
-        r.idresources,
-        r.idresources_type,
-        r.code as resources_code,
-        r.name as resources_name,
-        lh.idlabel,
-        l.code as label_code,
-        lf.code as label_family_code
-    from {{ ref('stg_oracle_neshu__resources') }} as r
-    left join {{ ref('stg_oracle_neshu__label_has_resources') }} as lh
-        on r.idresources = lh.idresources
-    left join {{ ref('stg_oracle_neshu__label') }} as l
-        on lh.idlabel = l.idlabel
-    left join {{ ref('stg_oracle_neshu__label_family') }} as lf
-        on l.idlabel_family = lf.idlabel_family
-),
-
-aggregated_labels as (
-    select
-        idresources,
-        idresources_type,
-        resources_code,
-        resources_name,
-        max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active
-    from resources_labels
-    where idresources_type = 3  -- type vehicule
-    group by 1, 2, 3, 4
-),
-
-filtered_stock as (
+with filtered_stock as (
     select
         st.id_entity,
         st.entity_type,
@@ -55,9 +25,9 @@ filtered_stock as (
         st.date_system,
         st.extracted_at
     from {{ ref('stg_oracle_neshu_gcs__stock_theorique') }} as st
-    left join aggregated_labels as al
+    left join {{ ref('dim_neshu__resource') }} as r
         on
-            st.id_entity = al.idresources
+            st.id_entity = r.resources_id
             and st.entity_type = 'resource'
     where
         (
@@ -75,7 +45,8 @@ filtered_stock as (
         or
         (
             st.entity_type = 'resource'
-            and al.is_active = 'YES'
+            and r.resources_type = 'VEHICLE'  -- exclut la PERSON présente dans le stock
+            and r.is_active
         )
 )
 

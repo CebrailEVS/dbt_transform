@@ -4,7 +4,7 @@ models:
   - name: fct_supply_chain__stock_neshu
     description: |
       [QUOI MÉTIER] Stock théorique journalier des produits Neshu, par véhicule roadman et par dépôt.
-      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu_gcs__stock_theorique (export GCS quotidien Oracle Neshu), filtré sur les dépôts 01–05, 10, 13 (entity_type='company') et les véhicules actifs (label ISACTIVE='YES' via stg_oracle_neshu__label_has_resources). is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu_gcs__stock_theorique (export GCS quotidien Oracle Neshu), filtré sur les dépôts 01–05, 10, 13 (entity_type='company') et les véhicules actifs (resources_type='VEHICLE' et is_active via dim_neshu__resource). is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
       [GRAIN] 1 ligne par (id_entity, product_code, date_system).
       [NOTES] Source GCS = export Oracle vers Cloud Storage. plus/moins = écarts d'inventaire vs théorique.
     columns:
