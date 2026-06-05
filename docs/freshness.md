@@ -17,7 +17,7 @@ pour les sources à timestamp STRING.
 | Tier | Cadence typique | `warn_after` | `error_after` | Sources |
 |---|---|---|---|---|
 | **Critique** | quotidien, business-day SLA | 26h | 36h | `oracle_neshu`, `oracle_lcdp` |
-| **Standard** | quotidien tolérant (tous les jours) | 26h | 48h | `yuman`, `mssql_sage`, `nesp_co` (activite/opportunite), `oracle_neshu_gcs` |
+| **Standard** | quotidien tolérant (tous les jours) | 26h | 48h | `yuman`, `mssql_sage`, `nesp_co` (activite/opportunite), `oracle_neshu_gcs`, `oracle_lcdp_gcs` |
 | **Quotidien Mon-Sat** | extraction Mon-Sat, dimanche skippé + lag snapshot DATE | 36h | 80h | `yuman_gcs` |
 | **Hebdomadaire** | extraction 1×/semaine | 8 jours | 14 jours | `nesp_tech` |
 | **Relaxe** | batch journalier non critique | 7 jours | 14 jours | `gac`, `zoho_desk` |
@@ -140,10 +140,10 @@ business qui restent peuplées :
 - `stg_nesp_tech__articles` : test sur **`date_intervention`** (DATE)
 - Seuil : **8 jours warn / 14 jours error**
 
-### `oracle_neshu_gcs` — tier *Standard*, méthode B
-Source brute : `extracted_at` STRING. Test sur
-`stg_oracle_neshu_gcs__stock_theorique`.
-- Pipeline quotidien (cron `0 23 * * *`, gap observé 23-24h très régulier).
+### `oracle_neshu_gcs` / `oracle_lcdp_gcs` — tier *Standard*, méthode B
+Source brute : `extracted_at` STRING. Tests sur
+`stg_oracle_neshu_gcs__stock_theorique` et `stg_oracle_lcdp_gcs__stock_theorique`.
+- Pipelines quotidiens (cron `0 23 * * *` NESHU, `15 23 * * *` LCDP ; gap observé 23-24h très régulier).
 - Seuil : **26h warn / 48h error** (en heures via `datepart: hour`).
 
 ### `zoho_desk` — tier *Relaxe*, méthode B
@@ -167,6 +167,7 @@ staging zoho_desk qui exposent un timestamp cast.
 | `nesp_co.activite/opp` | Standard | B | staging | 2j |
 | `nesp_tech` | Hebdomadaire | B | staging | 8j / 14j |
 | `oracle_neshu_gcs` | Standard | B | staging | 26h / 48h |
+| `oracle_lcdp_gcs` | Standard | B | staging | 26h / 48h |
 | `zoho_desk` | Relaxe | B | staging | 7j / 14j |
 
 **Toutes les sources sont désormais monitorées**, soit nativement, soit via
