@@ -54,7 +54,8 @@ Le projet integre **9 sources** couvrant l'ensemble des operations EVS :
 | **mssql_sage** | MSSQL Sage | Comptabilite : ecritures, comptes tiers, collaborateurs |
 | **gac** | SFTP CSV | Assurance flotte, sinistres vehicules |
 | **yuman_gcs** | GCS JSON | Stock theorique Yuman |
-| **oracle_neshu_gcs** | GCS CSV | Stock theorique Oracle |
+| **oracle_neshu_gcs** | GCS CSV | Stock theorique Oracle NESHU |
+| **oracle_lcdp_gcs** | GCS CSV | Stock theorique Oracle LCDP |
 
 > Les sources suffixees `_gcs` (et `nesp_tech`, `nesp_co`) transitent par GCS avant d'etre lues par dbt via table externe BigQuery.
 > C'est le cas quand Meltano ne peut pas extraire la donnee directement vers BigQuery (API specifique, Excel, PL/SQL, parsing XML…).
@@ -71,7 +72,7 @@ models/
 └── marts/            Dimensions + facts pour Power BI
 ```
 
-**6 domaines metier :** Operations (oracle_neshu), Service Technique (yuman, nesp_tech), Finance (mssql_sage), Flotte (gac), Stock (yuman_gcs, oracle_neshu_gcs), Commercial Nespresso (nesp_co - WIP).
+**6 domaines metier :** Operations (oracle_neshu), Service Technique (yuman, nesp_tech), Finance (mssql_sage), Flotte (gac), Stock (yuman_gcs, oracle_neshu_gcs, oracle_lcdp_gcs), Commercial Nespresso (nesp_co - WIP).
 
 Voir la [documentation dbt generee](https://cebrailevs.github.io/dbt_transform/) pour le detail de chaque modele, colonne et test.
 
