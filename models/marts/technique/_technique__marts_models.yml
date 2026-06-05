@@ -358,6 +358,187 @@ models:
         description: "Code postal du site associé à la machine"
 
 
+  - name: dim_technique__product
+    description: |
+      [QUOI MÉTIER]
+      Catalogue des produits / articles Yuman (pièces détachées, consommables)
+      utilisables lors des interventions. Appelé « Article » côté métier
+      (renommage fait dans le modèle sémantique Power BI).
+
+      [COMMENT CONSTRUITE]
+      Lecture directe de `stg_yuman__products` (catalogue API Yuman), sans
+      transformation.
+
+      [GRAIN]
+      1 ligne par `product_id` (PK).
+
+      [NOTES]
+      Dimension conforme : sert aux analyses technique (consommation
+      d'articles via `fct_technique__workorder_product`) et supply_chain
+      (le stock `fct_supply_chain__stock_yuman` se joint via
+      `product_code` = `reference`). Les prix achat/vente sont les prix
+      courants Yuman, sans historique — toute valorisation est indicative.
+    columns:
+      - name: product_id
+        description: Identifiant unique du produit dans Yuman (PK).
+        tests:
+          - not_null
+          - unique
+
+      - name: product_code
+        description: >
+          Référence article (clé de jointure avec la colonne `reference` de
+          `fct_supply_chain__stock_yuman`). Rares cas null côté Yuman.
+
+      - name: product_name
+        description: Désignation de l'article.
+
+      - name: product_type
+        description: Type de produit Yuman (quasi-constant `product`).
+
+      - name: product_brand
+        description: Marque de l'article.
+
+      - name: product_unit
+        description: Unité de mesure (pièce, litre, etc.).
+
+      - name: product_purchase_price
+        description: Prix d'achat courant (sans historique).
+
+      - name: product_sale_price
+        description: Prix de vente courant (sans historique).
+
+      - name: is_active
+        description: Article actif dans le catalogue Yuman.
+
+      - name: created_at
+        description: Date de création de l'article dans Yuman.
+
+      - name: updated_at
+        description: Date de dernière modification dans Yuman.
+
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 3000
+            max_value: 20000
+          config:
+            severity: warn
+
+  - name: fct_technique__workorder_product
+    description: |
+      [QUOI MÉTIER]
+      Consommation d'articles (pièces détachées, consommables) par
+      intervention Yuman. Permet l'analyse des pièces consommées par client /
+      site / machine / technicien, et le rapprochement avec les stocks
+      théoriques (`fct_supply_chain__stock_yuman`).
+
+      [COMMENT CONSTRUITE]
+      Agrégation de `stg_yuman__workorder_products` (lignes de saisie) au
+      grain workorder x produit (`sum(quantity)`), enrichie via
+      `int_yuman__demands_workorders_enriched` (dédupliqué par workorder)
+      pour porter les FK client / site / matériel / technicien et la date
+      d'intervention.
+
+      [GRAIN]
+      1 ligne par couple (`workorder_id`, `product_id`).
+
+      [NOTES]
+      Les workorders hors flux demande (~6) ont leurs FK et `date_done` null
+      (left join sur l'intermediate). Pas de valorisation dans le fait : les
+      prix Yuman sont courants, sans historique — valoriser une consommation
+      passée au prix du jour serait faux (calcul indicatif possible côté PBI
+      via `dim_technique__product`).
+    columns:
+      - name: workorder_id
+        description: Identifiant du bon de travail (dimension dégénérée).
+        tests:
+          - not_null
+
+      - name: product_id
+        description: Identifiant de l'article consommé (FK).
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_technique__product')
+                field: product_id
+              config:
+                severity: warn
+
+      - name: material_id
+        description: Identifiant du matériel concerné par l'intervention (FK).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__material')
+                field: material_id
+              config:
+                severity: warn
+
+      - name: site_id
+        description: Identifiant du site client (FK).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__site')
+                field: site_id
+              config:
+                severity: warn
+
+      - name: client_id
+        description: Identifiant du client (FK).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__client')
+                field: client_id
+              config:
+                severity: warn
+
+      - name: technician_id
+        description: Identifiant du technicien associé (FK).
+
+      - name: partner_name
+        description: Partenaire client de l'intervention (attribut d'affichage).
+
+      - name: workorder_status
+        description: Statut du bon de travail (attribut d'affichage).
+
+      - name: date_done
+        description: >
+          Date de réalisation de l'intervention (partition). Null pour les
+          workorders hors flux demande ou non terminés.
+
+      - name: quantity
+        description: Quantité totale consommée du produit sur le workorder.
+        tests:
+          - not_null
+
+      - name: first_recorded_at
+        description: Première saisie du produit sur le workorder.
+
+      - name: last_updated_at
+        description: Dernière mise à jour d'une ligne produit du workorder.
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - workorder_id
+              - product_id
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "quantity > 0"
+          config:
+            severity: warn
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 10000
+            max_value: 200000
+          config:
+            severity: warn
+
   - name: fct_technique__workorder_pricing
     description: |
       [QUOI MÉTIER]
