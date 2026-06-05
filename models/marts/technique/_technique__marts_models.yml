@@ -508,7 +508,17 @@ models:
       - name: to_invoice
         description: Indique si le bon d’intervention doit être facturé (true = à facturer).
       - name: billing_validation_status
-        description: Statut de validation de la facturation (VALIDATED, MISSING_TARIF, NOT_BILLABLE).
+        description: >
+          Statut de validation de la facturation. VALIDATED = tarif trouvé ·
+          MISSING_TARIF = facturable mais clé absente du CSV de tarification ·
+          UNTRACKABLE = facturable mais intervention hors flux demande
+          (workorder_id null, matériel intraçable) · NOT_BILLABLE = non facturable.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['VALIDATED', 'MISSING_TARIF', 'UNTRACKABLE', 'NOT_BILLABLE']
+              config:
+                severity: warn
 
   - name: fct_technique__suivi_partenaire
     description: |

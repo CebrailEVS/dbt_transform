@@ -284,6 +284,9 @@ select
     montant as amount,
     prod as prod_number,
     case
+        -- Intervention hors flux demande : pas de workorder rattaché, donc pas de
+        -- matériel traçable -> aucune clé de tarification possible par construction.
+        when workorder_id is null and a_facturer = true then 'UNTRACKABLE'
         when montant is not null and a_facturer = true then 'VALIDATED'
         when montant is null and a_facturer = true then 'MISSING_TARIF'
         else 'NOT_BILLABLE'
