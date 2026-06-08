@@ -26,6 +26,7 @@ with product_labels as (
         on l.idlabel_family = lf.idlabel_family
     where
         p.idproduct_type in (1, 5)
+        and p.code_status_record <> -1  -- exclude ERP ghost-deletes
         and (
             case
                 when p.idproduct = 1 and p.created_at is null then p.updated_at

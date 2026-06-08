@@ -28,7 +28,9 @@ with device_labels as (
         on d.idcompany_customer = c.idcompany
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__location` as lo
         on d.idlocation = lo.idlocation
-    where d.idcompany_customer is not null
+    where
+        d.idcompany_customer is not null
+        and d.code_status_record <> '-1'  -- exclude ERP ghost-deletes
 ),
 
 aggregated_labels as (

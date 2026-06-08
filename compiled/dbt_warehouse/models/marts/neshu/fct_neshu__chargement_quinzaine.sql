@@ -42,7 +42,7 @@ select
     SUM(load_quantity) as quantite_chargee,
     -- Métadonnées dbt
     CURRENT_TIMESTAMP() as dbt_updated_at,
-    '889b7023-a3b2-4cd0-9018-07146b68304d' as dbt_invocation_id  -- noqa: TMP
+    'f6f8753b-313e-4cd0-a347-477841978b60' as dbt_invocation_id  -- noqa: TMP
 from base
 group by
     product_type,
