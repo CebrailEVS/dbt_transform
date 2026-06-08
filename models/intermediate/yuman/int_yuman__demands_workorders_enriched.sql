@@ -158,6 +158,21 @@ select
     wo.workorder_detail_non_intervention,
     wo.workorder_raison_mise_en_pause,
     wo.workorder_explication_mise_en_pause,
+
+    -- Intervention mise en pause : au moins un des deux champs de pause renseigne
+    coalesce(
+        trim(wo.workorder_raison_mise_en_pause) != ''
+        or trim(wo.workorder_explication_mise_en_pause) != '',
+        false
+    ) as is_workorder_paused,
+
+    -- Intervention non realisee : au moins un des deux champs de non-intervention renseigne
+    coalesce(
+        trim(wo.workorder_motif_non_intervention) != ''
+        or trim(wo.workorder_detail_non_intervention) != '',
+        false
+    ) as is_workorder_not_done,
+
     wo.workorder_necessite_intervenir,
     wo.workorder_si_non_pourquoi,
     wo.date_planned,
