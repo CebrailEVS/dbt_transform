@@ -8,7 +8,7 @@ models:
       [QUOI MÉTIER] Dimension client (company) Neshu enrichie des labels métier et de la localisation.
       [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__company joint à stg_oracle_neshu__location pour les coordonnées, et pivot des labels (stg_oracle_neshu__label_has_company + label + label_family) sur les familles : REGION, SECTEUR_ACTVITE, CODE_SECTEUR, SECTEUR_DACTIVITE, TRANCHE_COLLAB, TYPECOMPAGNIE, MODELEECOCLIENT, STATUT_CLIENT, ISACTIVE, KA, KATIERS, TELETRAVAIL, PROADMAN, GSM_TERRAIN, BADGE, RECYCLAGE.
       [GRAIN] 1 ligne par company_id.
-      [NOTES] is_active converti en booléen (TRUE si label ISACTIVE='yes').
+      [NOTES] is_active converti en booléen (TRUE si label ISACTIVE='yes'). is_deleted = TRUE pour les ghost-deletes ERP (code_status_record = -1) : sociétés supprimées de l'ERP mais conservées en base car encore référencées (ex : rôle entrepôt via resource.company_storehouse_id). Non filtrées ici pour préserver l'intégrité des relations ; filtrer côté BI sur is_deleted = false pour le rôle client.
     columns:
       - name: company_id
         description: "Identifiant unique de la société"
@@ -54,8 +54,17 @@ models:
 
       - name: is_active
         description: >
-          Indique si la société est active (label ISACTIVE). 
+          Indique si la société est active (label ISACTIVE).
           TRUE si 'yes', sinon FALSE.
+
+      - name: is_deleted
+        description: >
+          TRUE si la société est un ghost-delete ERP (code_status_record = -1) :
+          supprimée de l'ERP mais conservée en base car encore référencée
+          (notamment comme entrepôt via resource.company_storehouse_id).
+          Filtrer sur is_deleted = false pour le rôle client en BI.
+        tests:
+          - not_null
 
       - name: key_account
         description: "KA grand compte (label KA)"
@@ -472,46 +481,6 @@ models:
             error_if: ">1"
 
 
-  # marts/oracle_neshu/_oracle_neshu__marts_models.yml
-  - name: dim_neshu__vehicule_roadman
-    description: |
-      [QUOI MÉTIER] Dimension véhicule-roadman : pivot véhicule avec son roadman associé et son code GEA.
-      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__resources filtré sur les véhicules, joint au roadman associé via resources_idresources, enrichi du code GEA depuis ref_oracle_neshu__roadman_gea (seed reference).
-      [GRAIN] 1 ligne par véhicule (resources_vehicule_id).
-      [NOTES] Périmètre partiellement redondant avec dim_neshu__resource (qui couvre PERSON + VEHICULE) — usage spécifique pour les facts orientés véhicule. À clarifier lors d'une refacto ultérieure.
-
-    columns:
-      - name: resources_vehicule_id
-        description: "Identifiant du véhicule (resource id) provenant d’Oracle."
-        tests:
-          - not_null
-          - unique
-
-      - name: vehicule_code
-        description: "Code du véhicule issu du champ resources.code."
-        tests:
-          - not_null
-          - unique
-
-      - name: resources_roadman_id
-        description: "Id du roadman associé au vehicule."
-
-      - name: roadman_code
-        description: "Code du roadman correspondant."
-        tests:
-          - unique
-
-      - name: created_at
-        description: "Date de création de la ressource dans Oracle."
-        tests:
-          - not_null
-
-      - name: updated_at
-        description: "Date de dernière mise à jour de la ressource dans Oracle."
-
-      - name: gea_code
-        description: "Code GEA rattaché au roadman, issu du modèle ref_oracle_neshu__roadman_gea."
-
   - name: fct_neshu__chargement_consommation
     description: |
       [QUOI MÉTIER] Quantités chargées vs consommées par machine et par passage APPRO (taux d'écoulement).
@@ -542,8 +511,8 @@ models:
 
       - name: roadman_code
         description: |
-          ⚠️ Naming hérité trompeur — alias historique de dim_neshu__vehicule_roadman.roadman_code,
-          qui est en réalité le `name` de stg_oracle_neshu__resources (et non un code).
+          ⚠️ Naming hérité trompeur — il s'agit en réalité du `name` de
+          stg_oracle_neshu__resources (le roadman/véhicule associé), et non d'un code.
           Contient un mélange hétérogène :
             - nom de famille d'un roadman pour les véhicules avec PERSON associée (ex. "DUPONT")
             - libellé de véhicule contrat (ex. "VARKEMA")
