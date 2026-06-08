@@ -33,6 +33,7 @@ workorders as (
         workorder_status,
         demand_category_name,
         demand_status,
+        is_workorder_paused,
         is_workorder_not_done,
         date_done
     from {{ ref('int_yuman__demands_workorders_enriched') }}
@@ -55,6 +56,7 @@ select
     w.workorder_status,
     w.demand_category_name,
     w.demand_status,
+    w.is_workorder_paused,
     w.is_workorder_not_done,
     w.date_done,
     cp.quantity,

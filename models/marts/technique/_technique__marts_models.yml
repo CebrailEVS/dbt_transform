@@ -538,6 +538,11 @@ models:
           interventions du flux normal ; null pour les interventions hors
           flux demande (contrôle qualité : permet d'isoler ces cas).
 
+      - name: is_workorder_paused
+        description: >
+          True si l'intervention est en pause (raison/explication de mise en
+          pause renseignée).
+
       - name: is_workorder_not_done
         description: >
           True si l'intervention n'a pas été réalisée (motif/détail de
