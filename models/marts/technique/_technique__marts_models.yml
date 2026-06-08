@@ -455,6 +455,11 @@ models:
         tests:
           - not_null
 
+      - name: demand_id
+        description: >
+          Identifiant de la demande d'intervention rattachée (dimension
+          dégénérée). Null pour les interventions hors flux demande.
+
       - name: product_id
         description: Identifiant de l'article consommé (FK).
         tests:
@@ -502,8 +507,42 @@ models:
       - name: partner_name
         description: Partenaire client de l'intervention (attribut d'affichage).
 
+      - name: workorder_number
+        description: Numéro lisible du bon de travail (drill vers Yuman).
+
+      - name: workorder_type
+        description: >
+          Type d'intervention : Reactive (curatif) / Preventive /
+          Installation. Axe d'analyse principal de la consommation de pièces.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Reactive', 'Preventive', 'Installation']
+              config:
+                severity: warn
+
+      - name: workorder_category
+        description: >
+          Catégorie libre du bon de travail (complément de workorder_type,
+          plus granulaire mais non normalisé).
+
       - name: workorder_status
         description: Statut du bon de travail (attribut d'affichage).
+
+      - name: demand_category_name
+        description: Catégorie métier de la demande d'intervention.
+
+      - name: demand_status
+        description: >
+          Statut de la demande rattachée. Toujours « Accepted » sur les
+          interventions du flux normal ; null pour les interventions hors
+          flux demande (contrôle qualité : permet d'isoler ces cas).
+
+      - name: is_workorder_not_done
+        description: >
+          True si l'intervention n'a pas été réalisée (motif/détail de
+          non-intervention renseigné). Des pièces consommées sur un workorder
+          à true sont une anomalie à surveiller.
 
       - name: date_done
         description: >

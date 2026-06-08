@@ -21,12 +21,19 @@ with consumed_products as (
 workorders as (
     select
         workorder_id,
+        demand_id,
         material_id,
         site_id,
         client_id,
         technician_id,
         partner_name,
+        workorder_number,
+        workorder_type,
+        workorder_category,
         workorder_status,
+        demand_category_name,
+        demand_status,
+        is_workorder_not_done,
         date_done
     from {{ ref('int_yuman__demands_workorders_enriched') }}
     where workorder_id is not null
@@ -35,13 +42,20 @@ workorders as (
 
 select
     cp.workorder_id,
+    w.demand_id,
     cp.product_id,
     w.material_id,
     w.site_id,
     w.client_id,
     w.technician_id,
     w.partner_name,
+    w.workorder_number,
+    w.workorder_type,
+    w.workorder_category,
     w.workorder_status,
+    w.demand_category_name,
+    w.demand_status,
+    w.is_workorder_not_done,
     w.date_done,
     cp.quantity,
     cp.first_recorded_at,
