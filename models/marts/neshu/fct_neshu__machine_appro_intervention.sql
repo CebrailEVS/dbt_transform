@@ -95,6 +95,7 @@ yuman_workorders as (
         -- Statuts (pour les flags)
         any_value(demand_status) as demand_status,
         any_value(workorder_status) as intervention_status,
+        max(date_started) as date_started,
         max(date_done) as date_done,
         min(date_planned) as date_planned,
 
@@ -208,6 +209,7 @@ current_ranked as (
         demand_category_name,
         intervention_title,
         intervention_report,
+        date_started,
         date_done,
         row_number() over (
             partition by serial_clean
@@ -229,6 +231,7 @@ current_inter as (
         demand_category_name as current_demand_category_name,
         intervention_title as current_intervention_title,
         intervention_report as current_intervention_report,
+        date_started as current_date_started,
         date_done as current_date_done
     from current_ranked
     where rn = 1
@@ -322,6 +325,7 @@ select
     ci.current_demand_category_name,
     ci.current_intervention_title,
     ci.current_intervention_report,
+    ci.current_date_started,
     ci.current_date_done,
 
     -- Bucket : prochaine intervention planifiée

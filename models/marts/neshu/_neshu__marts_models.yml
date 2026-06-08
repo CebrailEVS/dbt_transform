@@ -1242,6 +1242,8 @@ models:
         description: Titre du workorder en cours.
       - name: current_intervention_report
         description: Rapport (peut être vide si pas encore renseigné).
+      - name: current_date_started
+        description: Date de démarrage de l'intervention en cours (date_started Yuman). Renseignée dès que le technicien démarre l'intervention, contrairement à current_date_done qui reste NULL tant que l'intervention n'est pas terminée.
       - name: current_date_done
         description: Date done (normalement NULL si en cours, valeur si transition).
 
