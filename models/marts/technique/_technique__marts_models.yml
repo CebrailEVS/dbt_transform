@@ -472,7 +472,10 @@ models:
                 severity: warn
 
       - name: material_id
-        description: Identifiant du matériel concerné par l'intervention (FK).
+        description: >
+          Identifiant du matériel concerné par l'intervention (FK).
+          Nullable : null quand le workorder n'a pas de machine rattachée
+          (interventions hors flux demande). Pas de not_null volontairement.
         tests:
           - relationships:
               arguments:
@@ -482,7 +485,9 @@ models:
                 severity: warn
 
       - name: site_id
-        description: Identifiant du site client (FK).
+        description: >
+          Identifiant du site client (FK). Nullable (idem material_id :
+          interventions hors flux demande).
         tests:
           - relationships:
               arguments:
@@ -492,7 +497,9 @@ models:
                 severity: warn
 
       - name: client_id
-        description: Identifiant du client (FK).
+        description: >
+          Identifiant du client (FK). Nullable (idem material_id :
+          interventions hors flux demande).
         tests:
           - relationships:
               arguments:
@@ -502,7 +509,16 @@ models:
                 severity: warn
 
       - name: technician_id
-        description: Identifiant du technicien associé (FK).
+        description: >
+          Identifiant du technicien associé (FK vers dim_technique__technician,
+          PK user_id). Nullable pour les interventions hors flux demande.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__technician')
+                field: user_id
+              config:
+                severity: warn
 
       - name: partner_name
         description: Partenaire client de l'intervention (attribut d'affichage).
