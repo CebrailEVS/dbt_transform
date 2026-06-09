@@ -83,7 +83,7 @@ après son extract/load, un `dbt build --select source:<source>+` (étape `run_d
 
 | Pipeline EL | Sélecteur build | Marts reconstruits (BU aval via lignage) |
 |---|---|---|
-| pipeline-oracle-neshu | `source:oracle_neshu+` | neshu, technique, supply_chain |
+| pipeline-oracle-neshu | `source:oracle_neshu+` | neshu, supply_chain |
 | pipeline-oracle-lcdp | `source:oracle_lcdp+` | lcdp, supply_chain |
 | pipeline-yuman | `source:yuman_api+` | neshu, technique |
 | pipeline-sftp-gcs-yuman | `source:yuman_gcs+` | supply_chain |
@@ -120,7 +120,7 @@ sources soient fraîches en même temps (fraîcheur *eventual*). Matrice de déc
 
 | Source rafraîchie (EL) | BU dont les marts se reconstruisent |
 |---|---|
-| oracle_neshu | neshu, technique, supply_chain |
+| oracle_neshu | neshu, supply_chain |
 | oracle_lcdp | lcdp, supply_chain |
 | yuman_api | neshu, technique |
 | yuman_gcs | supply_chain |
