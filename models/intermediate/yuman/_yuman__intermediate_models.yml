@@ -70,7 +70,14 @@ models:
         description: >
           True si l'intervention est en pause (au moins un des champs
           workorder_raison_mise_en_pause / workorder_explication_mise_en_pause
-          renseigné).
+          renseigné). Sur un workorder Closed = pause historique (déjà reprise).
+      - name: is_workorder_currently_paused
+        description: >
+          True si l'intervention est actuellement en pause : en pause
+          (is_workorder_paused) ET workorder_status = 'In progress'. Distingue
+          la pause active de la pause historique (Closed conserve ses champs
+          de pause). Utilisé par les marts pour repérer les interventions
+          réellement suspendues.
       - name: is_workorder_not_done
         description: >
           True si l'intervention n'a pas été réalisée (au moins un des champs

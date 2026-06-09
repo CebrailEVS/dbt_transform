@@ -1098,6 +1098,14 @@ models:
       1 ligne par device_id Neshu (ayant ≥ 1 passage appro).
 
       [NOTES]
+      Bucket "en cours" : inclut les interventions In progress en pause
+      (is_workorder_paused). Une In progress en pause est toujours en cours
+      (suspendue), exposée via current_is_workorder_paused + les motifs ;
+      filtrer current_is_workorder_paused = false pour ne garder que les
+      actives. Les workorders Closed conservent leurs champs de pause
+      (pause historique, déjà reprise) mais ne sont pas "en cours".
+      Les déplacements sans réparation (is_workorder_not_done) sont exclus.
+
       ⚠️ Jointure cross-source actuellement fragile (string match
       device_code ↔ serial). Une table de mapping device Yuman ↔ device
       Oracle Neshu pourrait remplacer ce match string si besoin futur.
@@ -1245,6 +1253,18 @@ models:
         description: Date de démarrage de l'intervention en cours (date_started Yuman). Renseignée dès que le technicien démarre l'intervention, contrairement à current_date_done qui reste NULL tant que l'intervention n'est pas terminée.
       - name: current_date_done
         description: Date done (normalement NULL si en cours, valeur si transition).
+      - name: current_is_workorder_paused
+        description: >
+          TRUE si l'intervention en cours est actuellement en pause (au moins un
+          des champs raison/explication de mise en pause renseigné). Une In progress
+          en pause reste dans le bucket current ; filtrer dessus pour repérer
+          rapidement les interventions suspendues.
+        tests:
+          - not_null
+      - name: current_workorder_raison_mise_en_pause
+        description: Raison de la mise en pause de l'intervention en cours (NULL si non en pause).
+      - name: current_workorder_explication_mise_en_pause
+        description: Explication libre de la mise en pause de l'intervention en cours (NULL si non renseignée ou non en pause).
 
       # === Bucket : prochaine intervention planifiée ===
       - name: future_material_id
