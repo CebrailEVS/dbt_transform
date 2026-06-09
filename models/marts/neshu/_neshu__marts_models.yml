@@ -57,6 +57,14 @@ models:
           Indique si la société est active (label ISACTIVE).
           TRUE si 'yes', sinon FALSE.
 
+      - name: is_client_neshu
+        description: >
+          TRUE si la société est un client Neshu, selon l'une des 3 conditions :
+          company_code de la forme 'CN____' ou 'CP____' (préfixe + 4 caractères),
+          ou company_type (label TYPECOMPAGNIE) = 'CLIENTNESHU'.
+        tests:
+          - not_null
+
       - name: key_account
         description: "KA grand compte (label KA)"
 
