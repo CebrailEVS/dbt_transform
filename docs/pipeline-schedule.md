@@ -5,10 +5,16 @@
 >
 > **Companion doc :** `docs/architecture/` — un fichier par source avec l'ERD et les points d'attention.
 >
-> **Dernière revue :** 2026-05-24
+> **Dernière revue :** 2026-06-09
 > **Source du contenu :** scan automatique de `infra/workflows.tf`, `workflows/*.yaml`,
 > `transform/models/sources/*` et `transform/models/exposures/*`.
 > Toute modification de cron côté Terraform doit être répercutée ici.
+>
+> **⚠️ Architecture Option C (2026-06-09)** : les marts ne sont plus construits par des
+> workflows `transform-<bu>-daily` dédiés. Chaque pipeline EL build désormais avec
+> `source:<source>+` → les marts d'une BU se reconstruisent automatiquement dès qu'une de
+> leurs sources atterrit. Le fan-out est résolu par le graphe de lignage dbt. Seuls les
+> snapshots gardent un scheduler de transform autonome.
 
 Timezone : **Europe/Paris** pour tous les crons.
 
@@ -16,25 +22,26 @@ Timezone : **Europe/Paris** pour tous les crons.
 
 ## 1. Timeline journée type (jour ouvré)
 
+Chaque pipeline EL enchaîne extract → load → `dbt build source:<source>+` (staging + int +
+marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de sa source.
+
 ```
 00h ─────────────────────────────────────────────────────────────────────────────
-01:00  EL  oracle_neshu, oracle_lcdp, mssql_sage(1-5), yuman(1-5)        → prod_raw
-03:00  T   transform-{neshu, lcdp, finance(1-5), technique, supply_chain}-daily
-03:00  EL  zoho_desk (1-5)                                                → prod_raw
-06:00  EL  yuman_gcs (1-6)                                                → prod_raw
-07:00  T   transform-supply-chain-daily (run #2)
-07:30  EL  nesp_tech (lundi seulement)                                    → prod_raw
-08:00  EL  sftp_evs/gac, nesp_co                                          → prod_raw
-08:00  T   transform-technique-daily (run #2)
-08:30  T   transform-commerce-daily (run #1, 1-5)
-09:00  SN  transform-snapshots-daily (tous snapshots)
-09:00  T   transform-services-generaux-daily
-10:30  T   transform-commerce-daily (run #2, 1-5)
-10:00→18h  EL+T  passages-appro-neshu/lcdp (intra-day, 7-8x/jour, 1-5)
-23:00  EL  oracle_stock_theorique                                         → prod_raw
+01:00  EL+T  oracle_neshu, oracle_lcdp, mssql_sage(1-5), yuman(1-5)   → raw+stg+int + marts neshu/lcdp/finance/technique/supply_chain
+03:00  EL+T  zoho_desk (1-5)                                          → raw+stg+int (pas de marts à ce jour)
+06:00  EL+T  yuman_gcs (1-6)                                          → + marts supply_chain
+07:30  EL+T  nesp_tech (lundi seulement)                              → + marts technique, commerce
+08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce
+09:00  SN    transform-snapshots-daily (tous snapshots)
+10:00→18h  EL  passages-appro-neshu/lcdp (intra-day, 7-8x/jour, 1-5) → prod_marts (Cloud Run, hors dbt)
+23:00  EL+T  oracle_stock_theorique                                  → + marts supply_chain
+23:15  EL+T  oracle_lcdp_stock_theorique                             → + marts supply_chain (lcdp)
 ─────────────────────────────────────────────────────────────────────────────────
-Légende : EL = extract/load · T = transform dbt · SN = snapshot
+Légende : EL = extract/load · T = transform dbt (source:X+, embarqué dans le pipeline EL) · SN = snapshot
 ```
+
+> Un mart multi-source est donc rebuildé plusieurs fois/jour (une fois par source qui atterrit) —
+> choix assumé : fraîcheur maximale, coût compute négligeable. Pas de filet nocturne.
 
 ---
 
@@ -68,17 +75,28 @@ homonyme dans `workflows/*.yaml`.
 
 > Ces tables sont déclarées en `source()` dbt via `_<bu>__marts_sources.yml` (cf. `CLAUDE.md`).
 
-### 2.3 Transform (dbt par BU)
+### 2.3 Transform (dbt) — embarqué dans les pipelines EL (Option C)
 
-| Scheduler | Cron | Jours | BU | Sélecteur dbt |
-|---|---|---|---|---|
-| transform-neshu-daily | `0 3 * * *` | tous | neshu | `tag:neshu` |
-| transform-lcdp-daily | `0 3 * * *` | tous | lcdp | `tag:lcdp` |
-| transform-finance-daily | `0 3 * * 1-5` | lun-ven | finance | `tag:finance` |
-| transform-technique-daily | `0 3,8 * * *` | tous (2 runs) | technique | `tag:technique` |
-| transform-supply-chain-daily | `0 3,7 * * *` | tous (2 runs) | supply_chain | `tag:supply_chain` |
-| transform-services-generaux-daily | `0 9 * * *` | tous | services_generaux | `tag:services_generaux` |
-| transform-commerce-daily | `30 8,10 * * 1-5` | lun-ven (2 runs) | commerce | `tag:commerce` |
+Il n'existe **plus** de scheduler `transform-<bu>-daily`. Chaque pipeline EL de §2.1 exécute,
+après son extract/load, un `dbt build --select source:<source>+` (étape `run_dbt`, env var
+`DBT_TAG_SELECTOR`). Le sélecteur par pipeline :
+
+| Pipeline EL | Sélecteur build | Marts reconstruits (BU aval via lignage) |
+|---|---|---|
+| pipeline-oracle-neshu | `source:oracle_neshu+` | neshu, technique, supply_chain |
+| pipeline-oracle-lcdp | `source:oracle_lcdp+` | lcdp, supply_chain |
+| pipeline-yuman | `source:yuman_api+` | neshu, technique |
+| pipeline-sftp-gcs-yuman | `source:yuman_gcs+` | supply_chain |
+| pipeline-nesp-tech | `source:nesp_tech+` | technique, commerce |
+| pipeline-nesp-co | `source:nesp_co+` | commerce |
+| pipeline-sftp-evs | `source:gac+` | services_generaux |
+| pipeline-mssql-sage | `source:mssql_sage+` | finance |
+| pipeline-oracle-stock-theorique | `source:oracle_neshu_gcs+` | supply_chain |
+| pipeline-oracle-lcdp-stock-theorique | `source:oracle_lcdp_gcs+` | supply_chain (lcdp) |
+| pipeline-zoho-desk | `source:zoho_desk+` | — (pas de marts à ce jour) |
+
+> `pipeline-oracle-neshu-full-refresh` garde `tag:oracle_neshu` (+`--full-refresh`, staging/int).
+> Snapshots exclus de tout `dbt build` via `--exclude resource_type:snapshot` (entrypoint).
 
 ### 2.4 Snapshots
 
@@ -94,33 +112,36 @@ homonyme dans `workflows/*.yaml`.
 
 ---
 
-## 3. Synchronisation extract → transform par BU
+## 3. Fan-out source → BU (Option C)
 
-Pour chaque BU, vérifier que **toutes les sources tags consommées sont fraîches** avant le lancement
-du `transform-<bu>-daily`. Tableau de contrôle :
+Plus de barrière de synchronisation : un mart se reconstruit **dès qu'une seule** de ses sources
+atterrit, via le `source:<source>+` du pipeline EL correspondant. Pas besoin que toutes les
+sources soient fraîches en même temps (fraîcheur *eventual*). Matrice de déclenchement :
 
-| BU | Lancement | Sources requises | Source la plus tardive (jour ouvré) | Marge |
-|---|---|---|---|---|
-| neshu | 03:00 | oracle_neshu (01h), yuman (01h, lun-ven) | 01:00 | ~2h |
-| lcdp | 03:00 | oracle_lcdp (01h) | 01:00 | ~2h |
-| finance | 03:00 (lun-ven) | mssql_sage (01h, lun-ven) | 01:00 | ~2h |
-| technique (run #1 03h) | 03:00 | oracle_neshu, yuman, nesp_tech (lundi 07:30) | 01:00 (sauf lundi → 07:30) | ⚠️ lundi : **insuffisant** au run #1 |
-| technique (run #2 08h) | 08:00 | idem | 07:30 (lundi) | ~30 min ⚠️ serré le lundi |
-| supply_chain (run #1 03h) | 03:00 | oracle_neshu (01h), oracle_stock_theorique (23h J-1) | 01:00 | 2h ✅ traite les stocks Neshu |
-| supply_chain (run #2 07h) | 07:00 | + yuman_gcs (06h) | 06:00 | 1h ✅ rattrape les stocks Yuman |
-| services_generaux | 09:00 | gac (08h) | 08:00 | 1h |
-| commerce (run #1 08:30) | 08:30 | nesp_co (08h), nesp_tech (lundi 07:30) | 08:00 | 30 min |
-| commerce (run #2 10:30) | 10:30 | idem | 08:00 | 2h30 |
+| Source rafraîchie (EL) | BU dont les marts se reconstruisent |
+|---|---|
+| oracle_neshu | neshu, technique, supply_chain |
+| oracle_lcdp | lcdp, supply_chain |
+| yuman_api | neshu, technique |
+| yuman_gcs | supply_chain |
+| oracle_neshu_gcs | supply_chain |
+| oracle_lcdp_gcs | supply_chain (lcdp) |
+| nesp_tech | technique, commerce |
+| nesp_co | commerce |
+| mssql_sage | finance |
+| gac | services_generaux |
 
-**Remarques (design assumé) :**
-- `supply_chain` a **2 runs intentionnels** : run #1 à 03h traite les stocks Neshu (dispo depuis
-  23h J-1 via `oracle_stock_theorique`), run #2 à 07h intègre les stocks Yuman (dispo à 06h
-  via `yuman_gcs`). Pas un contournement, c'est le design.
-- `technique` a **2 runs intentionnels** : run #1 à 03h traite les sources Yuman (technique) et
-  Oracle Neshu (dispo dès 01-02h), run #2 à 08h intègre `nesp_tech` (qui n'arrive que le lundi à
-  07:30 et seulement le lundi). Les autres jours, le run #2 est redondant mais inoffensif.
-- `commerce` run #1 à 08:30 a une marge de 30 min après nesp_co (08:00) — surveiller la durée
-  réelle du EL.
+**Conséquences (design assumé) :**
+- Un mart multi-source est rebuildé une fois par source (ex. `technique` via oracle_neshu 01h,
+  yuman 01h, puis nesp_tech le lundi 07:30). Redondant mais inoffensif, fraîcheur maximale.
+- **Pas de filet nocturne** : si un EL échoue ou ne tourne pas (week-end pour yuman/mssql_sage,
+  semaine pour nesp_tech), les marts concernés restent sur la dernière donnée chargée jusqu'au
+  prochain run de la source. Choix assumé.
+- `fct_technique__alerting_consommation_aguila` et `fct_technique__piece_detachee_pricing_nespresso`
+  ne dépendent que de `nesp_tech` (hebdo, lundi) → rebuild hebdo = cohérent avec leur source.
+- Le fan-out suit le lignage `ref()`/`source()` : il traverse les refs mart→mart cross-BU
+  (ex. `source:oracle_neshu+` touche aussi des marts technique via `fct_neshu__workorder_delai`).
+  Couverture validée : `dbt ls --select source:X+,tag:marts` → 40/40 marts, 0 orphelin.
 
 ---
 
@@ -204,9 +225,9 @@ Ces infos ne sont pas dans le code, à enrichir au fil de l'eau :
 
 | Changement | Section à mettre à jour |
 |---|---|
-| Nouveau Cloud Scheduler (cron modifié, jour ajouté) | §2 + §1 timeline |
-| Nouvelle BU / nouveau workflow transform | §2.3 + §3 + §1 |
-| Nouvelle source dbt | §2.1 + §4 |
+| Nouveau Cloud Scheduler EL (cron modifié, jour ajouté) | §2.1 + §1 timeline |
+| Nouvelle source dbt | §2.1 + §2.3 (ajouter le `source:X+`) + §3 matrice + §4 |
+| Nouveau mart dans une BU existante | rien côté scheduling (rebuild auto via `source:X+`) ; §3bis si nouvelle source upstream |
 | Nouveau rapport PBI / exposure | §5 |
 | Changement de SLA freshness | §4 |
 

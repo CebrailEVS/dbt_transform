@@ -238,8 +238,9 @@ Un modele est cross-source s'il consomme des `ref()` provenant de sources differ
    ```
 5. Ne pas creer d'intermediate dedie si le modele n'a qu'un seul consommateur — absorber la logique directement dans le mart
 
-> **Scheduling :** les modeles cross-source ne sont pas construits par le pipeline de leur source.
-> Ils sont construits par le workflow `transform-technique-daily` (03:00 quotidien).
+> **Scheduling (Option C) :** un mart est reconstruit par CHAQUE pipeline EL dont il depend,
+> via le selecteur `source:<source>+`. Un mart cross-source se rebuild donc des qu'une de ses
+> sources atterrit — le graphe de lignage dbt gere le fan-out, aucune matrice a maintenir.
 > Voir `docs/pipeline-schedule.md` pour le detail.
 
 ### Exposures (rapport Power BI)
