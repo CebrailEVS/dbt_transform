@@ -66,6 +66,16 @@ models:
         description: Raison de mise en pause du bon de travail.
       - name: workorder_explication_mise_en_pause
         description: Explications détaillées concernant la mise en pause.
+      - name: is_workorder_paused
+        description: >
+          True si l'intervention est en pause (au moins un des champs
+          workorder_raison_mise_en_pause / workorder_explication_mise_en_pause
+          renseigné).
+      - name: is_workorder_not_done
+        description: >
+          True si l'intervention n'a pas été réalisée (au moins un des champs
+          workorder_motif_non_intervention / workorder_detail_non_intervention
+          renseigné). Recoupe la logique de non-facturation du mart pricing.
       - name: workorder_necessite_intervenir
         description: Indique si une intervention est nécessaire.
       - name: workorder_si_non_pourquoi
