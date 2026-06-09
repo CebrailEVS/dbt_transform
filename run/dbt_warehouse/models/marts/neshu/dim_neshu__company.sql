@@ -116,6 +116,14 @@ select
 
     COALESCE(LOWER(is_active) = 'yes', false) as is_active,
 
+    -- 🏷️ Client Neshu : code client CN/CP (+ 4 car.) ou type de compagnie CLIENTNESHU
+    COALESCE(
+        company_code like 'CN____'
+        or company_code like 'CP____'
+        or company_type = 'CLIENTNESHU',
+        false
+    ) as is_client_neshu,
+
     -- 👥 Gestion commerciale
     key_account,
     katiers,
