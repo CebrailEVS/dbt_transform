@@ -8,7 +8,7 @@ models:
       [QUOI MÉTIER] Dimension client (company) Neshu enrichie des labels métier et de la localisation.
       [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__company joint à stg_oracle_neshu__location pour les coordonnées, et pivot des labels (stg_oracle_neshu__label_has_company + label + label_family) sur les familles : REGION, SECTEUR_ACTVITE, CODE_SECTEUR, SECTEUR_DACTIVITE, TRANCHE_COLLAB, TYPECOMPAGNIE, MODELEECOCLIENT, STATUT_CLIENT, ISACTIVE, KA, KATIERS, TELETRAVAIL, PROADMAN, GSM_TERRAIN, BADGE, RECYCLAGE.
       [GRAIN] 1 ligne par company_id.
-      [NOTES] is_active converti en booléen (TRUE si label ISACTIVE='yes'). is_deleted = TRUE pour les ghost-deletes ERP (code_status_record = -1) : sociétés supprimées de l'ERP mais conservées en base car encore référencées (ex : rôle entrepôt via resource.company_storehouse_id). Non filtrées ici pour préserver l'intégrité des relations ; filtrer côté BI sur is_deleted = false pour le rôle client.
+      [NOTES] is_active converti en booléen (TRUE si label ISACTIVE='yes'). Les ghost-deletes ERP (code_status_record = -1, sociétés supprimées de l'ERP mais conservées en base) sont hard-filtrés : aucune FK aval ne les référence depuis que l'ERP a réaffecté les rôles entrepôt (resource.company_storehouse_id) en juin 2026.
     columns:
       - name: company_id
         description: "Identifiant unique de la société"
@@ -56,15 +56,6 @@ models:
         description: >
           Indique si la société est active (label ISACTIVE).
           TRUE si 'yes', sinon FALSE.
-
-      - name: is_deleted
-        description: >
-          TRUE si la société est un ghost-delete ERP (code_status_record = -1) :
-          supprimée de l'ERP mais conservée en base car encore référencée
-          (notamment comme entrepôt via resource.company_storehouse_id).
-          Filtrer sur is_deleted = false pour le rôle client en BI.
-        tests:
-          - not_null
 
       - name: key_account
         description: "KA grand compte (label KA)"
