@@ -161,6 +161,17 @@ select
         false
     ) as is_workorder_paused,
 
+    -- Intervention actuellement en pause : en pause ET toujours en cours
+    -- (un Closed conserve ses champs de pause = pause historique, pas active)
+    coalesce(
+        (
+            trim(wo.workorder_raison_mise_en_pause) != ''
+            or trim(wo.workorder_explication_mise_en_pause) != ''
+        )
+        and wo.workorder_status = 'In progress',
+        false
+    ) as is_workorder_currently_paused,
+
     -- Intervention non realisee : au moins un des deux champs de non-intervention renseigne
     coalesce(
         trim(wo.workorder_motif_non_intervention) != ''
