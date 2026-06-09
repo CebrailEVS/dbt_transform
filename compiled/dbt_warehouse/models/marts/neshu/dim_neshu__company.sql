@@ -6,7 +6,6 @@ with company_labels as (
         c.code as company_code,
         c.idcompany_type as company_type_id,
         c.name as company_name,
-        c.code_status_record,
         c.created_at,
         c.updated_at,
         l.code as label_code,
@@ -27,7 +26,9 @@ with company_labels as (
         on c.idcompany = chl.idcompany and chl.idlocation_type = 1
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__location` as loc
         on chl.idlocation = loc.idlocation
-    where c.idcompany_type in (1, 2, 4, 6)
+    where
+        c.idcompany_type in (1, 2, 4, 6)
+        and c.code_status_record <> -1  -- exclude ERP ghost-deletes
 ),
 
 aggregated_labels as (
@@ -36,7 +37,6 @@ aggregated_labels as (
         company_type_id,
         company_code,
         company_name,
-        code_status_record,
         created_at,
         updated_at,
         address1,
@@ -71,7 +71,6 @@ aggregated_labels as (
         company_type_id,
         company_code,
         company_name,
-        code_status_record,
         created_at,
         updated_at,
         address1,
@@ -102,9 +101,6 @@ select
     client_status,
 
     COALESCE(LOWER(is_active) = 'yes', false) as is_active,
-
-    -- ERP ghost-delete : supprimée de l'ERP mais conservée en base (cf. rattachement entrepôt)
-    code_status_record = -1 as is_deleted,
 
     -- 👥 Gestion commerciale
     key_account,
