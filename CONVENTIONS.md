@@ -157,8 +157,20 @@ des dimensions autour, jointures via `<entite>_id`. Pas de snowflake.
 Pas de One Big Table.
 
 - **Faits** (`fct_*`) : evenements ou mesures, pointent vers les dims via FK.
-  Aucune jointure fait-a-fait. Si un calcul croise deux faits, il vit
-  dans l'intermediate ou dans la couche Power BI.
+  Un fait **peut** en referencer un autre dans deux cas seulement :
+  - (a) **fait agrege / rollup** a un grain plus grossier via `GROUP BY`
+    (ex. `fct_supply_chain__disponibilite_article_neshu_mensuel`, rollup
+    mensuel de `fct_supply_chain__stock_neshu`) ;
+  - (b) **fait derive / extension** a grain strictement identique 1:1 (ajout
+    de colonnes calculees, grain inchange).
+
+  **Interdit** : joindre deux faits sur leurs cles de dimension pour combiner
+  leurs mesures — la dimension partagee cree un fan-out many-to-many qui
+  double compte les mesures additives. Pour combiner deux faits, faire un
+  drill-across (pre-agreger chacun au grain commun, *puis* joindre), dans
+  l'intermediate ou dans la couche Power BI. Le critere de decision est
+  **grain + cardinalite de jointure**, jamais l'appartenance BU : un
+  fait-a-fait meme BU peut double compter, un agregat cross-BU peut etre sain.
 - **Dimensions** (`dim_*`) : 1 ligne par entite metier (ticket, compte,
   agent, machine, contrat...).
   - **Aplatir uniquement les attributs d'affichage du parent direct** (1-3
