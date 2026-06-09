@@ -11,7 +11,10 @@
 # Injected by Cloud Workflow at runtime:
 #   DBT_COMMAND                 — dbt command to run: "build" (default) or "snapshot"
 #   DBT_SOURCE_SELECTOR         — e.g. "source:yuman_api" (skipped if empty)
-#   DBT_TAG_SELECTOR            — e.g. "tag:yuman" (used for build only)
+#   DBT_TAG_SELECTOR            — build node selector, e.g. "tag:yuman" or
+#                                 "source:yuman_api+" (source + all descendants).
+#                                 Snapshots are always excluded from build — they
+#                                 run via DBT_COMMAND=snapshot only.
 # =============================================================================
 
 set -euo pipefail
@@ -35,7 +38,7 @@ else
     FULL_REFRESH_FLAG="--full-refresh"
   fi
   echo "[dbt] Building models: ${DBT_TAG_SELECTOR}${FULL_REFRESH_FLAG:+ (full-refresh)}"
-  dbt build --select "${DBT_TAG_SELECTOR}" --target "${DBT_TARGET:-prod}" ${FULL_REFRESH_FLAG}
+  dbt build --select "${DBT_TAG_SELECTOR}" --exclude resource_type:snapshot --target "${DBT_TARGET:-prod}" ${FULL_REFRESH_FLAG}
 fi
 
 echo "[dbt] Done."
