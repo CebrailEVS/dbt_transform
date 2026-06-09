@@ -8,15 +8,14 @@
       
     
   
-    
-    
 
 
 
-select company_id
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_neshu_mensuel`
-where company_id is null
+select
+    1
+from `evs-datastack-prod`.`prod_marts`.`fct_technique__workorder_product`
 
+where not(quantity > 0)
 
 
   

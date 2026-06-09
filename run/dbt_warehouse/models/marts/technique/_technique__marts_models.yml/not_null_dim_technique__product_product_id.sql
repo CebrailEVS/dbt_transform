@@ -13,9 +13,9 @@
 
 
 
-select mois
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_neshu_mensuel`
-where mois is null
+select product_id
+from `evs-datastack-prod`.`prod_marts`.`dim_technique__product`
+where product_id is null
 
 
 

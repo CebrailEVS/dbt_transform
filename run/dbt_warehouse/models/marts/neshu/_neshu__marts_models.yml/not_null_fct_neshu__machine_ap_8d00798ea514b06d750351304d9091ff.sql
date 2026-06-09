@@ -13,9 +13,9 @@
 
 
 
-select taux_disponibilite_pct
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_neshu_mensuel`
-where taux_disponibilite_pct is null
+select nb_interventions_15j
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__machine_appro_intervention`
+where nb_interventions_15j is null
 
 
 

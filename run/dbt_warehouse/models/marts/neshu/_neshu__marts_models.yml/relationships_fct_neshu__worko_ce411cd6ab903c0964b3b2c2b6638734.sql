@@ -12,14 +12,14 @@
     
 
 with child as (
-    select company_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_neshu_mensuel`
-    where company_id is not null
+    select client_id as from_field
+    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__workorder_delai`
+    where client_id is not null
 ),
 
 parent as (
-    select company_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_neshu__company`
+    select client_id as to_field
+    from `evs-datastack-prod`.`prod_marts`.`dim_technique__client`
 )
 
 select

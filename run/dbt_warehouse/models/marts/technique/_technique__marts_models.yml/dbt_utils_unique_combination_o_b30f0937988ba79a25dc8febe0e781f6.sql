@@ -16,9 +16,9 @@
 with validation_errors as (
 
     select
-        mois, company_id, product_code
-    from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_neshu_mensuel`
-    group by mois, company_id, product_code
+        workorder_id, product_id
+    from `evs-datastack-prod`.`prod_marts`.`fct_technique__workorder_product`
+    group by workorder_id, product_id
     having count(*) > 1
 
 )
