@@ -12,6 +12,9 @@ with source_data as (
 
 cleaned_data as (
     select
+        -- Identifiant technique Sage (PK)
+        cb_marq,
+
         -- Champs principaux
         co_no,
         co_nom,
@@ -29,3 +32,7 @@ cleaned_data as (
 
 select *
 from cleaned_data
+qualify row_number() over (
+    partition by co_no
+    order by updated_at desc, cb_marq desc
+) = 1

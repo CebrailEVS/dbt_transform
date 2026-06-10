@@ -118,6 +118,11 @@ models:
   - name: stg_mssql_sage__f_comptet
     description: "Table des comptes clients Nunshen nettoyée et transformée depuis la table source dbo_f_comptet de MSSQL Sage"
     columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK)"
+        tests:
+          - unique
+          - not_null
       - name: ct_num
         description: "Code unique du compte client"
         tests:
@@ -178,6 +183,11 @@ models:
   - name: stg_mssql_sage__f_collaborateur
     description: "Table des collaborateur Nunshen nettoyée et transformée depuis la table source dbo_f_collaborateur de MSSQL Sage"
     columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK)"
+        tests:
+          - unique
+          - not_null
       - name: co_no
         description: "Code unique du collaborateur"
         tests:
@@ -203,6 +213,11 @@ models:
   - name: stg_mssql_sage__f_docligne
     description: "Table des docligne Nunshen nettoyée et transformée depuis la table source dbo_f_docligne de MSSQL Sage"
     columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK)"
+        tests:
+          - unique
+          - not_null
       - name: dl_no
         description: "Code unique de de la transaction"
         tests:

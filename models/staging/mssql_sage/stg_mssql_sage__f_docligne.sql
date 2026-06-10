@@ -17,8 +17,11 @@ with source_data as (
 
 cleaned_data as (
     select
-        -- Identifiant unique de la ligne
-        dl_no, -- PK
+        -- Identifiant technique Sage (PK)
+        cb_marq,
+
+        -- Identifiant de la ligne de document (clé métier)
+        dl_no,
         cb_co_no as cbco_no, -- FK pour table collaborateur
 
         -- Domaine et type Sage (filtrage métier en aval)
@@ -50,3 +53,7 @@ cleaned_data as (
 
 select *
 from cleaned_data
+qualify row_number() over (
+    partition by dl_no
+    order by updated_at desc, cb_marq desc
+) = 1
