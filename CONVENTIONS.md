@@ -404,6 +404,31 @@ from events
 
 Description et tests vivent dans `_<bu>__marts_models.yml` (voir §2 et §4).
 
+### 7. Ordre des colonnes du `select` final
+
+Convention **indicative** (non verifiee par SQLFluff, mais attendue en review).
+Regle dite **grain-first** : les colonnes du grain ouvrent le `select`, puis on
+reprend un tri par role. Objectif : lire « de quoi parle la ligne » (cles →
+contexte → quand) avant « combien » (mesures).
+
+1. **Grain** — la/les colonne(s) qui definissent le grain, dans l'ordre
+   `dimension temporelle → cle primaire → cles etrangeres`. Sur un fait agrege
+   a grain temporel, la date de grain (`mois`, `event_date`) vient donc **en
+   premier** (ex. `fct_supply_chain__disponibilite_article_neshu_depot_mensuel`
+   ouvre sur `mois`, puis `company_id`, puis `product_code`).
+2. **Cles etrangeres** restantes (`<entity>_id`) non incluses dans le grain.
+3. **Attributs / dimensions** texte ou categoriels (`*_name`, `*_code`,
+   `*_type`, `*_status`).
+4. **Dates / timestamps metier** secondaires (hors date de grain).
+5. **Booleens / flags** (`is_*`, `has_*`) — ils qualifient la ligne.
+6. **Mesures** numeriques additives — toujours regroupees en fin de fait.
+7. **Metadonnees / audit** (`created_at`, `updated_at`, `extracted_at`,
+   `deleted_at`) — toujours en dernier.
+
+> Regle, pas dogme : si un regroupement metier est plus lisible (ex. coller
+> `entity_code`/`entity_name` juste apres leur FK), c'est tolere. Le grain en
+> tete et les metadonnees en queue, en revanche, sont systematiques.
+
 ---
 
 ## Tests de qualite
