@@ -37,7 +37,7 @@ sources:
           - name: cb_prot
             description: "Indicateur de protection (technique Sage)"
           - name: cb_marq
-            description: "Identifiant unique de l'écriture analytique"
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'upsert (MERGE sur cbMarq) du loader."
             tests:
               - unique
               - not_null
@@ -66,24 +66,21 @@ sources:
           - name: _sdc_sequence
             description: "Numéro de séquence du flux pour suivi d’ordre"
 
-        tests:
-          - dbt_utils.unique_combination_of_columns:
-              arguments:
-                combination_of_columns:
-                  - ec_no
-                  - n_analytique
-                  - ea_ligne
+        # PK testée sur cb_marq (cf. colonne). L'unicité de la clé métier
+        # (ec_no, n_analytique, ea_ligne) reste testée au staging après dédup.
 
       # TABLE ECRITURE COMPTABLE
       - name: dbo_f_ecriturec
         description: "Table des écritures comptables (f_ecriturec) — enregistre les mouvements comptables avec leurs montants, comptes, dates et statuts"
 
         columns:
-          - name: ec_no
-            description: "Identifiant unique de l’écriture comptable (clé primaire)"
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'upsert (MERGE sur cbMarq) du loader."
             tests:
               - unique
               - not_null
+          - name: ec_no
+            description: "Numéro de l’écriture comptable (clé métier ; unicité et non-nullité gérées au staging)"
 
           - name: jo_num
             description: "Code du journal comptable"
@@ -243,6 +240,11 @@ sources:
       - name: dbo_f_comptet
         description: "Table brute des comptes clients de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement overwrite) — plus de blob JSON."
         columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'overwrite (full refresh) du loader."
+            tests:
+              - unique
+              - not_null
           - name: ct_num
             description: "Code unique du compte client"
           - name: ct_intitule
@@ -274,6 +276,11 @@ sources:
       - name: dbo_f_collaborateur
         description: "Table brute des collaborateurs de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement overwrite) — plus de blob JSON."
         columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'overwrite (full refresh) du loader."
+            tests:
+              - unique
+              - not_null
           - name: co_no
             description: "Code unique du collaborateur"
           - name: co_nom
@@ -303,6 +310,11 @@ sources:
       - name: dbo_f_docligne
         description: "Table brute des lignes de documents (ventes/achats/stock) de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement incrémental) — plus de blob JSON."
         columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'upsert (MERGE sur cbMarq) du loader."
+            tests:
+              - unique
+              - not_null
           - name: dl_no
             description: "Identifiant unique de la ligne de document"
           - name: cb_co_no
