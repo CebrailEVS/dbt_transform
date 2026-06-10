@@ -80,9 +80,7 @@ sources:
               - unique
               - not_null
           - name: ec_no
-            description: "Numéro de l’écriture comptable (clé métier ; unicité gérée au staging après dédup)"
-            tests:
-              - not_null
+            description: "Numéro de l’écriture comptable (clé métier ; unicité et non-nullité gérées au staging)"
 
           - name: jo_num
             description: "Code du journal comptable"
@@ -242,6 +240,11 @@ sources:
       - name: dbo_f_comptet
         description: "Table brute des comptes clients de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement overwrite) — plus de blob JSON."
         columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'overwrite (full refresh) du loader."
+            tests:
+              - unique
+              - not_null
           - name: ct_num
             description: "Code unique du compte client"
           - name: ct_intitule
@@ -273,6 +276,11 @@ sources:
       - name: dbo_f_collaborateur
         description: "Table brute des collaborateurs de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement overwrite) — plus de blob JSON."
         columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'overwrite (full refresh) du loader."
+            tests:
+              - unique
+              - not_null
           - name: co_no
             description: "Code unique du collaborateur"
           - name: co_nom
@@ -302,6 +310,11 @@ sources:
       - name: dbo_f_docligne
         description: "Table brute des lignes de documents (ventes/achats/stock) de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement incrémental) — plus de blob JSON."
         columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'upsert (MERGE sur cbMarq) du loader."
+            tests:
+              - unique
+              - not_null
           - name: dl_no
             description: "Identifiant unique de la ligne de document"
           - name: cb_co_no
