@@ -118,6 +118,11 @@ models:
   - name: stg_mssql_sage__f_comptet
     description: "Table des comptes clients Nunshen nettoyée et transformée depuis la table source dbo_f_comptet de MSSQL Sage"
     columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK)"
+        tests:
+          - unique
+          - not_null
       - name: ct_num
         description: "Code unique du compte client"
         tests:
@@ -166,16 +171,23 @@ models:
       - name: typologie
         description: "Typologie du compte client"
       - name: created_at
-        description: "Date de création du compte client (cbCreation)"
+        description: "Date de création du compte client (cb_creation)"
       - name: updated_at
-        description: "Date de dernière modification du compte client (cbModification)"
+        description: "Date de dernière modification du compte client (cb_modification)"
       - name: extracted_at
-        description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
+        description: "Timestamp d'extraction depuis la source (_sdc_extracted_at)"
+      - name: deleted_at
+        description: "Timestamp de suppression logique source (_sdc_deleted_at)"
 
   # TABLE COLLABORATEUR NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_collaborateur
     description: "Table des collaborateur Nunshen nettoyée et transformée depuis la table source dbo_f_collaborateur de MSSQL Sage"
     columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK)"
+        tests:
+          - unique
+          - not_null
       - name: co_no
         description: "Code unique du collaborateur"
         tests:
@@ -188,17 +200,24 @@ models:
       - name: co_fonction
         description: "Fonction du collaborateur"
       - name: created_at
-        description: "Date de création du collaborateur (cbCreation)"
+        description: "Date de création du collaborateur (cb_creation)"
       - name: updated_at
-        description: "Date de dernière modification du collaborateur (cbModification)"
+        description: "Date de dernière modification du collaborateur (cb_modification)"
       - name: extracted_at
-        description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
+        description: "Timestamp d'extraction depuis la source (_sdc_extracted_at)"
+      - name: deleted_at
+        description: "Timestamp de suppression logique source (_sdc_deleted_at)"
 
 
   # TABLE DOCLIGNE NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_docligne
     description: "Table des docligne Nunshen nettoyée et transformée depuis la table source dbo_f_docligne de MSSQL Sage"
     columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK)"
+        tests:
+          - unique
+          - not_null
       - name: dl_no
         description: "Code unique de de la transaction"
         tests:
@@ -248,8 +267,10 @@ models:
       - name: dl_prix_unitaire
         description: "Prix unitaire du produit"
       - name: created_at
-        description: "Date de création du collaborateur (cbCreation)"
+        description: "Date de création de la ligne document (cb_creation)"
       - name: updated_at
-        description: "Date de dernière modification du collaborateur (cbModification)"
+        description: "Date de dernière modification de la ligne document (cb_modification)"
       - name: extracted_at
-        description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
+        description: "Timestamp d'extraction depuis la source (_sdc_extracted_at)"
+      - name: deleted_at
+        description: "Timestamp de suppression logique source (_sdc_deleted_at)"

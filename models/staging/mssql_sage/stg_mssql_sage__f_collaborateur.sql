@@ -1,7 +1,7 @@
 {{
     config(
         materialized='table',
-        description='Table des collaborateur Nunshen nettoyée et transformée depuis la table source dbo_f_collaborateur de MSSQL Sage',
+        description='Table des collaborateur Nunshen nettoyée et transformée depuis la table source dbo_f_collaborateur de MSSQL Sage. Source désormais en colonnes plates (nouvel extracteur, overwrite) — plus de blob JSON.'
     )
 }}
 
@@ -12,19 +12,27 @@ with source_data as (
 
 cleaned_data as (
     select
+        -- Identifiant technique Sage (PK)
+        cb_marq,
+
         -- Champs principaux
-        cast(json_value(data, '$.CO_No') as int64) as co_no,
-        json_value(data, '$.CO_Nom') as co_nom,
-        json_value(data, '$.CO_Prenom') as co_prenom,
-        json_value(data, '$.CO_Fonction') as co_fonction,
+        co_no,
+        co_nom,
+        co_prenom,
+        co_fonction,
 
         -- Metadata
-        timestamp(json_value(data, '$.cbCreation')) as created_at,
-        timestamp(json_value(data, '$.cbModification')) as updated_at,
-        _sdc_extracted_at as extracted_at
+        cb_creation as created_at,
+        coalesce(cb_modification, cb_creation) as updated_at,
+        _sdc_extracted_at as extracted_at,
+        _sdc_deleted_at as deleted_at
 
     from source_data
 )
 
 select *
 from cleaned_data
+qualify row_number() over (
+    partition by co_no
+    order by updated_at desc, cb_marq desc
+) = 1

@@ -20,9 +20,9 @@ with source_data as (
 cleaned_data as (
     select
         -- Identifiants
-        cast(ec_no as int64) as ec_no,
-        cast(ec_no_link as int64) as ec_no_link,
-        cast(cb_marq as int64) as cb_marq,
+        ec_no,
+        ec_no_link,
+        cb_marq,
 
         -- Journal et comptes
         jo_num,
@@ -37,21 +37,21 @@ cleaned_data as (
         ec_devise,
         n_devise,
 
-        -- Dates
-        timestamp(ec_date) as ec_date,
-        timestamp(jm_date) as jm_date,
+        -- Dates (colonnes désormais TIMESTAMP natifs ; placeholder Sage 1753-01-01 -> NULL)
+        ec_date,
+        jm_date,
         ec_jour,
-        case when ec_echeance = '1753-01-01' then null else timestamp(ec_echeance) end as ec_echeance,
-        case when ec_date_rappro = '1753-01-01' then null else timestamp(ec_date_rappro) end as ec_date_rappro,
-        case when ec_date_regle = '1753-01-01' then null else timestamp(ec_date_regle) end as ec_date_regle,
+        case when date(ec_echeance) = date '1753-01-01' then null else ec_echeance end as ec_echeance,
+        case when date(ec_date_rappro) = date '1753-01-01' then null else ec_date_rappro end as ec_date_rappro,
+        case when date(ec_date_regle) = date '1753-01-01' then null else ec_date_regle end as ec_date_regle,
 
         -- Métadonnées
         cb_createur,
         cb_creation_user,
-        timestamp(cb_creation) as created_at,
-        timestamp(coalesce(cb_modification, cb_creation)) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        cb_creation as created_at,
+        coalesce(cb_modification, cb_creation) as updated_at,
+        _sdc_extracted_at as extracted_at,
+        _sdc_deleted_at as deleted_at
 
     from source_data
 )

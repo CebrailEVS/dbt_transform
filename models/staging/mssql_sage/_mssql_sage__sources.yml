@@ -239,59 +239,99 @@ sources:
             description: "Numéro de séquence du flux"
 
 
-      # NUNSHEN COMMERCE : TABLE COMPTE 
+      # NUNSHEN COMMERCE : TABLE COMPTE (overwrite)
       - name: dbo_f_comptet
-        description: "Table brute des comptes clients de MSSQL Sage importée via Meltano. La colonne 'data' contient le JSON complet des informations clients."
+        description: "Table brute des comptes clients de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement overwrite) — plus de blob JSON."
         columns:
-          - name: data
-            description: "Colonne JSON contenant toutes les informations détaillées du compte client"
+          - name: ct_num
+            description: "Code unique du compte client"
+          - name: ct_intitule
+            description: "Intitulé / nom du compte client"
+          - name: ct_type
+            description: "Type de compte client"
+          - name: co_no
+            description: "Code comptable associé"
+          - name: ct_e_mail
+            description: "Email du compte client"
+          - name: cb_creation
+            description: "Horodatage de création (TIMESTAMP)"
+          - name: cb_modification
+            description: "Horodatage de dernière modification (TIMESTAMP)"
           - name: _sdc_extracted_at
-            description: "Timestamp d'extraction depuis la source Meltano"
+            description: "Timestamp d'extraction depuis la source"
           - name: _sdc_received_at
-            description: "Timestamp de réception dans Meltano"
+            description: "Timestamp de réception"
           - name: _sdc_batched_at
-            description: "Timestamp indiquant quand le batch a été traité"
+            description: "Timestamp de traitement du batch"
           - name: _sdc_deleted_at
-            description: "Timestamp indiquant si la ligne a été supprimée dans la source"
+            description: "Timestamp de suppression logique source"
           - name: _sdc_sequence
-            description: "Identifiant de séquence Meltano pour la réplication"
+            description: "Identifiant de séquence pour la réplication"
           - name: _sdc_table_version
             description: "Version de la table source pour la réplication"
 
-      # NUNSHEN COMMERCE : TABLE COLLABORATEUR 
+      # NUNSHEN COMMERCE : TABLE COLLABORATEUR (overwrite)
       - name: dbo_f_collaborateur
-        description: "Table brute des collaborateur de MSSQL Sage importée via Meltano. La colonne 'data' contient le JSON complet des informations collaborateurs."
+        description: "Table brute des collaborateurs de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement overwrite) — plus de blob JSON."
         columns:
-          - name: data
-            description: "Colonne JSON contenant toutes les informations détaillées du collaborateur"
+          - name: co_no
+            description: "Code unique du collaborateur"
+          - name: co_nom
+            description: "Nom du collaborateur"
+          - name: co_prenom
+            description: "Prénom du collaborateur"
+          - name: co_fonction
+            description: "Fonction du collaborateur"
+          - name: cb_creation
+            description: "Horodatage de création (TIMESTAMP)"
+          - name: cb_modification
+            description: "Horodatage de dernière modification (TIMESTAMP)"
           - name: _sdc_extracted_at
-            description: "Timestamp d'extraction depuis la source Meltano"
+            description: "Timestamp d'extraction depuis la source"
           - name: _sdc_received_at
-            description: "Timestamp de réception dans Meltano"
+            description: "Timestamp de réception"
           - name: _sdc_batched_at
-            description: "Timestamp indiquant quand le batch a été traité"
+            description: "Timestamp de traitement du batch"
           - name: _sdc_deleted_at
-            description: "Timestamp indiquant si la ligne a été supprimée dans la source"
+            description: "Timestamp de suppression logique source"
           - name: _sdc_sequence
-            description: "Identifiant de séquence Meltano pour la réplication"
+            description: "Identifiant de séquence pour la réplication"
           - name: _sdc_table_version
             description: "Version de la table source pour la réplication"
 
-      # NUNSHEN COMMERCE : TABLE DOCLIGNE 
+      # NUNSHEN COMMERCE : TABLE DOCLIGNE (incrémental)
       - name: dbo_f_docligne
-        description: "Table brute des ventes de MSSQL Sage importée via Meltano. La colonne 'data' contient le JSON complet des informations docligne."
+        description: "Table brute des lignes de documents (ventes/achats/stock) de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement incrémental) — plus de blob JSON."
         columns:
-          - name: data
-            description: "Colonne JSON contenant toutes les informations détaillées des ventes docligne"
+          - name: dl_no
+            description: "Identifiant unique de la ligne de document"
+          - name: cb_co_no
+            description: "Code du collaborateur associé (FK vers f_collaborateur)"
+          - name: do_domaine
+            description: "Domaine Sage (0 = ventes, 1 = achats/autre, 2 = stock interne)"
+          - name: do_type
+            description: "Type de document Sage à l'intérieur d'un domaine"
+          - name: ct_num
+            description: "Code du compte client (ventes) ou code dépôt (stock)"
+          - name: do_date
+            description: "Date du document (TIMESTAMP)"
+          - name: dl_montant_ht
+            description: "Montant HT de la ligne"
+          - name: dl_montant_ttc
+            description: "Montant TTC de la ligne"
+          - name: cb_creation
+            description: "Horodatage de création (TIMESTAMP)"
+          - name: cb_modification
+            description: "Horodatage de dernière modification (TIMESTAMP)"
           - name: _sdc_extracted_at
-            description: "Timestamp d'extraction depuis la source Meltano"
+            description: "Timestamp d'extraction depuis la source"
           - name: _sdc_received_at
-            description: "Timestamp de réception dans Meltano"
+            description: "Timestamp de réception"
           - name: _sdc_batched_at
-            description: "Timestamp indiquant quand le batch a été traité"
+            description: "Timestamp de traitement du batch"
           - name: _sdc_deleted_at
-            description: "Timestamp indiquant si la ligne a été supprimée dans la source"
+            description: "Timestamp de suppression logique source"
           - name: _sdc_sequence
-            description: "Identifiant de séquence Meltano pour la réplication"
+            description: "Identifiant de séquence pour la réplication"
           - name: _sdc_table_version
             description: "Version de la table source pour la réplication"
