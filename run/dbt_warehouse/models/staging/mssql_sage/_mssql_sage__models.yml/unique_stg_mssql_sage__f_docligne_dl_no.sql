@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select n_de_sinistre as unique_field
-  from `evs-datastack-prod`.`prod_marts`.`fct_services_generaux__sinistre`
-  where n_de_sinistre is not null
+  select dl_no as unique_field
+  from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne`
+  where dl_no is not null
 
 )
 

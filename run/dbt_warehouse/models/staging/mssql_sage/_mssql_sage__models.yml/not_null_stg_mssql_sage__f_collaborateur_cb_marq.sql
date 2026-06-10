@@ -13,9 +13,9 @@
 
 
 
-select date_sinistre
-from `evs-datastack-prod`.`prod_marts`.`fct_services_generaux__sinistre`
-where date_sinistre is null
+select cb_marq
+from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_collaborateur`
+where cb_marq is null
 
 
 

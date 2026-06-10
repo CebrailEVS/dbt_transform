@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select reference_gac as unique_field
-  from `evs-datastack-prod`.`prod_marts`.`fct_services_generaux__sinistre`
-  where reference_gac is not null
+  select cb_marq as unique_field
+  from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_comptet`
+  where cb_marq is not null
 
 )
 
