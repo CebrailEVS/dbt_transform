@@ -36,7 +36,7 @@ courant 2026).
                                                       ▼
                                        ┌──────────────────────────────────┐
                                        │  prod_staging                    │
-                                       │  stg_gac__sinistres_sg           │
+                                       │  stg_gac__sinistres              │
                                        └──────────┬───────────────────────┘
                                                   │ dbt marts (direct)
                                                   ▼
@@ -51,7 +51,7 @@ l'unique mart `fct_services_generaux__sinistre`.
 
 ---
 
-## Le modèle staging — `stg_gac__sinistres_sg`
+## Le modèle staging — `stg_gac__sinistres`
 
 Grain : **1 ligne par sinistre**.
 

@@ -34,4 +34,4 @@ select
     current_timestamp() as dbt_updated_at,
     '{{ invocation_id }}' as dbt_invocation_id
 
-from {{ ref('stg_gac__sinistres_sg') }}
+from {{ ref('stg_gac__sinistres') }}
