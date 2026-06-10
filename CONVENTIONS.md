@@ -159,7 +159,7 @@ Pas de One Big Table.
 - **Faits** (`fct_*`) : evenements ou mesures, pointent vers les dims via FK.
   Un fait **peut** en referencer un autre dans deux cas seulement :
   - (a) **fait agrege / rollup** a un grain plus grossier via `GROUP BY`
-    (ex. `fct_supply_chain__disponibilite_article_neshu_mensuel`, rollup
+    (ex. `fct_supply_chain__disponibilite_article_neshu_depot_mensuel`, rollup
     mensuel de `fct_supply_chain__stock_neshu`) ;
   - (b) **fait derive / extension** a grain strictement identique 1:1 (ajout
     de colonnes calculees, grain inchange).
