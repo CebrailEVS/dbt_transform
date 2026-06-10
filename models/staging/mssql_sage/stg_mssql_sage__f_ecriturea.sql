@@ -19,11 +19,11 @@ with source_data as (
 
 cleaned_data as (
     select
-        -- IDs et numéro convertis en BIGINT
-        cast(cb_marq as int64) as cb_marq,
-        cast(ec_no as int64) as ec_no,
-        cast(n_analytique as int64) as n_analytique,
-        cast(ea_ligne as int64) as ea_ligne,
+        -- IDs et numéros (colonnes désormais INT64 natifs)
+        cb_marq,
+        ec_no,
+        n_analytique,
+        ea_ligne,
 
         -- Colonnes texte
         ca_num,
@@ -34,12 +34,12 @@ cleaned_data as (
         ea_montant,
         ea_quantite,
 
-        -- Timestamps harmonisés
-        timestamp(cb_creation) as created_at,
+        -- Timestamps harmonisés (colonnes désormais TIMESTAMP natifs)
+        cb_creation as created_at,
         -- Fallback to cb_creation when cb_modification is null
-        timestamp(coalesce(cb_modification, cb_creation)) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        coalesce(cb_modification, cb_creation) as updated_at,
+        _sdc_extracted_at as extracted_at,
+        _sdc_deleted_at as deleted_at
 
     from source_data
 )

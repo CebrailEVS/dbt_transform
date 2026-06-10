@@ -166,11 +166,13 @@ models:
       - name: typologie
         description: "Typologie du compte client"
       - name: created_at
-        description: "Date de création du compte client (cbCreation)"
+        description: "Date de création du compte client (cb_creation)"
       - name: updated_at
-        description: "Date de dernière modification du compte client (cbModification)"
+        description: "Date de dernière modification du compte client (cb_modification)"
       - name: extracted_at
-        description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
+        description: "Timestamp d'extraction depuis la source (_sdc_extracted_at)"
+      - name: deleted_at
+        description: "Timestamp de suppression logique source (_sdc_deleted_at)"
 
   # TABLE COLLABORATEUR NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_collaborateur
@@ -188,11 +190,13 @@ models:
       - name: co_fonction
         description: "Fonction du collaborateur"
       - name: created_at
-        description: "Date de création du collaborateur (cbCreation)"
+        description: "Date de création du collaborateur (cb_creation)"
       - name: updated_at
-        description: "Date de dernière modification du collaborateur (cbModification)"
+        description: "Date de dernière modification du collaborateur (cb_modification)"
       - name: extracted_at
-        description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
+        description: "Timestamp d'extraction depuis la source (_sdc_extracted_at)"
+      - name: deleted_at
+        description: "Timestamp de suppression logique source (_sdc_deleted_at)"
 
 
   # TABLE DOCLIGNE NUNSHEN COMMERCE
@@ -248,8 +252,10 @@ models:
       - name: dl_prix_unitaire
         description: "Prix unitaire du produit"
       - name: created_at
-        description: "Date de création du collaborateur (cbCreation)"
+        description: "Date de création de la ligne document (cb_creation)"
       - name: updated_at
-        description: "Date de dernière modification du collaborateur (cbModification)"
+        description: "Date de dernière modification de la ligne document (cb_modification)"
       - name: extracted_at
-        description: "Timestamp d'extraction depuis la source Meltano (_sdc_extracted_at)"
+        description: "Timestamp d'extraction depuis la source (_sdc_extracted_at)"
+      - name: deleted_at
+        description: "Timestamp de suppression logique source (_sdc_deleted_at)"

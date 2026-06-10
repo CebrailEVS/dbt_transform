@@ -1,7 +1,7 @@
 {{
     config(
         materialized='table',
-        description='Table des comptes clients Nunshen nettoyée et transformée depuis la table source dbo_f_comptet de MSSQL Sage',
+        description='Table des comptes clients Nunshen nettoyée et transformée depuis la table source dbo_f_comptet de MSSQL Sage. Source désormais en colonnes plates (nouvel extracteur, overwrite) — plus de blob JSON.'
     )
 }}
 
@@ -13,36 +13,35 @@ with source_data as (
 cleaned_data as (
     select
         -- Champs principaux
-        json_value(data, '$.CT_Num') as ct_num,
-        json_value(data, '$.CT_Intitule') as ct_intitule,
-        cast(json_value(data, '$.CT_Type') as int64) as ct_type,
-        json_value(data, '$.CT_Contact') as ct_contact,
-        json_value(data, '$.CT_Adresse') as ct_adresse,
-        json_value(data, '$.CT_Complement') as ct_complement,
-        json_value(data, '$.CT_CodePostal') as ct_codepostal,
-        json_value(data, '$.CT_Ville') as ct_ville,
-        json_value(data, '$.CT_Pays') as ct_pays,
-        json_value(data, '$.CT_Siret') as ct_siret,
-        json_value(data, '$.CT_NumPayeur') as ct_numpayeur,
-        cast(json_value(data, '$.CO_No') as int64) as co_no,
-        json_value(data, '$.CT_Telephone') as ct_telephone,
-        json_value(data, '$.CT_EMail') as ct_email,
+        ct_num,
+        ct_intitule,
+        ct_type,
+        ct_contact,
+        ct_adresse,
+        ct_complement,
+        ct_code_postal as ct_codepostal,
+        ct_ville,
+        ct_pays,
+        ct_siret,
+        ct_num_payeur as ct_numpayeur,
+        co_no,
+        ct_telephone,
+        ct_e_mail as ct_email,
 
-        -- Champs avec espaces
-        json_value(data, '$."CATEGORISATION NIV 1"') as categorisation_niv_1,
-        json_value(data, '$."CATEGORISATION NIV 2"') as categorisation_niv_2,
-        json_value(data, '$."CATEGORISATION NIV 3"') as categorisation_niv_3,
-        json_value(data, '$."LIGNE DE SERVICE"') as ligne_de_service,
-        json_value(data, '$."ANNEE ORIGINE"') as annee_origine,
-        json_value(data, '$."CLIENT PERDU"') as client_perdu,
-
-        -- Champs divers
-        json_value(data, '$.TYPOLOGIE') as typologie,
+        -- Catégorisation métier
+        categorisation_niv_1,
+        categorisation_niv_2,
+        categorisation_niv_3,
+        ligne_de_service,
+        annee_origine,
+        client_perdu,
+        typologie,
 
         -- Metadata
-        timestamp(json_value(data, '$.cbCreation')) as created_at,
-        timestamp(json_value(data, '$.cbModification')) as updated_at,
-        _sdc_extracted_at as extracted_at
+        cb_creation as created_at,
+        coalesce(cb_modification, cb_creation) as updated_at,
+        _sdc_extracted_at as extracted_at,
+        _sdc_deleted_at as deleted_at
 
     from source_data
 )
