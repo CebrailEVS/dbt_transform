@@ -1203,6 +1203,8 @@ models:
                 severity: warn
       - name: past_intervention_id
         description: ID Yuman du workorder de la dernière intervention 15j.
+      - name: past_intervention_number
+        description: Numéro unique du bon de travail Yuman de la dernière intervention 15j.
       - name: past_intervention_date
         description: Date de la dernière intervention curative dans les 15 derniers jours.
       - name: past_demand_description
@@ -1239,6 +1241,8 @@ models:
                 severity: warn
       - name: current_intervention_id
         description: ID Yuman du workorder en cours.
+      - name: current_intervention_number
+        description: Numéro unique du bon de travail Yuman de l'intervention en cours.
       - name: current_demand_description
         description: Description de la demande Yuman en cours.
       - name: current_demand_created_at
@@ -1285,6 +1289,8 @@ models:
                 severity: warn
       - name: future_intervention_id
         description: ID Yuman du workorder planifié.
+      - name: future_intervention_number
+        description: Numéro unique du bon de travail Yuman de l'intervention planifiée.
       - name: future_intervention_planned_date
         description: Date planifiée du workorder.
       - name: future_demand_description
