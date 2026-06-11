@@ -73,6 +73,13 @@ with appro_context as (
 --     suspendue. Le bucket current les expose avec is_workorder_paused
 --     + les motifs de pause pour que le métier les repère (cf. Closed
 --     en pause = pause historique, déjà reprise et clôturée).
+--
+-- Logique des buckets (statut-d'abord, mutuellement exclusifs) :
+--   - past    : workorder_status = 'Closed'      + demand Accepted + date_done dans [J-15 ; aujourd'hui]
+--   - current : workorder_status = 'In progress' + demand Accepted (toute date)
+--   - future  : workorder_status = 'Scheduled'   + demand Accepted (toute date, y compris planifié en retard)
+-- Chaque WO réel a un statut unique → tombe dans au plus un bucket
+-- (pas de doublon, ex. In progress avec date_done reste en 'current').
 -- ============================================================
 yuman_workorders as (
 
@@ -107,10 +114,12 @@ yuman_workorders as (
         max(date_done) as date_done,
         min(date_planned) as date_planned,
 
-        -- Flags bucket
+        -- Flags bucket (logique statut-d'abord, buckets mutuellement exclusifs)
         case
             when
-                max(date_done) is not null
+                any_value(workorder_status) = 'Closed'
+                and any_value(demand_status) = 'Accepted'
+                and max(date_done) is not null
                 and date(max(date_done))
                 between date_sub(current_date(), interval 15 day)
                 and current_date()
@@ -128,8 +137,6 @@ yuman_workorders as (
             when
                 any_value(workorder_status) = 'Scheduled'
                 and any_value(demand_status) = 'Accepted'
-                and min(date_planned) is not null
-                and min(date_planned) > current_timestamp()
                 then 1
             else 0
         end as is_future_intervention
@@ -170,6 +177,8 @@ past_15d_ranked as (
         technician_id,
         intervention_id,
         intervention_number,
+        date_started,
+        date_planned,
         date_done,
         demand_description,
         demand_created_at,
@@ -192,7 +201,9 @@ past_15d as (
         technician_id as past_technician_id,
         intervention_id as past_intervention_id,
         intervention_number as past_intervention_number,
-        date_done as past_intervention_date,
+        date_started as past_date_started,
+        date_planned as past_date_planned,
+        date_done as past_date_done,
         demand_description as past_demand_description,
         demand_created_at as past_demand_created_at,
         demand_category_name as past_demand_category_name,
@@ -219,6 +230,7 @@ current_ranked as (
         intervention_title,
         intervention_report,
         date_started,
+        date_planned,
         date_done,
         is_workorder_currently_paused,
         workorder_raison_mise_en_pause,
@@ -245,6 +257,7 @@ current_inter as (
         intervention_title as current_intervention_title,
         intervention_report as current_intervention_report,
         date_started as current_date_started,
+        date_planned as current_date_planned,
         date_done as current_date_done,
         is_workorder_currently_paused as current_is_workorder_paused,
         workorder_raison_mise_en_pause as current_workorder_raison_mise_en_pause,
@@ -265,7 +278,9 @@ future_ranked as (
         technician_id,
         intervention_id,
         intervention_number,
+        date_started,
         date_planned,
+        date_done,
         demand_description,
         demand_created_at,
         demand_category_name,
@@ -287,7 +302,9 @@ future_inter as (
         technician_id as future_technician_id,
         intervention_id as future_intervention_id,
         intervention_number as future_intervention_number,
-        date_planned as future_intervention_planned_date,
+        date_started as future_date_started,
+        date_planned as future_date_planned,
+        date_done as future_date_done,
         demand_description as future_demand_description,
         demand_created_at as future_demand_created_at,
         demand_category_name as future_demand_category_name,
@@ -328,7 +345,9 @@ select
     p15.past_technician_id,
     p15.past_intervention_id,
     p15.past_intervention_number,
-    p15.past_intervention_date,
+    p15.past_date_started,
+    p15.past_date_planned,
+    p15.past_date_done,
     p15.past_demand_description,
     p15.past_demand_created_at,
     p15.past_demand_category_name,
@@ -347,6 +366,7 @@ select
     ci.current_intervention_title,
     ci.current_intervention_report,
     ci.current_date_started,
+    ci.current_date_planned,
     ci.current_date_done,
     coalesce(ci.current_is_workorder_paused, false) as current_is_workorder_paused,
     ci.current_workorder_raison_mise_en_pause,
@@ -357,7 +377,9 @@ select
     fi.future_technician_id,
     fi.future_intervention_id,
     fi.future_intervention_number,
-    fi.future_intervention_planned_date,
+    fi.future_date_started,
+    fi.future_date_planned,
+    fi.future_date_done,
     fi.future_demand_description,
     fi.future_demand_created_at,
     fi.future_demand_category_name,

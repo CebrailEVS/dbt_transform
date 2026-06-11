@@ -1082,7 +1082,7 @@ models:
       Vue cross-source Neshu × Yuman par machine en appro : pour chaque
       device Neshu ayant au moins un passage appro, expose son contexte appro
       (dernier FAIT, prochain PRÉVU, compteurs) et ses interventions curatives
-      Yuman dans 3 buckets (récente 15j, en cours, prochaine planifiée).
+      Yuman dans 3 buckets (clôturée ≤15j, en cours, planifiée — à venir ou en retard).
 
       [COMMENT CONSTRUITE]
       Joint `int_oracle_neshu__appro_machine_context` (intermediate
@@ -1090,7 +1090,13 @@ models:
       `dim_neshu__company` (attributs display). Côté Yuman, filtre
       `int_yuman__demands_workorders_enriched` sur partenaire NESHU et
       catégorie CURATIVE*, puis dispatch en 3 buckets selon le statut
-      (workorder_status + demand_status). Cross-source join sur
+      (logique statut-d'abord, buckets mutuellement exclusifs) :
+        - past    : workorder_status='Closed'      + demand Accepted + date_done dans [J-15 ; aujourd'hui]
+        - current : workorder_status='In progress'  + demand Accepted (toute date)
+        - future  : workorder_status='Scheduled'    + demand Accepted (toute date, planifié à venir OU en retard)
+      Chaque workorder a un statut unique → au plus un bucket, pas de doublon
+      (ex. une In progress avec date_done renseignée reste en 'current', pas en 'past').
+      Cross-source join sur
       `UPPER(TRIM(device_code))` = `serial_clean` (normalisation Yuman :
       strip 'NESH_' prefix).
 
@@ -1184,7 +1190,7 @@ models:
         tests:
           - not_null
 
-      # === Bucket : intervention curative récente (15j) ===
+      # === Bucket : intervention curative clôturée (≤15j) ===
       - name: past_material_id
         description: FK Yuman vers dim_technique__material — material concerné par la dernière intervention 15j (NULL si pas d'intervention 15j).
         tests:
@@ -1205,8 +1211,12 @@ models:
         description: ID Yuman du workorder de la dernière intervention 15j.
       - name: past_intervention_number
         description: Numéro unique du bon de travail Yuman de la dernière intervention 15j.
-      - name: past_intervention_date
-        description: Date de la dernière intervention curative dans les 15 derniers jours.
+      - name: past_date_started
+        description: Date de démarrage (date_started Yuman) de la dernière intervention clôturée 15j.
+      - name: past_date_planned
+        description: Date planifiée (date_planned Yuman) de la dernière intervention clôturée 15j.
+      - name: past_date_done
+        description: Date de clôture (date_done Yuman) de la dernière intervention curative clôturée dans les 15 derniers jours. C'est la date qui définit l'appartenance au bucket.
       - name: past_demand_description
         description: Description de la demande Yuman (texte libre).
       - name: past_demand_created_at
@@ -1255,8 +1265,10 @@ models:
         description: Rapport (peut être vide si pas encore renseigné).
       - name: current_date_started
         description: Date de démarrage de l'intervention en cours (date_started Yuman). Renseignée dès que le technicien démarre l'intervention, contrairement à current_date_done qui reste NULL tant que l'intervention n'est pas terminée.
+      - name: current_date_planned
+        description: Date planifiée (date_planned Yuman) de l'intervention en cours.
       - name: current_date_done
-        description: Date done (normalement NULL si en cours, valeur si transition).
+        description: Date de clôture (date_done Yuman). Normalement NULL pour une In progress, mais peut être renseignée si le technicien a saisi une date de fin sans changer le statut — l'intervention reste classée 'current' tant que workorder_status = 'In progress'.
       - name: current_is_workorder_paused
         description: >
           TRUE si l'intervention en cours est actuellement en pause (au moins un
@@ -1270,7 +1282,7 @@ models:
       - name: current_workorder_explication_mise_en_pause
         description: Explication libre de la mise en pause de l'intervention en cours (NULL si non renseignée ou non en pause).
 
-      # === Bucket : prochaine intervention planifiée ===
+      # === Bucket : intervention planifiée (à venir ou en retard) ===
       - name: future_material_id
         description: FK Yuman vers dim_technique__material — material de l'intervention planifiée.
         tests:
@@ -1291,8 +1303,12 @@ models:
         description: ID Yuman du workorder planifié.
       - name: future_intervention_number
         description: Numéro unique du bon de travail Yuman de l'intervention planifiée.
-      - name: future_intervention_planned_date
-        description: Date planifiée du workorder.
+      - name: future_date_started
+        description: Date de démarrage (date_started Yuman) de l'intervention planifiée — normalement NULL tant qu'elle n'a pas démarré.
+      - name: future_date_planned
+        description: Date planifiée (date_planned Yuman) du workorder. Peut être dans le passé (intervention Scheduled en retard, jamais démarrée) — le bucket future n'exige plus une date strictement future.
+      - name: future_date_done
+        description: Date de clôture (date_done Yuman) de l'intervention planifiée — normalement NULL pour un Scheduled.
       - name: future_demand_description
         description: Description de la demande Yuman planifiée.
       - name: future_demand_created_at
