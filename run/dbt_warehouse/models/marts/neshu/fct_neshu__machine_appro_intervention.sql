@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER]\nVue cross-source Neshu \u00d7 Yuman par machine en appro : pour chaque\ndevice Neshu ayant au moins un passage appro, expose son contexte appro\n(dernier FAIT, prochain PR\u00c9VU, compteurs) et ses interventions curatives\nYuman dans 3 buckets (r\u00e9cente 15j, en cours, prochaine planifi\u00e9e).\n\n[COMMENT CONSTRUITE]\nJoint `int_oracle_neshu__appro_machine_context` (intermediate\nfactoris\u00e9, grain device) avec `dim_neshu__device` et\n`dim_neshu__company` (attributs display). C\u00f4t\u00e9 Yuman, filtre\n`int_yuman__demands_workorders_enriched` sur partenaire NESHU et\ncat\u00e9gorie CURATIVE*, puis dispatch en 3 buckets selon le statut\n(workorder_status + demand_status). Cross-source join sur\n`UPPER(TRIM(device_code))` = `serial_clean` (normalisation Yuman :\nstrip 'NESH_' prefix).\n\n[GRAIN]\n1 ligne par device_id Neshu (ayant \u2265 1 passage appro).\n\n[NOTES]\nBucket \"en cours\" : inclut les interventions In progress en pause\n(is_workorder_paused). Une In progress en pause est toujours en cours\n(suspendue), expos\u00e9e via current_is_workorder_paused + les motifs ;\nfiltrer current_is_workorder_paused = false pour ne garder que les\nactives. Les workorders Closed conservent leurs champs de pause\n(pause historique, d\u00e9j\u00e0 reprise) mais ne sont pas \"en cours\".\nLes d\u00e9placements sans r\u00e9paration (is_workorder_not_done) sont exclus.\n\n\u26a0\ufe0f Jointure cross-source actuellement fragile (string match\ndevice_code \u2194 serial). Une table de mapping device Yuman \u2194 device\nOracle Neshu pourrait remplacer ce match string si besoin futur.\nDiagnostic effectu\u00e9 (2026-05-24) : 94 % des devices avec workorders\ncurative ont un match 1-1 propre (1175/1250). 6 % (75 devices) ont\n2 materials Yuman par device \u2014 pour ces cas, les attributs d\u00e9taill\u00e9s\n`past_/current_/future_*` ne refl\u00e8tent qu'un seul material (choisi\npar row_number partition sur serial_clean order by date_done desc).\nLes compteurs (`nb_interventions_15j`) restent justes car comptent\ntous les workorders distincts du serial. ROI bridge faible \u2014 pas\nprioritaire tant que le DA ne signale pas de pain m\u00e9tier.\n\nReplace l'ancienne PR #77 (Rim) qui pla\u00e7ait ce mart \u00e0 tort dans\n`marts/technique/` avec un nom au pluriel et une logique appro\nenfouie en 7 CTEs (factoris\u00e9e via l'intermediate).\n\nOBT controlled : seuls les IDs (device_id, company_id, material_id par\nbucket) + 1-3 attributs d'affichage par dim sont expos\u00e9s. Les autres\nattributs dim (brand, technician_equipe, client_category) sont\naccessibles via jointure depuis le BI (dim_technique__material,\ndim_technique__technician).\n"""
+      description="""[QUOI M\u00c9TIER]\nVue cross-source Neshu \u00d7 Yuman par machine en appro : pour chaque\ndevice Neshu ayant au moins un passage appro, expose son contexte appro\n(dernier FAIT, prochain PR\u00c9VU, compteurs) et ses interventions curatives\nYuman dans 3 buckets (cl\u00f4tur\u00e9e \u226415j, en cours, planifi\u00e9e \u2014 \u00e0 venir ou en retard).\n\n[COMMENT CONSTRUITE]\nJoint `int_oracle_neshu__appro_machine_context` (intermediate\nfactoris\u00e9, grain device) avec `dim_neshu__device` et\n`dim_neshu__company` (attributs display). C\u00f4t\u00e9 Yuman, filtre\n`int_yuman__demands_workorders_enriched` sur partenaire NESHU et\ncat\u00e9gorie CURATIVE*, puis dispatch en 3 buckets selon le statut\n(logique statut-d'abord, buckets mutuellement exclusifs) :\n  - past    : workorder_status='Closed'      + demand Accepted + date_done dans [J-15 ; aujourd'hui]\n  - current : workorder_status='In progress'  + demand Accepted (toute date)\n  - future  : workorder_status='Scheduled'    + demand Accepted (toute date, planifi\u00e9 \u00e0 venir OU en retard)\nChaque workorder a un statut unique \u2192 au plus un bucket, pas de doublon\n(ex. une In progress avec date_done renseign\u00e9e reste en 'current', pas en 'past').\nCross-source join sur\n`UPPER(TRIM(device_code))` = `serial_clean` (normalisation Yuman :\nstrip 'NESH_' prefix).\n\n[GRAIN]\n1 ligne par device_id Neshu (ayant \u2265 1 passage appro).\n\n[NOTES]\nBucket \"en cours\" : inclut les interventions In progress en pause\n(is_workorder_paused). Une In progress en pause est toujours en cours\n(suspendue), expos\u00e9e via current_is_workorder_paused + les motifs ;\nfiltrer current_is_workorder_paused = false pour ne garder que les\nactives. Les workorders Closed conservent leurs champs de pause\n(pause historique, d\u00e9j\u00e0 reprise) mais ne sont pas \"en cours\".\nLes d\u00e9placements sans r\u00e9paration (is_workorder_not_done) sont exclus.\n\n\u26a0\ufe0f Jointure cross-source actuellement fragile (string match\ndevice_code \u2194 serial). Une table de mapping device Yuman \u2194 device\nOracle Neshu pourrait remplacer ce match string si besoin futur.\nDiagnostic effectu\u00e9 (2026-05-24) : 94 % des devices avec workorders\ncurative ont un match 1-1 propre (1175/1250). 6 % (75 devices) ont\n2 materials Yuman par device \u2014 pour ces cas, les attributs d\u00e9taill\u00e9s\n`past_/current_/future_*` ne refl\u00e8tent qu'un seul material (choisi\npar row_number partition sur serial_clean order by date_done desc).\nLes compteurs (`nb_interventions_15j`) restent justes car comptent\ntous les workorders distincts du serial. ROI bridge faible \u2014 pas\nprioritaire tant que le DA ne signale pas de pain m\u00e9tier.\n\nReplace l'ancienne PR #77 (Rim) qui pla\u00e7ait ce mart \u00e0 tort dans\n`marts/technique/` avec un nom au pluriel et une logique appro\nenfouie en 7 CTEs (factoris\u00e9e via l'intermediate).\n\nOBT controlled : seuls les IDs (device_id, company_id, material_id par\nbucket) + 1-3 attributs d'affichage par dim sont expos\u00e9s. Les autres\nattributs dim (brand, technician_equipe, client_category) sont\naccessibles via jointure depuis le BI (dim_technique__material,\ndim_technique__technician).\n"""
     )
     as (
       
@@ -87,6 +87,13 @@ with appro_context as (
 --     suspendue. Le bucket current les expose avec is_workorder_paused
 --     + les motifs de pause pour que le métier les repère (cf. Closed
 --     en pause = pause historique, déjà reprise et clôturée).
+--
+-- Logique des buckets (statut-d'abord, mutuellement exclusifs) :
+--   - past    : workorder_status = 'Closed'      + demand Accepted + date_done dans [J-15 ; aujourd'hui]
+--   - current : workorder_status = 'In progress' + demand Accepted (toute date)
+--   - future  : workorder_status = 'Scheduled'   + demand Accepted (toute date, y compris planifié en retard)
+-- Chaque WO réel a un statut unique → tombe dans au plus un bucket
+-- (pas de doublon, ex. In progress avec date_done reste en 'current').
 -- ============================================================
 yuman_workorders as (
 
@@ -121,10 +128,12 @@ yuman_workorders as (
         max(date_done) as date_done,
         min(date_planned) as date_planned,
 
-        -- Flags bucket
+        -- Flags bucket (logique statut-d'abord, buckets mutuellement exclusifs)
         case
             when
-                max(date_done) is not null
+                any_value(workorder_status) = 'Closed'
+                and any_value(demand_status) = 'Accepted'
+                and max(date_done) is not null
                 and date(max(date_done))
                 between date_sub(current_date(), interval 15 day)
                 and current_date()
@@ -142,8 +151,6 @@ yuman_workorders as (
             when
                 any_value(workorder_status) = 'Scheduled'
                 and any_value(demand_status) = 'Accepted'
-                and min(date_planned) is not null
-                and min(date_planned) > current_timestamp()
                 then 1
             else 0
         end as is_future_intervention
@@ -184,6 +191,8 @@ past_15d_ranked as (
         technician_id,
         intervention_id,
         intervention_number,
+        date_started,
+        date_planned,
         date_done,
         demand_description,
         demand_created_at,
@@ -206,7 +215,9 @@ past_15d as (
         technician_id as past_technician_id,
         intervention_id as past_intervention_id,
         intervention_number as past_intervention_number,
-        date_done as past_intervention_date,
+        date_started as past_date_started,
+        date_planned as past_date_planned,
+        date_done as past_date_done,
         demand_description as past_demand_description,
         demand_created_at as past_demand_created_at,
         demand_category_name as past_demand_category_name,
@@ -233,6 +244,7 @@ current_ranked as (
         intervention_title,
         intervention_report,
         date_started,
+        date_planned,
         date_done,
         is_workorder_currently_paused,
         workorder_raison_mise_en_pause,
@@ -259,6 +271,7 @@ current_inter as (
         intervention_title as current_intervention_title,
         intervention_report as current_intervention_report,
         date_started as current_date_started,
+        date_planned as current_date_planned,
         date_done as current_date_done,
         is_workorder_currently_paused as current_is_workorder_paused,
         workorder_raison_mise_en_pause as current_workorder_raison_mise_en_pause,
@@ -279,7 +292,9 @@ future_ranked as (
         technician_id,
         intervention_id,
         intervention_number,
+        date_started,
         date_planned,
+        date_done,
         demand_description,
         demand_created_at,
         demand_category_name,
@@ -301,7 +316,9 @@ future_inter as (
         technician_id as future_technician_id,
         intervention_id as future_intervention_id,
         intervention_number as future_intervention_number,
-        date_planned as future_intervention_planned_date,
+        date_started as future_date_started,
+        date_planned as future_date_planned,
+        date_done as future_date_done,
         demand_description as future_demand_description,
         demand_created_at as future_demand_created_at,
         demand_category_name as future_demand_category_name,
@@ -342,7 +359,9 @@ select
     p15.past_technician_id,
     p15.past_intervention_id,
     p15.past_intervention_number,
-    p15.past_intervention_date,
+    p15.past_date_started,
+    p15.past_date_planned,
+    p15.past_date_done,
     p15.past_demand_description,
     p15.past_demand_created_at,
     p15.past_demand_category_name,
@@ -361,6 +380,7 @@ select
     ci.current_intervention_title,
     ci.current_intervention_report,
     ci.current_date_started,
+    ci.current_date_planned,
     ci.current_date_done,
     coalesce(ci.current_is_workorder_paused, false) as current_is_workorder_paused,
     ci.current_workorder_raison_mise_en_pause,
@@ -371,7 +391,9 @@ select
     fi.future_technician_id,
     fi.future_intervention_id,
     fi.future_intervention_number,
-    fi.future_intervention_planned_date,
+    fi.future_date_started,
+    fi.future_date_planned,
+    fi.future_date_done,
     fi.future_demand_description,
     fi.future_demand_created_at,
     fi.future_demand_category_name,
