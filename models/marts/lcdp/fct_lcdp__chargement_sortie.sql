@@ -93,29 +93,47 @@ with_rolling as (
         order by unix_date(week_start_date)
         range between 21 preceding and current row
     )
+),
+
+with_unit_cost as (
+    select
+        wr.*,
+        -- Coût d'achat unitaire de REPLI par device (moyenne sur tout l'historique).
+        -- Utilisé en BI uniquement comme fallback pour estimer le COGS quand la période
+        -- analysée n'a aucun chargement. Le calcul nominal de la marge se fait en BI,
+        -- aligné sur la période (coût unitaire = Σ coût / Σ qty sur la période filtrée),
+        -- car le mart est période-agnostique et un taux figé ne serait pas additif.
+        safe_divide(
+            sum(wr.cout_achat_chargement_eur) over (partition by wr.device_id),
+            sum(wr.qty_vendable_chargee) over (partition by wr.device_id)
+        ) as cout_unitaire_achat_repli_eur
+    from with_rolling as wr
 )
 
 select
     device_id,
     week_start_date,
 
+    -- Briques additives (entrées)
     qty_vendable_chargee,
     cout_achat_chargement_eur,
+    cout_unitaire_achat_repli_eur,
     nb_chargements,
+
+    -- Briques additives (sorties)
     nb_ventes,
     ca_ht_sortie_eur,
     ca_ttc_sortie_eur,
-    safe_divide(nb_ventes, qty_vendable_chargee) as taux_ecoulement_volume_hebdo,
-    safe_divide(ca_ht_sortie_eur, cout_achat_chargement_eur) as taux_marge_brute_apparent_hebdo,
-    ca_ht_sortie_eur - cout_achat_chargement_eur as marge_brute_apparente_hebdo_eur,
 
+    -- Ratio volume (non additif — fourni pour confort, recalcul possible en BI)
+    safe_divide(nb_ventes, qty_vendable_chargee) as taux_ecoulement_volume_hebdo,
+
+    -- Briques additives rolling 4 semaines
     qty_vendable_chargee_4wk,
     cout_achat_chargement_4wk_eur,
     nb_ventes_4wk,
     ca_ht_sortie_4wk_eur,
     ca_ttc_sortie_4wk_eur,
-    safe_divide(nb_ventes_4wk, qty_vendable_chargee_4wk) as taux_ecoulement_volume_4wk,
-    safe_divide(ca_ht_sortie_4wk_eur, cout_achat_chargement_4wk_eur) as taux_marge_brute_apparent_4wk,
-    ca_ht_sortie_4wk_eur - cout_achat_chargement_4wk_eur as marge_brute_apparente_4wk_eur
+    safe_divide(nb_ventes_4wk, qty_vendable_chargee_4wk) as taux_ecoulement_volume_4wk
 
-from with_rolling
+from with_unit_cost
