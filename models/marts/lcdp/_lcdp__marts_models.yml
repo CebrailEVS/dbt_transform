@@ -338,7 +338,7 @@ models:
       [QUOI MÉTIER] Taux d'écoulement hebdomadaire des machines LCDP télémétrées Nayax — comparaison entrées (chargements vendables) vs sorties (events Nayax PLANIFIED_SAILS) en volume et en €.
       [COMMENT CONSTRUITE] Périmètre filtré sur dim_lcdp__device.audit_type='1- AUDIT TELEMETRIE (NAYAX)' AND device_category='DA FROID'. Entrées issues de int_oracle_lcdp__chargement_tasks filtrées sur load_type_code='LOADING' (les REMOVING = retraits de stock sont exclus pour ne pas fausser le flux d'entrée), jointes à dim_lcdp__product et au seed ref_oracle_lcdp__product_group_vendable (filtre is_vendable=true → 3 groupes SNACK / BOISSON FROIDE / PRODUIT FRAIS). Sorties issues de int_oracle_lcdp__telemetry_tasks (1 event = 1 vente, sale_amount_net remonté par Nayax). Agrégation par device × semaine ISO (lundi), FULL OUTER JOIN entre les deux flux. Rolling 4 semaines (W-3 à W incluse) calculé via window function bornée à 21 jours.
       [GRAIN] 1 ligne par device_id × week_start_date.
-      [NOTES] Hors périmètre V1 : DA CHAUD, DA SEMI-AUTO et BORNE/BROYEUR (chargement non commensurable aux events). Backfill depuis 2025-01-01. taux_ecoulement_volume = NULL si chargement = 0 (vidange de stock historique attendue). taux_marge_brute_apparent = CA HT sortie / coût d'achat chargement, valeur > 1 attendue (marge brute distributeur typique ≈ 2,0-2,1×). Les chargements de type REMOVING (retraits de stock pour audit/fin de contrat) sont exclus pour ne pas fausser les entrées — leur traçabilité reste accessible directement via int_oracle_lcdp__chargement_tasks.
+      [NOTES] Hors périmètre V1 : DA CHAUD, DA SEMI-AUTO et BORNE/BROYEUR (chargement non commensurable aux events). Backfill depuis 2025-01-01. taux_ecoulement_volume = NULL si chargement = 0 (vidange de stock historique attendue). MARGE : le mart ne fige PAS de taux de marge brute (un ratio par semaine n'est pas additif et le coût de référence dépend de la période analysée). La marge se calcule en BI, alignée sur la période filtrée : coût_unitaire = Σ cout_achat_chargement_eur / Σ qty_vendable_chargee sur la période → COGS = Σ nb_ventes × coût_unitaire → taux_marge_brute = (Σ CA HT - COGS) / Σ CA HT. Repli sur cout_unitaire_achat_repli_eur (moyenne historique par device) quand la période n'a aucun chargement. Le COGS est estimé car le produit vendu est INDÉFINI côté Nayax (on suppose mix vendu = mix chargé). Taux de marge brute typique ≈ 50-55%. Les chargements REMOVING (retraits de stock) sont exclus — traçabilité via int_oracle_lcdp__chargement_tasks.
     config:
       contract:
         enforced: false
@@ -367,6 +367,9 @@ models:
         tests:
           - not_null
 
+      - name: cout_unitaire_achat_repli_eur
+        description: "Coût d'achat unitaire de REPLI par device (€ HT) = Σ coût chargement / Σ qty chargée sur tout l'historique du device. Constant par device. Utilisé en BI comme fallback pour estimer le COGS uniquement quand la période analysée n'a aucun chargement. Le calcul nominal de la marge se fait en BI, aligné sur la période filtrée."
+
       - name: nb_chargements
         description: "Nombre de tâches distinctes de chargement sur la semaine"
         tests:
@@ -390,12 +393,6 @@ models:
       - name: taux_ecoulement_volume_hebdo
         description: "Ratio nb_ventes / qty_vendable_chargee sur la semaine. NULL si chargement = 0."
 
-      - name: taux_marge_brute_apparent_hebdo
-        description: "Ratio ca_ht_sortie_eur / cout_achat_chargement_eur sur la semaine. NULL si chargement = 0. Indicateur de marge brute apparente (coefficient distributeur)."
-
-      - name: marge_brute_apparente_hebdo_eur
-        description: "Différence ca_ht_sortie_eur - cout_achat_chargement_eur sur la semaine (€)"
-
       - name: qty_vendable_chargee_4wk
         description: "Quantité chargée vendable cumulée sur la fenêtre W-3 à W (4 semaines glissantes)"
 
@@ -413,12 +410,6 @@ models:
 
       - name: taux_ecoulement_volume_4wk
         description: "Ratio nb_ventes_4wk / qty_vendable_chargee_4wk. Lisse les décalages chargement → vente."
-
-      - name: taux_marge_brute_apparent_4wk
-        description: "Ratio ca_ht_sortie_4wk_eur / cout_achat_chargement_4wk_eur."
-
-      - name: marge_brute_apparente_4wk_eur
-        description: "Marge brute apparente cumulée sur la fenêtre W-3 à W (€)"
 
     tests:
       - dbt_utils.unique_combination_of_columns:
