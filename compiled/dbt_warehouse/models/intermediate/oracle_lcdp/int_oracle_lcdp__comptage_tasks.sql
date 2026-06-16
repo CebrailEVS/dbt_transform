@@ -51,12 +51,45 @@ with comptage_base as (
         d.code, c.code, c.name, l.access_info,
         t.real_start_date,
         t.updated_at, t.created_at, t.extracted_at
+),
+
+-- Ventilation HT / TVA par tâche (somme des taux) depuis TASK_HAS_AMOUNT
+amount_per_task as (
+    select
+        idtask,
+        sum(amount_without_tax) as ca_cash_ht_eur,
+        sum(tax_amount) as ca_cash_tva_eur
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_amount`
+    group by idtask
+),
+
+comptage_enrichi as (
+    select
+        cb.task_id,
+        cb.device_id,
+        cb.company_id,
+        cb.location_id,
+        cb.device_code,
+        cb.company_code,
+        cb.company_name,
+        cb.task_location_info,
+        cb.task_start_date,
+        cb.ca_pieces_eur,
+        cb.ca_billets_eur,
+        cb.ca_cash_eur,
+        a.ca_cash_ht_eur,
+        a.ca_cash_tva_eur,
+        cb.updated_at,
+        cb.created_at,
+        cb.extracted_at
+    from comptage_base as cb
+    left join amount_per_task as a on cb.task_id = a.idtask
 )
 
-select * from comptage_base
+select * from comptage_enrichi
 
 
-    where comptage_base.updated_at >= (
+    where comptage_enrichi.updated_at >= (
         select max(t.updated_at) - interval 1 day
         from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__comptage_tasks` as t
     )

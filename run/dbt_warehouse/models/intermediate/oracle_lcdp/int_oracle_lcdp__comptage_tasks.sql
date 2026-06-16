@@ -1,18 +1,18 @@
-
+-- back compat for old kwarg name
   
+  
+        
+            
+	    
+	    
+            
+        
     
 
-    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__comptage_tasks`
-      
-    partition by timestamp_trunc(task_start_date, day)
-    cluster by company_id, device_id
-
     
-    OPTIONS(
-      description="""Comptages de caisse (REGL COMPTAGE, idtask_type=30) : CA encaiss\u00e9 en esp\u00e8ces (pi\u00e8ces + billets) par machine et par date de comptage. Sert \u00e0 compl\u00e9ter le CA des machines \u00e0 monnayeur (ventes en pi\u00e8ces invisibles c\u00f4t\u00e9 t\u00e9l\u00e9m\u00e9trie Nayax). 1 ligne par comptage (task_id). Montants = argent physique relev\u00e9 (TTC par nature, tax_rate=0). Cadence ~1 comptage / 1-2 semaines \u2192 analyser \u00e0 un grain >= mensuel.\n"""
-    )
-    as (
-      
+
+    merge into `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__comptage_tasks` as DBT_INTERNAL_DEST
+        using (
 
 with comptage_base as (
 
@@ -65,10 +65,61 @@ with comptage_base as (
         d.code, c.code, c.name, l.access_info,
         t.real_start_date,
         t.updated_at, t.created_at, t.extracted_at
+),
+
+-- Ventilation HT / TVA par tâche (somme des taux) depuis TASK_HAS_AMOUNT
+amount_per_task as (
+    select
+        idtask,
+        sum(amount_without_tax) as ca_cash_ht_eur,
+        sum(tax_amount) as ca_cash_tva_eur
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_amount`
+    group by idtask
+),
+
+comptage_enrichi as (
+    select
+        cb.task_id,
+        cb.device_id,
+        cb.company_id,
+        cb.location_id,
+        cb.device_code,
+        cb.company_code,
+        cb.company_name,
+        cb.task_location_info,
+        cb.task_start_date,
+        cb.ca_pieces_eur,
+        cb.ca_billets_eur,
+        cb.ca_cash_eur,
+        a.ca_cash_ht_eur,
+        a.ca_cash_tva_eur,
+        cb.updated_at,
+        cb.created_at,
+        cb.extracted_at
+    from comptage_base as cb
+    left join amount_per_task as a on cb.task_id = a.idtask
 )
 
-select * from comptage_base
+select * from comptage_enrichi
 
 
-    );
-  
+    where comptage_enrichi.updated_at >= (
+        select max(t.updated_at) - interval 1 day
+        from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__comptage_tasks` as t
+    )
+
+        ) as DBT_INTERNAL_SOURCE
+        on ((DBT_INTERNAL_SOURCE.task_id = DBT_INTERNAL_DEST.task_id))
+
+    
+    when matched then update set
+        `task_id` = DBT_INTERNAL_SOURCE.`task_id`,`device_id` = DBT_INTERNAL_SOURCE.`device_id`,`company_id` = DBT_INTERNAL_SOURCE.`company_id`,`location_id` = DBT_INTERNAL_SOURCE.`location_id`,`device_code` = DBT_INTERNAL_SOURCE.`device_code`,`company_code` = DBT_INTERNAL_SOURCE.`company_code`,`company_name` = DBT_INTERNAL_SOURCE.`company_name`,`task_location_info` = DBT_INTERNAL_SOURCE.`task_location_info`,`task_start_date` = DBT_INTERNAL_SOURCE.`task_start_date`,`ca_pieces_eur` = DBT_INTERNAL_SOURCE.`ca_pieces_eur`,`ca_billets_eur` = DBT_INTERNAL_SOURCE.`ca_billets_eur`,`ca_cash_eur` = DBT_INTERNAL_SOURCE.`ca_cash_eur`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`created_at` = DBT_INTERNAL_SOURCE.`created_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`
+    
+
+    when not matched then insert
+        (`task_id`, `device_id`, `company_id`, `location_id`, `device_code`, `company_code`, `company_name`, `task_location_info`, `task_start_date`, `ca_pieces_eur`, `ca_billets_eur`, `ca_cash_eur`, `updated_at`, `created_at`, `extracted_at`)
+    values
+        (`task_id`, `device_id`, `company_id`, `location_id`, `device_code`, `company_code`, `company_name`, `task_location_info`, `task_start_date`, `ca_pieces_eur`, `ca_billets_eur`, `ca_cash_eur`, `updated_at`, `created_at`, `extracted_at`)
+
+
+    
