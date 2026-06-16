@@ -604,6 +604,44 @@ models:
                 field: idresources
         description: "Identifiant de la resources"
 
+  - name: stg_oracle_lcdp__task_has_amount
+    description: "Ventilation HT/TVA par taux et par tâche (montants encaissés). Source du HT/TVA des comptages cash. Orphelins écartés par inner join sur task."
+    columns:
+      - name: idtask
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__task')
+                field: idtask
+        description: "Identifiant de la tâche"
+      - name: idtax
+        tests:
+          - not_null
+        description: "Identifiant du taux de taxe"
+      - name: tax_rate
+        description: "Taux de TVA (%) : 0, 5.5, 10, 20"
+      - name: tax_amount
+        description: "Montant de TVA (€) pour ce taux"
+      - name: amount_without_tax
+        description: "Montant HT (€) pour ce taux"
+      - name: percentage
+        description: "Part de ce taux dans le total de la tâche (%)"
+      - name: idtax_region
+        description: "Identifiant région de taxe"
+      - name: extracted_at
+        description: "Timestamp dextraction depuis Oracle"
+        tests:
+          - not_null
+      - name: deleted_at
+        description: "Timestamp de suppression (NULL si actif)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idtask
+              - idtax
+
   - name: stg_oracle_lcdp__task_status
     description: "Statuts des tâches transformés et nettoyés depuis la base Oracle LCDP"
     columns:

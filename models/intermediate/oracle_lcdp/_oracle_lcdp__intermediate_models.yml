@@ -1073,6 +1073,12 @@ models:
       - name: ca_cash_eur
         description: "CA cash total encaissé = pièces + billets (€). Complément du CA Nayax pour les machines à monnayeur. TTC par nature (tax_rate=0)."
         data_type: float64
+      - name: ca_cash_ht_eur
+        description: "CA cash HT (€) = somme des AMOUNT_WITHOUT_TAX (ventilation par taux de TVA) de la tâche de comptage. Issu de stg_oracle_lcdp__task_has_amount."
+        data_type: float64
+      - name: ca_cash_tva_eur
+        description: "Montant de TVA cash (€) = somme des TAX_AMOUNT de la tâche. Réconciliation : ca_cash_ht_eur + ca_cash_tva_eur ≈ ca_cash_eur (TTC)."
+        data_type: float64
       - name: updated_at
         description: "Timestamp de dernière modification (pour incrément)."
         data_type: timestamp
