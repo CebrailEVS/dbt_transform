@@ -1019,3 +1019,68 @@ models:
           Timestamp du pointage
         tests:
           - not_null
+
+  - name: int_oracle_lcdp__comptage_tasks
+    description: >
+      Comptages de caisse (REGL COMPTAGE, idtask_type=30) : CA encaissé en espèces
+      (pièces + billets) par machine et par date de comptage. Sert à compléter le CA
+      des machines à monnayeur (ventes en pièces invisibles côté télémétrie Nayax).
+      1 ligne par comptage (task_id). Montants = argent physique relevé (TTC par nature,
+      tax_rate=0). Cadence ~1 comptage / 1-2 semaines → analyser à un grain >= mensuel.
+    columns:
+      - name: task_id
+        description: "Identifiant de la tâche de comptage (clé primaire)."
+        data_type: int64
+        tests:
+          - unique
+          - not_null
+      - name: device_id
+        description: "ID de la machine comptée (NULL pour de rares comptages orphelins non rattachés à une machine — anomalie source immatérielle)."
+        data_type: int64
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: company_id
+        description: "ID de l'entreprise cliente (peer)."
+        data_type: int64
+      - name: location_id
+        description: "ID de la localisation."
+        data_type: int64
+      - name: device_code
+        description: "Code métier de la machine."
+        data_type: string
+      - name: company_code
+        description: "Code client."
+        data_type: string
+      - name: company_name
+        description: "Nom du client."
+        data_type: string
+      - name: task_location_info
+        description: "Informations d'accès de la localisation."
+        data_type: string
+      - name: task_start_date
+        description: "Date et heure du comptage (récupération des espèces)."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: ca_pieces_eur
+        description: "CA encaissé en pièces sur la période depuis le dernier comptage (€, code PIECES / Total Cash)."
+        data_type: float64
+      - name: ca_billets_eur
+        description: "CA encaissé en billets (€, code BILLET)."
+        data_type: float64
+      - name: ca_cash_eur
+        description: "CA cash total encaissé = pièces + billets (€). Complément du CA Nayax pour les machines à monnayeur. TTC par nature (tax_rate=0)."
+        data_type: float64
+      - name: updated_at
+        description: "Timestamp de dernière modification (pour incrément)."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: created_at
+        description: "Timestamp de création."
+        data_type: timestamp
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis Oracle."
+        data_type: timestamp
