@@ -12,6 +12,11 @@ with devices_perimeter as (
     where
         audit_type = '1- AUDIT TELEMETRIE (NAYAX)'
         and device_category = 'DA FROID'
+        -- Full Nayax uniquement : sur les machines à monnayeur, une partie des
+        -- ventes est encaissée en espèces (invisible côté Nayax) → le taux
+        -- d'écoulement volume y serait faux. Leur suivi CA passe par
+        -- fct_lcdp__ca_mensuel.
+        and currency_mode = 'SANS MONNAIE'
 ),
 
 vendable_groups as (
