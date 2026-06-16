@@ -91,6 +91,18 @@ sources:
               - not_null
             description: "Identifiant de la resources"
 
+      - name: lcdp_task_has_amount
+        description: "Ventilation HT/TVA par taux et par tâche (montants encaissés). Source du HT/TVA des comptages cash."
+        columns:
+          - name: idtask
+            tests:
+              - not_null
+            description: "Identifiant de la tâche"
+          - name: idtax
+            tests:
+              - not_null
+            description: "Identifiant du taux de taxe"
+
       - name: lcdp_label_has_task
         description: "Labels par tâche"
         columns:
