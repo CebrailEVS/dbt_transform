@@ -335,10 +335,10 @@ models:
   # CHARGEMENT vs SORTIE (taux d'écoulement Nayax)
   - name: fct_lcdp__chargement_sortie
     description: |
-      [QUOI MÉTIER] Taux d'écoulement hebdomadaire des machines LCDP télémétrées Nayax — comparaison entrées (chargements vendables) vs sorties (events Nayax PLANIFIED_SAILS) en volume et en €.
-      [COMMENT CONSTRUITE] Périmètre filtré sur dim_lcdp__device.audit_type='1- AUDIT TELEMETRIE (NAYAX)' AND device_category='DA FROID'. Entrées issues de int_oracle_lcdp__chargement_tasks filtrées sur load_type_code='LOADING' (les REMOVING = retraits de stock sont exclus pour ne pas fausser le flux d'entrée), jointes à dim_lcdp__product et au seed ref_oracle_lcdp__product_group_vendable (filtre is_vendable=true → 3 groupes SNACK / BOISSON FROIDE / PRODUIT FRAIS). Sorties issues de int_oracle_lcdp__telemetry_tasks (1 event = 1 vente, sale_amount_net remonté par Nayax). Agrégation par device × semaine ISO (lundi), FULL OUTER JOIN entre les deux flux. Rolling 4 semaines (W-3 à W incluse) calculé via window function bornée à 21 jours.
+      [QUOI MÉTIER] Taux d'écoulement (VOLUME) hebdomadaire des machines LCDP télémétrées Nayax FULL NAYAX (sans monnayeur) — comparaison entrées (quantités vendables chargées) vs sorties (nombre de ventes Nayax). Modèle volume pur, sans mesure monétaire (le CA est porté par fct_lcdp__ca_mensuel).
+      [COMMENT CONSTRUITE] Périmètre filtré sur dim_lcdp__device.audit_type='1- AUDIT TELEMETRIE (NAYAX)' AND device_category='DA FROID' AND currency_mode='SANS MONNAIE' (full Nayax). Les machines à monnayeur (currency_mode='AVEC MONNAIE') sont EXCLUES : une partie de leurs ventes est encaissée en espèces (invisible côté Nayax) → le taux d'écoulement volume y serait faussé ; leur suivi CA passe par fct_lcdp__ca_mensuel. Entrées issues de int_oracle_lcdp__chargement_tasks filtrées sur load_type_code='LOADING' (les REMOVING = retraits de stock sont exclus pour ne pas fausser le flux d'entrée), jointes à dim_lcdp__product et au seed ref_oracle_lcdp__product_group_vendable (filtre is_vendable=true → 3 groupes SNACK / BOISSON FROIDE / PRODUIT FRAIS). Sorties issues de int_oracle_lcdp__telemetry_tasks (1 event = 1 vente). Agrégation par device × semaine ISO (lundi), FULL OUTER JOIN entre les deux flux. Rolling 4 semaines (W-3 à W incluse) calculé via window function bornée à 21 jours.
       [GRAIN] 1 ligne par device_id × week_start_date.
-      [NOTES] Hors périmètre V1 : DA CHAUD, DA SEMI-AUTO et BORNE/BROYEUR (chargement non commensurable aux events). Backfill depuis 2025-01-01. taux_ecoulement_volume = NULL si chargement = 0 (vidange de stock historique attendue). MARGE : le mart ne fige PAS de taux de marge brute (un ratio par semaine n'est pas additif et le coût de référence dépend de la période analysée). La marge se calcule en BI, alignée sur la période filtrée : coût_unitaire = Σ cout_achat_chargement_eur / Σ qty_vendable_chargee sur la période → COGS = Σ nb_ventes × coût_unitaire → taux_marge_brute = (Σ CA HT - COGS) / Σ CA HT. Repli sur cout_unitaire_achat_repli_eur (moyenne historique par device) quand la période n'a aucun chargement. Le COGS est estimé car le produit vendu est INDÉFINI côté Nayax (on suppose mix vendu = mix chargé). Taux de marge brute typique ≈ 50-55%. Les chargements REMOVING (retraits de stock) sont exclus — traçabilité via int_oracle_lcdp__chargement_tasks.
+      [NOTES] Hors périmètre : DA CHAUD, DA SEMI-AUTO, BORNE/BROYEUR (chargement non commensurable aux events) et machines à monnayeur (volume faussé — voir fct_lcdp__ca_mensuel pour leur CA). Backfill depuis 2025-01-01. taux_ecoulement_volume = NULL si chargement = 0 (vidange de stock historique attendue). MODÈLE VOLUME PUR : aucune mesure monétaire (CA, coût, marge) n'est exposée ici (décision 2026-06-17) — le suivi repose uniquement sur le rapport quantités chargées / nombre de ventes. Le CA full-Nayax est disponible dans fct_lcdp__ca_mensuel (grain mensuel). Les chargements REMOVING (retraits de stock) sont exclus — traçabilité via int_oracle_lcdp__chargement_tasks.
     config:
       contract:
         enforced: false
@@ -362,14 +362,6 @@ models:
         tests:
           - not_null
 
-      - name: cout_achat_chargement_eur
-        description: "Coût d'achat total du chargement vendable de la semaine (€ HT, basé sur purchase_unit_price latest)"
-        tests:
-          - not_null
-
-      - name: cout_unitaire_achat_repli_eur
-        description: "Coût d'achat unitaire de REPLI par device (€ HT) = Σ coût chargement / Σ qty chargée sur tout l'historique du device. Constant par device. Utilisé en BI comme fallback pour estimer le COGS uniquement quand la période analysée n'a aucun chargement. Le calcul nominal de la marge se fait en BI, aligné sur la période filtrée."
-
       - name: nb_chargements
         description: "Nombre de tâches distinctes de chargement sur la semaine"
         tests:
@@ -380,33 +372,14 @@ models:
         tests:
           - not_null
 
-      - name: ca_ht_sortie_eur
-        description: "Chiffre d'affaires HT remonté par les events Nayax sur la semaine (€)"
-        tests:
-          - not_null
-
-      - name: ca_ttc_sortie_eur
-        description: "Chiffre d'affaires TTC remonté par les events Nayax sur la semaine (€)"
-        tests:
-          - not_null
-
       - name: taux_ecoulement_volume_hebdo
         description: "Ratio nb_ventes / qty_vendable_chargee sur la semaine. NULL si chargement = 0."
 
       - name: qty_vendable_chargee_4wk
         description: "Quantité chargée vendable cumulée sur la fenêtre W-3 à W (4 semaines glissantes)"
 
-      - name: cout_achat_chargement_4wk_eur
-        description: "Coût d'achat chargement cumulé sur la fenêtre W-3 à W (€)"
-
       - name: nb_ventes_4wk
         description: "Nombre d'events télémétrie cumulé sur la fenêtre W-3 à W"
-
-      - name: ca_ht_sortie_4wk_eur
-        description: "CA HT cumulé sur la fenêtre W-3 à W (€)"
-
-      - name: ca_ttc_sortie_4wk_eur
-        description: "CA TTC cumulé sur la fenêtre W-3 à W (€)"
 
       - name: taux_ecoulement_volume_4wk
         description: "Ratio nb_ventes_4wk / qty_vendable_chargee_4wk. Lisse les décalages chargement → vente."
@@ -422,10 +395,58 @@ models:
             expression: "qty_vendable_chargee >= 0"
       - dbt_utils.expression_is_true:
           arguments:
-            expression: "cout_achat_chargement_eur >= 0"
-      - dbt_utils.expression_is_true:
-          arguments:
             expression: "nb_ventes >= 0"
+
+  - name: fct_lcdp__ca_mensuel
+    description: |
+      [QUOI MÉTIER] Chiffre d'affaires mensuel des machines LCDP télémétrées Nayax (DA FROID), consolidant le CA Nayax et le CA encaissé en espèces (machines à monnayeur). Vue revenue pure (sans marge).
+      [COMMENT CONSTRUITE] Périmètre dim_lcdp__device.audit_type='1- AUDIT TELEMETRIE (NAYAX)' AND device_category='DA FROID' (machines AVEC et SANS monnayeur). CA Nayax = Σ sale_amount_net_eur (HT) / sale_amount_net_tax_eur (TTC) de int_oracle_lcdp__telemetry_tasks, agrégé au mois. CA cash = Σ ca_cash_ht_eur / ca_cash_eur de int_oracle_lcdp__comptage_tasks (pièces + billets, machines à monnayeur), au mois du comptage. FULL OUTER JOIN device × mois entre les deux flux ; CA total = Nayax + cash. has_monnayeur depuis currency_mode. Backfill depuis 2025-01-01.
+      [GRAIN] 1 ligne par device_id × month_start_date (1er jour du mois).
+      [NOTES] ATTRIBUTION TEMPORELLE — deux flux de CA à temporalités différentes, réconciliés par le grain mensuel. (1) CA Nayax : rattaché au MOIS EXACT de la vente (chaque event télémétrie est horodaté). (2) CA cash : rattaché au mois de la tâche REGL COMPTAGE, PAS au mois réel des ventes espèces. Un comptage relève le cash accumulé dans le monnayeur depuis le comptage précédent, à cadence IRRÉGULIÈRE (~1-2 sem) ; le CA d'un comptage couvre donc une fenêtre à cheval sur plusieurs jours/semaines, parfois deux mois. POURQUOI LE GRAIN MENSUEL : il absorbe cette irrégularité — à l'échelle du mois, le décalage de quelques jours d'un comptage en fin/début de mois reste marginal (fuite de bord faible), alors qu'un grain hebdo serait faussé par la cadence aléatoire des comptages. NE PAS descendre sous le mensuel. ca_total = CA Nayax (mois de vente) + CA cash (mois de comptage) : addition assumée malgré les temporalités légèrement différentes. Pour full Nayax (has_monnayeur=false), ca_cash_*=0 et le mois est exact. REVENUE PUR : aucun coût / marge / COGS n'est calculé ici (décision métier 2026-06-17). Le coût d'achat des chargements n'est volontairement PAS joint : son timing (mois de chargement) diffère de celui des ventes et brouillerait la lecture CA ; le suivi marge/écoulement vit dans fct_lcdp__chargement_sortie (full Nayax). Le COGS du cash serait de toute façon inconnu (produit vendu en espèces non détaillé). Pas de volume cash (pièces non comptées). Montants HT et TTC exposés. Backfill depuis 2025-01-01.
+    config:
+      contract:
+        enforced: false
+    columns:
+      - name: month_start_date
+        description: "Premier jour du mois (date_trunc month) de la mesure"
+        tests:
+          - not_null
+      - name: device_id
+        description: "Identifiant de la machine (FK vers dim_lcdp__device)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_lcdp__device')
+                field: device_id
+      - name: company_id
+        description: "Identifiant du client (FK vers dim_lcdp__company)"
+      - name: has_monnayeur
+        description: "TRUE si la machine a un monnayeur (currency_mode=AVEC MONNAIE) → CA cash présent ; FALSE = full Nayax"
+      - name: nb_ventes_nayax
+        description: "Nombre d'events de vente Nayax sur le mois (ventes carte/sans contact ; n'inclut pas les ventes espèces)"
+      - name: ca_nayax_ht_eur
+        description: "CA HT des ventes Nayax sur le mois (€)"
+      - name: ca_nayax_ttc_eur
+        description: "CA TTC des ventes Nayax sur le mois (€)"
+      - name: ca_cash_ht_eur
+        description: "CA HT encaissé en espèces (comptages du mois, €). 0 pour les machines sans monnayeur."
+      - name: ca_cash_ttc_eur
+        description: "CA TTC encaissé en espèces (pièces + billets des comptages du mois, €). 0 pour les machines sans monnayeur."
+      - name: ca_total_ht_eur
+        description: "CA HT total = ca_nayax_ht_eur + ca_cash_ht_eur (€)"
+      - name: ca_total_ttc_eur
+        description: "CA TTC total = ca_nayax_ttc_eur + ca_cash_ttc_eur (€)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - device_id
+              - month_start_date
       - dbt_utils.expression_is_true:
           arguments:
-            expression: "ca_ht_sortie_eur >= 0"
+            expression: "ca_total_ht_eur >= 0"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "ca_total_ttc_eur >= 0"
+
