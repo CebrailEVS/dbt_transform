@@ -6,6 +6,17 @@
     )
 }}
 
+-- CA mensuel des DA FROID Nayax (parc complet : avec ET sans monnayeur).
+-- Deux flux de CA à temporalités différentes, réconciliés par le grain MENSUEL :
+--   1. CA Nayax  → rattaché au mois EXACT de la vente (event télémétrie horodaté).
+--   2. CA cash   → rattaché au mois de la tâche REGL COMPTAGE, pas au mois réel
+--                  des ventes. Le comptage relève le cash accumulé depuis le
+--                  comptage précédent, à cadence irrégulière (~1-2 sem).
+-- Le mensuel est choisi pour absorber l'irrégularité des comptages (fuite de bord
+-- faible vs un grain hebdo qui serait faussé). Ne pas descendre sous le mensuel.
+-- Vue REVENUE PUR : aucun coût/marge ici (le suivi marge/écoulement vit dans
+-- fct_lcdp__chargement_sortie, full Nayax). ca_total = CA Nayax + CA cash.
+
 with devices_perimeter as (
     select
         device_id,
