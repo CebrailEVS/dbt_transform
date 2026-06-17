@@ -1,0 +1,42 @@
+version: 2
+
+snapshots:
+  - name: snap_lcdp__device
+    description: |
+      Historique SCD2 du parc machines LCDP (source : dim_lcdp__device).
+
+      Capture tout changement métier de la fiche machine : labels (catégorie,
+      marque, état, statut matériel, types, badge, mode devise...), rattachement
+      client/emplacement et statut actif.
+
+      Stratégie : check (check_cols='all') — une nouvelle version uniquement
+      quand une colonne sélectionnée change réellement, indépendamment de
+      updated_at (exclu du select pour éviter le bruit). dbt_valid_from =
+      heure d'exécution du snapshot.
+
+    columns:
+      - name: device_id
+        description: "Identifiant unique machine (clé naturelle du snapshot)"
+        tests:
+          - not_null
+
+      - name: dbt_valid_from
+        description: "Timestamp de prise d'effet de cette version"
+
+      - name: dbt_valid_to
+        description: "Timestamp de fin de validité (NULL = version courante)"
+
+      - name: dbt_scd_id
+        description: "Identifiant unique de l'enregistrement snapshot (SCD2)"
+        tests:
+          - unique
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - device_id
+          config:
+            where: "dbt_valid_to is null"
+            severity: error
