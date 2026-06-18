@@ -936,7 +936,7 @@ models:
   - name: fct_neshu__workorder_delai
     description: |
       [QUOI MÉTIER] Délai de traitement des interventions Yuman (workorders) et tarification automatique associée.
-      [COMMENT CONSTRUITE] Issu de fct_technique__workorder_pricing (qui consolide demandes + bons de travail Yuman avec tarification automatique). Calcul du délai en jours ouvrés via generate_date_array entre date_creation_ref (créa workorder, ou demande si workorder NULL ; décalée au lendemain si > 16h) et date_done. Type de délai selon règles NESHU validées par le Responsable Technique.
+      [COMMENT CONSTRUITE] Fait mince lisant l'intermédiaire int_yuman__interventions (source de vérité unique consolidant demandes + bons de travail Yuman, tarification automatique et délai), sans dépendance fait→fait. Le délai en jours ouvrés y est calculé via generate_date_array entre date_creation_ref (créa workorder, ou demande si workorder NULL ; décalée au lendemain si > 16h) et date_done. Type de délai selon règles NESHU validées par le Responsable Technique.
       [GRAIN] 1 ligne par workorder_id (et par demand_id — bijection testée par unique).
       [NOTES] billing_validation_status ∈ {VALIDATED, MISSING_TARIF, NOT_BILLABLE}. pricing_type ∈ {Tarif normal, Remise niv1, Remise niv2}.
 

@@ -9,8 +9,9 @@
 
 with fact as (
     select *
-    from {{ ref('fct_technique__workorder_pricing') }}
-    where to_invoice = true
+    from {{ ref('int_yuman__interventions') }}
+    where
+        to_invoice = true
         and date_done is not null
         and amount is not null
 ),
@@ -41,8 +42,9 @@ select
     r.montant as expected_amount
 from fact as f
 left join ref_tarif as r
-    on f.pricing_key_used = r.key_tarif
-    and date(f.date_done) between r.valid_from and r.valid_to
+    on
+        f.pricing_key_used = r.key_tarif
+        and date(f.date_done) between r.valid_from and r.valid_to
 where
     f.amount != r.montant
     or (f.amount is not null and r.montant is null)

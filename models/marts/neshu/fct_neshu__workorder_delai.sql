@@ -4,108 +4,64 @@
     cluster_by=['client_id', 'site_id', 'material_id']
 ) }}
 
-with adjusted_dates as (
-    select
-        sfp.workorder_id as sfp_numero,
-        coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at) as date_creation_initial,
-        sfp.date_done as date_fin,
-        case
-            when extract(time from coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at)) > '16:00:00'
-                then timestamp(date(coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at)) + 1)
-            else coalesce(timestamp(sfp.workorder_date_creation), sfp.demand_created_at)
-        end as date_creation_ref
-    from {{ ref('fct_technique__workorder_pricing') }} as sfp
-),
+-- Fait mince : délai de traitement et tarification des interventions Yuman.
+-- Toute la logique métier (normalisation, tarification, calcul du délai en jours
+-- ouvrés) vit désormais dans int_yuman__interventions. Ce modèle ne fait qu'exposer
+-- le contrat de colonnes historique attendu par le rapport Power BI
+-- (exposure neshu / workorder_delai). Aucune dépendance fait→fait.
 
-dates_range as (
-    select
-        ad.sfp_numero,
-        ad.date_creation_initial,
-        ad.date_fin,
-        ad.date_creation_ref,
-        date_jour
-    from adjusted_dates as ad,
-        unnest(
-            generate_date_array(
-                date(ad.date_creation_ref),
-                date(ad.date_fin),
-                interval 1 day
-            )
-        ) as date_jour
-),
-
-jours_feries as (
-    select *
-    from {{ ref('ref_general__feries_metropole') }}
-),
-
-famille_machine as (
-    select
-        machine_brut,
-        machine,
-        famille_neshu
-    from {{ ref('ref_yuman__machine_clean') }}
-),
-
-jours_ouvrables as (
-    select
-        dr.sfp_numero,
-        dr.date_creation_initial,
-        dr.date_fin,
-        dr.date_creation_ref,
-        dr.date_jour,
-        jf.date_ferie
-    from dates_range as dr
-    left join jours_feries as jf
-        on dr.date_jour = jf.date_ferie
-    where
-        extract(dayofweek from dr.date_jour) not in (1, 7)
-        and jf.date_ferie is null
-),
-
-delai_calcul as (
-    select
-        jo.sfp_numero,
-        jo.date_creation_initial,
-        jo.date_fin,
-        jo.date_creation_ref,
-        count(jo.date_jour) - 1 as delai_jours_ouvres
-    from jours_ouvrables as jo
-    group by
-        jo.sfp_numero,
-        jo.date_creation_initial,
-        jo.date_fin,
-        jo.date_creation_ref
-),
-
-final_table as (
-    select
-        sfp.*,
-        dc.date_creation_ref,
-        dc.delai_jours_ouvres,
-        case
-            when dc.delai_jours_ouvres = 0
-                then 'J+0,5'
-            when
-                dc.delai_jours_ouvres = 1
-                and extract(time from dc.date_creation_ref) > '12:00:00'
-                and extract(time from dc.date_fin) < '12:00:00'
-                then 'J+0,5'
-            when dc.delai_jours_ouvres = 1
-                then 'J+1'
-            when dc.delai_jours_ouvres = 2
-                then 'J+2'
-            when dc.delai_jours_ouvres > 2
-                then 'J++'
-            else 'ERREUR'
-        end as type_delai,
-        fm.famille_neshu
-    from {{ ref('fct_technique__workorder_pricing') }} as sfp
-    left join delai_calcul as dc
-        on sfp.workorder_id = dc.sfp_numero
-    left join famille_machine as fm
-        on sfp.machine_raw = fm.machine_brut
-)
-
-select *
-from final_table
+select
+    demand_id,
+    workorder_id,
+    material_id,
+    site_id,
+    client_id,
+    technician_id,
+    manager_id,
+    demand_description,
+    demand_status,
+    demand_created_at,
+    demand_updated_at,
+    demand_category_name,
+    workorder_number,
+    workorder_category,
+    workorder_status,
+    workorder_technician_name,
+    workorder_date_creation,
+    workorder_report,
+    workorder_motif_non_intervention,
+    workorder_detail_non_intervention,
+    workorder_raison_mise_en_pause,
+    workorder_explication_mise_en_pause,
+    date_planned,
+    date_started,
+    date_done,
+    partner_name,
+    client_code,
+    client_name,
+    client_category,
+    client_is_active,
+    site_code,
+    site_name,
+    site_address,
+    site_postal_code,
+    material_serial_number,
+    workorder_type_raw,
+    machine_raw,
+    workorder_type_clean,
+    machine_clean,
+    metropolitan,
+    metropole_city,
+    technician_equipe,
+    recurrence_count,
+    pricing_type,
+    pricing_key_used,
+    to_invoice,
+    amount,
+    prod_number,
+    billing_validation_status,
+    date_creation_ref,
+    delai_jours_ouvres,
+    type_delai,
+    famille_neshu
+from {{ ref('int_yuman__interventions') }}

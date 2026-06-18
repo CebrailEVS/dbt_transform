@@ -159,3 +159,205 @@ models:
       # --- AGENCE TECHNICIEN (MAPPING) ---
       - name: technician_agency_stock
         description: Agence de rattachement du technicien selon le mapping fourni de Vincent.
+
+  - name: int_yuman__interventions
+    description: >
+      Modèle intermédiaire consolidé des interventions Yuman, source de vérité unique pour
+      la qualification métier, la tarification automatique et le délai de traitement.
+      Construit sur int_yuman__demands_workorders_enriched, il fusionne ici la logique qui
+      était auparavant éclatée en deux faits chaînés (fct_technique__workorder_pricing puis
+      fct_neshu__workorder_delai), supprimant ainsi les dépendances fait→fait.
+      Couvre : (1) normalisation type/machine/métropole + extraction du code postal,
+      (2) tarification automatique (récurrence → palier de remise → montant via table de
+      référence), (3) délai en jours ouvrés et son type (J+0,5 … J++),
+      (4) qualification métier via intervention_state.
+      Périmètre : exclut les bons de travail "secs" (sans demande rattachée, demand_id NULL),
+      dépourvus de référentiel client/partenaire fiable (partner_name, client_id… NULL) qui
+      fausserait la clé d'intervention aval et la tarification (~44 lignes en prod).
+      Grain : 1 ligne par couple (demand_id, workorder_id). Inclut les demandes sans bon de
+      travail (workorder_id NULL → DEMANDE_OUVERTE / DEMANDE_REJETEE) ; exclut l'inverse.
+    columns:
+      # --- CLES / GRAIN ---
+      - name: demand_id
+        description: >
+          Identifiant de la demande d'intervention. Toujours renseigné : les bons de travail
+          sans demande rattachée sont exclus du modèle (voir périmètre).
+        tests:
+          - not_null
+      - name: workorder_id
+        description: Identifiant du bon de travail (null si demande sans bon de travail rattaché).
+      - name: workorder_number
+        description: Numéro du bon de travail visible dans Yuman.
+
+      # --- DIMENSIONS RATTACHEES (FK) ---
+      - name: material_id
+        description: Identifiant du matériel concerné.
+      - name: site_id
+        description: Identifiant du site client.
+      - name: client_id
+        description: Identifiant du client.
+      - name: technician_id
+        description: Identifiant du technicien affecté au bon de travail.
+      - name: manager_id
+        description: Identifiant du manager associé.
+
+      # --- ETAT METIER ---
+      - name: intervention_state
+        description: >
+          État métier canonique de l'intervention, dérivé de workorder_status, demand_status
+          et des flags de non-intervention / pause. Valeurs :
+          REALISEE (workorder Closed sans motif/détail de non-intervention → l'intervention a
+          bien eu lieu) ;
+          NON_REALISEE (workorder Closed MAIS motif/détail de non-intervention renseigné, ex.
+          'Erreur de saisie', 'Résolue client', 'Résolue roadman') ;
+          EN_PAUSE (workorder In progress avec champ de pause renseigné) ;
+          EN_COURS (workorder In progress sans pause) ;
+          PLANIFIEE (workorder Scheduled) ;
+          DEMANDE_OUVERTE (pas de workorder, demande Open) ;
+          DEMANDE_REJETEE (pas de workorder, demande Rejected) ;
+          AUTRE (filet de sécurité : 0 ligne en prod, capte tout statut Yuman futur non prévu).
+          Filtrer intervention_state = 'REALISEE' pour les interventions réellement réalisées.
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - REALISEE
+                  - NON_REALISEE
+                  - EN_PAUSE
+                  - EN_COURS
+                  - PLANIFIEE
+                  - DEMANDE_OUVERTE
+                  - DEMANDE_REJETEE
+                  - AUTRE
+              config:
+                severity: warn
+      - name: workorder_status
+        description: Statut brut du bon de travail Yuman (Closed, In progress, Scheduled, …).
+      - name: demand_status
+        description: Statut brut de la demande d'intervention Yuman (Closed, Accepted, Open, Rejected).
+      - name: is_realized
+        description: >
+          True si l'intervention a réellement été réalisée (= intervention_state 'REALISEE' :
+          workorder Closed sans motif de non-intervention). Flag de filtre principal des marts.
+      - name: has_workorder
+        description: True si un bon de travail existe (workorder_status non null), False pour une demande seule.
+      - name: is_workorder_paused
+        description: True si au moins un champ de pause est renseigné (pause active ou historique).
+      - name: is_workorder_currently_paused
+        description: True si pause active (champ de pause renseigné ET workorder In progress).
+      - name: is_workorder_not_done
+        description: True si motif/détail de non-intervention renseigné (intervention non réalisée).
+
+      # --- ATTRIBUTS INTERVENTION ---
+      - name: demand_category_name
+        description: Catégorie de la demande (ex. 'CURATIVE J+2 - NESHU').
+      - name: workorder_category
+        description: Catégorie brute du bon de travail.
+      - name: workorder_type_raw
+        description: Type d'intervention brut, avant normalisation (curatif/préventif/installation).
+      - name: workorder_type_clean
+        description: Type d'intervention normalisé via ref_yuman__type_inter_clean.
+      - name: machine_raw
+        description: Catégorie de machine brute (matériel ou règle de repli par partenaire).
+      - name: machine_clean
+        description: Catégorie de machine normalisée via ref_yuman__machine_clean.
+      - name: famille_neshu
+        description: Famille NESHU de la machine (mapping ref_yuman__machine_clean).
+      - name: demand_description
+        description: Description textuelle de la demande.
+      - name: workorder_report
+        description: Compte-rendu d'intervention saisi par le technicien.
+      - name: workorder_motif_non_intervention
+        description: Motif de non-intervention, si applicable.
+      - name: workorder_detail_non_intervention
+        description: Détail du motif de non-intervention, si applicable.
+      - name: workorder_raison_mise_en_pause
+        description: Raison de mise en pause du bon de travail.
+      - name: workorder_explication_mise_en_pause
+        description: Explication détaillée de la mise en pause.
+      - name: workorder_technician_name
+        description: Nom du technicien affecté au bon de travail.
+      - name: technician_equipe
+        description: Équipe du technicien (via mapping ref_yuman__tech_agence).
+
+      # --- CLIENT / SITE / MATERIEL ---
+      - name: partner_name
+        description: Nom du partenaire (NESHU, BRITA, AUUM, …).
+      - name: client_code
+        description: Code unique du client.
+      - name: client_name
+        description: Nom du client.
+      - name: client_category
+        description: Catégorie commerciale du client (ex. PREMIUM).
+      - name: client_is_active
+        description: Indicateur d'activité du client.
+      - name: site_code
+        description: Code unique du site.
+      - name: site_name
+        description: Nom du site.
+      - name: site_address
+        description: Adresse complète du site.
+      - name: site_postal_code
+        description: >
+          Code postal normalisé du site (corrigé ou extrait de la description si manquant
+          ou égal à '00000').
+      - name: material_serial_number
+        description: Numéro de série du matériel.
+      - name: metropolitan
+        description: Indicateur binaire (1 = métropole, 0 = hors métropole), utilisé pour la tarification.
+      - name: metropole_city
+        description: Métropole rattachée au code postal / département (si applicable).
+
+      # --- TARIFICATION ---
+      - name: recurrence_count
+        description: >
+          Nombre d'interventions facturables pour un même site le même jour (date_done).
+          Détermine le palier de remise tarifaire.
+      - name: pricing_type
+        description: Type de tarif appliqué (Tarif normal, Remise niv1, Remise niv2) selon récurrence et partenaire.
+      - name: pricing_key_used
+        description: Clé de tarification reconstruite (type_clean_machine_clean_partenaire_typetarif_métropole).
+      - name: to_invoice
+        description: >
+          True si l'intervention est à facturer (workorder Closed sans motif de non-intervention).
+      - name: amount
+        description: Montant tarifé via la table de référence ref_yuman__tarification_clean (null si pas de tarif trouvé).
+      - name: prod_number
+        description: Code produit / référence tarifaire associée.
+      - name: billing_validation_status
+        description: >
+          Statut de validation de la facturation : VALIDATED (à facturer + tarif trouvé),
+          MISSING_TARIF (à facturer mais aucun tarif trouvé), UNTRACKABLE (à facturer mais
+          pas de bon de travail rattaché), NOT_BILLABLE (non facturable).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [VALIDATED, MISSING_TARIF, UNTRACKABLE, NOT_BILLABLE]
+              config:
+                severity: warn
+
+      # --- DELAI ---
+      - name: date_creation_ref
+        description: >
+          Date de création de référence pour le calcul du délai, selon les règles NESHU
+          (création du workorder ou de la demande, décalée au lendemain si > 16h).
+      - name: delai_jours_ouvres
+        description: Nombre de jours ouvrés entre date_creation_ref et date_done (hors week-ends et fériés).
+      - name: type_delai
+        description: >
+          Type de délai selon les règles NESHU (Responsable Technique) :
+          J+0,5, J+1, J+2, J++ (ou ERREUR si non calculable).
+
+      # --- DATES ---
+      - name: demand_created_at
+        description: Date et heure de création de la demande.
+      - name: demand_updated_at
+        description: Date et heure de dernière mise à jour de la demande.
+      - name: workorder_date_creation
+        description: Date de création du bon de travail.
+      - name: date_planned
+        description: Date planifiée de l'intervention.
+      - name: date_started
+        description: Date de début réel de l'intervention.
+      - name: date_done
+        description: Date de clôture de l'intervention (clé de partitionnement).

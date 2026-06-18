@@ -17,7 +17,7 @@ select
     pricing_key_used,
     pricing_type,
     billing_validation_status
-from {{ ref('fct_technique__workorder_pricing') }}
+from {{ ref('int_yuman__interventions') }}
 where
     billing_validation_status = 'MISSING_TARIF'
     and date_done is not null
