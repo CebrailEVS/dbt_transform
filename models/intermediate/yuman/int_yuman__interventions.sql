@@ -1,11 +1,23 @@
 {{ config(
     materialized='table',
-    schema='marts',
-    alias='fct_technique__workorder_pricing',
+    schema='intermediate',
+    alias='int_yuman__interventions',
     partition_by={"field": "date_done", "data_type": "timestamp"},
     cluster_by=['client_id', 'site_id', 'material_id']
 ) }}
 
+-- Modèle intermédiaire consolidé des interventions Yuman.
+-- Fusionne ici, en CTE, ce qui était auparavant éclaté en deux faits chaînés
+-- (fct_technique__workorder_pricing puis fct_neshu__workorder_delai) afin de
+-- supprimer les dépendances fait→fait. Source de vérité unique pour :
+--   1. la normalisation type/machine/métropole + extraction code postal
+--   2. la tarification automatique (récurrence → type tarif → montant)
+--   3. le délai de traitement en jours ouvrés et son type (J+0,5 … J++)
+--   4. la qualification métier de l'intervention (intervention_state + flags)
+-- Périmètre : exclut les bons de travail sans demande rattachée (workorders "secs"),
+-- dépourvus de référentiel client/partenaire fiable (cf. filtre demand_id is not null).
+
+-- CTE 1 : base enrichie + dérivations brutes (type, machine, code postal, à facturer)
 with base_workorders as (
     select
         demand_id,
@@ -30,6 +42,9 @@ with base_workorders as (
         workorder_detail_non_intervention,
         workorder_raison_mise_en_pause,
         workorder_explication_mise_en_pause,
+        is_workorder_paused,
+        is_workorder_currently_paused,
+        is_workorder_not_done,
         date_planned,
         date_started,
         date_done,
@@ -89,8 +104,13 @@ with base_workorders as (
         ) as a_facturer
 
     from {{ ref('int_yuman__demands_workorders_enriched') }}
+    -- Exclusion des bons de travail "secs" (sans demande rattachée) : ils décrochent du
+    -- référentiel client/partenaire (partner_name, client_id… NULL) et fausseraient la clé
+    -- d'intervention aval (key_inter) + la tarification. ~44 lignes en prod (full join amont).
+    where demand_id is not null
 ),
 
+-- CTE de référence : nettoyage type d'intervention, machine, métropole, tarification
 ref_type_inter as (
     select
         lower(type_intervention_brut) as workorder_type_raw,
@@ -142,6 +162,7 @@ ref_tarification as (
     from {{ ref('ref_yuman__tarification_clean') }}
 ),
 
+-- CTE 2 : normalisation type/machine + détection métropole
 workorders_enriched as (
     select
         w.*,
@@ -153,8 +174,7 @@ workorders_enriched as (
             when cp.code_postal is not null then 1
             when dp.departement is not null then 1
             else 0
-        end as metropole,
-        row_number() over (partition by w.workorder_id order by w.date_done) as rn
+        end as metropole
     from base_workorders as w
     left join ref_type_inter as ti
         on w.workorder_type_raw = ti.workorder_type_raw
@@ -166,6 +186,7 @@ workorders_enriched as (
         on left(w.postal_code_site, 2) = dp.departement
 ),
 
+-- CTE 3 : récurrence (nb d'interventions facturables même site / même jour)
 workorders_dedup as (
     select
         *,
@@ -178,6 +199,7 @@ workorders_dedup as (
     from workorders_enriched
 ),
 
+-- CTE 4 : type de tarif selon paliers de récurrence par partenaire
 workorders_with_tarif as (
     select
         *,
@@ -202,7 +224,8 @@ workorders_with_tarif as (
     from workorders_dedup
 ),
 
-final_result as (
+-- CTE 5 : application du tarif (jointure table de référence, dédup grain demand/workorder)
+priced as (
     select
         w.*,
         t.montant,
@@ -230,34 +253,162 @@ final_result as (
             partition by w.demand_id, w.workorder_id
             order by t.valid_from desc nulls last
         ) = 1
+),
+
+-- CTE 6 : calcul du délai en jours ouvrés (date de réf décalée si création > 16h)
+adjusted_dates as (
+    select
+        workorder_id as wo_id,
+        coalesce(timestamp(workorder_date_creation), demand_created_at) as date_creation_initial,
+        date_done as date_fin,
+        case
+            when extract(time from coalesce(timestamp(workorder_date_creation), demand_created_at)) > '16:00:00'
+                then timestamp(date(coalesce(timestamp(workorder_date_creation), demand_created_at)) + 1)
+            else coalesce(timestamp(workorder_date_creation), demand_created_at)
+        end as date_creation_ref
+    from priced
+),
+
+dates_range as (
+    select
+        ad.wo_id,
+        ad.date_creation_initial,
+        ad.date_fin,
+        ad.date_creation_ref,
+        date_jour
+    from adjusted_dates as ad,
+        unnest(
+            generate_date_array(
+                date(ad.date_creation_ref),
+                date(ad.date_fin),
+                interval 1 day
+            )
+        ) as date_jour
+),
+
+jours_feries as (
+    select date_ferie
+    from {{ ref('ref_general__feries_metropole') }}
+),
+
+jours_ouvrables as (
+    select
+        dr.wo_id,
+        dr.date_creation_ref,
+        dr.date_fin,
+        dr.date_jour,
+        jf.date_ferie
+    from dates_range as dr
+    left join jours_feries as jf
+        on dr.date_jour = jf.date_ferie
+    where
+        extract(dayofweek from dr.date_jour) not in (1, 7)
+        and jf.date_ferie is null
+),
+
+delai_calcul as (
+    select
+        wo_id,
+        date_creation_ref,
+        date_fin,
+        count(date_jour) - 1 as delai_jours_ouvres
+    from jours_ouvrables
+    group by wo_id, date_creation_ref, date_fin
+),
+
+famille_machine as (
+    select
+        machine_brut,
+        famille_neshu
+    from {{ ref('ref_yuman__machine_clean') }}
+),
+
+-- CTE 7 : assemblage final + qualification métier (état + délai + flags)
+final_table as (
+    select
+        p.*,
+        dc.date_creation_ref,
+        dc.delai_jours_ouvres,
+        fm.famille_neshu,
+        case
+            when dc.delai_jours_ouvres = 0
+                then 'J+0,5'
+            when
+                dc.delai_jours_ouvres = 1
+                and extract(time from dc.date_creation_ref) > '12:00:00'
+                and extract(time from dc.date_fin) < '12:00:00'
+                then 'J+0,5'
+            when dc.delai_jours_ouvres = 1
+                then 'J+1'
+            when dc.delai_jours_ouvres = 2
+                then 'J+2'
+            when dc.delai_jours_ouvres > 2
+                then 'J++'
+            else 'ERREUR'
+        end as type_delai,
+
+        -- Etat métier canonique de l'intervention (cf. _yuman__intermediate_models.yml)
+        case
+            when p.workorder_status = 'Closed' and not p.is_workorder_not_done then 'REALISEE'
+            when p.workorder_status = 'Closed' then 'NON_REALISEE'
+            when p.is_workorder_currently_paused then 'EN_PAUSE'
+            when p.workorder_status = 'In progress' then 'EN_COURS'
+            when p.workorder_status = 'Scheduled' then 'PLANIFIEE'
+            when p.workorder_status is null and p.demand_status = 'Open' then 'DEMANDE_OUVERTE'
+            when p.workorder_status is null and p.demand_status = 'Rejected' then 'DEMANDE_REJETEE'
+            else 'AUTRE'
+        end as intervention_state,
+
+        (p.workorder_status = 'Closed' and not p.is_workorder_not_done) as is_realized,
+        (p.workorder_status is not null) as has_workorder
+    from priced as p
+    left join delai_calcul as dc
+        on p.workorder_id = dc.wo_id
+    left join famille_machine as fm
+        on p.machine_raw = fm.machine_brut
 )
 
 select
+    -- Clés / grain
     demand_id,
     workorder_id,
+    workorder_number,
+
+    -- Dimensions rattachées (FK)
     material_id,
     site_id,
     client_id,
     technician_id,
     manager_id,
-    demand_description,
-    demand_status,
-    demand_created_at,
-    demand_updated_at,
-    demand_category_name,
-    workorder_number,
-    workorder_category,
+
+    -- Etat métier
+    intervention_state,
     workorder_status,
-    workorder_technician_name,
-    workorder_date_creation,
+    demand_status,
+    is_realized,
+    has_workorder,
+    is_workorder_paused,
+    is_workorder_currently_paused,
+    is_workorder_not_done,
+
+    -- Attributs intervention
+    demand_category_name,
+    workorder_category,
+    workorder_type_raw,
+    workorder_type_clean,
+    machine_raw,
+    machine_clean,
+    famille_neshu,
+    demand_description,
     workorder_report,
     workorder_motif_non_intervention,
     workorder_detail_non_intervention,
     workorder_raison_mise_en_pause,
     workorder_explication_mise_en_pause,
-    date_planned,
-    date_started,
-    date_done,
+    workorder_technician_name,
+    technician_equipe,
+
+    -- Attributs client / site / matériel
     partner_name,
     client_code,
     client_name,
@@ -268,15 +419,10 @@ select
     site_address,
     postal_code_site as site_postal_code,
     material_serial_number,
-    workorder_type_raw,
-    machine_raw,
-
-    -- Renamed metrics and keys
-    workorder_type_clean,
-    machine_clean,
     metropole as metropolitan,
     metropole_city,
-    technician_equipe,
+
+    -- Tarification
     reccurence as recurrence_count,
     type_tarif as pricing_type,
     key_tarif_used as pricing_key_used,
@@ -284,12 +430,23 @@ select
     montant as amount,
     prod as prod_number,
     case
-        -- Intervention hors flux demande : pas de workorder rattaché, donc pas de
-        -- matériel traçable -> aucune clé de tarification possible par construction.
         when workorder_id is null and a_facturer = true then 'UNTRACKABLE'
         when montant is not null and a_facturer = true then 'VALIDATED'
         when montant is null and a_facturer = true then 'MISSING_TARIF'
         else 'NOT_BILLABLE'
-    end as billing_validation_status
+    end as billing_validation_status,
 
-from final_result
+    -- Délai
+    date_creation_ref,
+    delai_jours_ouvres,
+    type_delai,
+
+    -- Dates
+    demand_created_at,
+    demand_updated_at,
+    workorder_date_creation,
+    date_planned,
+    date_started,
+    date_done
+
+from final_table
