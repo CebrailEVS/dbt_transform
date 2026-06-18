@@ -165,10 +165,11 @@ snapshots:
               - snapshot_month
               - device_name
               - device_group
-          where: "dbt_valid_to IS NULL"
-          severity: error
-          error_if: ">0"
-          warn_if: ">0"
+          config:
+            where: "dbt_valid_to IS NULL"
+            severity: error
+            error_if: ">0"
+            warn_if: ">0"
 
   # Future snapshots can be added here:
   # - name: snap_oracle_neshu__company
