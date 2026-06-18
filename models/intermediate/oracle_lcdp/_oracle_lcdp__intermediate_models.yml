@@ -179,8 +179,25 @@ models:
         description: "Dernier Prix d'achat unitaire hors tax du produit"
         data_type: int64
 
+      - name: load_type_code
+        description: "Label source du mouvement (LOADING / REMOVING). Indicatif : peut être incohérent avec le signe de la quantité — utiliser movement_type pour le sens réel."
+        data_type: string
+
+      - name: movement_type
+        description: >
+          Sens réel du mouvement de stock, dérivé du SIGNE de load_quantity
+          (vérité terrain) et non du label load_type_code : load_quantity < 0
+          => 'REMOVING' (retrait), sinon 'LOADING' (chargement).
+          Corrige les cas LOADING à quantité négative et REMOVING à quantité positive.
+        data_type: string
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['LOADING', 'REMOVING']
+
       - name: load_quantity
-        description: "Quantité produit chargée ou retirée"
+        description: "Quantité produit chargée (positive) ou retirée (négative), conditionnement appliqué"
         data_type: int64
 
       - name: load_valuation
