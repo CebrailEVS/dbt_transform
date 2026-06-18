@@ -131,6 +131,10 @@ select
     task_status_code,
     load_type_code,
 
+    -- Sens du mouvement de stock, piloté par le SIGNE de la quantité (vérité terrain),
+    -- pas par le label : un LOADING à quantité négative est un retrait, et inversement.
+    case when load_quantity < 0 then 'REMOVING' else 'LOADING' end as movement_type,
+
     -- Infos métier
     product_source_type,
     product_destination_type,
