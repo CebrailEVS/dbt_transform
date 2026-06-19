@@ -314,6 +314,44 @@ seeds:
               arguments:
                 expression: " > 1"
 
+  - name: ref_oracle_neshu__consommation_source_override
+    description: >
+      Overrides d'arbitrage de source pour fct_neshu__consommation : cas
+      particuliers (machine ou client) qui dérogent à la règle générale
+      gratuit/payant télémétrie<->chargement. Deux modes selon device_serial_number :
+      (1) ciblé (device_serial_number vide) => redirige seulement les lignes
+      matchant company_code + product_type + fenêtre de dates ;
+      (2) takeover machine (device_serial_number renseigné) => la machine est
+      entièrement pilotée par le seed, toute ligne non reprise est écartée.
+      L'arbitrage ne porte que sur TELEMETRIE et CHARGEMENT (la livraison n'est
+      jamais arbitrée). Les colonnes vides valent "tous" (wildcard).
+    config:
+      column_types:
+        company_code: STRING
+        device_serial_number: STRING
+        product_type: STRING
+        forced_source: STRING
+        date_from: DATE
+        date_to: DATE
+    columns:
+      - name: company_code
+        description: "Code client ciblé (vide = tous les clients)"
+      - name: device_serial_number
+        description: "Numéro de série machine ciblé. Vide = override ciblé (company/type). Renseigné = takeover complet de la machine."
+      - name: product_type
+        description: "Type produit ciblé (vide = tous les types)"
+      - name: forced_source
+        description: "Source imposée pour les lignes ciblées"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['TELEMETRIE', 'CHARGEMENT']
+      - name: date_from
+        description: "Début de validité inclus (vide = depuis toujours)"
+      - name: date_to
+        description: "Fin de validité exclue (vide = sans borne)"
+
   - name: ref_oracle_neshu__valo_machine_capacite
     description: "Fichier de référence pour le groupe de machine animo grain modulo et la quantité maximal de produit associé"
     config:

@@ -18,6 +18,19 @@ with product_packaging as (
     from {{ ref('ref_oracle_neshu__product_packaging') }}
 ),
 
+source_override as (
+    -- Cas particuliers d'arbitrage (machine/client) externalisés en seed.
+    -- Colonnes vides = wildcard ("tous").
+    select
+        nullif(company_code, '') as company_code,
+        nullif(device_serial_number, '') as device_serial_number,
+        nullif(product_type, '') as product_type,
+        forced_source,
+        coalesce(date_from, date '0001-01-01') as date_from,
+        coalesce(date_to, date '9999-12-31') as date_to
+    from {{ ref('ref_oracle_neshu__consommation_source_override') }}
+),
+
 telemetry_data as (
     select
         -- IDs
@@ -183,128 +196,153 @@ livraison_data as (
         date(lt.task_start_date)
 ),
 
--- Version optimisée : remplace combined_data + donnees_filtrees
-combined_and_filtered_data as (
+-- Arbitrage des sources de consommation (télémétrie vs chargement).
+-- Les cas particuliers (machine/client) sont externalisés dans le seed
+-- source_override ; la règle générale ci-dessous ne porte que le principe
+-- gratuit/payant. La livraison n'est jamais arbitrée (toujours conservée).
+arbitrage_input as (
+    select * from telemetry_data
+    union all
+    select * from chargement_data
+),
 
-    -- Cas particulier : machine AS00446 chez CN1046
-    select *
-    from chargement_data
+arbitrage_flagged as (
+    select
+        a.*,
+        -- Takeover : un override cible explicitement cette machine. Elle est
+        -- alors entièrement pilotée par le seed (toute ligne non reprise écartée).
+        exists(
+            select 1
+            from source_override as o
+            where
+                o.device_serial_number is not null
+                and o.device_serial_number = a.device_serial_number
+                and o.company_code = a.company_code
+        ) as is_machine_takeover,
+        -- La ligne est-elle ciblée par un override (company/machine/type/fenêtre) ?
+        exists(
+            select 1
+            from source_override as o
+            where
+                (o.company_code is null or o.company_code = a.company_code)
+                and (
+                    o.device_serial_number is null
+                    or o.device_serial_number = a.device_serial_number
+                )
+                and (o.product_type is null or o.product_type = a.product_type)
+                and a.consumption_date >= o.date_from
+                and a.consumption_date < o.date_to
+        ) as is_claimed,
+        -- La source de la ligne est-elle celle imposée par un override la ciblant ?
+        exists(
+            select 1
+            from source_override as o
+            where
+                (o.company_code is null or o.company_code = a.company_code)
+                and (
+                    o.device_serial_number is null
+                    or o.device_serial_number = a.device_serial_number
+                )
+                and (o.product_type is null or o.product_type = a.product_type)
+                and a.consumption_date >= o.date_from
+                and a.consumption_date < o.date_to
+                and o.forced_source = a.data_source
+        ) as kept_by_override
+    from arbitrage_input as a
+),
+
+-- 1) Lignes gérées par un override : on ne garde que la source imposée
+override_data as (
+    select * except (is_machine_takeover, is_claimed, kept_by_override)
+    from arbitrage_flagged
     where
-        device_serial_number = 'AS00446'
-        and company_code = 'CN1046'
+        (is_claimed or is_machine_takeover)
+        and kept_by_override
+),
+
+-- 2) Lignes non gérées : règle générale (principe gratuit/payant)
+general_data as (
+    select * except (is_machine_takeover, is_claimed, kept_by_override)
+    from arbitrage_flagged
+    where
+        not is_claimed
+        and not is_machine_takeover
         and (
+            -- TELEMETRIE par défaut (machines payantes/participatives)
             (
-                consumption_date < '2025-08-28'
-                and product_type in ('THE', 'CAFE CAPS', 'CHOCOLATS VAN HOUTEN')
-            )
-            -- Les accessoires ne sont pas couverts par la télémétrie :
-            -- toujours comptés via CHARGEMENT, sans borne de date
-            or product_type = 'ACCESSOIRES'
-        )
-
-    union all
-
-    select *
-    from telemetry_data
-    where
-        device_serial_number = 'AS00446'
-        and company_code = 'CN1046'
-        and consumption_date >= '2025-08-28'
-
-    union all
-
-    -- TELEMETRIE avec filtres
-    select *
-    from telemetry_data
-    where
-        product_type in (
-            'BOISSONS GOURMANDES', 'CAFE CAPS', 'CAFENOIR', 'INDEFINI',
-            'THE', 'SNACKING', 'BOISSONS FRAICHES', 'CHOCOLATS VAN HOUTEN'
-        )
-        and not (
-            device_brand in ('NESTLE', 'ANIMO')
-            and (
-                device_economic_model not in (
-                    'Participatif valeurs', 'Participatif unités', 'Payant'
+                data_source = 'TELEMETRIE'
+                and product_type in (
+                    'BOISSONS GOURMANDES', 'CAFE CAPS', 'CAFENOIR', 'INDEFINI',
+                    'THE', 'SNACKING', 'BOISSONS FRAICHES', 'CHOCOLATS VAN HOUTEN'
                 )
-                or device_economic_model is null
-            )
-            and product_type = 'THE'
-        )
-        -- Miroir de l'inclusion CHARGEMENT NESPRESSO : les machines à capsules
-        -- gratuites sont comptées via CHARGEMENT, jamais via TELEMETRIE
-        and not (
-            device_brand = 'NESPRESSO'
-            and (
-                device_economic_model not in (
-                    'Participatif valeurs', 'Participatif unités', 'Payant'
+                -- Miroirs des inclusions CHARGEMENT ci-dessous : les volumes
+                -- comptés via chargement ne doivent pas l'être via télémétrie.
+                and not (
+                    device_brand in ('NESTLE', 'ANIMO')
+                    and (
+                        device_economic_model not in (
+                            'Participatif valeurs', 'Participatif unités', 'Payant'
+                        )
+                        or device_economic_model is null
+                    )
+                    and product_type = 'THE'
                 )
-                or device_economic_model is null
+                and not (
+                    device_brand = 'NESPRESSO'
+                    and (
+                        device_economic_model not in (
+                            'Participatif valeurs', 'Participatif unités', 'Payant'
+                        )
+                        or device_economic_model is null
+                    )
+                    and product_type in ('THE', 'CAFE CAPS')
+                )
+                and not (
+                    device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
+                    and product_type = 'CHOCOLATS VAN HOUTEN'
+                )
             )
-            and product_type in ('THE', 'CAFE CAPS')
-            and (
-                company_code <> 'CN1070'
-                or consumption_date >= '2025-03-01'
+            -- CHARGEMENT (machines gratuites + chocolats + accessoires)
+            or (
+                data_source = 'CHARGEMENT'
+                and (
+                    (
+                        device_brand = 'NESPRESSO'
+                        and (
+                            device_economic_model not in (
+                                'Participatif valeurs', 'Participatif unités', 'Payant'
+                            )
+                            or device_economic_model is null
+                        )
+                        and product_type in ('THE', 'CAFE CAPS')
+                    )
+                    or (
+                        device_brand in ('NESTLE', 'ANIMO')
+                        and (
+                            device_economic_model not in (
+                                'Participatif valeurs', 'Participatif unités', 'Payant'
+                            )
+                            or device_economic_model is null
+                        )
+                        and product_type = 'THE'
+                    )
+                    or (
+                        device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
+                        and product_type = 'CHOCOLATS VAN HOUTEN'
+                    )
+                    or (product_type = 'ACCESSOIRES')
+                )
             )
         )
-        -- Miroir de l'inclusion CHARGEMENT chocolats : comptés via CHARGEMENT
-        and not (
-            device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
-            and product_type = 'CHOCOLATS VAN HOUTEN'
-        )
-        and not (company_code = 'CN1071' and product_type = 'THE')
-        and not (
-            device_serial_number = 'AS00446' and company_code = 'CN1046'
-        )
+),
 
+combined_and_filtered_data as (
+    select * from override_data
     union all
-
-    -- CHARGEMENT avec tous les filtres consolidés
-    select *
-    from chargement_data
-    where (
-        (
-            device_brand = 'NESPRESSO'
-            and (
-                device_economic_model not in (
-                    'Participatif valeurs', 'Participatif unités', 'Payant'
-                )
-                or device_economic_model is null
-            )
-            and product_type in ('THE', 'CAFE CAPS')
-            and (
-                company_code <> 'CN1070'
-                or consumption_date >= '2025-03-01'
-            )
-        )
-        or (
-            device_brand in ('NESTLE', 'ANIMO')
-            and (
-                device_economic_model not in (
-                    'Participatif valeurs', 'Participatif unités', 'Payant'
-                )
-                or device_economic_model is null
-            )
-            and product_type = 'THE'
-        )
-        or (
-            device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
-            and product_type = 'CHOCOLATS VAN HOUTEN'
-        )
-        or (product_type = 'ACCESSOIRES')
-        or (company_code = 'CN1071' and product_type = 'THE')
-    )
-    -- Exclusion appliquée à toutes les branches ci-dessus (le cas AS00446
-    -- est géré par le bloc dédié en tête de union)
-    and not (
-        device_serial_number = 'AS00446' and company_code = 'CN1046'
-    )
-
+    select * from general_data
     union all
-
-    -- LIVRAISON (tous les enregistrements)
-    select *
-    from livraison_data
+    -- LIVRAISON (jamais arbitrée)
+    select * from livraison_data
 )
 
 select
