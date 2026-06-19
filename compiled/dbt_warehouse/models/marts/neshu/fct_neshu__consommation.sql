@@ -1,6 +1,29 @@
 
 
-with telemetry_data as (
+with product_packaging as (
+    -- Multiplicateur de conditionnement par produit (rame, boîte, carton...).
+    -- Externalisé en seed : un produit absent vaut 1 (unité = unité).
+    select
+        product_id,
+        units_per_pack
+    from `evs-datastack-prod`.`prod_reference`.`ref_oracle_neshu__product_packaging`
+),
+
+source_override as (
+    -- Cas particuliers d'arbitrage (machine/client) externalisés en seed.
+    -- Colonnes vides = wildcard ("tous").
+    select
+        nullif(company_code, '') as company_code,
+        nullif(device_serial_number, '') as device_serial_number,
+        nullif(product_type, '') as product_type,
+        forced_source,
+        is_takeover,
+        coalesce(date_from, date '0001-01-01') as date_from,
+        coalesce(date_to, date '9999-12-31') as date_to
+    from `evs-datastack-prod`.`prod_reference`.`ref_oracle_neshu__consommation_source_override`
+),
+
+telemetry_data as (
     select
         -- IDs
         t.company_id,
@@ -85,26 +108,8 @@ chargement_data as (
         date(l.task_start_date) as consumption_date,
         'CHARGEMENT' as data_source,
 
-        -- Quantité (ajustée selon le produit)
-        sum(
-            case
-                when p.product_name like '%GOBELET%RAME 50%' then l.load_quantity * 50
-                when p.product_name like '%GOBELET%RAME DE 30%' then l.load_quantity * 30
-                when p.product_name like '%GOBELET%RAME 35%' then l.load_quantity * 35
-                when p.product_name like '%MELANG%BTE 200%' then l.load_quantity * 200
-                when p.product_name like '%MELANGEUR%BTE 200%' then l.load_quantity * 200
-                when p.product_name like '%MELANGEUR%BTE 100%' then l.load_quantity * 100
-                when p.product_name like '%BEGHIN SAY 300%' then l.load_quantity * 300
-                when p.product_name like '%CARTON DE 500%' then l.load_quantity * 500
-                when p.product_name like '%DISTRIBUTEUR 300 SUCRES%'
-                    then l.load_quantity * 300
-                when p.product_name like '%SUCRE BATONNET 100%' then l.load_quantity * 100
-                when p.product_name like '%SUCRE BTE 300%' then l.load_quantity * 300
-                when p.product_name like '%NESPRESSO MELANGEURS EN BAMBOU INDI%'
-                    then l.load_quantity * 100
-                else l.load_quantity
-            end
-        ) as quantity
+        -- Quantité (ajustée selon le conditionnement du produit, cf. seed)
+        sum(l.load_quantity * coalesce(pk.units_per_pack, 1)) as quantity
 
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__chargement_tasks` as l
     inner join `evs-datastack-prod`.`prod_marts`.`dim_neshu__device` as d
@@ -113,6 +118,8 @@ chargement_data as (
         on l.product_id = p.product_id
     left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__company` as c
         on l.company_id = c.company_id
+    left join product_packaging as pk
+        on l.product_id = pk.product_id
     where l.task_status_code in ('FAIT', 'VALIDE')
     group by
         l.company_id, l.device_id, l.location_id, l.product_id,
@@ -157,32 +164,16 @@ livraison_data as (
         date(lt.task_start_date) as consumption_date,
         'LIVRAISON' as data_source,
 
-        -- Quantité (ajustée selon le produit)
-        sum(
-            case
-                when p.product_name like '%GOBELET%RAME 50%' then lt.quantity * 50
-                when p.product_name like '%GOBELET%RAME DE 30%' then lt.quantity * 30
-                when p.product_name like '%GOBELET%RAME 35%' then lt.quantity * 35
-                when p.product_name like '%MELANG%BTE 200%' then lt.quantity * 200
-                when p.product_name like '%MELANGEUR%BTE 200%' then lt.quantity * 200
-                when p.product_name like '%MELANGEUR%BTE 100%' then lt.quantity * 100
-                when p.product_name like '%BEGHIN SAY 300%' then lt.quantity * 300
-                when p.product_name like '%CARTON DE 500%' then lt.quantity * 500
-                when p.product_name like '%DISTRIBUTEUR 300 SUCRES%'
-                    then lt.quantity * 300
-                when p.product_name like '%SUCRE BATONNET 100%' then lt.quantity * 100
-                when p.product_name like '%SUCRE BTE 300%' then lt.quantity * 300
-                when p.product_name like '%NESPRESSO MELANGEURS EN BAMBOU INDI%'
-                    then lt.quantity * 100
-                else lt.quantity
-            end
-        ) as quantity
+        -- Quantité (ajustée selon le conditionnement du produit, cf. seed)
+        sum(lt.quantity * coalesce(pk.units_per_pack, 1)) as quantity
 
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__livraison_tasks` as lt
     left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__product` as p
         on lt.product_id = p.product_id
     left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__company` as c
         on lt.company_id = c.company_id
+    left join product_packaging as pk
+        on lt.product_id = pk.product_id
     where
         lt.task_status_code in ('FAIT', 'VALIDE')
         and p.product_type in (
@@ -197,128 +188,188 @@ livraison_data as (
         date(lt.task_start_date)
 ),
 
--- Version optimisée : remplace combined_data + donnees_filtrees
-combined_and_filtered_data as (
+-- Arbitrage des sources de consommation (télémétrie vs chargement).
+-- Les cas particuliers (machine/client) sont externalisés dans le seed
+-- source_override ; la règle générale ci-dessous ne porte que le principe
+-- gratuit/payant. La livraison n'est jamais arbitrée (toujours conservée).
+arbitrage_input as (
+    select * from telemetry_data
+    union all
+    select * from chargement_data
+),
 
-    -- Cas particulier : machine AS00446 chez CN1046
-    select *
-    from chargement_data
+-- Flags d'arbitrage calculés par cross join sur le seed (petit, qqs lignes)
+-- + agrégation max(case). On évite les EXISTS corrélés que BigQuery réécrit
+-- en SEMI/ANTI JOIN (lesquels exigent une égalité, impossible avec nos wildcards).
+arbitrage_flagged as (
+    select
+        a.company_id,
+        a.device_id,
+        a.location_id,
+        a.product_id,
+        a.company_code,
+        a.company_name,
+        a.location,
+        a.device_serial_number,
+        a.device_name,
+        a.device_brand,
+        a.device_economic_model,
+        a.product_name,
+        a.product_brand,
+        a.product_family,
+        a.product_group,
+        a.product_type,
+        a.consumption_date,
+        a.data_source,
+        a.quantity,
+        -- Takeover : un override cible explicitement cette machine. Elle est
+        -- alors entièrement pilotée par le seed (toute ligne non reprise écartée).
+        max(
+            case
+                when
+                    o.is_takeover
+                    and o.device_serial_number = a.device_serial_number
+                    and o.company_code = a.company_code
+                    then 1
+                else 0
+            end
+        ) = 1 as is_machine_takeover,
+        -- La ligne est-elle ciblée par un override (company/machine/type/fenêtre) ?
+        max(
+            case
+                when
+                    (o.company_code is null or o.company_code = a.company_code)
+                    and (
+                        o.device_serial_number is null
+                        or o.device_serial_number = a.device_serial_number
+                    )
+                    and (o.product_type is null or o.product_type = a.product_type)
+                    and a.consumption_date >= o.date_from
+                    and a.consumption_date < o.date_to
+                    then 1
+                else 0
+            end
+        ) = 1 as is_claimed,
+        -- La source de la ligne est-elle celle imposée par un override la ciblant ?
+        max(
+            case
+                when
+                    (o.company_code is null or o.company_code = a.company_code)
+                    and (
+                        o.device_serial_number is null
+                        or o.device_serial_number = a.device_serial_number
+                    )
+                    and (o.product_type is null or o.product_type = a.product_type)
+                    and a.consumption_date >= o.date_from
+                    and a.consumption_date < o.date_to
+                    and o.forced_source = a.data_source
+                    then 1
+                else 0
+            end
+        ) = 1 as kept_by_override
+    from arbitrage_input as a
+    cross join source_override as o
+    group by
+        a.company_id, a.device_id, a.location_id, a.product_id,
+        a.company_code, a.company_name, a.location,
+        a.device_serial_number, a.device_name, a.device_brand,
+        a.device_economic_model, a.product_name, a.product_brand,
+        a.product_family, a.product_group, a.product_type,
+        a.consumption_date, a.data_source, a.quantity
+),
+
+-- 1) Lignes gérées par un override : on ne garde que la source imposée
+override_data as (
+    select * except (is_machine_takeover, is_claimed, kept_by_override)
+    from arbitrage_flagged
     where
-        device_serial_number = 'AS00446'
-        and company_code = 'CN1046'
+        (is_claimed or is_machine_takeover)
+        and kept_by_override
+),
+
+-- 2) Lignes non gérées : règle générale (principe gratuit/payant)
+general_data as (
+    select * except (is_machine_takeover, is_claimed, kept_by_override)
+    from arbitrage_flagged
+    where
+        not is_claimed
+        and not is_machine_takeover
         and (
+            -- TELEMETRIE par défaut (machines payantes/participatives)
             (
-                consumption_date < '2025-08-28'
-                and product_type in ('THE', 'CAFE CAPS', 'CHOCOLATS VAN HOUTEN')
-            )
-            -- Les accessoires ne sont pas couverts par la télémétrie :
-            -- toujours comptés via CHARGEMENT, sans borne de date
-            or product_type = 'ACCESSOIRES'
-        )
-
-    union all
-
-    select *
-    from telemetry_data
-    where
-        device_serial_number = 'AS00446'
-        and company_code = 'CN1046'
-        and consumption_date >= '2025-08-28'
-
-    union all
-
-    -- TELEMETRIE avec filtres
-    select *
-    from telemetry_data
-    where
-        product_type in (
-            'BOISSONS GOURMANDES', 'CAFE CAPS', 'CAFENOIR', 'INDEFINI',
-            'THE', 'SNACKING', 'BOISSONS FRAICHES', 'CHOCOLATS VAN HOUTEN'
-        )
-        and not (
-            device_brand in ('NESTLE', 'ANIMO')
-            and (
-                device_economic_model not in (
-                    'Participatif valeurs', 'Participatif unités', 'Payant'
+                data_source = 'TELEMETRIE'
+                and product_type in (
+                    'BOISSONS GOURMANDES', 'CAFE CAPS', 'CAFENOIR', 'INDEFINI',
+                    'THE', 'SNACKING', 'BOISSONS FRAICHES', 'CHOCOLATS VAN HOUTEN'
                 )
-                or device_economic_model is null
-            )
-            and product_type = 'THE'
-        )
-        -- Miroir de l'inclusion CHARGEMENT NESPRESSO : les machines à capsules
-        -- gratuites sont comptées via CHARGEMENT, jamais via TELEMETRIE
-        and not (
-            device_brand = 'NESPRESSO'
-            and (
-                device_economic_model not in (
-                    'Participatif valeurs', 'Participatif unités', 'Payant'
+                -- Miroirs des inclusions CHARGEMENT ci-dessous : les volumes
+                -- comptés via chargement ne doivent pas l'être via télémétrie.
+                and not (
+                    device_brand in ('NESTLE', 'ANIMO')
+                    and (
+                        device_economic_model not in (
+                            'Participatif valeurs', 'Participatif unités', 'Payant'
+                        )
+                        or device_economic_model is null
+                    )
+                    and product_type = 'THE'
                 )
-                or device_economic_model is null
+                and not (
+                    device_brand = 'NESPRESSO'
+                    and (
+                        device_economic_model not in (
+                            'Participatif valeurs', 'Participatif unités', 'Payant'
+                        )
+                        or device_economic_model is null
+                    )
+                    and product_type in ('THE', 'CAFE CAPS')
+                )
+                and not (
+                    device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
+                    and product_type = 'CHOCOLATS VAN HOUTEN'
+                )
             )
-            and product_type in ('THE', 'CAFE CAPS')
-            and (
-                company_code <> 'CN1070'
-                or consumption_date >= '2025-03-01'
+            -- CHARGEMENT (machines gratuites + chocolats + accessoires)
+            or (
+                data_source = 'CHARGEMENT'
+                and (
+                    (
+                        device_brand = 'NESPRESSO'
+                        and (
+                            device_economic_model not in (
+                                'Participatif valeurs', 'Participatif unités', 'Payant'
+                            )
+                            or device_economic_model is null
+                        )
+                        and product_type in ('THE', 'CAFE CAPS')
+                    )
+                    or (
+                        device_brand in ('NESTLE', 'ANIMO')
+                        and (
+                            device_economic_model not in (
+                                'Participatif valeurs', 'Participatif unités', 'Payant'
+                            )
+                            or device_economic_model is null
+                        )
+                        and product_type = 'THE'
+                    )
+                    or (
+                        device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
+                        and product_type = 'CHOCOLATS VAN HOUTEN'
+                    )
+                    or (product_type = 'ACCESSOIRES')
+                )
             )
         )
-        -- Miroir de l'inclusion CHARGEMENT chocolats : comptés via CHARGEMENT
-        and not (
-            device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
-            and product_type = 'CHOCOLATS VAN HOUTEN'
-        )
-        and not (company_code = 'CN1071' and product_type = 'THE')
-        and not (
-            device_serial_number = 'AS00446' and company_code = 'CN1046'
-        )
+),
 
+combined_and_filtered_data as (
+    select * from override_data
     union all
-
-    -- CHARGEMENT avec tous les filtres consolidés
-    select *
-    from chargement_data
-    where (
-        (
-            device_brand = 'NESPRESSO'
-            and (
-                device_economic_model not in (
-                    'Participatif valeurs', 'Participatif unités', 'Payant'
-                )
-                or device_economic_model is null
-            )
-            and product_type in ('THE', 'CAFE CAPS')
-            and (
-                company_code <> 'CN1070'
-                or consumption_date >= '2025-03-01'
-            )
-        )
-        or (
-            device_brand in ('NESTLE', 'ANIMO')
-            and (
-                device_economic_model not in (
-                    'Participatif valeurs', 'Participatif unités', 'Payant'
-                )
-                or device_economic_model is null
-            )
-            and product_type = 'THE'
-        )
-        or (
-            device_brand in ('NESPRESSO', 'NESTLE', 'ANIMO')
-            and product_type = 'CHOCOLATS VAN HOUTEN'
-        )
-        or (product_type = 'ACCESSOIRES')
-        or (company_code = 'CN1071' and product_type = 'THE')
-    )
-    -- Exclusion appliquée à toutes les branches ci-dessus (le cas AS00446
-    -- est géré par le bloc dédié en tête de union)
-    and not (
-        device_serial_number = 'AS00446' and company_code = 'CN1046'
-    )
-
+    select * from general_data
     union all
-
-    -- LIVRAISON (tous les enregistrements)
-    select *
-    from livraison_data
+    -- LIVRAISON (jamais arbitrée)
+    select * from livraison_data
 )
 
 select
@@ -360,6 +411,6 @@ select
 
     -- Métadonnées d'exécution
     current_timestamp() as dbt_updated_at,
-    '8ab371e7-98e3-4310-a155-e817b66647e2' as dbt_invocation_id  -- noqa: TMP
+    '2a45fc2d-1162-4e96-bdc0-0b42ee8848d3' as dbt_invocation_id  -- noqa: TMP
 
 from combined_and_filtered_data
