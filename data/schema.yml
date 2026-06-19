@@ -318,11 +318,12 @@ seeds:
     description: >
       Overrides d'arbitrage de source pour fct_neshu__consommation : cas
       particuliers (machine ou client) qui dérogent à la règle générale
-      gratuit/payant télémétrie<->chargement. Deux modes selon device_serial_number :
-      (1) ciblé (device_serial_number vide) => redirige seulement les lignes
-      matchant company_code + product_type + fenêtre de dates ;
-      (2) takeover machine (device_serial_number renseigné) => la machine est
-      entièrement pilotée par le seed, toute ligne non reprise est écartée.
+      gratuit/payant télémétrie<->chargement. Deux modes selon is_takeover :
+      (1) redirection ciblée (is_takeover = false) => dévie seulement les lignes
+      matchant company_code + device_serial_number + product_type + fenêtre ;
+      le reste de la machine/du client suit la règle générale ;
+      (2) takeover machine (is_takeover = true, machine renseignée) => la machine
+      est entièrement pilotée par le seed, toute ligne non reprise est écartée.
       L'arbitrage ne porte que sur TELEMETRIE et CHARGEMENT (la livraison n'est
       jamais arbitrée). Les colonnes vides valent "tous" (wildcard).
     config:
@@ -331,13 +332,14 @@ seeds:
         device_serial_number: STRING
         product_type: STRING
         forced_source: STRING
+        is_takeover: BOOLEAN
         date_from: DATE
         date_to: DATE
     columns:
       - name: company_code
         description: "Code client ciblé (vide = tous les clients)"
       - name: device_serial_number
-        description: "Numéro de série machine ciblé. Vide = override ciblé (company/type). Renseigné = takeover complet de la machine."
+        description: "Numéro de série machine ciblé (vide = toutes les machines du client)"
       - name: product_type
         description: "Type produit ciblé (vide = tous les types)"
       - name: forced_source
@@ -347,6 +349,10 @@ seeds:
           - accepted_values:
               arguments:
                 values: ['TELEMETRIE', 'CHARGEMENT']
+      - name: is_takeover
+        description: "true => takeover complet de la machine (toute ligne non reprise écartée). false => redirection ciblée (seules les lignes matchées sont déviées, le reste suit la règle générale)."
+        tests:
+          - not_null
       - name: date_from
         description: "Début de validité inclus (vide = depuis toujours)"
       - name: date_to

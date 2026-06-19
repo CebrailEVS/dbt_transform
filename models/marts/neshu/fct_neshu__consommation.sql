@@ -26,6 +26,7 @@ source_override as (
         nullif(device_serial_number, '') as device_serial_number,
         nullif(product_type, '') as product_type,
         forced_source,
+        is_takeover,
         coalesce(date_from, date '0001-01-01') as date_from,
         coalesce(date_to, date '9999-12-31') as date_to
     from {{ ref('ref_oracle_neshu__consommation_source_override') }}
@@ -215,7 +216,7 @@ arbitrage_flagged as (
             select 1
             from source_override as o
             where
-                o.device_serial_number is not null
+                o.is_takeover
                 and o.device_serial_number = a.device_serial_number
                 and o.company_code = a.company_code
         ) as is_machine_takeover,
