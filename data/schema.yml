@@ -285,6 +285,35 @@ seeds:
         tests:
           - not_null
 
+  - name: ref_oracle_neshu__product_packaging
+    description: "Multiplicateur de conditionnement par produit : nombre d'unités par colis chargé/livré (rame, boîte, carton, distributeur). Utilisé par fct_neshu__consommation pour convertir les quantités de chargement/livraison en unités consommées. Une ligne par produit conditionné ; les produits absents valent 1 (unité = unité)."
+    config:
+      column_types:
+        product_id: INT64
+        product_name: STRING
+        units_per_pack: INT64
+    columns:
+      - name: product_id
+        description: "Identifiant produit (dim_neshu__product.product_id)"
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__product')
+                field: product_id
+      - name: product_name
+        description: "Libellé produit, repris en clair pour la relecture du seed (non utilisé dans les jointures)"
+        tests:
+          - not_null
+      - name: units_per_pack
+        description: "Nombre d'unités contenues dans un colis (ex: rame de 50 gobelets => 50)"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: " > 1"
+
   - name: ref_oracle_neshu__valo_machine_capacite
     description: "Fichier de référence pour le groupe de machine animo grain modulo et la quantité maximal de produit associé"
     config:

@@ -9,7 +9,16 @@
     )
 }}
 
-with telemetry_data as (
+with product_packaging as (
+    -- Multiplicateur de conditionnement par produit (rame, boîte, carton...).
+    -- Externalisé en seed : un produit absent vaut 1 (unité = unité).
+    select
+        product_id,
+        units_per_pack
+    from {{ ref('ref_oracle_neshu__product_packaging') }}
+),
+
+telemetry_data as (
     select
         -- IDs
         t.company_id,
@@ -94,26 +103,8 @@ chargement_data as (
         date(l.task_start_date) as consumption_date,
         'CHARGEMENT' as data_source,
 
-        -- Quantité (ajustée selon le produit)
-        sum(
-            case
-                when p.product_name like '%GOBELET%RAME 50%' then l.load_quantity * 50
-                when p.product_name like '%GOBELET%RAME DE 30%' then l.load_quantity * 30
-                when p.product_name like '%GOBELET%RAME 35%' then l.load_quantity * 35
-                when p.product_name like '%MELANG%BTE 200%' then l.load_quantity * 200
-                when p.product_name like '%MELANGEUR%BTE 200%' then l.load_quantity * 200
-                when p.product_name like '%MELANGEUR%BTE 100%' then l.load_quantity * 100
-                when p.product_name like '%BEGHIN SAY 300%' then l.load_quantity * 300
-                when p.product_name like '%CARTON DE 500%' then l.load_quantity * 500
-                when p.product_name like '%DISTRIBUTEUR 300 SUCRES%'
-                    then l.load_quantity * 300
-                when p.product_name like '%SUCRE BATONNET 100%' then l.load_quantity * 100
-                when p.product_name like '%SUCRE BTE 300%' then l.load_quantity * 300
-                when p.product_name like '%NESPRESSO MELANGEURS EN BAMBOU INDI%'
-                    then l.load_quantity * 100
-                else l.load_quantity
-            end
-        ) as quantity
+        -- Quantité (ajustée selon le conditionnement du produit, cf. seed)
+        sum(l.load_quantity * coalesce(pk.units_per_pack, 1)) as quantity
 
     from {{ ref('int_oracle_neshu__chargement_tasks') }} as l
     inner join {{ ref('dim_neshu__device') }} as d
@@ -122,6 +113,8 @@ chargement_data as (
         on l.product_id = p.product_id
     left join {{ ref('dim_neshu__company') }} as c
         on l.company_id = c.company_id
+    left join product_packaging as pk
+        on l.product_id = pk.product_id
     where l.task_status_code in ('FAIT', 'VALIDE')
     group by
         l.company_id, l.device_id, l.location_id, l.product_id,
@@ -166,32 +159,16 @@ livraison_data as (
         date(lt.task_start_date) as consumption_date,
         'LIVRAISON' as data_source,
 
-        -- Quantité (ajustée selon le produit)
-        sum(
-            case
-                when p.product_name like '%GOBELET%RAME 50%' then lt.quantity * 50
-                when p.product_name like '%GOBELET%RAME DE 30%' then lt.quantity * 30
-                when p.product_name like '%GOBELET%RAME 35%' then lt.quantity * 35
-                when p.product_name like '%MELANG%BTE 200%' then lt.quantity * 200
-                when p.product_name like '%MELANGEUR%BTE 200%' then lt.quantity * 200
-                when p.product_name like '%MELANGEUR%BTE 100%' then lt.quantity * 100
-                when p.product_name like '%BEGHIN SAY 300%' then lt.quantity * 300
-                when p.product_name like '%CARTON DE 500%' then lt.quantity * 500
-                when p.product_name like '%DISTRIBUTEUR 300 SUCRES%'
-                    then lt.quantity * 300
-                when p.product_name like '%SUCRE BATONNET 100%' then lt.quantity * 100
-                when p.product_name like '%SUCRE BTE 300%' then lt.quantity * 300
-                when p.product_name like '%NESPRESSO MELANGEURS EN BAMBOU INDI%'
-                    then lt.quantity * 100
-                else lt.quantity
-            end
-        ) as quantity
+        -- Quantité (ajustée selon le conditionnement du produit, cf. seed)
+        sum(lt.quantity * coalesce(pk.units_per_pack, 1)) as quantity
 
     from {{ ref('int_oracle_neshu__livraison_tasks') }} as lt
     left join {{ ref('dim_neshu__product') }} as p
         on lt.product_id = p.product_id
     left join {{ ref('dim_neshu__company') }} as c
         on lt.company_id = c.company_id
+    left join product_packaging as pk
+        on lt.product_id = pk.product_id
     where
         lt.task_status_code in ('FAIT', 'VALIDE')
         and p.product_type in (
