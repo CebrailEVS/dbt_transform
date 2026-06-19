@@ -4,40 +4,69 @@ models:
   - name: fct_technique__intervention
     description: |
       [QUOI MÉTIER]
-      Vue consolidée des interventions techniques EVS, tous partenaires
-      confondus (Nespresso via Nomad Repair + Neshu/Brita/Auum/... via Yuman).
-      Base pour les indicateurs opérationnels, la facturation partenaire et les
-      primes techniciens.
+      Fait consolidé des interventions techniques EVS, tous partenaires
+      confondus. 1 ligne = 1 intervention réalisée. Couvre Nespresso (via Nomad
+      Repair, source `nesp_tech`) et les partenaires Yuman (NESHU, BRITA, AUUM,
+      TWYD, NU, EXPRESSO, FONTAINCO, DAAN). Base des indicateurs opérationnels,
+      de la facturation partenaire et du calcul des primes techniciens (bonus
+      délai, prime montagne, Paris intramuros).
 
       [COMMENT CONSTRUITE]
-      UNION ALL entre 2 chaînes :
-      - branche NESP : `int_nesp_tech__interventions_dedup` + `int_nesp_tech__facturation_interventions` + `int_nesp_tech__delais_interventions` + `ref_nesp_tech__key_facturation`
-      - branche YUMAN : `fct_neshu__workorder_delai` + `stg_yuman__users` + `ref_nesp_tech__cps_montagne_primes`
-      Une colonne `partenaire` (NESPRESSO / NESHU / BRITA / AUUM / ...) sépare
-      les deux sources dans le résultat.
+      UNION ALL de 2 chaînes homogénéisées au même format, séparées par la
+      colonne `src_inter` (NESP / YUMAN) :
+      - branche NESP : `int_nesp_tech__interventions_dedup` (1 ligne par
+        n_planning) + LEFT JOIN `int_nesp_tech__facturation_interventions`
+        (key_factu, montant, prod) + LEFT JOIN `int_nesp_tech__delais_interventions`
+        (SLA jours/heures, bonus) + LEFT JOIN seed `ref_nesp_tech__key_facturation`
+        (libellés objets). Filtre de population : `etat_intervention != 'annulée'`.
+      - branche YUMAN : `int_yuman__interventions` — modèle intermediate unique
+        portant tarification + délai + état métier (depuis la refacto PR #135 ;
+        remplace l'ancienne chaîne fait→fait `fct_technique__workorder_pricing` +
+        `fct_neshu__workorder_delai`). Filtre de population :
+        `intervention_state = 'REALISEE'` (workorder Closed et réellement effectué).
+      Enrichissement commun (CTE `interventions_enrichies`) : durée, flags primes
+      (montagne / Paris / hors-délai), mapping technicien via `stg_yuman__users`
+      (jointure conditionnelle : `nomad_id` côté NESP, `user_id` côté YUMAN) et
+      seed `ref_nesp_tech__cps_montagne_primes`.
 
       [GRAIN]
-      1 ligne par intervention (`key_inter` = intervention_id + partenaire).
+      1 ligne par intervention. PK = `key_inter` = `intervention_id` + '_' + `partenaire`.
 
       [NOTES]
-      Source nesp_tech rafraîchie hebdo (Mon 07:30), yuman daily 01:00. Le mart
-      est rebuilt 2× par jour weekdays via `transform-technique-daily`
-      (cron `0 3,8 * * *`).
+      - Filtres répartis sur 3 niveaux (intermediate → CTE du fait → jointures
+        LEFT). Côté NESP, `montant` / `key_factu` / `prod` sont NULL hors états
+        terminée signée / signature différée / mise en échec ; `delai_*` et
+        `bonus_*` ne sont calculés que pour les agences IDF/Paris (filtre interne
+        à `int_nesp_tech__delais_interventions`).
+      - Plusieurs colonnes sont harmonisées mais portent une sémantique
+        différente selon la source — voir les descriptions de `statut_facturation`,
+        `categorie_machine` / `machine_clean`, `delai_heures_*`, `bonus_bool`,
+        `delai_tech` / `delai_partenaire`, `alias_obj_*`.
+      - Rafraîchissement : aucun scheduler dédié à la BU technique. Le mart se
+        reconstruit automatiquement via `source:<source>+` quand une source
+        upstream charge (refacto Option C) — pipeline EL `nesp_tech` (lundi 07:30,
+        cron `30 7 * * 1`) et `yuman` (01:00 en semaine, cron `0 1 * * 1-5`).
 
     columns:
       - name: key_inter
-        description: Identifiant unique de l'intervention (intervention_id + partenaire)
+        description: >
+          PK — identifiant unique de l'intervention =
+          `intervention_id` + '_' + `partenaire`.
         tests:
           - not_null
           - unique
 
       - name: intervention_id
-        description: Identifiant de l'intervention dans le système source
+        description: >
+          Identifiant de l'intervention dans le système source : `n_planning`
+          côté NESP, `workorder_number` côté YUMAN.
         tests:
           - not_null
 
       - name: src_inter
-        description: Système source (NESP ou YUMAN)
+        description: >
+          Système source de l'intervention : NESP (Nespresso / Nomad Repair) ou
+          YUMAN (tous les autres partenaires).
         tests:
           - not_null
           - accepted_values:
@@ -45,88 +74,156 @@ models:
                 values: ['NESP', 'YUMAN']
 
       - name: partenaire
-        description: Partenaire client associé à l'intervention
+        description: >
+          Partenaire client. NESPRESSO pour la source NESP ; sinon nom du
+          partenaire Yuman (NESHU, BRITA, AUUM, TWYD, NU, EXPRESSO, FONTAINCO,
+          DAAN). Colonne de clustering.
 
       - name: tech_id
-        description: Identifiant du technicien dans le système source
+        description: >
+          Identifiant du technicien dans le système source : `nomad_id`
+          (minuscule) côté NESP, `technician_id` Yuman côté YUMAN. Sert de clé de
+          mapping vers `stg_yuman__users`.
 
       - name: intervention_statut
-        description: Etat de l'intervention 
+        description: >
+          État brut de l'intervention dans la source. NESP : 'terminée signée' /
+          'signature différée' / 'terminée non signée' / 'mise en échec' (les
+          'annulée' sont exclues en amont). YUMAN : `workorder_status`, toujours
+          'Closed' ici (population filtrée sur intervention_state = REALISEE).
 
       - name: statut_facturation
-        description: Statu de facturation de l'intervention (BILLABLE vs NOT BILLABLE)
+        description: >
+          Statut de facturation — ATTENTION, échelle différente selon la source.
+          NESP (mappé depuis l'état d'intervention) : VALIDATED / NOT VALIDATED /
+          NOT DEFINED. YUMAN (`billing_validation_status`) : VALIDATED /
+          UNTRACKABLE / MISSING_TARIF / NOT_BILLABLE.
 
       - name: categorie_machine
-        description: Groupe machine - clé utile notamment pour la liaison avec les objectifs techniques
+        description: >
+          Groupe machine normalisé (coalesce 'UNDEFINED' si inconnu) — clé utile
+          pour la liaison avec les objectifs techniques. Source : `categorie_machine`
+          de la facturation côté NESP ; `machine_clean` Yuman côté YUMAN.
 
       - name: machine_clean
-        description: type machine clean - clé utile notamment pour la liaison avec les objectifs techniques
+        description: >
+          Type machine normalisé (coalesce 'UNDEFINED'). Source : `machine_clean`
+          de la facturation côté NESP ; `machine_raw` Yuman côté YUMAN (le
+          `machine_clean` Yuman alimente lui `categorie_machine`).
 
       - name: tech_yuman_id
-        description: Identifiant Yuman du technicien
+        description: Identifiant Yuman (`user_id`) du technicien, issu du mapping `stg_yuman__users`.
 
       - name: tech_nomad_id
-        description: Identifiant Nomad du technicien
+        description: Identifiant Nomad du technicien, issu du mapping `stg_yuman__users`.
 
       - name: tech_nom
-        description: Nom du technicien
+        description: Nom du technicien (`user_name`).
+
+      - name: tech_secteur
+        description: Secteur géographique / opérationnel d'affectation du technicien (`user_secteur`).
 
       - name: date_creation
-        description: Date de création de l'intervention
+        description: >
+          Date/heure de création de l'intervention. NESP = `pickup_date` ;
+          YUMAN = `workorder_date_creation`.
 
       - name: date_debut
-        description: Date de début de l'intervention
+        description: >
+          Date/heure de début de l'intervention (colonne de partition).
+          NESP = `date_heure_debut` ; YUMAN = `date_started`.
 
       - name: date_fin
-        description: Date de fin de l'intervention
+        description: >
+          Date/heure de fin de l'intervention. NESP = `date_heure_fin` ;
+          YUMAN = `date_done`.
 
       - name: duree_inter_minutes
-        description: Durée de l'intervention en minutes
+        description: Durée de l'intervention en minutes = `timestamp_diff(date_fin, date_debut, minute)`.
 
       - name: key_factu
-        description: Clé de tarification utilisée
+        description: >
+          Clé de tarification utilisée. NESP : clé composite
+          `type_code - libellé - machine [- Montagne]`. YUMAN : `pricing_key_used`
+          (`type_machine_marque_typetarif_metropole`).
 
       - name: code_postal
-        description: Code postal du site d'intervention
+        description: Code postal du site d'intervention.
 
       - name: consignes
-        description: Consignes de la demande d'intervention
+        description: Consignes de la demande d'intervention (`demand_description` côté YUMAN).
 
       - name: commentaire_tech
-        description: Commentaire finale du technicien post intervention
+        description: Commentaire final du technicien post-intervention (`workorder_report` côté YUMAN).
 
       - name: prod
-        description: Production associée à l'intervention - utile pour les calcul de primes des techniciens
+        description: >
+          Production associée à l'intervention (référence article facturé NESP /
+          `prod_number` YUMAN) — utile au calcul des primes techniciens.
 
       - name: montant
-        description: Montant de l'intervention
+        description: >
+          Montant facturé de l'intervention. NULL côté NESP pour les états non
+          facturables (cf. `int_nesp_tech__facturation_interventions`).
 
       - name: bonus_bool
-        description: Indique si un bonus de délai s'applique
+        description: >
+          Indique si un bonus de délai s'applique. Toujours `false` côté YUMAN
+          (pas de mécanisme de bonus Yuman).
 
       - name: montant_avec_bonus
-        description: Montant incluant les bonus de délai
+        description: >
+          Montant incluant le bonus de délai (`montant` + valeur du bonus).
+          Égal à `montant` côté YUMAN.
 
       - name: delai_heures_debut
-        description: Délai en heures avant début d'intervention
+        description: >
+          Délai en heures ouvrées avant début d'intervention.
+          Toujours 0 côté YUMAN (non calculé).
 
       - name: delai_heures_fin
-        description: Délai en heures avant fin d'intervention
+        description: >
+          Délai en heures ouvrées avant fin d'intervention.
+          Toujours 0 côté YUMAN (non calculé).
 
       - name: delai_tech
-        description: Type de délai côté technicien
+        description: >
+          Type de délai côté technicien (J+0, J+1, … J++). NESP = `type_delai_debut` ;
+          YUMAN = `type_delai` (même valeur que `delai_partenaire`).
 
       - name: delai_partenaire
-        description: Type de délai côté partenaire
+        description: >
+          Type de délai côté partenaire. NESP = `type_delai_fin` ;
+          YUMAN = `type_delai` (identique à `delai_tech`).
 
       - name: flag_montagne_prime
-        description: Indique si l'intervention est éligible à une prime montagne (1/0)
+        description: >
+          1 si l'intervention est éligible à une prime montagne (`key_factu`
+          contenant Aguila + Montagne et CP en zone montagne), sinon 0. En
+          pratique NESP uniquement (format `key_factu` Yuman différent).
 
       - name: flag_paris_intramuros
-        description: Indique si l'intervention est réalisée à Paris intramuros (1/0)
+        description: 1 si le `code_postal` commence par '75' (Paris intramuros), sinon 0.
 
       - name: flag_hors_delai_tech
-        description: Indique si l'intervention est hors délai technicien (1/0)
+        description: >
+          1 si `delai_tech` ∈ (J++, J+3) et `key_factu` de type curative, sinon 0.
+          S'applique aux deux sources.
+
+      - name: alias_obj_type_inter
+        description: >
+          Alias type d'intervention. NESP : depuis le seed `ref_nesp_tech__key_facturation` ;
+          YUMAN : 1er segment de `pricing_key_used` (split sur '_').
+
+      - name: alias_obj_type_machine
+        description: >
+          Alias type machine. NESP : depuis le seed `ref_nesp_tech__key_facturation` ;
+          YUMAN : 2e segment de `pricing_key_used` (split sur '_').
+
+      - name: alias_obj_grp_machine
+        description: >
+          Alias groupe machine. NESP : depuis le seed `ref_nesp_tech__key_facturation` ;
+          YUMAN : 2e segment de `pricing_key_used` (identique à `alias_obj_type_machine`).
 
 
   - name: dim_technique__client
