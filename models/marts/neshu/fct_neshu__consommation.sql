@@ -207,49 +207,84 @@ arbitrage_input as (
     select * from chargement_data
 ),
 
+-- Flags d'arbitrage calculés par cross join sur le seed (petit, qqs lignes)
+-- + agrégation max(case). On évite les EXISTS corrélés que BigQuery réécrit
+-- en SEMI/ANTI JOIN (lesquels exigent une égalité, impossible avec nos wildcards).
 arbitrage_flagged as (
     select
-        a.*,
+        a.company_id,
+        a.device_id,
+        a.location_id,
+        a.product_id,
+        a.company_code,
+        a.company_name,
+        a.location,
+        a.device_serial_number,
+        a.device_name,
+        a.device_brand,
+        a.device_economic_model,
+        a.product_name,
+        a.product_brand,
+        a.product_family,
+        a.product_group,
+        a.product_type,
+        a.consumption_date,
+        a.data_source,
+        a.quantity,
         -- Takeover : un override cible explicitement cette machine. Elle est
         -- alors entièrement pilotée par le seed (toute ligne non reprise écartée).
-        exists(
-            select 1
-            from source_override as o
-            where
-                o.is_takeover
-                and o.device_serial_number = a.device_serial_number
-                and o.company_code = a.company_code
-        ) as is_machine_takeover,
+        max(
+            case
+                when
+                    o.is_takeover
+                    and o.device_serial_number = a.device_serial_number
+                    and o.company_code = a.company_code
+                    then 1
+                else 0
+            end
+        ) = 1 as is_machine_takeover,
         -- La ligne est-elle ciblée par un override (company/machine/type/fenêtre) ?
-        exists(
-            select 1
-            from source_override as o
-            where
-                (o.company_code is null or o.company_code = a.company_code)
-                and (
-                    o.device_serial_number is null
-                    or o.device_serial_number = a.device_serial_number
-                )
-                and (o.product_type is null or o.product_type = a.product_type)
-                and a.consumption_date >= o.date_from
-                and a.consumption_date < o.date_to
-        ) as is_claimed,
+        max(
+            case
+                when
+                    (o.company_code is null or o.company_code = a.company_code)
+                    and (
+                        o.device_serial_number is null
+                        or o.device_serial_number = a.device_serial_number
+                    )
+                    and (o.product_type is null or o.product_type = a.product_type)
+                    and a.consumption_date >= o.date_from
+                    and a.consumption_date < o.date_to
+                    then 1
+                else 0
+            end
+        ) = 1 as is_claimed,
         -- La source de la ligne est-elle celle imposée par un override la ciblant ?
-        exists(
-            select 1
-            from source_override as o
-            where
-                (o.company_code is null or o.company_code = a.company_code)
-                and (
-                    o.device_serial_number is null
-                    or o.device_serial_number = a.device_serial_number
-                )
-                and (o.product_type is null or o.product_type = a.product_type)
-                and a.consumption_date >= o.date_from
-                and a.consumption_date < o.date_to
-                and o.forced_source = a.data_source
-        ) as kept_by_override
+        max(
+            case
+                when
+                    (o.company_code is null or o.company_code = a.company_code)
+                    and (
+                        o.device_serial_number is null
+                        or o.device_serial_number = a.device_serial_number
+                    )
+                    and (o.product_type is null or o.product_type = a.product_type)
+                    and a.consumption_date >= o.date_from
+                    and a.consumption_date < o.date_to
+                    and o.forced_source = a.data_source
+                    then 1
+                else 0
+            end
+        ) = 1 as kept_by_override
     from arbitrage_input as a
+    cross join source_override as o
+    group by
+        a.company_id, a.device_id, a.location_id, a.product_id,
+        a.company_code, a.company_name, a.location,
+        a.device_serial_number, a.device_name, a.device_brand,
+        a.device_economic_model, a.product_name, a.product_brand,
+        a.product_family, a.product_group, a.product_type,
+        a.consumption_date, a.data_source, a.quantity
 ),
 
 -- 1) Lignes gérées par un override : on ne garde que la source imposée
