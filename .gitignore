@@ -19,10 +19,11 @@ __pycache__/
 .vscode/
 .DS_Store
 
-# Claude Code
-CLAUDE.md
-.mcp.json
-.claude/
+# Claude Code — la couche IA partagee est versionnee (CLAUDE.md, .mcp.json,
+# .claude/commands/, .claude/skills/, .claude/hooks/, .claude/settings.json).
+# On garde hors git uniquement les reglages perso et les notes de travail :
+.claude/settings.local.json
+.claude/notes/
 
 # Keyfile test
 keyfile.b64.txt

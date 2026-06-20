@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "bigquery": {
+      "type": "http",
+      "url": "https://bigquery.googleapis.com/mcp",
+      "headersHelper": "${CLAUDE_PROJECT_DIR}/.claude/hooks/bq-auth-headers.sh"
+    },
+    "powerbi-remote": {
+      "type": "stdio",
+      "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/pbi-mcp-remote.sh",
+      "args": []
+    },
+    "dbt-local": {
+      "type": "stdio",
+      "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/dbt-mcp.sh",
+      "args": []
+    }
+  }
+}

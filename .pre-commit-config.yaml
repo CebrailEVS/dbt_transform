@@ -1,0 +1,31 @@
+# Pre-commit guardrails — run regardless of who (or what) wrote the code.
+# Mirrors the Claude Code PostToolUse hooks (.claude/hooks/) so a human editing
+# without the AI cannot bypass linting.
+#
+# Install once per clone (isolated, ne pollue pas dbt_venv) :
+#   pipx install pre-commit
+#   pre-commit install              # commit-stage hooks (sqlfluff)
+#   pre-commit install --hook-type pre-push   # pre-push hooks (dbt parse)
+#
+# Hooks call ./dbt_venv/bin/* directly — single source of truth for tool versions
+# (sqlfluff/dbt pinned in requirements.txt). No duplicated tool install here.
+
+repos:
+  - repo: local
+    hooks:
+      # --- commit stage : lint SQL models with the dbt templater ---
+      - id: sqlfluff-lint
+        name: sqlfluff lint (models)
+        language: system
+        entry: bash -c 'set -a; [ -f .env ] && . ./.env; set +a; exec ./dbt_venv/bin/sqlfluff lint "$@"' --
+        files: ^models/.*\.sql$
+        pass_filenames: true
+
+      # --- pre-push stage : full dbt parse (slow + needs .env, shows dbt warnings) ---
+      - id: dbt-parse
+        name: dbt parse (whole project)
+        language: system
+        entry: bash -c 'set -a; [ -f .env ] && . ./.env; set +a; exec ./dbt_venv/bin/dbt parse'
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
