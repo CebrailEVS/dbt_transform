@@ -242,20 +242,29 @@ models:
 
   - name: int_yuman__interventions
     description: >
-      Modèle intermédiaire consolidé des interventions Yuman, source de vérité unique pour
-      la qualification métier, la tarification automatique et le délai de traitement.
-      Construit sur int_yuman__demands_workorders_enriched, il fusionne ici la logique qui
-      était auparavant éclatée en deux faits chaînés (fct_technique__workorder_pricing puis
-      fct_neshu__workorder_delai), supprimant ainsi les dépendances fait→fait.
-      Couvre : (1) normalisation type/machine/métropole + extraction du code postal,
-      (2) tarification automatique (récurrence → palier de remise → montant via table de
-      référence), (3) délai en jours ouvrés et son type (J+0,5 … J++),
-      (4) qualification métier via intervention_state.
-      Périmètre : exclut les bons de travail "secs" (sans demande rattachée, demand_id NULL),
-      dépourvus de référentiel client/partenaire fiable (partner_name, client_id… NULL) qui
-      fausserait la clé d'intervention aval et la tarification (~44 lignes en prod).
-      Grain : 1 ligne par couple (demand_id, workorder_id). Inclut les demandes sans bon de
-      travail (workorder_id NULL → DEMANDE_OUVERTE / DEMANDE_REJETEE) ; exclut l'inverse.
+      [QUOI MÉTIER]
+      Modèle consolidé des interventions Yuman : source de vérité unique pour la qualification
+      métier (état), la tarification automatique et le délai de traitement. C'est la table
+      pivot des interventions techniques, consommée par les marts technique/neshu.
+
+      [COMMENT CONSTRUITE]
+      Construit sur int_yuman__demands_workorders_enriched ; fusionne la logique auparavant
+      éclatée en deux faits chaînés (fct_technique__workorder_pricing puis
+      fct_neshu__workorder_delai), supprimant les dépendances fait→fait. Couvre :
+      (1) normalisation type/machine/métropole + extraction du code postal,
+      (2) tarification automatique (récurrence → palier de remise → montant via table de réf),
+      (3) délai en jours ouvrés et son type (J+0,5 … J++),
+      (4) qualification métier via intervention_state (repris en passthrough de l'enriched).
+
+      [GRAIN]
+      1 ligne par couple (demand_id, workorder_id). ~18,9k lignes (18 872). Inclut les demandes
+      sans bon de travail (workorder_id NULL → DEMANDE_OUVERTE / DEMANDE_REJETEE) ; dédupliqué
+      via qualify (le fan-out de l'enriched est tranché ici).
+
+      [NOTES]
+      Périmètre : exclut les bons de travail "secs" (orphelins, demand_id NULL, ~44 lignes),
+      dépourvus de référentiel client/partenaire fiable qui fausserait la clé d'intervention
+      et la tarification. À l'inverse de l'enriched (qui les conserve via is_orphan_workorder).
     columns:
       # --- CLES / GRAIN ---
       - name: demand_id
