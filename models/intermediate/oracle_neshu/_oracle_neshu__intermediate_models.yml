@@ -90,105 +90,162 @@ models:
 
   - name: int_oracle_neshu__chargement_tasks
     description: >
-      Table intermédiaire des tâches de chargement machine.
-      Filtrée sur les tâches de type CHARGEMENT (idtask_type=13) 
-      avec statut FAIT/VALIDE/ANNULE et label du chargement (LOADING / REMOVING).
-      
+      [QUOI MÉTIER]
+      Chargements (et retraits) de produits dans les distributeurs NESHU : une ligne par
+      produit chargé lors d'une tâche de chargement machine. Brique de base de l'analyse
+      consommation / réassort.
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_neshu__task (idtask_type = 13 CHARGEMENT MACHINE, statuts FAIT/VALIDE/ANNULE/
+      ANOMALIE, code_status_record = '1') croisé avec task_has_product (grain ligne produit),
+      enrichi company/device/product/location, label de chargement (LOADING/REMOVING), roadman
+      (resources type 2) et véhicule (resources type 3). Quantité ramenée en unités de base via
+      les coefficients de conditionnement ; valorisation = quantité × prix d'achat.
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'une tâche). ~1,14M lignes (~333k tâches),
+      depuis 2022. Incrémental (merge sur task_product_id).
+
+      [NOTES]
+      load_type_code distingue chargement (LOADING, ~99,7%) et retrait (REMOVING). Les colonnes
+      product_source_id / product_destination_id sont des références polymorphes (cf. leur _type).
     columns:
+      # --- IDENTIFIANTS ---
       - name: task_product_id
-        description: "Clé primaire de task_has_product - Identifiant unique de la relation task-produit"
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
         data_type: int64
         tests:
           - unique
           - not_null
-          
       - name: task_id
-        description: "ID de la tâche (référence vers EVS.TASK)"
+        description: "Tâche de chargement Oracle (EVS.TASK)."
         data_type: int64
         tests:
           - not_null
-        
+      - name: device_id
+        description: "Distributeur (machine) chargé. FK → dim_neshu__device."
+        data_type: int64
       - name: company_id
-        description: "ID de l'entreprise cliente (peer company)"
+        description: "Client (peer company). FK → dim_neshu__company."
         data_type: int64
-          
       - name: product_id
-        description: "ID du produit"
+        description: "Produit chargé/retiré. FK → dim_neshu__product."
         data_type: int64
         tests:
           - not_null
-
-      - name: roadman_id
-        description: "ID du roadman associé à la tâche, lien avec la table RESOURCES"
-        data_type: int64
-
-      - name: vehicle_id
-        description: "ID du véhicule associé à la tâche, lien avec la table RESOURCES"
-        data_type: int64
-
       - name: location_id
-        description: "ID de la localisation de la tâche"
+        description: "Localisation de la tâche. FK → stg_oracle_neshu__location."
         data_type: int64
-        
-      - name: device_code
-        description: "Code métier du device (numéro de série)"
-        data_type: string
-        
-      - name: product_code
-        description: "Code métier du produit"
-        data_type: string
-        
+      - name: product_source_id
+        description: >
+          Identifiant de l'entité source. Référence polymorphe : la table cible est nommée par
+          product_source_type (RESOURCES → resources, DEVICE → device, COMPANY → company). Pour le
+          chargement, type = RESOURCES (stock véhicule/roadman). Pas une FK produit malgré le nom.
+        data_type: int64
+      - name: product_destination_id
+        description: >
+          Identifiant de l'entité destination. Référence polymorphe : table cible nommée par
+          product_destination_type. Pour le chargement, type = DEVICE → le distributeur rempli.
+        data_type: int64
+      - name: roadman_id
+        description: "Roadman ayant effectué le chargement. FK → stg_oracle_neshu__resources (idresources, type 2 = PERSON)."
+        data_type: int64
+      - name: vehicle_id
+        description: "Véhicule utilisé. FK → stg_oracle_neshu__resources (idresources, type 3 = VEHICLE)."
+        data_type: int64
+
+      # --- CODES / LIBELLÉS ---
       - name: company_code
-        description: "Code client de l'entreprise"
+        description: "Code client de l'entreprise."
         data_type: string
-        
+      - name: device_code
+        description: "Code métier du device (numéro de série)."
+        data_type: string
+      - name: product_code
+        description: "Code métier du produit."
+        data_type: string
+      - name: roadman_code
+        description: "Code métier du roadman."
+        data_type: string
+      - name: vehicle_code
+        description: "Code métier du véhicule."
+        data_type: string
+      - name: task_status_code
+        description: >
+          Code du statut de la tâche (périmètre filtré aux statuts pertinents). Valeurs :
+          FAIT (réalisé, majoritaire), ANNULE, VALIDE, ANOMALIE.
+        data_type: string
+        tests:
+          - accepted_values:
+              arguments:
+                values: [FAIT, ANNULE, VALIDE, ANOMALIE]
+              config:
+                severity: warn
+      - name: load_type_code
+        description: >
+          Type d'opération (label de la tâche). Valeurs : LOADING (chargement, ~99,7%),
+          REMOVING (retrait de produit).
+        data_type: string
+        tests:
+          - accepted_values:
+              arguments:
+                values: [LOADING, REMOVING]
+              config:
+                severity: warn
+      - name: product_source_type
+        description: "Type de l'entité source = table cible de product_source_id. Chargement : RESOURCES (stock véhicule), ou NULL/DEVICE (rare)."
+        data_type: string
+      - name: product_destination_type
+        description: "Type de l'entité destination = table cible de product_destination_id. Chargement : DEVICE (le distributeur), ou NULL/RESOURCES (rare)."
+        data_type: string
+      - name: task_location_info
+        description: "Informations d'accès / localisation de la tâche."
+        data_type: string
+
+      # --- DATE ---
       - name: task_start_date
-        description: "Date et heure réelle de la tâche"
+        description: "Date et heure réelle du chargement. Clé de partitionnement."
         data_type: timestamp
         tests:
           - not_null
 
+      # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi
-        description: "Coefficient multiplicateur d'unité du produit"
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
         data_type: int64
-
       - name: unit_coeff_div
-        description: "Coefficient diviseur d'unité du produit"
+        description: "Coefficient diviseur de conditionnement."
         data_type: int64
-
       - name: base_unit_quantity
-        description: "Quantité unitaire (sans conditionnement)"
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
         data_type: int64
-
       - name: product_unit_price_task
-        description: "Prix unitaire hors tax du produit au moment de la tâche"
-
+        description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
       - name: product_unit_price_latest
-        description: "Dernier Prix d'achat unitaire hors tax du produit"
-        data_type: int64
-        
-      - name: load_quantity
-        description: "Quantité produit chargée ou retirée"
+        description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
         data_type: int64
 
-      - name: load_valuation
-        description: "Valorisation du chargement (quantité * prix unitaire)"
+      # --- MESURES ---
+      - name: load_quantity
+        description: "Quantité chargée (ou retirée) en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
         data_type: int64
-        
+      - name: load_valuation
+        description: "Valorisation du chargement en euros = load_quantity × prix d'achat unitaire. Mesure additive."
+        data_type: int64
+
+      # --- MÉTADONNÉES ---
       - name: updated_at
-        description: "Timestamp de dernière modification (pour incrément)"
+        description: "Timestamp de dernière modification (filtre incrémental)."
         data_type: timestamp
         tests:
           - not_null
-          
       - name: created_at
-        description: "Timestamp de création"
+        description: "Timestamp de création en source."
         data_type: timestamp
         tests:
           - not_null
-          
       - name: extracted_at
-        description: "Timestamp d'extraction depuis Oracle"
+        description: "Timestamp d'extraction depuis Oracle."
         data_type: timestamp
         tests:
           - not_null
