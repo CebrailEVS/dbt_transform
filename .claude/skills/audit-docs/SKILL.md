@@ -42,8 +42,8 @@ All optional, positional:
 
 ## What it checks
 
-Source of truth for every rule is `CONVENTIONS.md` (§ Nommage des marts),
-`docs/conventions/marts.md` (§ Marts — pattern complet) and `CLAUDE.md`. Each finding gets a priority.
+Source of truth for every rule is `docs/conventions/marts.md` (§ Nommage + § Marts — pattern complet),
+the transversal rules in `CONVENTIONS.md`, and `CLAUDE.md`. Each finding gets a priority.
 
 ### P1 — Trust / correctness (mislead the SQL or the user)
 

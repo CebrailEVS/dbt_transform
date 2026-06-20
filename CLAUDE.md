@@ -50,7 +50,7 @@ Seeds are in `data/reference_data/<source>/` and land in `prod_reference` / `dev
 - Booleans: `is_` / `has_` prefix · timestamps: `_at` suffix · dates: `_date` suffix
 - Every staging model exposes: `created_at`, `updated_at`, `extracted_at`, `deleted_at`
 
-Voir `CONVENTIONS.md` § Nommage des marts pour les règles complètes (suffixe de grain, suffixe de source si collision, etc.).
+Voir [`docs/conventions/marts.md`](docs/conventions/marts.md) § Nommage pour les règles complètes (suffixe de grain, suffixe de source si collision, etc.).
 
 ---
 
@@ -91,11 +91,11 @@ dbt build -s +exposure:business_review
 
 ## Workflow for new models
 
-Always follow this order — never skip layers:
+Always follow this order — never skip layers. Each layer has a dedicated convention doc — read it before writing:
 
-1. **Staging** — rename/cast columns, harmonise timestamps, expose all source fields
-2. **Intermediate** — business logic, task-type splits, cross-source joins
-3. **Marts** — final dims and facts for BI consumption
+1. **Staging** ([`docs/conventions/staging.md`](docs/conventions/staging.md)) — clean/cast columns (passthrough naming), harmonise timestamps, expose all source fields. One staging model = one source table.
+2. **Intermediate** ([`docs/conventions/intermediate.md`](docs/conventions/intermediate.md)) — business logic, task-type splits, enrichment. **Source-aligned, NOT cross-source** — multi-source unification happens in marts.
+3. **Marts** ([`docs/conventions/marts.md`](docs/conventions/marts.md)) — final dims and facts for BI consumption.
 
 For each new model, create the SQL and its YAML entry in the same PR:
 - Staging YAML: `_<source>__models.yml` in the same folder
@@ -229,16 +229,15 @@ After any model creation, deletion, or convention change, update the relevant do
 - Step-by-step model creation process if the workflow changes
 - Checklist before merge if new quality gates are added
 
-**`CONVENTIONS.md`** — the single source of truth for rules (with a `## Sommaire` TOC at the top):
-- Naming conventions (models, columns, files)
-- SQL patterns (staging boilerplate, label pivot pattern, etc.)
-- Materialisation defaults
-- Test strategy and severity rules
-- SQLFluff rules
+**`CONVENTIONS.md`** — now a **minimal global index**. Holds only transversal rules (naming format, columns, materialisation summary, test/severity strategy, SQLFluff, tags) + a router table to the per-layer docs. Layer-specific rules live in `docs/conventions/`, NOT here.
 
-**`docs/conventions/marts.md`** — extracted marts pattern (loaded on demand): star schema rules, 4-block YAML description trame, config hygiene, minimum tests per layer, anti-patterns, SQL skeleton, grain-first column order. Update here (not in `CONVENTIONS.md`) when a marts rule changes.
+**`docs/conventions/{staging,intermediate,marts,seeds-snapshots}.md`** — the per-layer/-resource convention docs, loaded on demand. Each follows the same skeleton (rôle · nommage · colonnes · pattern SQL · matérialisation · description · tests minimum · freshness · anti-patterns · checklist PR). **Update the relevant layer doc** when a rule for that layer changes — that's the source of truth now:
+- `staging.md` — passthrough naming rule, system columns, CTE pattern, incremental, tests, freshness method A/B
+- `intermediate.md` — source-aligned (not cross-source), ref-only, incremental, tests
+- `marts.md` — naming by BU, star schema, 4-block description trame, config hygiene, tests, anti-patterns, grain-first order
+- `seeds-snapshots.md` — CSV seeds (column_types, BigQuery types, BOM), SCD2 snapshots
 
-**`docs/freshness.md`** — source freshness authority: tiers, monitoring mechanisms (A/B), per-source target state. `CONVENTIONS.md § Source freshness` only points here.
+**`docs/freshness.md`** — source freshness authority: tiers, monitoring mechanisms (A/B), per-source target state. `CONVENTIONS.md § Source freshness` and `staging.md § 8` only point here.
 
 ---
 

@@ -1,11 +1,34 @@
 # Marts — pattern complet
 
-> Extrait de `CONVENTIONS.md` (chargé à la demande). Référence unique pour tout
-> ce qui concerne les marts : modélisation, description, config, tests.
-> Pour le **nommage** des marts, voir `CONVENTIONS.md` § Nommage des marts.
+> Doc de référence pour écrire un mart (`dim_*` / `fct_*`) : nommage, modélisation,
+> description, config, tests. Règles transversales : [`../../CONVENTIONS.md`](../../CONVENTIONS.md).
+> Staging : [`staging.md`](staging.md) · Intermediate : [`intermediate.md`](intermediate.md).
 
-Section unifiee : modelisation, description, config, tests. Tout ce qui concerne
-les marts est centralise ici. Pour le naming, voir `CONVENTIONS.md` § Nommage des marts.
+## Nommage des marts — convention by BU
+
+Les marts sont organisés par **BU/domaine** (folder = BU), pas par source. Le nom
+reflète la BU et l'entité métier, pas l'implémentation source.
+
+| Élément | Règle |
+|---------|-------|
+| Préfixe | `dim_` (dimension) ou `fct_` (fait) |
+| Clé BU/domaine | nom exact du folder : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain` |
+| Séparateur | `__` entre BU et entité |
+| Entité | singulier, snake_case, nom métier (pas le nom source, pas le nom du rapport BI) |
+| Suffixe de grain | uniquement si agrégé au-dessus du grain naturel (`_quinzaine`, `_mensuel`) |
+| Suffixe de source | uniquement en cas de collision dans le même folder (ex. `fct_supply_chain__stock_neshu` vs `fct_supply_chain__stock_yuman`) |
+| Nom du rapport BI | jamais dans le nom du mart — va dans l'`exposure` |
+
+Exemples (avant → après) :
+
+| Avant | Après | Pourquoi |
+|-------|-------|----------|
+| `fct_oracle_neshu__conso_business_review` | `fct_neshu__consommation` | source droppée, nom de rapport BI déplacé vers exposure |
+| `fct_mssql_sage__pnl_bu_kpis` | `fct_finance__pnl_bu` | `_kpis` implicite dans un fait |
+| `dim_yuman__materials` | `dim_technique__material` | singulier, pas de source |
+| `fct_oracle_neshu__chargement_par_quinzaine` | `fct_neshu__chargement_quinzaine` | suffixe de grain conservé |
+
+YAML : `_<bu>__marts_models.yml` (modèles) · `_<bu>__marts_sources.yml` (tables externes Cloud Run).
 
 ## 1. Principes de modelisation
 
@@ -285,3 +308,14 @@ contexte → quand) avant « combien » (mesures).
 > Regle, pas dogme : si un regroupement metier est plus lisible (ex. coller
 > `entity_code`/`entity_name` juste apres leur FK), c'est tolere. Le grain en
 > tete et les metadonnees en queue, en revanche, sont systematiques.
+
+## 8. Checklist avant PR
+
+- [ ] Fichier `<dim|fct>_<bu>__<entity>.sql` dans `models/marts/<bu>/` + entrée dans `_<bu>__marts_models.yml`
+- [ ] Description YAML en 4 blocs (`[QUOI MÉTIER]`/`[COMMENT CONSTRUITE]`/`[GRAIN]`/`[NOTES]`), **grain obligatoire**
+- [ ] Star schema : FK `<entity>_id` only, pas de jointure fait-à-fait, pas de snowflake, pas d'OBT
+- [ ] Tests minimum (Dim : PK `unique`+`not_null` ; Fact : FK `relationships` + clé composite + invariants)
+- [ ] `{{ config() }}` = matérialisation only (pas de `description`, pas de `tags`)
+- [ ] Ordre des colonnes grain-first
+- [ ] `exposure` mise à jour si un rapport Power BI consomme le mart
+- [ ] `sqlfluff lint` OK

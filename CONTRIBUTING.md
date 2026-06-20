@@ -292,7 +292,7 @@ Quand un rapport Power BI est cree ou modifie, mettre a jour le fichier exposure
 2. Sauvegarder en **UTF-8 sans BOM** (pas depuis Excel directement — utiliser LibreOffice ou un editeur de texte)
 3. Ajouter une entree dans `data/schema.yml` avec :
    - `description` du seed
-   - `config: column_types:` pour **toutes les colonnes** (voir types autorises dans CONVENTIONS.md)
+   - `config: column_types:` pour **toutes les colonnes** (voir types autorises dans docs/conventions/seeds-snapshots.md)
    - `columns:` avec description et tests pour chaque colonne
 4. **Verifier les types en regardant les donnees reelles**, pas seulement le nom de colonne :
    ```bash
