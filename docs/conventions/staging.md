@@ -34,12 +34,16 @@ Chaque `stg_*` expose ces 4 colonnes harmonisées :
 ### Nommage des colonnes — passthrough par défaut
 
 **Règle : raw → staging ne renomme pas les colonnes.** On conserve les noms de la
-source. Seules **deux** transformations de nom sont autorisées :
+source. Seules **trois** transformations de nom sont autorisées :
 
 1. **Harmonisation des 4 colonnes système** (`creation_date`→`created_at`,
-   `_sdc_extracted_at`→`extracted_at`, etc. — cf. § 3 colonnes système).
+   `_sdc_extracted_at`→`extracted_at`, etc. — cf. colonnes système ci-dessus).
 2. **Nettoyage d'un nom ambigu / non parlant**, typiquement un `id` nu →
    `<entity>_id`.
+3. **Préfixage par l'entité** des colonnes **génériques** (`name`, `address`,
+   `code`, `category`) → `client_name`, `site_address`… — **uniquement** quand la
+   source expose ces noms passe-partout sur des entités qui sont **co-jointes en
+   aval** (sinon, passthrough simple).
 
 Vérifié sur les données (diff colonnes raw vs staging) :
 
@@ -51,11 +55,14 @@ Vérifié sur les données (diff colonnes raw vs staging) :
 > La normalisation complète en `<entity>_id` pour **toutes** les sources se fait
 > au plus tard en marts. En staging, on reste fidèle à la source.
 
-> **Déviation connue — Yuman.** `stg_yuman__*` préfixe les colonnes métier par
-> l'entité (`name`→`client_name`, `address`→`client_address`, `code`→`client_code`).
-> Ça va au-delà du nettoyage et **n'est pas la convention cible** : ne pas
-> reproduire ce préfixage sur de nouveaux staging. Dette historique, à laisser en
-> l'état tant qu'aucun refactor Yuman n'est planifié.
+> **Cas du préfixage par entité — Yuman (pattern justifié).** Les `stg_yuman__*`
+> préfixent les colonnes métier (`name`→`client_name`, `address`→`site_address`,
+> `code`→`material_code`). Ce n'est **pas** une déviation : `int_yuman__demands_workorders_enriched`
+> joint **9 entités Yuman** qui partagent toutes des noms génériques — sans préfixe,
+> chaque jointure aval devrait désambiguïser à la main (≈190 références). Le préfixe
+> est donc **load-bearing**. Règle : préfixer en staging **si et seulement si** la
+> source a des noms génériques co-joints (cas Yuman) ; sinon, passthrough strict
+> (cas Oracle, Zoho).
 
 ### Autres colonnes
 
