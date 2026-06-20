@@ -118,6 +118,7 @@ select
     base.workorder_type,
     base.workorder_status,
     base.intervention_state,
+    base.is_orphan_workorder,
     base.workorder_technician_name,
     base.technician_equipe,
     base.workorder_report,

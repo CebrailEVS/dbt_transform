@@ -806,6 +806,12 @@ models:
                   - AUTRE
               config:
                 severity: warn
+      - name: is_orphan_workorder
+        description: >
+          True pour un bon de travail orphelin (sans demande rattachée) : aucun référentiel
+          partenaire/client/site. Flag canonique partagé avec int_yuman__demands_workorders_enriched
+          (qui le définit) et int_yuman__interventions (qui les exclut). Conservés ici mais
+          filtrables : à exclure des analyses par partenaire (partner_name NULL).
       - name: workorder_technician_name
         description: "Nom du technicien affecté"
       - name: technician_equipe

@@ -118,6 +118,12 @@ models:
           workorder Closed sans motif de non-intervention). Flag de filtre principal des marts.
       - name: has_workorder
         description: True si un bon de travail existe (workorder_status non null), False pour une demande seule.
+      - name: is_orphan_workorder
+        description: >
+          True pour un bon de travail "sec" (orphelin) : workorder présent mais sans demande
+          rattachée (demand_id NULL, issu du full join amont). Ces lignes n'ont aucun
+          référentiel partenaire/client/site (tous NULL). Définition unique : reprise par
+          int_yuman__interventions (qui les exclut) et fct_technique__suivi_partenaire (flag).
       - name: workorder_necessite_intervenir
         description: Indique si une intervention est nécessaire.
       - name: workorder_si_non_pourquoi

@@ -109,10 +109,11 @@ with base_workorders as (
         ) as a_facturer
 
     from {{ ref('int_yuman__demands_workorders_enriched') }}
-    -- Exclusion des bons de travail "secs" (sans demande rattachée) : ils décrochent du
-    -- référentiel client/partenaire (partner_name, client_id… NULL) et fausseraient la clé
-    -- d'intervention aval (key_inter) + la tarification. ~44 lignes en prod (full join amont).
-    where demand_id is not null
+    -- Exclusion des bons de travail "secs" (orphelins, sans demande rattachée) : ils
+    -- décrochent du référentiel client/partenaire (partner_name, client_id… NULL) et
+    -- fausseraient la clé d'intervention aval (key_inter) + la tarification (~65 lignes).
+    -- Flag canonique défini une seule fois en amont (cf. is_orphan_workorder).
+    where not is_orphan_workorder
 ),
 
 -- CTE de référence : nettoyage type d'intervention, machine, métropole, tarification

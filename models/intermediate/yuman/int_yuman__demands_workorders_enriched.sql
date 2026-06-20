@@ -273,5 +273,9 @@ select
         else 'AUTRE'
     end as intervention_state,
     (workorder_status = 'Closed' and not is_workorder_not_done) as is_realized,
-    (workorder_status is not null) as has_workorder
+    (workorder_status is not null) as has_workorder,
+    -- Workorder orphelin : bon de travail "sec" sans demande rattachee (full join amont).
+    -- Sans demande = sans referentiel partenaire/client/site. Definition unique reprise
+    -- par int_yuman__interventions (exclusion) et fct_technique__suivi_partenaire (flag).
+    (demand_id is null) as is_orphan_workorder
 from enriched
