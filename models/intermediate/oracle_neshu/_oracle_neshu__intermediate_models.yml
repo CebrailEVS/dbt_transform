@@ -787,65 +787,70 @@ models:
 
   - name: int_oracle_neshu__appro_tasks
     description: >
-      Table intermédiaire des passages approvisionneurs.
-      Filtrée sur les tâches de type PASSAGE APPRO (idtask_type=32) 
-      avec statut actif (code_status_record=1) et enrichie avec ressources (roadman, véhicule).
-      
+      [QUOI MÉTIER]
+      Passages d'approvisionnement (réassort) des distributeurs NESHU : une ligne par tâche
+      de type « PASSAGE APPROVISIONNEURS ». Brique de base de la chaîne appro.
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_neshu__task filtré sur idtask_type = 32, statut d'enregistrement actif
+      (code_status_record = '1') et real_start_date renseignée ; jointures company (client),
+      task_status (code statut) et location (info d'accès).
+
+      [GRAIN]
+      1 ligne par task_id (PK). ~555k lignes, depuis 2022.
+
+      [NOTES]
+      Modèle de base NON enrichi : roadman, véhicule, device normalisé et statut reclassé sont
+      ajoutés en aval dans int_oracle_neshu__appro_tasks_enriched. task_status_code couvre tout
+      le cycle (PREVU → FAIT/ANNULE…), pas seulement les passages réalisés.
     columns:
       - name: task_id
-        description: "ID de la tâche (référence vers EVS.TASK)"
+        description: "Identifiant de la tâche Oracle (EVS.TASK). PK."
         data_type: int64
         tests:
           - unique
           - not_null
 
       - name: device_id
-        description: "ID du device associé à la tâche"
+        description: "Distributeur (machine) concerné. FK → dim_neshu__device."
         data_type: int64
 
       - name: company_id
-        description: "ID de l'entreprise cliente (peer company)"
+        description: "Client (peer company) de la tâche. FK → dim_neshu__company."
         data_type: int64
 
       - name: product_source_id
-        description: "ID du produit source de la tâche"
+        description: "Produit source de la tâche. FK → dim_neshu__product."
         data_type: int64
 
       - name: product_destination_id
-        description: "ID du produit destination de la tâche"
-        data_type: int64
-
-      - name: roadman_id
-        description: "ID du roadman associé à la tâche (resources type=2)"
-        data_type: int64
-
-      - name: vehicle_id
-        description: "ID du véhicule associé à la tâche (resources type=3)"
+        description: "Produit destination de la tâche. FK → dim_neshu__product."
         data_type: int64
 
       - name: company_code
-        description: "Code client de l'entreprise (company.code)"
-        data_type: string
-
-      - name: roadman_code
-        description: "Code métier du roadman (resources.code)"
-        data_type: string
-
-      - name: vehicle_code
-        description: "Code métier du véhicule (resources.code)"
-        data_type: string
-
-      - name: task_status_code
-        description: "Code du statut de la tâche (task_status.code)"
+        description: "Code client de l'entreprise (company.code)."
         data_type: string
 
       - name: product_source_type
-        description: "Type de la source produit"
+        description: "Type d'entité de la source produit. Valeurs : RESOURCES (stock véhicule/ressource), NULL."
         data_type: string
 
       - name: product_destination_type
-        description: "Type de la destination produit"
+        description: "Type d'entité de la destination produit. Valeurs : DEVICE (le distributeur), NULL."
         data_type: string
+
+      - name: task_status_code
+        description: >
+          Code du statut de la tâche (task_status.code). Valeurs : FAIT (réalisé, majoritaire),
+          ANNULE, PREVU (planifié), ENCOURS, ANOMALIE, VALIDE, ACQUITTE, ENATTENTE.
+          Filtrer task_status_code = 'FAIT' pour les passages réellement réalisés.
+        data_type: string
+        tests:
+          - accepted_values:
+              arguments:
+                values: [FAIT, ANNULE, PREVU, ENCOURS, ANOMALIE, VALIDE, ACQUITTE, ENATTENTE]
+              config:
+                severity: warn
 
       - name: task_location_info
         description: "Informations de localisation de la tâche"
