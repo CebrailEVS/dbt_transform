@@ -397,7 +397,7 @@ models:
       OBT-like : l'aplatissement multi-dim est volontaire car le BI parc
       machine consomme directement cette table sans jointure côté Power Query.
       Si 3+ rapports répètent ce flatten, voir si on consolide ; sinon on garde.
-      Pattern doc dans `CONVENTIONS.md` § Marts.
+      Pattern doc dans `docs/conventions/marts.md`.
     columns:
       # Informations Machine
       - name: material_id

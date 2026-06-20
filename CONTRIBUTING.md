@@ -31,10 +31,17 @@ direnv allow                             # a faire une seule fois dans le repo
 
 # 6. Vérifier que tout fonctionne
 dbt debug --target dev
+
+# 7. Installer les guardrails pre-commit (lint SQL au commit, dbt parse au push)
+pipx install pre-commit                      # isole, ne pollue pas dbt_venv
+pre-commit install                           # hooks de commit (sqlfluff)
+pre-commit install --hook-type pre-push      # hooks de push (dbt parse)
 ```
 
 > `direnv allow` est a executer une seule fois par machine/repo. Apres ca, les variables `.env` sont chargees automatiquement des que tu entres dans le dossier.
 > **Sans direnv**, charge les variables manuellement avant chaque session : `set -a && source .env && set +a`
+
+> **Guardrails pre-commit** : `.pre-commit-config.yaml` rejoue le lint SQLFluff (au commit) et `dbt parse` (au push) — les memes verifications que les hooks Claude Code. Elles tournent quel que soit l'auteur du code (humain ou IA), donc un commit non lint est bloque localement avant meme la CI.
 
 ### Comprendre les fichiers de dépendances
 
@@ -285,7 +292,7 @@ Quand un rapport Power BI est cree ou modifie, mettre a jour le fichier exposure
 2. Sauvegarder en **UTF-8 sans BOM** (pas depuis Excel directement — utiliser LibreOffice ou un editeur de texte)
 3. Ajouter une entree dans `data/schema.yml` avec :
    - `description` du seed
-   - `config: column_types:` pour **toutes les colonnes** (voir types autorises dans CONVENTIONS.md)
+   - `config: column_types:` pour **toutes les colonnes** (voir types autorises dans docs/conventions/seeds-snapshots.md)
    - `columns:` avec description et tests pour chaque colonne
 4. **Verifier les types en regardant les donnees reelles**, pas seulement le nom de colonne :
    ```bash

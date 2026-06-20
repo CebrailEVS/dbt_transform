@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/mnt/data/transform/.claude/hooks/lint-sql.sh"
+          },
+          {
+            "type": "command",
+            "command": "/mnt/data/transform/.claude/hooks/parse-yaml.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

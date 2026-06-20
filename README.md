@@ -81,6 +81,22 @@ Voir la [documentation dbt generee](https://cebrailevs.github.io/dbt_transform/)
 - **Data Engineer** : `staging/`, `intermediate/` — qualite des sources et logique metier
 - **Data Analyst** : `intermediate/`, `marts/` — analytics et reporting
 
+### Couche IA (Claude Code)
+
+La couche assistant est **versionnee et partagee** par l'equipe (seuls `.claude/settings.local.json` et `.claude/notes/` restent locaux) :
+
+```
+CLAUDE.md              Contexte projet (architecture, conventions, hard rules)
+.mcp.json              Serveurs MCP : BigQuery, Power BI, dbt (chemins absolus = repo en /mnt/data/transform ; adapter si checkout ailleurs)
+.claude/
+├── commands/          Slash commands : /build-source, /new-mart, /lint-fix, /freshness
+├── skills/            Skills : audit-sources, audit-docs, profile
+├── hooks/             Hooks PostToolUse (lint SQL + dbt parse) et helpers d'auth MCP
+└── settings.json      Config des hooks (versionnee)
+```
+
+Les memes garde-fous tournent aussi hors IA via `.pre-commit-config.yaml` (cf. [CONTRIBUTING.md](CONTRIBUTING.md)).
+
 ---
 
 ## Installation
