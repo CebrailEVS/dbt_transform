@@ -3,7 +3,7 @@ description: Scaffold un nouveau mart (SQL + YAML) conforme a CONVENTIONS.md
 argument-hint: <bu> <entity> (ex. supply_chain couverture_stock)
 ---
 
-Cree un nouveau mart pour la BU `$1`, entite `$2`, en respectant **strictement** `CONVENTIONS.md` § Marts — pattern complet.
+Cree un nouveau mart pour la BU `$1`, entite `$2`, en respectant **strictement** `docs/conventions/marts.md` (§ Marts — pattern complet).
 
 Procedure :
 

@@ -145,13 +145,13 @@ from aggregated_labels
 
 ### When creating or modifying a mart
 
-Always follow `CONVENTIONS.md` § Marts — pattern complet. 4 piliers :
+Always follow [`docs/conventions/marts.md`](docs/conventions/marts.md) (§ Marts — pattern complet). 4 piliers :
 
 1. **Description YAML en 4 blocs** : `[QUOI MÉTIER]` / `[COMMENT CONSTRUITE]` / `[GRAIN]` / `[NOTES]`. Grain obligatoire (1 ligne par X).
 2. **Tests minimum** : Dim → `unique` + `not_null` sur PK (error) + `accepted_values` / row count range (warn). Fact → `not_null` + `relationships` sur chaque FK (warn) + `unique_combination_of_columns` sur clé composite + `expression_is_true` sur invariants.
 3. **Config block hygiène** : `{{ config() }}` pour matérialisation uniquement. Description en YAML, pas en config (persist_docs déjà actif). Pas de `tags=[...]` model-level.
-4. **Star schema strict** : pas de jointure fait-à-fait, pas de snowflake, pas d'OBT (cf. `docs/migration-marts/inventory.md` §5 pour le pattern hybride flatten/relations PBI).
-5. **Ordre des colonnes (`select` final)** : règle **grain-first** — colonnes du grain en tête (`dimension temporelle → PK → FK`), puis FK restantes → attributs texte → dates secondaires → booléens → mesures → métadonnées (`*_at`) en dernier. Convention indicative, non lintée. Détail + exemple : `CONVENTIONS.md` § Marts §7.
+4. **Star schema strict** : pas de jointure fait-à-fait, pas de snowflake, pas d'OBT (cf. [`docs/conventions/marts.md`](docs/conventions/marts.md) § 1 pour le pattern hybride flatten/relations PBI).
+5. **Ordre des colonnes (`select` final)** : règle **grain-first** — colonnes du grain en tête (`dimension temporelle → PK → FK`), puis FK restantes → attributs texte → dates secondaires → booléens → mesures → métadonnées (`*_at`) en dernier. Convention indicative, non lintée. Détail + exemple : [`docs/conventions/marts.md`](docs/conventions/marts.md) § 7.
 
 **Avec le MCP BigQuery** : explorer la source upstream avant d'écrire le mart (`get_table_info` pour schéma, `SELECT DISTINCT` pour `accepted_values`, `COUNT(*)` pour les bornes `row_count_between`, `MIN/MAX(date)` pour les plages).
 
@@ -214,10 +214,11 @@ After any model creation, deletion, or convention change, update the relevant do
 | New naming/column convention | — | — | Update relevant section | — |
 | New SQLFluff rule | — | — | Update SQLFluff table | — |
 | New materialization pattern | — | Update "Ajouter un nouveau modele" steps | Update Materialisation table | — |
-| New mandatory test pattern | — | Update checklist | Update Tests / Marts section | — |
+| New mandatory test pattern | — | Update checklist | Update Tests section | Update `docs/conventions/marts.md` § 4 if marts test rule |
+| New marts modeling rule | — | — | — | Update `docs/conventions/marts.md` |
 | Workflow or PR process change | — | Update relevant section | — | — |
 | BigQuery config change (partition/cluster) | — | — | Add/update BigQuery section | — |
-| New BU / marts folder | — | — | — | Update `docs/migration-marts/` (Phase 0/1) si refacto en cours |
+| New BU / marts folder | — | — | — | Create `_<bu>__marts_models.yml` + exposure file; marts refacto by BU is DONE (no `docs/migration-marts/`) |
 
 ### What to update in each doc
 
@@ -228,12 +229,16 @@ After any model creation, deletion, or convention change, update the relevant do
 - Step-by-step model creation process if the workflow changes
 - Checklist before merge if new quality gates are added
 
-**`CONVENTIONS.md`** — the single source of truth for rules:
+**`CONVENTIONS.md`** — the single source of truth for rules (with a `## Sommaire` TOC at the top):
 - Naming conventions (models, columns, files)
 - SQL patterns (staging boilerplate, label pivot pattern, etc.)
 - Materialisation defaults
 - Test strategy and severity rules
 - SQLFluff rules
+
+**`docs/conventions/marts.md`** — extracted marts pattern (loaded on demand): star schema rules, 4-block YAML description trame, config hygiene, minimum tests per layer, anti-patterns, SQL skeleton, grain-first column order. Update here (not in `CONVENTIONS.md`) when a marts rule changes.
+
+**`docs/freshness.md`** — source freshness authority: tiers, monitoring mechanisms (A/B), per-source target state. `CONVENTIONS.md § Source freshness` only points here.
 
 ---
 
@@ -243,7 +248,7 @@ After any model creation, deletion, or convention change, update the relevant do
 - **Never delete or drop tables** unless explicitly asked
 - **Never run against prod target** unless explicitly asked
 - **Never skip SQLFluff lint** before considering a model done
-- **Marts must follow a star schema** — facts (`fct_`) reference dimensions (`dim_`) via `<entity>_id` foreign keys only. No fact-to-fact joins (un fait peut toutefois en **agréger** un autre à un grain plus grossier via `GROUP BY`, ou l'**étendre** à grain strictement identique 1:1 — cf. `CONVENTIONS.md` § Marts), no snowflaked dimensions, no wide one-big-table marts. **Aplatir uniquement les attributs d'affichage du parent direct (1-3 colonnes max)**, jamais une dim parente entière. Voir `CONVENTIONS.md` § Marts — pattern complet.
+- **Marts must follow a star schema** — facts (`fct_`) reference dimensions (`dim_`) via `<entity>_id` foreign keys only. No fact-to-fact joins (un fait peut toutefois en **agréger** un autre à un grain plus grossier via `GROUP BY`, ou l'**étendre** à grain strictement identique 1:1 — cf. [`docs/conventions/marts.md`](docs/conventions/marts.md)), no snowflaked dimensions, no wide one-big-table marts. **Aplatir uniquement les attributs d'affichage du parent direct (1-3 colonnes max)**, jamais une dim parente entière. Voir [`docs/conventions/marts.md`](docs/conventions/marts.md) § Marts — pattern complet.
 - **Description placement** : staging **doit** avoir `description='...'` dans `{{ config() }}` (cf. feedback memory, convention historique). Intermediate et **marts** : description en YAML uniquement, pas dans le config block (persist_docs gère BQ).
 - All contributions go through PRs — DE owns staging/intermediate/snapshots, DA contributes/reviews marts.
   **Exception** : les changements docs-only (README, docs/, CONTRIBUTING) partent en push direct sur master, pas de PR. Master est protégée : le push direct passe avec les droits owner (sinon fallback PR + merge --admin).
