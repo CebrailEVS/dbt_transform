@@ -73,13 +73,47 @@ select * from enriched
 - Clause `is_incremental()` : même pattern que le staging (`updated_at >` max +
   fenêtre glissante de sécurité).
 
-## 6. Description
+## 6. Description & documentation (grounding agent NL→SQL)
+
+> Les descriptions YAML sont lues par l'agent IA (text-to-SQL) via le manifest dbt :
+> elles déterminent sa capacité à traduire une question métier en SQL correct. On
+> documente donc pour la machine **et** l'humain. Standard aligné sur celui des marts.
 
 - **En YAML uniquement**, pas dans le `{{ config() }}` (`persist_docs` pousse la
   description YAML vers BigQuery). Tout modèle a une entrée YAML.
 - **Dette connue** : une partie des `int_*` existants portent encore une
   `description=` dans le config — à retirer au fil des modifications, ne pas en
   ajouter de nouvelle.
+
+### Description du modèle — trame 4 blocs (comme les marts)
+
+```
+[QUOI MÉTIER]        ce que représente la table, en langage métier
+[COMMENT CONSTRUITE] sources + logique clé (full join, dédup, lookups, filtres)
+[GRAIN]              1 ligne par X  ← obligatoire (+ volumétrie, NULL attendus, fan-out éventuel)
+[NOTES]              filtres implicites, pièges, dépendances aval
+```
+
+### Documentation des colonnes — standard « agent-ready »
+
+Chaque colonne documente, selon son type :
+
+| Type de colonne | À documenter |
+|---|---|
+| FK (`*_id`) | sens + **entité cible** (« FK → `stg_yuman__sites` / `dim_technique__site` ») |
+| Enum / liste fermée | sens + **valeurs possibles et leur signification** (échantillonnées dans BigQuery, pas devinées) |
+| Catégorie haute cardinalité | sens + **motif/pattern** + exemples (pas d'énumération exhaustive) |
+| Mesure | sens + **unité** + additif ou non |
+| Date / timestamp | **quel événement** elle marque |
+| Texte libre | sens métier (pas une paraphrase du nom) |
+| Booléen | la condition exacte qui le met à `true` |
+
+Pour les énums structurantes, ajouter le test `accepted_values` (severity `warn`) —
+il documente ET protège contre les dérives. Signaler les **NULL/valeurs attendus**
+(ex. « renseigné uniquement pour le partenaire NESHU ») et les **données sales** connues.
+
+> Modèle de référence : `int_yuman__demands_workorders_enriched` et
+> `int_yuman__interventions` (`models/intermediate/yuman/_yuman__intermediate_models.yml`).
 
 ## 7. Tests minimum
 

@@ -3,69 +3,98 @@ version: 2
 models:
   - name: int_yuman__demands_workorders_enriched
     description: >
-      Vue intermédiaire unifiée regroupant les demandes d'intervention (workorder_demands)
-      et les interventions (workorders). 
-      Ce modèle combine également les informations associées aux clients, sites, matériels, 
-      catégories et utilisateurs. 
-      Il sert de base de données centrale pour les analyses et modèles marts relatifs aux 
-      opérations de maintenance et d'intervention.
+      [QUOI MÉTIER]
+      Vue unifiée des demandes d'intervention et des bons de travail Yuman, enrichie des
+      entités liées (client, site, matériel, catégories, contact, utilisateur/technicien).
+      Base centrale de toute la chaîne intervention/maintenance (technique + suivi partenaire).
 
+      [COMMENT CONSTRUITE]
+      Full join demandes (workorder_demands) ↔ bons de travail (workorders), puis lookups
+      sur les 9 entités Yuman (clients, sites, materials, categories, users, contacts…).
+      Définit ici l'état métier canonique intervention_state, source de vérité unique reprise
+      en passthrough par int_yuman__interventions et dérivée par fct_technique__suivi_partenaire.
+
+      [GRAIN]
+      1 ligne par couple (demand_id, workorder_id). ~18,9k lignes. Inclut 65 bons de travail
+      orphelins (demand_id NULL, issus du full join) et 559 demandes sans bon de travail
+      (workorder_id NULL). Léger fan-out (~64 lignes en double sur le couple) non dédupliqué
+      ici — int_yuman__interventions tranche via qualify.
+
+      [NOTES]
+      Aucun filtre de périmètre à ce stade : les bons de travail orphelins sont conservés
+      (flag is_orphan_workorder) ; c'est l'aval qui filtre. Les colonnes préfixées
+      (client_*, site_*, material_*) viennent du staging Yuman (noms génériques co-joints).
     columns:
       # --- DEMANDES D'INTERVENTION ---
       - name: demand_id
-        description: Identifiant unique de la demande d'intervention.
+        description: Identifiant de la demande d'intervention Yuman (clé métier de la demande). NULL pour un bon de travail orphelin (65 lignes).
       - name: workorder_id
-        description: Identifiant du bon de travail associé à la demande (si existant).
+        description: Identifiant du bon de travail rattaché. NULL si la demande n'a pas (encore) de bon de travail (559 lignes).
       - name: material_id
-        description: Identifiant du matériel concerné par la demande.
+        description: "Matériel concerné par la demande. FK → stg_yuman__materials / dim_technique__material."
       - name: site_id
-        description: Identifiant du site client concerné.
+        description: "Site client concerné. FK → stg_yuman__sites / dim_technique__site."
       - name: client_id
-        description: Identifiant du client concerné.
+        description: "Client concerné. FK → stg_yuman__clients / dim_technique__client."
       - name: user_id
-        description: Identifiant de l'utilisateur ayant créé la demande.
+        description: "Utilisateur Yuman ayant créé la demande. FK → stg_yuman__users."
       - name: demand_description
-        description: Description textuelle de la demande d'intervention.
+        description: >
+          Texte libre de la demande (saisi par le créateur). Sert notamment au repli
+          d'extraction du code postal en aval quand le site n'en a pas.
       - name: demand_status
-        description: Statut actuel de la demande d'intervention.
+        description: >
+          Statut brut de la demande Yuman. Valeurs : Closed (clôturée, ~18,1k),
+          Rejected (rejetée), Accepted (acceptée, en attente de bon de travail),
+          Open (ouverte). NULL pour les bons de travail orphelins.
       - name: demand_reject_comment
-        description: Commentaire éventuel de rejet de la demande.
+        description: Commentaire de rejet de la demande (renseigné quand demand_status = 'Rejected').
       - name: demand_created_at
-        description: Date et heure de création de la demande d'intervention.
+        description: Timestamp de création de la demande.
       - name: demand_updated_at
-        description: Date et heure de la dernière mise à jour de la demande.
+        description: Timestamp de dernière mise à jour de la demande.
 
       # --- CATEGORIE DEMANDE ---
       - name: demand_category_name
-        description: Nom de la catégorie associée à la demande d'intervention.
+        description: >
+          Catégorie de la demande, libellé composite suivant le motif
+          `<TYPE> <DÉLAI/PROG> - <PARTENAIRE>` (ex. 'CURATIVE J+2 - NESHU',
+          'PREVENTIVE PROG - BRITA', 'INSTALLATION PROG - NESHU'). ~40 combinaisons.
 
       # --- INTERVENTIONS / WORKORDERS ---
       - name: technician_id
-        description: Identifiant du technicien affecté à l'intervention.
+        description: "Technicien affecté au bon de travail. FK → stg_yuman__users."
       - name: workorder_number
-        description: Numéro unique du bon de travail.
+        description: Numéro lisible du bon de travail dans Yuman.
       - name: workorder_category
-        description: Catégorie de l'intervention (préventive, curative, etc.).
+        description: >
+          Catégorie brute du bon de travail, même motif que demand_category_name
+          (`<TYPE> <DÉLAI/PROG> - <PARTENAIRE>`, ex. 'CURATIVE J+2 - NESHU'). NULL si pas de
+          bon de travail (~800 lignes).
       - name: workorder_status
-        description: Statut actuel du bon de travail.
+        description: >
+          Statut brut du bon de travail Yuman. Valeurs : Closed (clôturé, ~18,1k),
+          Scheduled (planifié), In progress (en cours). NULL si la demande n'a pas de bon de travail.
       - name: workorder_title
-        description: Titre ou résumé de l'intervention.
+        description: Titre ou résumé du bon de travail.
       - name: workorder_description
         description: Description détaillée du bon de travail.
       - name: workorder_report
-        description: Compte-rendu ou rapport de l'intervention réalisée.
+        description: Compte-rendu d'intervention saisi par le technicien.
       - name: workorder_technician_name
-        description: Nom du technicien affecté.
+        description: Nom du technicien affecté au bon de travail.
       - name: workorder_date_creation
         description: Date de création du bon de travail.
       - name: workorder_motif_non_intervention
-        description: Motif de non-intervention, si applicable.
+        description: >
+          Motif de non-intervention. Renseigné ⇒ l'intervention n'a pas eu lieu (alimente
+          is_workorder_not_done et l'état NON_REALISEE). Ex. 'Erreur de saisie', 'Résolue client'.
       - name: workorder_detail_non_intervention
-        description: Détails supplémentaires sur la non-intervention.
+        description: Détail complémentaire du motif de non-intervention, si applicable.
       - name: workorder_raison_mise_en_pause
-        description: Raison de mise en pause du bon de travail.
+        description: Raison de mise en pause du bon de travail (renseigné ⇒ pause active ou historique).
       - name: workorder_explication_mise_en_pause
-        description: Explications détaillées concernant la mise en pause.
+        description: Explication détaillée de la mise en pause.
       - name: is_workorder_paused
         description: >
           True si l'intervention est en pause (au moins un des champs
@@ -98,6 +127,7 @@ models:
           DEMANDE_OUVERTE (pas de workorder, demande Open) ;
           DEMANDE_REJETEE (pas de workorder, demande Rejected) ;
           AUTRE (filet de sécurité, capte tout statut Yuman futur non prévu).
+          Filtrer intervention_state = 'REALISEE' pour les interventions réellement réalisées.
         tests:
           - accepted_values:
               arguments:
@@ -125,45 +155,51 @@ models:
           référentiel partenaire/client/site (tous NULL). Définition unique : reprise par
           int_yuman__interventions (qui les exclut) et fct_technique__suivi_partenaire (flag).
       - name: workorder_necessite_intervenir
-        description: Indique si une intervention est nécessaire.
+        description: Champ Yuman du compte-rendu — indique si une intervention sur site est nécessaire.
       - name: workorder_si_non_pourquoi
-        description: Justification en cas de non-intervention.
+        description: Justification saisie dans le compte-rendu quand aucune intervention n'est nécessaire.
       - name: date_planned
         description: Date planifiée de l'intervention.
       - name: date_started
         description: Date de début réel de l'intervention.
       - name: date_done
-        description: Date de fin ou de clôture de l'intervention.
+        description: Date de fin / clôture de l'intervention.
 
       # --- CLIENTS ---
       - name: partner_name
-        description: Nom du partenaire associé au client.
+        description: >
+          Partenaire (donneur d'ordre) du client. Valeurs : NESHU, AUUM, BRITA, TWYD,
+          FONTAINCO, NU, EXPRESSO, DAAN. Détermine les paliers de remise tarifaire.
       - name: client_code
-        description: Code unique du client.
+        description: Code unique du client (Yuman).
       - name: client_name
         description: Nom du client.
       - name: client_category
-        description: Catégorie ou segment du client.
+        description: >
+          Segment commercial du client. Valeurs : PREMIUM, VIP, OR, ARGENT, BRONZE.
+          **Renseigné uniquement pour les clients du partenaire NESHU** — NULL attendu
+          pour les autres partenaires (ce n'est pas une donnée manquante). Quelques
+          valeurs sales résiduelles côté NESHU (chaîne vide, littéral 'nan') = non renseigné.
       - name: client_is_active
-        description: Indicateur précisant si le client est actif.
+        description: True si le client est actif dans Yuman.
 
       # --- SITES ---
       - name: site_code
-        description: Code unique du site client.
+        description: Code unique du site client (Yuman).
       - name: site_name
         description: Nom du site.
       - name: site_address
         description: Adresse complète du site.
       - name: site_postal_code
-        description: Code postal du site.
+        description: Code postal du site (tel que saisi dans Yuman ; peut être NULL ou '00000', corrigé en aval).
 
       # --- CONTACT DU SITE ---
       - name: contact_id
-        description: Identifiant du contact le plus récemment créé rattaché au site.
+        description: "Contact le plus récemment créé rattaché au site. FK → stg_yuman__contacts."
       - name: contact_name
         description: Nom du contact.
       - name: contact_title
-        description: Civilité du contact (mr, mrs, etc.).
+        description: "Civilité du contact. Valeurs : mr, ms (souvent NULL)."
       - name: contact_phone
         description: Numéro de téléphone fixe du contact.
       - name: contact_mobile
@@ -185,21 +221,24 @@ models:
 
       # --- CATEGORIE MATERIEL ---
       - name: material_category
-        description: Catégorie fonctionnelle du matériel.
+        description: >
+          Désignation / modèle du matériel (haute cardinalité, ce n'est pas une énumération
+          fermée) — ex. 'MGZ', 'MINITOWER MOMENTO', 'MILANO GRAIN FTS60E + MODULO'. Sert de
+          base à la normalisation machine en aval (machine_clean / famille_neshu).
 
       # --- UTILISATEURS ---
       - name: manager_id
-        description: Identifiant du manager associé à l'utilisateur.
+        description: "Manager associé à l'utilisateur. FK → stg_yuman__users."
       - name: user_name
-        description: Nom de l'utilisateur ou du créateur de la demande.
+        description: Nom de l'utilisateur / créateur de la demande.
       - name: user_type
-        description: Type d'utilisateur (technicien, manager, client, etc.).
+        description: "Rôle Yuman de l'utilisateur. Valeurs : guest (~17,4k), manager (souvent NULL)."
       - name: is_manager_as_technician
-        description: Indique si un manager agit en tant que technicien.
+        description: True si un manager agit comme technicien sur le bon de travail.
 
       # --- AGENCE TECHNICIEN (MAPPING) ---
       - name: technician_agency_stock
-        description: Agence de rattachement du technicien selon le mapping fourni de Vincent.
+        description: Agence de rattachement du technicien (mapping fourni par Vincent).
 
   - name: int_yuman__interventions
     description: >
