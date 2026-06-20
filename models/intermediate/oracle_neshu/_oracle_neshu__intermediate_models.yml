@@ -820,11 +820,18 @@ models:
         data_type: int64
 
       - name: product_source_id
-        description: "Produit source de la tâche. FK → dim_neshu__product."
+        description: >
+          Identifiant de l'entité **source** du flux. Référence **polymorphe** : la table cible est
+          celle nommée par product_source_type — COMPANY → stg_oracle_neshu__company,
+          RESOURCES → stg_oracle_neshu__resources, DEVICE → stg_oracle_neshu__device. Pour l'appro,
+          type = RESOURCES (stock du véhicule/roadman). Malgré son nom, ce n'est pas une FK produit.
         data_type: int64
 
       - name: product_destination_id
-        description: "Produit destination de la tâche. FK → dim_neshu__product."
+        description: >
+          Identifiant de l'entité **destination** du flux. Référence **polymorphe** : table cible
+          nommée par product_destination_type (mêmes valeurs : COMPANY/RESOURCES/DEVICE…). Pour
+          l'appro, type = DEVICE → le distributeur (machine remplie).
         data_type: int64
 
       - name: company_code
@@ -886,12 +893,25 @@ models:
 
 
   - name: int_oracle_neshu__appro_tasks_enriched
-    description: |
-      Tâches appro enrichies du référentiel (company, device, roadman, GEA)
-      et du statut normalisé (ENCOURS reclassé en FAIT après validation métier).
-      Base partagée entre fct_neshu__appro (analyse roadman/jour avec pointage
-      et métriques journalières) et tout fact dérivé au grain machine.
-      Grain : 1 ligne par task_id (passage appro).
+    description: >
+      [QUOI MÉTIER]
+      Passages d'approvisionnement enrichis : tâche appro + roadman affecté, référentiels
+      company/device/GEA, statut normalisé et durée du passage. Base de fct_neshu__appro
+      (analyse roadman/jour avec pointage) et des faits dérivés au grain machine.
+
+      [COMMENT CONSTRUITE]
+      int_oracle_neshu__appro_tasks enrichi du roadman (stg_oracle_neshu__task_has_resources ×
+      resources type=2 = PERSON), du GEA (ref_oracle_neshu__roadman_gea) et des libellés
+      company/device. Statut normalisé : ENCOURS reclassé en FAIT (validation métier). Durée
+      du passage calculée (fin − début) pour les tâches FAIT.
+
+      [GRAIN]
+      1 ligne par task_id (passage appro). ~555k lignes.
+
+      [NOTES]
+      Filtré aux passages ayant un roadman rattaché (resources_roadman_id non NULL) — ~327
+      passages sans roadman exclus vs int_oracle_neshu__appro_tasks. Pas de véhicule ici :
+      seul le roadman (resources type=2) est joint.
     columns:
       - name: task_id
         description: "ID de la tâche"
@@ -899,19 +919,19 @@ models:
           - unique
           - not_null
       - name: device_id
-        description: "ID du device (NULL toléré, cf. task_id 11460408 - source Oracle)"
+        description: "Distributeur (machine) concerné. FK → dim_neshu__device. NULL toléré (cf. task_id 11460408, source Oracle)."
       - name: company_id
-        description: "ID de la company cliente"
+        description: "Client (peer company). FK → dim_neshu__company."
         tests:
           - not_null
       - name: resources_roadman_id
-        description: "ID du roadman (resources type=2)"
+        description: "Roadman (approvisionneur) affecté. FK → stg_oracle_neshu__resources (idresources, type=2 = PERSON)."
         tests:
           - not_null
       - name: roadman_code
-        description: "Code roadman"
+        description: "Code métier du roadman."
       - name: gea_code
-        description: "Code GEA mappé depuis ref_oracle_neshu__roadman_gea"
+        description: "Code GEA du roadman (mappé depuis ref_oracle_neshu__roadman_gea)."
       - name: device_code
         description: "Code device"
       - name: device_name
@@ -925,13 +945,21 @@ models:
       - name: company_info
         description: "Libellé concat 'nom - code'"
       - name: task_status_code
-        description: "Statut normalisé (ENCOURS reclassé en FAIT)"
+        description: >
+          Statut de la tâche, **normalisé** : ENCOURS reclassé en FAIT (donc pas de ENCOURS ici,
+          contrairement à int_oracle_neshu__appro_tasks). Valeurs : FAIT (réalisé, majoritaire),
+          ANNULE, PREVU, ANOMALIE, VALIDE, ACQUITTE, ENATTENTE.
         tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: [FAIT, ANNULE, PREVU, ANOMALIE, VALIDE, ACQUITTE, ENATTENTE]
+              config:
+                severity: warn
       - name: is_done
-        description: "Indicateur binaire : 1 si FAIT ou ENCOURS"
+        description: "Indicateur binaire : 1 si la tâche est réalisée (statut brut FAIT ou ENCOURS), sinon 0."
       - name: is_planned
-        description: "Indicateur binaire : 1 si PREVU, FAIT ou ENCOURS"
+        description: "Indicateur binaire : 1 si la tâche est planifiée ou réalisée (statut brut PREVU, FAIT ou ENCOURS), sinon 0."
       - name: task_start_date
         description: "Date début passage"
         tests:
@@ -947,13 +975,20 @@ models:
       - name: passage_duration_interval
         description: "Durée brute en INTERVAL (audit)"
       - name: product_source_id
-        description: "ID source du produit (idresources)"
+        description: >
+          Identifiant de l'entité **source** du flux. Référence **polymorphe** : la table cible est
+          celle nommée par product_source_type — COMPANY → stg_oracle_neshu__company,
+          RESOURCES → stg_oracle_neshu__resources, DEVICE → stg_oracle_neshu__device. Pour l'appro,
+          type = RESOURCES (stock du véhicule/roadman). Malgré son nom, ce n'est pas une FK produit.
       - name: product_destination_id
-        description: "ID destination du produit"
+        description: >
+          Identifiant de l'entité **destination** du flux. Référence **polymorphe** : table cible
+          nommée par product_destination_type (mêmes valeurs : COMPANY/RESOURCES/DEVICE…). Pour
+          l'appro, type = DEVICE → le distributeur (machine remplie).
       - name: product_source_type
-        description: "Type de la source produit (RESOURCES, etc.)"
+        description: "Type de l'entité source = table cible de product_source_id. Pour l'appro : RESOURCES (stock véhicule/roadman), ou NULL."
       - name: product_destination_type
-        description: "Type de la destination produit"
+        description: "Type de l'entité destination = table cible de product_destination_id. Pour l'appro : DEVICE (le distributeur), ou NULL."
       - name: task_location_info
         description: "Infos de localisation de la tâche"
       - name: created_at
