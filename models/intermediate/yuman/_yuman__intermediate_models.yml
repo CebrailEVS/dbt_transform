@@ -83,6 +83,41 @@ models:
           True si l'intervention n'a pas été réalisée (au moins un des champs
           workorder_motif_non_intervention / workorder_detail_non_intervention
           renseigné). Recoupe la logique de non-facturation du mart pricing.
+
+      # --- ETAT METIER CANONIQUE ---
+      - name: intervention_state
+        description: >
+          État métier canonique de l'intervention, source de vérité unique pour toute
+          la chaîne Yuman aval (int_yuman__interventions le reprend en passthrough,
+          fct_technique__suivi_partenaire en dérive ses flags d'alerte). Dérivé de
+          workorder_status, demand_status et des flags de non-intervention / pause.
+          Valeurs : REALISEE (workorder Closed sans motif/détail de non-intervention) ;
+          NON_REALISEE (workorder Closed MAIS motif/détail de non-intervention renseigné) ;
+          EN_PAUSE (In progress avec champ de pause renseigné) ;
+          EN_COURS (In progress sans pause) ; PLANIFIEE (Scheduled) ;
+          DEMANDE_OUVERTE (pas de workorder, demande Open) ;
+          DEMANDE_REJETEE (pas de workorder, demande Rejected) ;
+          AUTRE (filet de sécurité, capte tout statut Yuman futur non prévu).
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - REALISEE
+                  - NON_REALISEE
+                  - EN_PAUSE
+                  - EN_COURS
+                  - PLANIFIEE
+                  - DEMANDE_OUVERTE
+                  - DEMANDE_REJETEE
+                  - AUTRE
+              config:
+                severity: warn
+      - name: is_realized
+        description: >
+          True si l'intervention a réellement été réalisée (intervention_state = 'REALISEE' :
+          workorder Closed sans motif de non-intervention). Flag de filtre principal des marts.
+      - name: has_workorder
+        description: True si un bon de travail existe (workorder_status non null), False pour une demande seule.
       - name: workorder_necessite_intervenir
         description: Indique si une intervention est nécessaire.
       - name: workorder_si_non_pourquoi
@@ -204,7 +239,9 @@ models:
       # --- ETAT METIER ---
       - name: intervention_state
         description: >
-          État métier canonique de l'intervention, dérivé de workorder_status, demand_status
+          État métier canonique de l'intervention, repris en passthrough depuis
+          int_yuman__demands_workorders_enriched (source de vérité unique ; plus aucune
+          dérivation d'état n'est faite ici). Dérivé de workorder_status, demand_status
           et des flags de non-intervention / pause. Valeurs :
           REALISEE (workorder Closed sans motif/détail de non-intervention → l'intervention a
           bien eu lieu) ;

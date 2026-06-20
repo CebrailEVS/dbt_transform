@@ -124,132 +124,154 @@ contacts as (
         contact_mobile,
         contact_email
     from {{ ref('stg_yuman__contacts') }}
+),
+
+enriched as (
+    select
+    -- Demandes d'intervention
+        wd.demand_id,
+        wd.workorder_id,
+        wd.material_id,
+        wd.site_id,
+        wd.client_id,
+        wd.user_id,
+        wd.demand_description,
+        wd.demand_status,
+        wd.demand_reject_comment,
+        wd.demand_created_at,
+        wd.demand_updated_at,
+
+        -- Categorie demande
+        wdc.demand_category_name,
+
+        -- Interventions
+        wo.technician_id,
+        wo.workorder_number,
+        wo.workorder_category,
+        wo.workorder_type,
+        wo.workorder_status,
+        wo.workorder_title,
+        wo.workorder_description,
+        wo.workorder_report,
+        wo.workorder_technician_name,
+        wo.workorder_date_creation,
+        wo.workorder_motif_non_intervention,
+        wo.workorder_detail_non_intervention,
+        wo.workorder_raison_mise_en_pause,
+        wo.workorder_explication_mise_en_pause,
+
+        -- Intervention mise en pause : au moins un des deux champs de pause renseigne
+        coalesce(
+            trim(wo.workorder_raison_mise_en_pause) != ''
+            or trim(wo.workorder_explication_mise_en_pause) != '',
+            false
+        ) as is_workorder_paused,
+
+        -- Intervention actuellement en pause : en pause ET toujours en cours
+        -- (un Closed conserve ses champs de pause = pause historique, pas active)
+        coalesce(
+            (
+                trim(wo.workorder_raison_mise_en_pause) != ''
+                or trim(wo.workorder_explication_mise_en_pause) != ''
+            )
+            and wo.workorder_status = 'In progress',
+            false
+        ) as is_workorder_currently_paused,
+
+        -- Intervention non realisee : au moins un des deux champs de non-intervention renseigne
+        coalesce(
+            trim(wo.workorder_motif_non_intervention) != ''
+            or trim(wo.workorder_detail_non_intervention) != '',
+            false
+        ) as is_workorder_not_done,
+
+        wo.workorder_necessite_intervenir,
+        wo.workorder_si_non_pourquoi,
+        wo.date_planned,
+        wo.date_started,
+        wo.date_done,
+        wo.workorder_time_taken,
+
+        -- Clients
+        cl.partner_name,
+        cl.client_code,
+        cl.client_name,
+        cl.client_category,
+        cl.client_is_active,
+
+        -- Sites
+        s.site_code,
+        s.site_name,
+        s.site_address,
+        s.site_postal_code,
+
+        -- Contact du site
+        c.contact_id,
+        c.contact_name,
+        c.contact_title,
+        c.contact_phone,
+        c.contact_mobile,
+        c.contact_email,
+
+        -- Materiels
+        m.material_name,
+        m.material_serial_number,
+        m.material_brand,
+        m.material_description,
+        m.material_in_service_date,
+
+        -- Categories de materiels
+        mc.material_category,
+
+        -- Utilisateurs
+        u.manager_id,
+        u.user_name,
+        u.user_type,
+        u.is_manager_as_technician,
+
+        -- Agence du technicien (via mapping)
+        tam.agence as technician_agency_stock,
+        tam.equipe as technician_equipe
+
+    from workorder_demands as wd
+    left join workorder_demands_categories as wdc
+        on wd.demand_category_id = wdc.demand_category_id
+    full join workorders as wo
+        on wd.workorder_id = wo.workorder_id
+    left join clients as cl
+        on wd.client_id = cl.client_id
+    left join sites as s
+        on wd.site_id = s.site_id
+    left join contacts as c
+        on wd.contact_id = c.contact_id
+    left join materials as m
+        on wd.material_id = m.material_id
+    left join materials_categories as mc
+        on m.category_id = mc.category_id
+    left join users as u
+        on wd.user_id = u.user_id
+    left join tech_agence_mapping as tam
+        on
+            upper(trim(regexp_replace(wo.workorder_technician_name, r'\[INACTIF\]\s*', '')))
+            = upper(trim(tam.nom || ' ' || tam.prenom))
 )
 
+-- Etat metier canonique de l'intervention : source de verite unique consommee
+-- par int_yuman__interventions (passthrough) ET fct_technique__suivi_partenaire
+-- (flags d'alerte derives). Derive de workorder_status, demand_status et des flags
+-- de non-intervention / pause deja calcules ci-dessus. Cf. _yuman__intermediate_models.yml.
 select
-    -- Demandes d'intervention
-    wd.demand_id,
-    wd.workorder_id,
-    wd.material_id,
-    wd.site_id,
-    wd.client_id,
-    wd.user_id,
-    wd.demand_description,
-    wd.demand_status,
-    wd.demand_reject_comment,
-    wd.demand_created_at,
-    wd.demand_updated_at,
-
-    -- Categorie demande
-    wdc.demand_category_name,
-
-    -- Interventions
-    wo.technician_id,
-    wo.workorder_number,
-    wo.workorder_category,
-    wo.workorder_type,
-    wo.workorder_status,
-    wo.workorder_title,
-    wo.workorder_description,
-    wo.workorder_report,
-    wo.workorder_technician_name,
-    wo.workorder_date_creation,
-    wo.workorder_motif_non_intervention,
-    wo.workorder_detail_non_intervention,
-    wo.workorder_raison_mise_en_pause,
-    wo.workorder_explication_mise_en_pause,
-
-    -- Intervention mise en pause : au moins un des deux champs de pause renseigne
-    coalesce(
-        trim(wo.workorder_raison_mise_en_pause) != ''
-        or trim(wo.workorder_explication_mise_en_pause) != '',
-        false
-    ) as is_workorder_paused,
-
-    -- Intervention actuellement en pause : en pause ET toujours en cours
-    -- (un Closed conserve ses champs de pause = pause historique, pas active)
-    coalesce(
-        (
-            trim(wo.workorder_raison_mise_en_pause) != ''
-            or trim(wo.workorder_explication_mise_en_pause) != ''
-        )
-        and wo.workorder_status = 'In progress',
-        false
-    ) as is_workorder_currently_paused,
-
-    -- Intervention non realisee : au moins un des deux champs de non-intervention renseigne
-    coalesce(
-        trim(wo.workorder_motif_non_intervention) != ''
-        or trim(wo.workorder_detail_non_intervention) != '',
-        false
-    ) as is_workorder_not_done,
-
-    wo.workorder_necessite_intervenir,
-    wo.workorder_si_non_pourquoi,
-    wo.date_planned,
-    wo.date_started,
-    wo.date_done,
-    wo.workorder_time_taken,
-
-    -- Clients
-    cl.partner_name,
-    cl.client_code,
-    cl.client_name,
-    cl.client_category,
-    cl.client_is_active,
-
-    -- Sites
-    s.site_code,
-    s.site_name,
-    s.site_address,
-    s.site_postal_code,
-
-    -- Contact du site
-    c.contact_id,
-    c.contact_name,
-    c.contact_title,
-    c.contact_phone,
-    c.contact_mobile,
-    c.contact_email,
-
-    -- Materiels
-    m.material_name,
-    m.material_serial_number,
-    m.material_brand,
-    m.material_description,
-    m.material_in_service_date,
-
-    -- Categories de materiels
-    mc.material_category,
-
-    -- Utilisateurs
-    u.manager_id,
-    u.user_name,
-    u.user_type,
-    u.is_manager_as_technician,
-
-    -- Agence du technicien (via mapping)
-    tam.agence as technician_agency_stock,
-    tam.equipe as technician_equipe
-
-from workorder_demands as wd
-left join workorder_demands_categories as wdc
-    on wd.demand_category_id = wdc.demand_category_id
-full join workorders as wo
-    on wd.workorder_id = wo.workorder_id
-left join clients as cl
-    on wd.client_id = cl.client_id
-left join sites as s
-    on wd.site_id = s.site_id
-left join contacts as c
-    on wd.contact_id = c.contact_id
-left join materials as m
-    on wd.material_id = m.material_id
-left join materials_categories as mc
-    on m.category_id = mc.category_id
-left join users as u
-    on wd.user_id = u.user_id
-left join tech_agence_mapping as tam
-    on
-        upper(trim(regexp_replace(wo.workorder_technician_name, r'\[INACTIF\]\s*', '')))
-        = upper(trim(tam.nom || ' ' || tam.prenom))
+    *,
+    case
+        when workorder_status = 'Closed' and not is_workorder_not_done then 'REALISEE'
+        when workorder_status = 'Closed' then 'NON_REALISEE'
+        when is_workorder_currently_paused then 'EN_PAUSE'
+        when workorder_status = 'In progress' then 'EN_COURS'
+        when workorder_status = 'Scheduled' then 'PLANIFIEE'
+        when workorder_status is null and demand_status = 'Open' then 'DEMANDE_OUVERTE'
+        when workorder_status is null and demand_status = 'Rejected' then 'DEMANDE_REJETEE'
+        else 'AUTRE'
+    end as intervention_state,
+    (workorder_status = 'Closed' and not is_workorder_not_done) as is_realized,
+    (workorder_status is not null) as has_workorder
+from enriched

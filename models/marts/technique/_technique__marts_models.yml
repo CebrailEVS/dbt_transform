@@ -705,18 +705,25 @@ models:
 
       [COMMENT CONSTRUITE]
       Chaque ligne = 1 demande d'intervention enrichie avec son workorder
-      associé + client + site + matériel + technicien. 7 flags d'alerte
-      (`alerte_*`) sont calculés pour permettre au PBI de filtrer les
-      situations qui déclenchaient auparavant un email automatique.
+      associé + client + site + matériel + technicien. La colonne
+      `intervention_state` (état métier canonique) est reprise depuis
+      int_yuman__demands_workorders_enriched. 9 flags d'alerte (`alerte_*`)
+      permettent au PBI de filtrer les situations qui déclenchaient
+      auparavant un email automatique : 7 sont de simples projections
+      booléennes de `intervention_state` (aucune logique d'état recalculée
+      ici → iso avec int_yuman__interventions), 2 sont des alertes
+      opérationnelles spécifiques sans équivalent canonique
+      (`alerte_en_cours_non_cloture` = staleness, `alerte_hors_delais` = SLA
+      curative ouverte).
 
       [GRAIN]
       1 ligne par demande Yuman (`demand_id`).
 
       [NOTES]
-      Les flags `alerte_*` sont la valeur business clé — utilisés comme
-      slicers dans le rapport de monitoring partenaires. Mart conservé même
-      s'il n'est pas activement consommé aujourd'hui (anciennement utilisé
-      pour les emails, à reprendre dans une vue BI future).
+      `intervention_state` et les flags `alerte_*` sont la valeur business clé —
+      utilisés comme slicers dans le rapport de monitoring partenaires. Mart
+      conservé même s'il n'est pas activement consommé aujourd'hui (anciennement
+      utilisé pour les emails, à reprendre dans une vue BI future).
 
     columns:
       - name: demand_id
@@ -778,6 +785,27 @@ models:
         description: "Type d'intervention (Reactive = curative, Preventive…)"
       - name: workorder_status
         description: "Statut du bon de travail (Scheduled, InProgress, Closed…)"
+      - name: intervention_state
+        description: >
+          État métier canonique de l'intervention (REALISEE, NON_REALISEE, EN_PAUSE,
+          EN_COURS, PLANIFIEE, DEMANDE_OUVERTE, DEMANDE_REJETEE, AUTRE). Passthrough
+          depuis int_yuman__demands_workorders_enriched : source de vérité unique de
+          l'état, dont dérivent les 7 premiers flags alerte_*. Voir la doc complète sur
+          int_yuman__demands_workorders_enriched.
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - REALISEE
+                  - NON_REALISEE
+                  - EN_PAUSE
+                  - EN_COURS
+                  - PLANIFIEE
+                  - DEMANDE_OUVERTE
+                  - DEMANDE_REJETEE
+                  - AUTRE
+              config:
+                severity: warn
       - name: workorder_technician_name
         description: "Nom du technicien affecté"
       - name: technician_equipe
@@ -795,23 +823,32 @@ models:
           Nombre de jours ouvrés écoulés depuis la création (hors week-ends et jours fériés).
           Calculé uniquement pour les curatives encore ouvertes (logique hors délais).
       - name: alerte_demand_open
-        description: "Demande créée par le client, pas encore traitée par le support (demand_status = Open)"
+        description: "intervention_state = DEMANDE_OUVERTE : demande sans workorder, pas encore traitée (Open)"
       - name: alerte_demand_accepted
-        description: "Demande acceptée par le support (demand_status = Accepted)"
+        description: "demand_status = Accepted : demande acceptée par le support (statut demande, orthogonal à l'état)"
       - name: alerte_demand_rejected
-        description: "Demande rejetée par le support (demand_status = Rejected)"
-      - name: alerte_workorder_canceled
-        description: "Demande acceptée mais workorder annulé (motif ou détail de non-intervention renseigné)"
+        description: "intervention_state = DEMANDE_REJETEE : demande sans workorder, rejetée (Rejected)"
+      - name: alerte_non_realisee
+        description: >
+          intervention_state = NON_REALISEE : workorder clôturé AVEC motif/détail de
+          non-intervention (intervention non effectuée). Remplace l'ancien
+          alerte_workorder_canceled, qui ne se déclenchait jamais en prod.
       - name: alerte_planifiee
-        description: "Intervention planifiée (statut Scheduled)"
+        description: "intervention_state = PLANIFIEE : intervention planifiée (Scheduled)"
       - name: alerte_cloturee
-        description: "Intervention clôturée (vraie clôture, sans motif de non-intervention)"
+        description: "intervention_state = REALISEE : intervention clôturée et réalisée (sans motif de non-intervention)"
       - name: alerte_pause
-        description: "Intervention mise en pause (raison ou explication renseignée)"
+        description: >
+          intervention_state = EN_PAUSE : pause active (workorder In progress avec champ
+          de pause renseigné). Exclut les pauses historiques portées par un workorder clôturé.
       - name: alerte_en_cours_non_cloture
-        description: "Intervention démarrée avant aujourd'hui et toujours ouverte"
+        description: >
+          Alerte opérationnelle (hors état canonique) : intervention démarrée avant
+          aujourd'hui et toujours ouverte (staleness).
       - name: alerte_hors_delais
-        description: "Curative ouverte dépassant 3 jours ouvrés depuis la création"
+        description: >
+          Alerte opérationnelle (hors état canonique) : curative ouverte dépassant
+          3 jours ouvrés depuis la création (SLA).
 
 
   - name: dim_technique__technician
