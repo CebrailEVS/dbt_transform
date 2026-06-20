@@ -3,8 +3,28 @@ version: 2
 models:
   - name: int_mssql_sage__pnl_bu
     description: >
-      Table intermediaire de faits combinant écritures comptables et analytiques issues de SAGE
-      pour la construction du P&L par Business Unit.
+      [QUOI MÉTIER]
+      Brique de compte de résultat (P&L) par Business Unit : chaque ligne est une écriture
+      comptable de charge ou de produit, ventilée analytiquement et rattachée à une BU et à
+      une macro-catégorie P&L. Base de fct_finance__pnl_bu.
+
+      [COMMENT CONSTRUITE]
+      Jointure des écritures comptables (stg_mssql_sage__f_ecriturec, filtrées aux comptes de
+      classe 6 = charges et 7 = produits) avec les écritures analytiques
+      (stg_mssql_sage__f_ecriturea). La BU est dérivée du code analytique via le seed
+      ref_mssql_sage__code_analytique_bu, avec repli sur des préfixes (NUN→NUNSHEN, NES→NESHU,
+      SAV→TECHNIQUE…) ; la macro-catégorie P&L vient du seed ref_mssql_sage__code_comptable_bu.
+      Un remapping historique 2024 (source historic) corrige certaines BU. date_facturation est
+      reconstruite (jm_date + (ec_jour-1) jours).
+
+      [GRAIN]
+      1 ligne par (numero_ecriture_comptable, numero_plan_analytique, numero_ligne_analytique).
+      ~190k lignes, depuis 2021. Clé strictement unique.
+
+      [NOTES]
+      Périmètre limité aux comptes 6 et 7 (le bilan, classes 1-5, est exclu). Une écriture
+      comptable sans ventilation analytique apparaît quand même (is_missing_analytical = true,
+      colonnes analytiques NULL). Pour les agrégats P&L, sommer montant_analytique_signe.
 
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -15,41 +35,90 @@ models:
               - numero_ligne_analytique
 
     columns:
+      # --- CLES / GRAIN ---
       - name: numero_ecriture_comptable
-        description: Clé de l'écriture comptable (f_ecriturec)
+        description: Numéro de l'écriture comptable Sage (table f_ecriturec). Partie 1 de la clé composite.
         tests:
           - not_null
-
       - name: numero_plan_analytique
-        description: Numéro analytique (f_ecriturea)
-
+        description: Numéro du plan analytique Sage (table f_ecriturea). Partie 2 de la clé. NULL si écriture sans ventilation analytique.
       - name: numero_ligne_analytique
-        description: Ligne du numéro analytique
+        description: Numéro de ligne de la ventilation analytique. Partie 3 de la clé. NULL si écriture sans ventilation analytique.
 
+      # --- AXES D'ANALYSE ---
       - name: code_analytique
-        description: Code de la section analytique (BU, projet, etc.)
-
+        description: Code de la section analytique brut (BU, projet…) tel que saisi dans Sage. Sert à dériver code_analytique_bu.
       - name: code_analytique_bu
-        description: Business Unit (BU) associée à la section analytique
-
-      - name: macro_categorie_pnl_bu
-        description: Macro catégorie P&L associée au compte comptable
-
+        description: >
+          Business Unit déduite du code analytique (via seed + repli préfixe). Valeurs :
+          COMMERCE, NUNSHEN, NESHU, SUPPORT, TECHNIQUE, PIECES DET, ZSITUATION.
+          NULL = code analytique non mappé (cf. is_missing_bu_mapping).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [COMMERCE, NUNSHEN, NESHU, SUPPORT, TECHNIQUE, PIECES DET, ZSITUATION]
+              config:
+                severity: warn
       - name: numero_compte_general
-        description: Numéro de compte général (classes 6 et 7)
+        description: >
+          Numéro de compte général (plan comptable). Filtré aux classes 6 (charges, commence
+          par 6) et 7 (produits, commence par 7). Détermine le sens du montant signé.
         tests:
           - not_null
-
       - name: libelle_ecriture
-        description: Libellé de l'écriture comptable
+        description: Libellé libre de l'écriture comptable.
+      - name: macro_categorie_pnl_bu
+        description: >
+          Macro-catégorie de P&L rattachée au compte général (seed ref_mssql_sage__code_comptable_bu).
+          Valeurs : Chiffre d'Affaires, Masse Salariale, Frais Directs & Amortissements,
+          Consommation MP & SSTT. NULL = compte non mappé (cf. is_missing_comptable_mapping).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Chiffre d'Affaires", "Masse Salariale", "Frais Directs & Amortissements", "Consommation MP & SSTT"]
+              config:
+                severity: warn
+      # TODO(métier): confirmer avec la finance — (1) sens_ecriture 0=débit / 1=crédit ;
+      # (2) convention de signe de montant_analytique_signe (crédit positif / débit négatif,
+      # à sommer pour le P&L). Inféré du SQL, non validé métier au 2026-06-20.
+      - name: sens_ecriture
+        description: "Sens comptable de l'écriture (Sage) : 0 = débit, 1 = crédit. Combiné à la classe de compte pour signer le montant."
 
+      # --- MESURES ---
       - name: montant_analytique
-        description: Montant ventilé sur la section analytique
+        description: Montant (€) ventilé sur la section analytique, en valeur absolue (non signé).
+      - name: montant_analytique_signe
+        description: >
+          Montant signé (€) à sommer pour le P&L : positif au crédit (sens_ecriture = 1,
+          typiquement les produits / chiffre d'affaires), négatif au débit (sens_ecriture = 0,
+          typiquement les charges). C'est **la** mesure du résultat par BU.
 
+      # --- DATES ---
       - name: date_facturation
-        description: Date réelle de facturation (reconstruite à partir de jm_date + ec_jour)
+        description: >
+          Date de facturation reconstruite (jm_date + (ec_jour - 1) jours). Clé de
+          partitionnement et axe temporel principal du P&L.
         tests:
           - not_null
+      - name: date_ecriture_comptable
+        description: Date de l'écriture comptable (ec_date Sage).
+      - name: date_periode_facturation
+        description: Date de la période de facturation (jm_date Sage), avant ajout du jour.
+      - name: jour_facturation
+        description: Jour du mois de facturation (ec_jour Sage) utilisé pour reconstruire date_facturation.
 
+      # --- FLAGS QUALITE ---
       - name: is_missing_analytical
-        description: Indique si l'écriture comptable n'a pas de ventilation analytique
+        description: True si l'écriture comptable n'a aucune ventilation analytique (colonnes analytiques NULL).
+      - name: is_missing_bu_mapping
+        description: >
+          True si la ligne a une ventilation analytique mais aucune BU n'a pu être déduite
+          (code_analytique_bu NULL alors que is_missing_analytical = false). À surveiller : trou de mapping.
+      - name: is_missing_comptable_mapping
+        description: True si le compte général n'est rattaché à aucune macro-catégorie P&L (macro_categorie_pnl_bu NULL).
+
+      # --- METADONNEES ---
+      - name: created_at
+        description: Timestamp de création de l'écriture en source (coalesce analytique / comptable).
+      - name: updated_at
+        description: Timestamp de dernière modification en source (coalesce analytique / comptable).
