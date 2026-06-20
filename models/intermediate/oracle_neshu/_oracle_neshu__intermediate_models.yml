@@ -1027,16 +1027,16 @@ models:
       consommateurs.
     columns:
       - name: device_id
-        description: "ID du device (PK)"
+        description: "Machine (distributeur). PK de ce modèle. FK → dim_neshu__device."
         tests:
           - unique
           - not_null
       - name: company_id
-        description: "ID company stable par device (any_value sur les tasks)"
+        description: "Client de la machine (any_value, normalement stable par device). FK → dim_neshu__company."
         tests:
           - not_null
       - name: last_appro_task_id
-        description: "ID du dernier passage FAIT (NULL si jamais d'appro FAIT)"
+        description: "Tâche du dernier passage FAIT (NULL si jamais d'appro FAIT). FK → int_oracle_neshu__appro_tasks_enriched."
       - name: last_appro_date
         description: "Date du dernier passage FAIT"
       - name: last_appro_roadman_id
