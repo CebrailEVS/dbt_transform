@@ -87,7 +87,7 @@ La couche assistant est **versionnee et partagee** par l'equipe (seuls `.claude/
 
 ```
 CLAUDE.md              Contexte projet (architecture, conventions, hard rules)
-.mcp.json              Serveurs MCP : BigQuery, Power BI, dbt (chemins via ${CLAUDE_PROJECT_DIR})
+.mcp.json              Serveurs MCP : BigQuery, Power BI, dbt (chemins absolus = repo en /mnt/data/transform ; adapter si checkout ailleurs)
 .claude/
 ├── commands/          Slash commands : /build-source, /new-mart, /lint-fix, /freshness
 ├── skills/            Skills : audit-sources, audit-docs, profile
