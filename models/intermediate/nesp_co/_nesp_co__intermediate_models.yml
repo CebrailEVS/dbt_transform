@@ -1,181 +1,189 @@
 version: 2
 
 models:
-  - name: int_nesp_co__activites
-    description: >
-      Modèle intermédiaire des activités commerciales NESP CO.
-      Harmonisation des champs, traduction des typologies et unification des dates.
-
-    columns:
-
-      - name: act_id
-        description: Identifiant unique de l'activité.
-        tests:
-          - not_null
-
-      - name: act_id_resp
-        description: Identifiant du collaborateur responsable.
-
-      - name: act_cree_par
-        description: Identifiant du créateur de l'activité selon le type.
-
-      - name: act_compte_id
-        description: Identifiant C4C du compte lié.
-
-      - name: act_id_nessoft
-        description: Identifiant Nessoft du compte lié.
-
-      - name: act_compte_nom
-        description: Nom du compte principal.
-
-      - name: act_date_debut
-        description: Date de début normalisée de l'activité.
-
-      - name: act_type
-        description: Type d'activité traduit en français.
-
-      - name: act_role
-        description: Rôle du compte (client / prospect).
-
-      - name: act_statut
-        description: Statut du cycle de vie de l'activité.
-
-      - name: act_categorie
-        description: Catégorie métier traduite.
-
-      - name: act_semaine_creation
-        description: Semaine ISO au format SS.AAAA calculée à partir de la date de début.
-
   - name: int_nesp_co__opportunites
     description: >
-      Modèle intermédiaire des opportunités commerciales NESP CO.
-      Harmonisation des noms de colonnes, traduction des statuts et rôles,
-      normalisation des identifiants et indicateurs de performance.
+      [QUOI MÉTIER]
+      Opportunités commerciales Nespresso (pipeline de vente, source C4C/Nessoft) : une ligne
+      par opportunité, avec son statut, le compte, le commercial, la campagne et la valeur attendue.
 
+      [COMMENT CONSTRUITE]
+      stg_nesp_co__opportunite : renommage métier (préfixe opp_), traduction FR des statuts et
+      rôles, normalisation des identifiants (C4C '#' → NULL), probabilité ramenée en [0,1].
+
+      [GRAIN]
+      1 ligne par opp_id (PK). ~27,7k lignes.
+
+      [NOTES]
+      Source commerciale Nespresso, encore en construction (WIP). Les montants et probabilités
+      sont du prévisionnel commercial, pas du réalisé.
     columns:
-
       - name: opp_id
-        description: Identifiant unique de l'opportunité.
+        description: Identifiant unique de l'opportunité (C4C). PK.
         tests:
           - not_null
-
       - name: opp_nom
-        description: Nom de l'opportunité.
-
+        description: Nom / intitulé de l'opportunité.
       - name: opp_ez
-        description: Indicateur équivalent Zenius.
-
+        description: Équivalent Zenius (nombre de machines en équivalent Zenius) rattaché à l'opportunité.
       - name: opp_date_creation
         description: Date de création de l'opportunité.
-
-      - name: opp_date_cloture
-        description: Date de clôture de l'opportunité.
-
-      - name: opp_statut
-        description: Statut de cycle de vie traduit en français.
-
+      - name: opp_source
+        description: >
+          Origine de l'opportunité. Valeurs principales : Not assigned, CRC / CoE, Sales Force,
+          Marketing Campaign, Telephone Prospect, Physical Prospect, Referral, Cold Visit,
+          Member get Member, Cold Calling… (énum ouverte, libellés C4C).
       - name: opp_compte
-        description: Nom du compte associé.
-
+        description: Nom du compte (client/prospect) lié à l'opportunité.
       - name: opp_id_compte
-        description: Identifiant Nessoft du compte.
-
+        description: Identifiant Nessoft du compte lié.
       - name: opp_id_client_c4c
-        description: Identifiant C4C du compte (valeur '#' remplacée par NULL).
-
+        description: Identifiant C4C du compte ('#' source remplacé par NULL).
+      - name: opp_statut
+        description: "Statut du cycle de vie (traduit). Valeurs : Gagné, Perdu, En cours."
+      - name: opp_date_cloture
+        description: Date de clôture de l'opportunité (gagnée ou perdue).
       - name: opp_role
-        description: Rôle du compte (client / prospect).
-
+        description: "Rôle du compte (traduit). Valeurs : Client, Client potentiel (prospect)."
       - name: opp_id_commercial
-        description: Identifiant du commercial responsable.
-
+        description: Identifiant C4C du commercial responsable de l'opportunité.
       - name: opp_campagne
         description: Nom de la campagne marketing associée.
-
       - name: opp_campagne_id
         description: Identifiant numérique de la campagne.
-
       - name: opp_first_order_cafe
-        description: Indicateur première commande café.
-
+        description: Indicateur de première commande de café liée à l'opportunité.
       - name: opp_ns_attendu
-        description: Valeur nette attendue.
-
+        description: Valeur nette attendue (€) de l'opportunité (prévisionnel, mesure).
       - name: opp_probabilite
-        description: Probabilité de succès normalisée entre 0 et 1.
-
+        description: Probabilité de succès, normalisée entre 0 et 1 (chance_of_success / 100).
       - name: opp_nb_opport
-        description: Nombre de machines liées à l'opportunité.
+        description: Nombre de machines liées à l'opportunité (mesure).
+
+  - name: int_nesp_co__activites
+    description: >
+      [QUOI MÉTIER]
+      Activités commerciales Nespresso menées par les commerciaux (appels, rendez-vous, tâches,
+      e-mails) : une ligne par activité, avec son type, sa catégorie, son statut et le compte visé.
+
+      [COMMENT CONSTRUITE]
+      stg_nesp_co__activite : unification des champs selon le type d'activité (Phone Call /
+      Appointment / Task — nom, créateur, date de début), puis traduction FR du type, du rôle,
+      du statut et de la catégorie.
+
+      [GRAIN]
+      1 ligne par act_id (PK). ~140,5k lignes.
+
+      [NOTES]
+      Source commerciale Nespresso (WIP). Certaines catégories C4C restent non traduites
+      (ex. 'Customer Visit') quand elles ne sont pas couvertes par le mapping.
+    columns:
+      - name: act_id
+        description: Identifiant unique de l'activité (C4C). PK.
+        tests:
+          - not_null
+      - name: act_id_resp
+        description: Identifiant C4C du commercial responsable de l'activité.
+      - name: act_cree_par
+        description: Identifiant du créateur de l'activité (selon le type — auteur de l'appel, du RDV, ou employé responsable).
+      - name: act_compte_nom
+        description: Nom du compte principal visé par l'activité.
+      - name: act_compte_id
+        description: Identifiant C4C du compte lié.
+      - name: act_id_nessoft
+        description: Identifiant Nessoft du compte lié.
+      - name: act_note
+        description: Note / commentaire libre saisi sur l'activité.
+      - name: act_mois_creation
+        description: Mois calendaire de l'activité (issu de calendar_month source).
+      - name: act_nom
+        description: Intitulé de l'activité (nom de l'appel ou du rendez-vous selon le type).
+      - name: act_date_debut
+        description: Date de début de l'activité (unifiée selon le type d'activité).
+      - name: act_type
+        description: "Type d'activité (traduit). Valeurs : Rendez-vous, Tâche d'activité, Appel téléphonique, e-mail."
+      - name: act_role
+        description: "Rôle du compte (traduit). Valeurs : Client, Client potentiel."
+      - name: act_statut
+        description: "Statut du cycle de vie (traduit). Valeurs : En cours (Open/In Process), Terminé (Completed)."
+      - name: act_categorie
+        description: >
+          Catégorie métier de l'activité (traduite du libellé C4C). Valeurs fréquentes :
+          Prospection, Suivi client, Visite, Client baissier/fragile, Relance opportunité,
+          R5: Suivis client fidélisation, R1: Decouverte, Demande client, R3: Negociation,
+          Préparation, Plainte client… Quelques libellés restent en anglais si non mappés
+          (ex. 'Customer Visit').
+      - name: act_semaine_creation
+        description: Semaine ISO de l'activité au format SS.AAAA (calculée depuis act_date_debut).
 
   - name: int_nesp_co__clients_enrichis
     description: >
-      Modèle intermédiaire des clients NESP CO.
-      Association du client avec l'identifiant C4C le plus récent
-      issu des opportunités et activités via déduplication par date.
+      [QUOI MÉTIER]
+      Clients Nespresso (tiers) enrichis : coordonnées, contact, segmentation commerciale, et
+      l'identifiant C4C le plus récent rattaché au client.
 
+      [COMMENT CONSTRUITE]
+      stg_nesp_co__client enrichi de l'id C4C déduit : on rapproche le tiers (third) du C4C le
+      plus récent observé dans les opportunités et activités (déduplication par date de référence).
+
+      [GRAIN]
+      1 ligne par third (PK, clé métier client). ~21,3k lignes.
+
+      [NOTES]
+      Source commerciale Nespresso (WIP). third_c4c_id est NULL si aucun C4C n'a pu être déduit.
     columns:
-
       - name: third
-        description: Identifiant tiers (clé métier client).
+        description: Identifiant tiers (clé métier client EVS). PK.
         tests:
           - not_null
           - unique
-
       - name: third_name
-        description: Nom du client.
-
+        description: Nom / raison sociale du client.
       - name: third_status_descr
-        description: Statut du client.
-
+        description: >
+          Statut du client. Valeurs : Active, Inactive automatic (365 days), Deletion due to
+          inactivity, Deletion failure, Inactive unclassified, Active no mailing…
       - name: third_address_1
-        description: Ligne 1 de l'adresse.
-
+        description: Adresse du client (ligne 1).
       - name: third_address_2
-        description: Ligne 2 de l'adresse.
-
+        description: Adresse du client (ligne 2).
       - name: third_post_code
         description: Code postal du client.
-
       - name: third_city
         description: Ville du client.
-
-      - name : order_placer_name,
-        description : Nom Contact
-
-      - name : order_placer_adr_ln1,
-        description : Adresse Contact
-
-      - name : order_placer_post_code,
-        description : Code Postal Contact
-
-      - name : order_placer_city,
-        description : Contact Ville
-
-      - name : order_placer_phone,
-        description : Contact Téléphone
-
+      - name: order_placer_name
+        description: Nom du contact passeur de commande.
+      - name: order_placer_adr_ln1
+        description: Adresse du contact (ligne 1).
+      - name: order_placer_post_code
+        description: Code postal du contact.
+      - name: order_placer_city
+        description: Ville du contact.
+      - name: order_placer_phone
+        description: Téléphone du contact.
       - name: segmentation_hypercare
-        description: Indicateur de segmentation Hypercare.
-
+        description: >
+          Segment commercial / Hypercare du client. Valeurs : SMALL, MEDIUM, GET, HVC,
+          POTENTIEL, REGION/IMAGE, INACTIF-2ans et leurs variantes *_HYPERCARE. NULL si non segmenté.
       - name: metier
-        description: Catégorie métier du client.
-
+        description: "Catégorie métier du client. Valeurs : OFFICE, HORECA."
       - name: region
-        description: Région commerciale.
-
+        description: >
+          Région commerciale. Valeurs : Office IDFGE, Office EVS Lyon, Horeca IDFGE,
+          Horeca EVS Lyon, Vending.
       - name: third_secteur
-        description: Secteur commercial associé.
-
+        description: >
+          Secteur commercial (sectorisation fine, haute cardinalité) — ex. 'OFFICE – EVS IDF FID',
+          'HORECA – EVS LYON FID', 'OFFICE - EVS IDF 5'. Le suffixe 'FID' marque la fidélisation.
       - name: third_groupe
-        description : groupe du client, notamment utile pour la FID
-
+        description: >
+          Groupe du client : région en majuscules si secteur de fidélisation ('FID'), sinon
+          'RS ' + métier (ex. 'OFFICE IDFGE', 'RS OFFICE', 'RS HORECA'). Utile pour la FID.
       - name: third_siret
         description: Numéro SIRET du client.
-
       - name: third_club_date
-        description: Date d'adhésion au club (convertie en DATE).
-
+        description: Date d'adhésion au club (DATE).
       - name: third_c4c_id
         description: >
-          Identifiant C4C le plus récent issu des activités ou opportunités
-          via déduplication par date métier.
+          Identifiant C4C le plus récent rattaché au client, déduit des opportunités/activités
+          (déduplication par date de référence). NULL si aucun C4C trouvé.
