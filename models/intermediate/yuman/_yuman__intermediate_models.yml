@@ -271,15 +271,15 @@ models:
 
       # --- DIMENSIONS RATTACHEES (FK) ---
       - name: material_id
-        description: Identifiant du matériel concerné.
+        description: "Matériel concerné. FK → stg_yuman__materials / dim_technique__material."
       - name: site_id
-        description: Identifiant du site client.
+        description: "Site client concerné. FK → stg_yuman__sites / dim_technique__site."
       - name: client_id
-        description: Identifiant du client.
+        description: "Client concerné. FK → stg_yuman__clients / dim_technique__client."
       - name: technician_id
-        description: Identifiant du technicien affecté au bon de travail.
+        description: "Technicien affecté au bon de travail. FK → stg_yuman__users / dim_technique__technician."
       - name: manager_id
-        description: Identifiant du manager associé.
+        description: "Manager associé. FK → stg_yuman__users."
 
       # --- ETAT METIER ---
       - name: intervention_state
@@ -314,9 +314,13 @@ models:
               config:
                 severity: warn
       - name: workorder_status
-        description: Statut brut du bon de travail Yuman (Closed, In progress, Scheduled, …).
+        description: >
+          Statut brut du bon de travail Yuman. Valeurs : Closed (clôturé), Scheduled (planifié),
+          In progress (en cours). NULL si la demande n'a pas de bon de travail.
       - name: demand_status
-        description: Statut brut de la demande d'intervention Yuman (Closed, Accepted, Open, Rejected).
+        description: >
+          Statut brut de la demande Yuman. Valeurs : Closed (clôturée), Rejected (rejetée),
+          Accepted (acceptée), Open (ouverte).
       - name: is_realized
         description: >
           True si l'intervention a réellement été réalisée (= intervention_state 'REALISEE' :
