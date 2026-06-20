@@ -4,22 +4,25 @@
     Modèle de suivi opérationnel par partenaire — remplace le DAG MAIL_Yuman_Module_Notification.
 
     Chaque ligne = une demande d'intervention enrichie avec son workorder associé.
-    Les 9 flags d'alerte sont séparés entre statut de la demande et statut du workorder :
+    La colonne intervention_state (état métier canonique, défini une seule fois dans
+    int_yuman__demands_workorders_enriched) est la source de vérité de l'état. Les 7
+    premiers flags d'alerte en sont de simples projections booléennes — aucune logique
+    d'état n'est recalculée ici, ce qui garantit l'iso avec int_yuman__interventions.
 
-    Statut de la demande (demand_status) :
-      - alerte_demand_open           : demande créée par le client, pas encore traitée par le support
-      - alerte_demand_accepted       : demande acceptée par le support
-      - alerte_demand_rejected       : demande rejetée par le support
+    Flags dérivés de l'état canonique :
+      - alerte_demand_open           : intervention_state = DEMANDE_OUVERTE (demande sans workorder, Open)
+      - alerte_demand_accepted       : demand_status = Accepted (statut de la demande, orthogonal à l'état)
+      - alerte_demand_rejected       : intervention_state = DEMANDE_REJETEE (demande sans workorder, Rejected)
+      - alerte_non_realisee          : intervention_state = NON_REALISEE (workorder Closed AVEC motif)
+      - alerte_planifiee             : intervention_state = PLANIFIEE (Scheduled)
+      - alerte_cloturee              : intervention_state = REALISEE (vraie clôture, sans motif de non-intervention)
+      - alerte_pause                 : intervention_state = EN_PAUSE (pause active : In progress avec champ de pause)
 
-    Statut du workorder :
-      - alerte_workorder_canceled    : demande acceptée mais workorder annulé (motif/détail non-intervention renseigné)
-      - alerte_planifiee             : intervention planifiée (Scheduled)
-      - alerte_cloturee              : intervention clôturée (vraie clôture, sans motif de non-intervention)
-      - alerte_pause                 : intervention mise en pause
-      - alerte_en_cours_non_cloture  : démarrée avant aujourd'hui, toujours ouverte
+    Alertes opérationnelles spécifiques (hors état canonique, logique temporelle / SLA) :
+      - alerte_en_cours_non_cloture  : démarrée avant aujourd'hui, toujours ouverte (staleness)
       - alerte_hors_delais           : curative ouverte > 3 jours ouvrés (logique NESHU, extensible)
 
-    Usage Power BI : filtrer sur partner_name, technician_equipe, demand_created_at, flags d'alerte.
+    Usage Power BI : filtrer sur partner_name, technician_equipe, demand_created_at, intervention_state, flags d'alerte.
 */
 
 with base as (
@@ -108,6 +111,8 @@ select
     base.workorder_number,
     base.workorder_type,
     base.workorder_status,
+    base.intervention_state,
+    base.is_orphan_workorder,
     base.workorder_technician_name,
     base.technician_equipe,
     base.workorder_report,
@@ -132,48 +137,37 @@ select
     coalesce(bde.nb_jours_ouvrables_ecoules, 0) as nb_jours_ouvrables_ecoules,
 
     -- -------------------------------------------------------------------------
-    -- FLAGS D'ALERTE — statut de la demande
+    -- FLAGS D'ALERTE — dérivés de l'état canonique intervention_state
+    -- (source de vérité unique : int_yuman__demands_workorders_enriched)
     -- -------------------------------------------------------------------------
 
-    -- 1. Demande créée par le client, pas encore traitée par le support
-    base.demand_status = 'Open' as alerte_demand_open,
+    -- 1. Demande créée par le client, pas encore traitée (aucun workorder rattaché)
+    base.intervention_state = 'DEMANDE_OUVERTE' as alerte_demand_open,
 
-    -- 2. Demande acceptée par le support
+    -- 2. Demande acceptée par le support (statut de la demande, orthogonal à l'état d'intervention)
     base.demand_status = 'Accepted' as alerte_demand_accepted,
 
-    -- 3. Demande rejetée par le support
-    base.demand_status = 'Rejected' as alerte_demand_rejected,
+    -- 3. Demande rejetée par le support (aucun workorder rattaché)
+    base.intervention_state = 'DEMANDE_REJETEE' as alerte_demand_rejected,
+
+    -- 4. Intervention non réalisée (workorder clôturé AVEC motif/détail de non-intervention)
+    base.intervention_state = 'NON_REALISEE' as alerte_non_realisee,
+
+    -- 5. Intervention planifiée (Scheduled)
+    base.intervention_state = 'PLANIFIEE' as alerte_planifiee,
+
+    -- 6. Intervention clôturée et réalisée (vraie clôture, sans motif de non-intervention)
+    base.intervention_state = 'REALISEE' as alerte_cloturee,
+
+    -- 7. Intervention actuellement en pause (In progress avec champ de pause renseigné)
+    base.intervention_state = 'EN_PAUSE' as alerte_pause,
 
     -- -------------------------------------------------------------------------
-    -- FLAGS D'ALERTE — statut du workorder
+    -- ALERTES OPÉRATIONNELLES SPÉCIFIQUES — hors état canonique
+    -- (logique temporelle / SLA, sans équivalent dans intervention_state)
     -- -------------------------------------------------------------------------
 
-    -- 4. Demande acceptée mais workorder annulé (motif ou détail de non-intervention renseigné)
-    (
-        base.demand_status = 'Accepted'
-        and (
-            base.workorder_motif_non_intervention is not null
-            or base.workorder_detail_non_intervention is not null
-        )
-    ) as alerte_workorder_canceled,
-
-    -- 5. Intervention planifiée (technicien et date assignés)
-    base.workorder_status = 'Scheduled' as alerte_planifiee,
-
-    -- 6. Intervention clôturée (vraie clôture, sans motif de non-intervention)
-    (
-        base.workorder_status = 'Closed'
-        and base.workorder_motif_non_intervention is null
-        and base.workorder_detail_non_intervention is null
-    ) as alerte_cloturee,
-
-    -- 7. Intervention mise en pause
-    (
-        base.workorder_raison_mise_en_pause is not null
-        or base.workorder_explication_mise_en_pause is not null
-    ) as alerte_pause,
-
-    -- 8. Intervention en cours non clôturée (démarrée avant aujourd'hui, toujours ouverte)
+    -- 8. Intervention démarrée avant aujourd'hui et toujours ouverte (staleness)
     (
         base.workorder_status != 'Closed'
         and base.date_started is not null

@@ -54,6 +54,11 @@ with base_workorders as (
         material_serial_number,
         technician_equipe,
 
+        -- Etat metier canonique (defini une seule fois dans le modele enrichi amont)
+        intervention_state,
+        is_realized,
+        has_workorder,
+
         lower(coalesce(
             workorder_category,
             case
@@ -98,10 +103,11 @@ with base_workorders as (
         ) as a_facturer
 
     from `evs-datastack-prod`.`prod_intermediate`.`int_yuman__demands_workorders_enriched`
-    -- Exclusion des bons de travail "secs" (sans demande rattachée) : ils décrochent du
-    -- référentiel client/partenaire (partner_name, client_id… NULL) et fausseraient la clé
-    -- d'intervention aval (key_inter) + la tarification. ~44 lignes en prod (full join amont).
-    where demand_id is not null
+    -- Exclusion des bons de travail "secs" (orphelins, sans demande rattachée) : ils
+    -- décrochent du référentiel client/partenaire (partner_name, client_id… NULL) et
+    -- fausseraient la clé d'intervention aval (key_inter) + la tarification (~65 lignes).
+    -- Flag canonique défini une seule fois en amont (cf. is_orphan_workorder).
+    where not is_orphan_workorder
 ),
 
 -- CTE de référence : nettoyage type d'intervention, machine, métropole, tarification
@@ -339,22 +345,9 @@ final_table as (
             when dc.delai_jours_ouvres > 2
                 then 'J++'
             else 'ERREUR'
-        end as type_delai,
-
-        -- Etat métier canonique de l'intervention (cf. _yuman__intermediate_models.yml)
-        case
-            when p.workorder_status = 'Closed' and not p.is_workorder_not_done then 'REALISEE'
-            when p.workorder_status = 'Closed' then 'NON_REALISEE'
-            when p.is_workorder_currently_paused then 'EN_PAUSE'
-            when p.workorder_status = 'In progress' then 'EN_COURS'
-            when p.workorder_status = 'Scheduled' then 'PLANIFIEE'
-            when p.workorder_status is null and p.demand_status = 'Open' then 'DEMANDE_OUVERTE'
-            when p.workorder_status is null and p.demand_status = 'Rejected' then 'DEMANDE_REJETEE'
-            else 'AUTRE'
-        end as intervention_state,
-
-        (p.workorder_status = 'Closed' and not p.is_workorder_not_done) as is_realized,
-        (p.workorder_status is not null) as has_workorder
+        end as type_delai
+    -- Etat metier canonique (intervention_state, is_realized, has_workorder) deja
+    -- present via p.* : source de verite unique dans le modele enrichi amont.
     from priced as p
     left join delai_calcul as dc
         on p.workorder_id = dc.wo_id
