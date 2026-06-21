@@ -262,81 +262,116 @@ models:
 
   - name: int_oracle_lcdp__livraison_tasks
     description: >
-      Table intermédiaire des tâches de bon de livraison.
-      Filtrée sur les tâches de type BON LIVRAISON (idtask_type=101)
-      avec statut FAIT/VALIDE/ANNULE.
+      [QUOI MÉTIER]
+      Lignes de bons de livraison LCDP : une ligne par produit livré sur une tâche de type
+      BON LIVRAISON. Suivi des livraisons de produits (hors chargement machine).
 
+      [COMMENT CONSTRUITE]
+      stg_oracle_lcdp__task (idtask_type = 101 BON LIVRAISON, statuts FAIT/VALIDE/ANNULE/ANOMALIE,
+      code_status_record = '1') croisé avec task_has_product (grain ligne produit), enrichi company
+      et product. Quantité ramenée en unités de base ; valorisation = quantité × prix d'achat.
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'un bon de livraison). ~8,4k lignes (~3,3k bons),
+      depuis fin 2024.
+
+      [NOTES]
+      En pratique surtout des bons VALIDE. product_source_id / product_destination_id sont des
+      références polymorphes (cf. leur _type) ; pour la livraison, source et destination = COMPANY.
     columns:
+      # --- IDENTIFIANTS ---
       - name: task_product_id
-        description: "Clé primaire de task_has_product - Identifiant unique de la relation task-produit"
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
         data_type: int64
         tests:
           - unique
           - not_null
-
       - name: task_id
-        description: "ID de la tâche (référence vers EVS.TASK)"
+        description: "Tâche de bon de livraison Oracle LCDP (EVS.TASK)."
         data_type: int64
         tests:
           - not_null
-
       - name: company_id
-        description: "ID de l'entreprise cliente (peer company)"
+        description: "Client (peer company). FK → dim_lcdp__company."
         data_type: int64
-
       - name: product_id
-        description: "ID du produit"
+        description: "Produit livré. FK → dim_lcdp__product."
         data_type: int64
         tests:
           - not_null
-
-      - name: product_code
-        description: "Code métier du produit"
+      - name: product_source_id
+        description: >
+          Identifiant de l'entité source. Référence polymorphe : table cible nommée par
+          product_source_type (COMPANY → company, RESOURCES → resources, DEVICE → device).
+          Pour la livraison, type = COMPANY. Pas une FK produit malgré le nom.
+        data_type: int64
+      - name: product_destination_id
+        description: >
+          Identifiant de l'entité destination. Référence polymorphe : table cible nommée par
+          product_destination_type. Pour la livraison, type = COMPANY.
+        data_type: int64
+      - name: product_source_type
+        description: "Type de l'entité source = table cible de product_source_id. Livraison : COMPANY."
+        data_type: string
+      - name: product_destination_type
+        description: "Type de l'entité destination = table cible de product_destination_id. Livraison : COMPANY."
         data_type: string
 
+      # --- CODES ---
       - name: company_code
-        description: "Code client de l'entreprise"
+        description: "Code client de l'entreprise."
         data_type: string
+      - name: product_code
+        description: "Code métier du produit."
+        data_type: string
+      - name: task_status_code
+        description: >
+          Code du statut de la tâche. Valeurs : VALIDE (validé, majoritaire), ANNULE, FAIT
+          (et ANOMALIE autorisé par le filtre).
+        data_type: string
+        tests:
+          - accepted_values:
+              arguments: {values: [FAIT, VALIDE, ANNULE, ANOMALIE]}
+              config: {severity: warn}
 
+      # --- DATE ---
       - name: task_start_date
-        description: "Date et heure réelle de la tâche"
+        description: "Date et heure réelle de la livraison."
         data_type: timestamp
         tests:
           - not_null
 
+      # --- CONDITIONNEMENT & PRIX ---
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
+      - name: unit_coeff_div
+        description: "Coefficient diviseur de conditionnement."
       - name: base_unit_quantity
-        description: "Quantité unitaire (sans conditionnement)"
-        data_type: int64
-
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
       - name: product_unit_price_task
-        description: "Prix unitaire hors tax du produit au moment de la tâche"
-
+        description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
       - name: product_unit_price_latest
-        description: "Dernier Prix d'achat unitaire hors tax du produit"
-        data_type: int64
+        description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
 
+      # --- MESURES ---
       - name: quantity
-        description: "Quantité produit"
-        data_type: int64
-
+        description: "Quantité livrée en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
       - name: valuation
-        description: "Valorisation du produit (quantité * prix unitaire)"
-        data_type: int64
+        description: "Valorisation de la livraison en euros = quantity × prix d'achat unitaire. Mesure additive."
 
+      # --- MÉTADONNÉES ---
       - name: updated_at
-        description: "Timestamp de dernière modification (pour incrément)"
+        description: "Timestamp de dernière modification en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: created_at
-        description: "Timestamp de création"
+        description: "Timestamp de création en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: extracted_at
-        description: "Timestamp d'extraction depuis Oracle"
+        description: "Timestamp d'extraction depuis Oracle."
         data_type: timestamp
         tests:
           - not_null
