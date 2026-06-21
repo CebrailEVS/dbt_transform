@@ -211,167 +211,187 @@ models:
         description: "Temps de réponse total cumulé (minutes)."
   - name: int_zoho_desk__ticket_status_events
     description: >
-      Une ligne par changement de statut — vue brute mais normalisée.
-      Source : stg_zoho_desk__ticket_history × stg_zoho_desk__ticket_history_event_info,
-      filtré sur property_name = 'Status'.
-      Inclut les événements de création : Zoho les enregistre avec
-      previous_value / updated_value à NULL et la valeur initiale dans
-      property_value. On lit ce dernier via COALESCE et on flagge la ligne
-      avec is_creation_event = true.
-      Les statuts bruts (français + anciens libellés anglais hérités) sont
-      enrichis via le seed ref_zoho_desk__status_mapping pour exposer
-      status_type / is_on_hold / is_closed.
-      Aucune sémantique métier n'est appliquée ici (closed/reopened/etc.) :
-      ces règles sont laissées aux marts pour rester flexible.
-      event_date_paris est calculé en Europe/Paris pour aligner avec les
-      rapports métier.
+      [QUOI MÉTIER]
+      Une ligne par changement de statut d'un ticket (incluant la création). Brique d'analyse du
+      cycle de vie : ouvertures, mises en attente, fermetures, réouvertures.
+
+      [COMMENT CONSTRUITE]
+      stg_zoho_desk__ticket_history × ticket_history_event_info, filtré property_name = 'Status'.
+      Les événements de création (prev/new à NULL, valeur initiale dans property_value) sont lus via
+      COALESCE et flaggés is_creation_event. Les statuts bruts (FR + anciens libellés EN hérités)
+      sont normalisés via le seed ref_zoho_desk__status_mapping (status_type / is_on_hold / is_closed).
+
+      [GRAIN]
+      1 ligne par événement de changement de statut. ~66,4k événements, ~22,2k tickets (dont ~23,2k
+      créations), depuis février 2024.
+
+      [NOTES]
+      Aucune sémantique métier (closed/reopened) appliquée ici — laissée aux marts. event_date_paris
+      en Europe/Paris. Filtrer event_name != 'TicketMergedMaster' pour exclure le bruit des fusions.
     columns:
       - name: ticket_id
-        description: "FK vers le ticket concerné"
+        description: "Ticket concerné. FK → stg_zoho_desk__tickets / int_zoho_desk__ticket_enriched."
         tests:
           - not_null
           - relationships:
-              arguments:
-                to: ref('stg_zoho_desk__tickets')
-                field: ticket_id
-              config:
-                severity: warn
+              arguments: {to: "ref('stg_zoho_desk__tickets')", field: ticket_id}
+              config: {severity: warn}
       - name: event_at
-        description: "Date/heure exacte de l'événement (TIMESTAMP UTC)"
+        description: "Date/heure exacte de l'événement (TIMESTAMP UTC)."
         tests:
           - not_null
       - name: event_date_paris
-        description: "Date de l'événement (Europe/Paris) — colonne de partition"
+        description: "Date de l'événement en Europe/Paris (colonne de partition)."
       - name: event_name
         description: >
-          Nom de l'action Zoho ayant déclenché le changement (méta-événement parent).
-          Valeurs : TicketUpdated (modification utilisateur classique),
-          TicketCreated (création), TicketMergedMaster (effet de bord d'une fusion
-          de tickets — Zoho ré-estampille les propriétés sans changement réel).
-          Permet aux marts de filtrer le bruit des fusions.
+          Action Zoho parente ayant déclenché le changement. Valeurs : TicketUpdated (modif
+          classique), TicketCreated (création), TicketMergedMaster (effet de bord d'une fusion de
+          tickets — Zoho ré-estampille sans changement réel ; à filtrer pour exclure le bruit).
+        tests:
+          - accepted_values:
+              arguments: {values: [TicketUpdated, TicketCreated, TicketMergedMaster]}
+              config: {severity: warn}
       - name: actor_id
-        description: "ID Zoho de l'acteur (agent / contact / système)"
+        description: "ID Zoho de l'acteur (agent / contact / système)."
       - name: actor_name
-        description: "Nom lisible de l'acteur"
+        description: "Nom lisible de l'acteur."
       - name: actor_type
-        description: "Type d'acteur : AGENT, CONTACT, SYSTEM"
+        description: "Type d'acteur. Valeurs : Agent, Contact, Workflow (automatisation), ou NULL."
+        tests:
+          - accepted_values:
+              arguments: {values: [Agent, Contact, Workflow]}
+              config: {severity: warn}
       - name: prev_status
-        description: "Libellé brut du statut avant la transition. NULL pour les événements de création."
+        description: "Libellé brut du statut avant la transition. NULL pour les créations."
       - name: new_status
-        description: >
-          Libellé brut du statut après la transition. Pour les événements de
-          création, contient le statut initial du ticket (lu depuis property_value).
+        description: "Libellé brut du statut après (pour les créations : statut initial, lu depuis property_value)."
       - name: is_creation_event
-        description: >
-          BOOLEAN — true si la ligne représente la création initiale du ticket
-          (prev_status IS NULL, new_status = statut initial). Permet de
-          distinguer creation vs changement de statut classique.
+        description: "True si la ligne représente la création du ticket (prev NULL, new = statut initial)."
       - name: prev_status_type
-        description: "Catégorie normalisée du statut avant : Open / On Hold / Closed (depuis le seed)"
+        description: "Catégorie normalisée du statut avant : Open / On Hold / Closed (seed status_mapping)."
       - name: prev_is_on_hold
-        description: "BOOLEAN — le statut avant était une attente (depuis le seed)"
+        description: "True si le statut avant était une attente (seed)."
       - name: prev_is_closed
-        description: "BOOLEAN — le statut avant était fermé (depuis le seed)"
+        description: "True si le statut avant était fermé (seed)."
       - name: new_status_type
-        description: "Catégorie normalisée du statut après : Open / On Hold / Closed (depuis le seed)"
+        description: "Catégorie normalisée du statut après : Open / On Hold / Closed (seed status_mapping)."
       - name: new_is_on_hold
-        description: "BOOLEAN — le statut après est une attente (depuis le seed)"
+        description: "True si le statut après est une attente (seed)."
       - name: new_is_closed
-        description: "BOOLEAN — le statut après est fermé (depuis le seed)"
+        description: "True si le statut après est fermé (seed)."
 
   - name: int_zoho_desk__ticket_priority_events
     description: >
-      Une ligne par changement de priorité du ticket
-      (filtré sur property_name = 'Priority').
-      Source : stg_zoho_desk__ticket_history × stg_zoho_desk__ticket_history_event_info.
-      Même pattern que ticket_status_events : la priorité est une valeur scalaire,
-      donc on lit prev/new dans property_value__previous_value / __updated_value,
-      avec un fallback sur property_value pour l'attribution initiale.
-      Permet d'analyser les escalades (ex : Low → High en cours de traitement).
+      [QUOI MÉTIER]
+      Une ligne par changement de priorité d'un ticket. Permet d'analyser les escalades
+      (ex. Low → High en cours de traitement).
+
+      [COMMENT CONSTRUITE]
+      stg_zoho_desk__ticket_history × ticket_history_event_info, filtré property_name = 'Priority'.
+      Valeur scalaire : prev/new lus dans property_value__previous_value / __updated_value, fallback
+      property_value pour l'attribution initiale.
+
+      [GRAIN]
+      1 ligne par événement de changement de priorité (≥ 0 par ticket). Depuis février 2024.
+
+      [NOTES]
+      Beaucoup de tickets n'ont aucun changement de priorité (priorité souvent jamais renseignée,
+      cf. ticket_enriched.priority ~35% NULL).
     columns:
       - name: ticket_id
-        description: "FK vers le ticket concerné"
+        description: "Ticket concerné. FK → stg_zoho_desk__tickets / int_zoho_desk__ticket_enriched."
         tests:
           - not_null
           - relationships:
-              arguments:
-                to: ref('stg_zoho_desk__tickets')
-                field: ticket_id
-              config:
-                severity: warn
+              arguments: {to: "ref('stg_zoho_desk__tickets')", field: ticket_id}
+              config: {severity: warn}
       - name: event_at
-        description: "Date/heure exacte (TIMESTAMP UTC)"
+        description: "Date/heure exacte (TIMESTAMP UTC)."
         tests:
           - not_null
       - name: event_date_paris
-        description: "Date Europe/Paris — colonne de partition"
+        description: "Date Europe/Paris (colonne de partition)."
       - name: event_name
-        description: >
-          Nom de l'action Zoho ayant déclenché le changement (méta-événement parent).
-          TicketUpdated / TicketCreated / TicketMergedMaster. Voir
-          int_zoho_desk__ticket_status_events pour le détail.
+        description: "Action Zoho parente (TicketUpdated / TicketCreated / TicketMergedMaster — cf. ticket_status_events)."
+        tests:
+          - accepted_values:
+              arguments: {values: [TicketUpdated, TicketCreated, TicketMergedMaster]}
+              config: {severity: warn}
       - name: actor_id
-        description: "ID Zoho de l'acteur"
+        description: "ID Zoho de l'acteur."
       - name: actor_name
-        description: "Nom lisible de l'acteur"
+        description: "Nom lisible de l'acteur."
       - name: actor_type
-        description: "Type d'acteur : AGENT, CONTACT, SYSTEM"
+        description: "Type d'acteur. Valeurs : Agent, Contact, Workflow, ou NULL."
+        tests:
+          - accepted_values:
+              arguments: {values: [Agent, Contact, Workflow]}
+              config: {severity: warn}
       - name: prev_priority
         description: "Priorité avant (Low / Medium / High / Urgent). NULL pour l'attribution initiale."
       - name: new_priority
-        description: "Priorité après (lue depuis updated_value, ou property_value pour l'attribution initiale)."
+        description: "Priorité après (updated_value, ou property_value pour l'attribution initiale)."
       - name: is_initial_assignment
-        description: "BOOLEAN — true si c'est la première attribution de priorité (prev=NULL, new=valeur initiale)."
+        description: "True si première attribution de priorité (prev NULL, new = valeur initiale)."
 
   - name: int_zoho_desk__ticket_assignee_events
     description: >
-      Une ligne par changement de propriétaire du ticket (l'agent assigné),
-      filtré sur property_name = 'Case Owner' (nomenclature Zoho héritée
-      de Salesforce, équivalent à "Propriétaire du Ticket" dans l'UI).
-      Source : stg_zoho_desk__ticket_history × stg_zoho_desk__ticket_history_event_info.
-      Différence avec priority/status : la valeur est un objet (agent_id + agent_name),
-      donc on lit dans les champs __id / __name (et non les scalaires).
-      Permet d'analyser la charge agent dans le temps et le taux de réassignation.
+      [QUOI MÉTIER]
+      Une ligne par changement de propriétaire (agent assigné) d'un ticket. Permet d'analyser la
+      charge agent dans le temps et le taux de réassignation.
+
+      [COMMENT CONSTRUITE]
+      stg_zoho_desk__ticket_history × ticket_history_event_info, filtré property_name = 'Case Owner'
+      (nomenclature Zoho héritée de Salesforce = « Propriétaire du ticket » dans l'UI). La valeur est
+      un objet (agent id + name) : lecture dans les champs __id / __name, fallback property_value__*
+      pour l'attribution initiale.
+
+      [GRAIN]
+      1 ligne par événement de (ré)assignation. Depuis février 2024.
+
+      [NOTES]
+      « Case Owner » = l'agent assigné (assignee dans ticket_enriched), pas l'auteur du changement
+      (qui est actor_*).
     columns:
       - name: ticket_id
-        description: "FK vers le ticket concerné"
+        description: "Ticket concerné. FK → stg_zoho_desk__tickets / int_zoho_desk__ticket_enriched."
         tests:
           - not_null
           - relationships:
-              arguments:
-                to: ref('stg_zoho_desk__tickets')
-                field: ticket_id
-              config:
-                severity: warn
+              arguments: {to: "ref('stg_zoho_desk__tickets')", field: ticket_id}
+              config: {severity: warn}
       - name: event_at
-        description: "Date/heure exacte (TIMESTAMP UTC)"
+        description: "Date/heure exacte (TIMESTAMP UTC)."
         tests:
           - not_null
       - name: event_date_paris
-        description: "Date Europe/Paris — colonne de partition"
+        description: "Date Europe/Paris (colonne de partition)."
       - name: event_name
-        description: >
-          Nom de l'action Zoho ayant déclenché le changement (méta-événement parent).
-          TicketUpdated / TicketCreated / TicketMergedMaster. Voir
-          int_zoho_desk__ticket_status_events pour le détail.
+        description: "Action Zoho parente (TicketUpdated / TicketCreated / TicketMergedMaster — cf. ticket_status_events)."
+        tests:
+          - accepted_values:
+              arguments: {values: [TicketUpdated, TicketCreated, TicketMergedMaster]}
+              config: {severity: warn}
       - name: actor_id
-        description: "ID Zoho de l'acteur ayant déclenché le changement"
+        description: "ID Zoho de l'acteur ayant déclenché le changement."
       - name: actor_name
-        description: "Nom de l'acteur"
+        description: "Nom de l'acteur."
       - name: actor_type
-        description: "Type d'acteur : AGENT, CONTACT, SYSTEM"
+        description: "Type d'acteur. Valeurs : Agent, Contact, Workflow, ou NULL."
+        tests:
+          - accepted_values:
+              arguments: {values: [Agent, Contact, Workflow]}
+              config: {severity: warn}
       - name: prev_assignee_id
-        description: "ID de l'agent assigné avant. NULL si non assigné ou attribution initiale."
+        description: "Agent assigné avant. FK → stg_zoho_desk__agents. NULL si non assigné / attribution initiale."
       - name: prev_assignee_name
-        description: "Nom de l'agent assigné avant"
+        description: "Nom de l'agent assigné avant."
       - name: new_assignee_id
-        description: >
-          ID de l'agent assigné après (depuis updated_value__id, fallback property_value__id
-          pour l'attribution initiale).
+        description: "Agent assigné après. FK → stg_zoho_desk__agents (updated_value__id, fallback property_value__id)."
       - name: new_assignee_name
-        description: "Nom de l'agent assigné après"
+        description: "Nom de l'agent assigné après."
       - name: is_initial_assignment
-        description: "BOOLEAN — true si c'est la première attribution d'un propriétaire au ticket."
+        description: "True si première attribution d'un propriétaire au ticket."
 
   - name: int_zoho_desk__ticket_lifecycle_segments
     description: >
