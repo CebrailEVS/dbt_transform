@@ -673,7 +673,7 @@ models:
       - name: updated_at
         description: "Date de dernière mise à jour de la ressource dans Oracle"
 
-  - name: fct_neshu__appro
+  - name: fct_neshu__passage_appro
     description: |
       [QUOI MÉTIER] Passages APPRO des roadmen enrichis des métriques journalières de temps de travail.
       [COMMENT CONSTRUITE] Issu de int_oracle_neshu__appro_tasks joint à int_oracle_neshu__pointage_tasks (START_DAY) pour le pointage journalier du roadman. Calculs window function par roadman et jour : rang du passage, nombre quotidien de passages, durée moyenne, durée nette du temps de travail (dernière fin - début effectif, nettoyée des valeurs aberrantes <0 ou >12h). Statut ENCOURS reclassé en FAIT après validation métier.

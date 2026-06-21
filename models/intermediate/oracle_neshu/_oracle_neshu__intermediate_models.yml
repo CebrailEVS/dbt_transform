@@ -1082,7 +1082,7 @@ models:
     description: >
       [QUOI MÉTIER]
       Passages d'approvisionnement enrichis : tâche appro + roadman affecté, référentiels
-      company/device/GEA, statut normalisé et durée du passage. Base de fct_neshu__appro
+      company/device/GEA, statut normalisé et durée du passage. Base de fct_neshu__passage_appro
       (analyse roadman/jour avec pointage) et des faits dérivés au grain machine.
 
       [COMMENT CONSTRUITE]
