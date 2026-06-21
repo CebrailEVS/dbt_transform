@@ -15,6 +15,10 @@
 #                                 "source:yuman_api+" (source + all descendants).
 #                                 Snapshots are always excluded from build — they
 #                                 run via DBT_COMMAND=snapshot only.
+#   DBT_SELECTOR_NAME           — named selector from selectors.yml (e.g.
+#                                 "passage_appro_fastlane"). Takes precedence over
+#                                 DBT_TAG_SELECTOR when set (mutually exclusive:
+#                                 dbt build uses --selector instead of --select).
 # =============================================================================
 
 set -euo pipefail
@@ -37,8 +41,16 @@ else
   if [ "${DBT_FULL_REFRESH:-false}" = "true" ]; then
     FULL_REFRESH_FLAG="--full-refresh"
   fi
-  echo "[dbt] Building models: ${DBT_TAG_SELECTOR}${FULL_REFRESH_FLAG:+ (full-refresh)}"
-  dbt build --select "${DBT_TAG_SELECTOR}" --exclude resource_type:snapshot --target "${DBT_TARGET:-prod}" ${FULL_REFRESH_FLAG}
+  # Selection mode: a named selector (selectors.yml) takes precedence over the
+  # inline --select. They are mutually exclusive — never pass both to dbt build.
+  if [ -n "${DBT_SELECTOR_NAME:-}" ]; then
+    SELECTION_ARGS=(--selector "${DBT_SELECTOR_NAME}")
+    echo "[dbt] Building via selector: ${DBT_SELECTOR_NAME}${FULL_REFRESH_FLAG:+ (full-refresh)}"
+  else
+    SELECTION_ARGS=(--select "${DBT_TAG_SELECTOR}")
+    echo "[dbt] Building models: ${DBT_TAG_SELECTOR}${FULL_REFRESH_FLAG:+ (full-refresh)}"
+  fi
+  dbt build "${SELECTION_ARGS[@]}" --exclude resource_type:snapshot --target "${DBT_TARGET:-prod}" ${FULL_REFRESH_FLAG}
 fi
 
 echo "[dbt] Done."
