@@ -52,7 +52,10 @@ enriched as (
             else pa.task_status_code
         end as task_status_code,
         case when pa.task_status_code in ('FAIT', 'ENCOURS') then 1 else 0 end as is_done,
-        case when pa.task_status_code in ('PREVU', 'FAIT', 'ENCOURS') then 1 else 0 end as is_planned,
+        case
+            when pa.task_status_code in ('PREVU', 'FAIT', 'ENCOURS', 'ANOMALIE') then 1 else 0
+        end as is_planned,
+        case when pa.task_status_code = 'ANOMALIE' then 1 else 0 end as is_anomaly,
 
         -- Dates
         date(pa.task_start_date) as start_date_day,

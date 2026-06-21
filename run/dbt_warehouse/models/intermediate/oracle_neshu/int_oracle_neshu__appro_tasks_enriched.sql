@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] Passages d'approvisionnement enrichis : t\u00e2che appro + roadman affect\u00e9, r\u00e9f\u00e9rentiels company/device/GEA, statut normalis\u00e9 et dur\u00e9e du passage. Base de fct_neshu__appro (analyse roadman/jour avec pointage) et des faits d\u00e9riv\u00e9s au grain machine.\n[COMMENT CONSTRUITE] int_oracle_neshu__appro_tasks enrichi du roadman (stg_oracle_neshu__task_has_resources \u00d7 resources type=2 = PERSON), du GEA (ref_oracle_neshu__roadman_gea) et des libell\u00e9s company/device. Statut normalis\u00e9 : ENCOURS reclass\u00e9 en FAIT (validation m\u00e9tier). Dur\u00e9e du passage calcul\u00e9e (fin \u2212 d\u00e9but) pour les t\u00e2ches FAIT.\n[GRAIN] 1 ligne par task_id (passage appro). ~555k lignes.\n[NOTES] Filtr\u00e9 aux passages ayant un roadman rattach\u00e9 (resources_roadman_id non NULL) \u2014 ~327 passages sans roadman exclus vs int_oracle_neshu__appro_tasks. Pas de v\u00e9hicule ici : seul le roadman (resources type=2) est joint.\n"""
+      description="""[QUOI M\u00c9TIER] Passages d'approvisionnement enrichis : t\u00e2che appro + roadman affect\u00e9, r\u00e9f\u00e9rentiels company/device/GEA, statut normalis\u00e9 et dur\u00e9e du passage. Base de fct_neshu__passage_appro (analyse roadman/jour avec pointage) et des faits d\u00e9riv\u00e9s au grain machine.\n[COMMENT CONSTRUITE] int_oracle_neshu__appro_tasks enrichi du roadman (stg_oracle_neshu__task_has_resources \u00d7 resources type=2 = PERSON), du GEA (ref_oracle_neshu__roadman_gea) et des libell\u00e9s company/device. Statut normalis\u00e9 : ENCOURS reclass\u00e9 en FAIT (validation m\u00e9tier). Dur\u00e9e du passage calcul\u00e9e (fin \u2212 d\u00e9but) pour les t\u00e2ches FAIT.\n[GRAIN] 1 ligne par task_id (passage appro). ~555k lignes.\n[NOTES] Filtr\u00e9 aux passages ayant un roadman rattach\u00e9 (resources_roadman_id non NULL) \u2014 ~327 passages sans roadman exclus vs int_oracle_neshu__appro_tasks. Pas de v\u00e9hicule ici : seul le roadman (resources type=2) est joint.\n"""
     )
     as (
       
@@ -66,7 +66,10 @@ enriched as (
             else pa.task_status_code
         end as task_status_code,
         case when pa.task_status_code in ('FAIT', 'ENCOURS') then 1 else 0 end as is_done,
-        case when pa.task_status_code in ('PREVU', 'FAIT', 'ENCOURS') then 1 else 0 end as is_planned,
+        case
+            when pa.task_status_code in ('PREVU', 'FAIT', 'ENCOURS', 'ANOMALIE') then 1 else 0
+        end as is_planned,
+        case when pa.task_status_code = 'ANOMALIE' then 1 else 0 end as is_anomaly,
 
         -- Dates
         date(pa.task_start_date) as start_date_day,
