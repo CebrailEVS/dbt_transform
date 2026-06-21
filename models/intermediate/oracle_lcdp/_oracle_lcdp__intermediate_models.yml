@@ -937,123 +937,135 @@ models:
 
   - name: int_oracle_lcdp__commande_interne_tasks
     description: >
-      Table intermédiaire des mouvements internes (commandes internes).
-      Filtrée sur les tâches de type LIVRAISON INTERNE (idtask_type = 132)
-      avec statut FAIT / VALIDE / ANNULE, et labels de la famille STATUT_LIVRAISON.
-      Contient les métriques de quantité et valorisation, avec les codes source et destination
-      (entreprise ou ressource) associés.
+      [QUOI MÉTIER]
+      Commandes / livraisons internes LCDP (type 132) : une ligne par produit d'une commande
+      interne, avec son statut de livraison. Approvisionnement interne, typiquement dépôt → véhicule.
 
+      [COMMENT CONSTRUITE]
+      stg_oracle_lcdp__task (idtask_type = 132, statuts FAIT/VALIDE/ANNULE/ANOMALIE,
+      code_status_record = '1') croisé avec task_has_product (grain ligne produit), enrichi product.
+      Source ET destination résolues selon leur type (COMPANY → company, RESOURCES → resources).
+      Le statut de livraison vient du label de famille STATUT_LIVRAISON. Déduplication sur
+      task_product_id en priorisant le label LIVRE.
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'une commande interne). ~44,5k lignes (~2 080 tâches),
+      depuis fin 2024.
+
+      [NOTES]
+      Distinct de int_oracle_lcdp__livraison_interne_tasks (idtask_type 161) : ici type 132, avec
+      suivi de statut de livraison (label_code). Flux dominant COMPANY (dépôt) → RESOURCES (véhicule).
+      Seules les lignes dont source ET destination se résolvent sont conservées.
     columns:
+      # --- IDENTIFIANTS ---
       - name: task_product_id
-        description: "Clé primaire de task_has_product - Identifiant unique de la relation tâche-produit"
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
         data_type: int64
         tests:
           - unique
           - not_null
-
       - name: task_id
-        description: "Identifiant de la tâche (référence EVS.TASK)"
+        description: "Tâche de commande interne Oracle LCDP (EVS.TASK)."
         data_type: int64
         tests:
           - not_null
-
       - name: company_id
-        description: "Identifiant de l'entreprise cliente (peer company)"
+        description: "Client (peer company) de la tâche. FK → dim_lcdp__company."
         data_type: int64
-
       - name: product_id
-        description: "Identifiant du produit concerné"
+        description: "Produit commandé. FK → dim_lcdp__product."
         data_type: int64
         tests:
           - not_null
-
       - name: product_source_id
-        description: "Identifiant du produit source (COMPANY ou RESOURCES)"
+        description: >
+          Identifiant de l'entité **source**. Référence polymorphe : table cible nommée par
+          product_source_type — COMPANY → company (dépôt), RESOURCES → resources (véhicule).
+          Pas une FK produit.
         data_type: int64
-
       - name: product_source_type
-        description: "Type du produit source (COMPANY ou RESOURCES)"
+        description: "Type de l'entité source = table cible de product_source_id. Valeur : COMPANY (dépôt)."
         data_type: string
-
       - name: product_destination_id
-        description: "Identifiant du produit destination (COMPANY ou RESOURCES)"
+        description: >
+          Identifiant de l'entité **destination**. Référence polymorphe : table cible nommée par
+          product_destination_type (COMPANY → company, RESOURCES → resources).
         data_type: int64
-
       - name: product_destination_type
-        description: "Type du produit destination (COMPANY ou RESOURCES)"
+        description: "Type de l'entité destination = table cible de product_destination_id. Valeurs : RESOURCES (véhicule, majoritaire), COMPANY (dépôt)."
         data_type: string
 
+      # --- CODES ---
       - name: source_code
-        description: "Code de la source du mouvement (entreprise ou ressource)"
+        description: "Code de l'entité source, résolu selon product_source_type (company.code si COMPANY, resources.code si RESOURCES). Toujours renseigné (filtre du modèle)."
         data_type: string
         tests:
           - not_null
-
       - name: destination_code
-        description: "Code de la destination du mouvement (entreprise ou ressource)"
+        description: "Code de l'entité destination, résolu selon product_destination_type. Toujours renseigné (filtre du modèle)."
         data_type: string
         tests:
           - not_null
-
       - name: product_code
-        description: "Code métier du produit (référence EVS.PRODUCT)"
+        description: "Code métier du produit."
         data_type: string
-
       - name: task_status_code
-        description: "Code statut de la tâche (FAIT, VALIDE, ANNULE)"
+        description: >
+          Code du statut de la tâche. Valeurs : VALIDE (validé, majoritaire), ANNULE, FAIT, ANOMALIE.
         data_type: string
-
+        tests:
+          - accepted_values:
+              arguments: {values: [FAIT, VALIDE, ANNULE, ANOMALIE]}
+              config: {severity: warn}
       - name: label_code
-        description: "Code du label associé à la tâche (famille STATUT_LIVRAISON)"
+        description: >
+          Statut de livraison de la commande interne (label de famille STATUT_LIVRAISON). Valeurs :
+          LIVRE (livré, majoritaire), LIVRE_PARTIEL (livraison partielle), EN_ATTENTE (en attente).
+          La déduplication priorise la ligne LIVRE.
         data_type: string
+        tests:
+          - accepted_values:
+              arguments: {values: [LIVRE, LIVRE_PARTIEL, EN_ATTENTE]}
+              config: {severity: warn}
 
+      # --- DATE ---
       - name: task_start_date
-        description: "Date et heure réelle de début de la tâche"
+        description: "Date et heure réelle de la commande interne."
         data_type: timestamp
         tests:
           - not_null
 
+      # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi
-        description: "Coefficient multiplicateur d'unité du produit"
-        data_type: int64
-
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
       - name: unit_coeff_div
-        description: "Coefficient diviseur d'unité du produit"
-        data_type: int64
-
+        description: "Coefficient diviseur de conditionnement."
       - name: base_unit_quantity
-        description: "Quantité unitaire (sans conditionnement)"
-        data_type: int64
-
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
       - name: product_unit_price_task
-        description: "Prix unitaire hors tax du produit au moment de la tâche"
-
+        description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
       - name: product_unit_price_latest
-        description: "Dernier Prix d'achat unitaire hors tax du produit"
-        data_type: int64
+        description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
 
+      # --- MESURES ---
       - name: quantity
-        description: "Quantité totale du produit transféré (avec coefficients unitaires)"
-        data_type: numeric
-
+        description: "Quantité commandée en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
       - name: valuation
-        description: "Valorisation totale (quantité * prix unitaire net)"
-        data_type: numeric
+        description: "Valorisation de la commande en euros = quantity × prix d'achat unitaire. Mesure additive."
 
+      # --- MÉTADONNÉES ---
       - name: updated_at
-        description: "Timestamp de dernière mise à jour de la tâche"
+        description: "Timestamp de dernière modification en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: created_at
-        description: "Timestamp de création de la tâche"
+        description: "Timestamp de création en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: extracted_at
-        description: "Timestamp d'extraction depuis Oracle (suivi de synchronisation)"
+        description: "Timestamp d'extraction depuis Oracle."
         data_type: timestamp
         tests:
           - not_null
