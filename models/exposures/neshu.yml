@@ -24,7 +24,7 @@ exposures:
       email: cebrail.aksoy@evs-pro.com
     depends_on:
       - ref('fct_neshu__consommation')
-      - ref('fct_neshu__appro')
+      - ref('fct_neshu__passage_appro')
       - ref('dim_neshu__company')
       - ref('dim_neshu__contract')
       - ref('dim_neshu__device')
@@ -58,7 +58,7 @@ exposures:
       name: Cebrail Aksoy
       email: cebrail.aksoy@evs-pro.com
     depends_on:
-      - ref('fct_neshu__appro')
+      - ref('fct_neshu__passage_appro')
       - ref('dim_neshu__company')
       - ref('ref_oracle_neshu__roadman_gea')
 

@@ -1,0 +1,30 @@
+selectors:
+  # ============================================================
+  # FAST-LANE — Passages appro (refresh intra-day)
+  # ============================================================
+  # Sous-graphe minimal alimentant les marts de passages appro.
+  # Construit UNIQUEMENT les ancêtres de fct_{neshu,lcdp}__appro
+  # (staging.task incremental + intermediate.appro_tasks incremental
+  # + dims neshu/lcdp), PAS tout le DAG des sources Oracle.
+  #
+  # Usage : voie rapide orchestrée plusieurs fois/jour, en parallèle
+  # du build nocturne `source:oracle_neshu+` / `source:oracle_lcdp+`.
+  #   dbt build --selector passage_appro_fastlane
+  #
+  # Remplace les pipelines Python externes
+  # ingest-oracle-{neshu,lcdp}-passages-appro (cf. consolidation
+  # passages_appro : une seule définition métier, dans dbt).
+  # ============================================================
+  - name: passage_appro_fastlane
+    description: >
+      Sous-graphe ancêtre des marts passages appro (neshu + lcdp),
+      pour refresh intra-day sans rebuild des sources Oracle complètes.
+    default: false
+    definition:
+      union:
+        - method: fqn
+          value: fct_neshu__passage_appro
+          parents: true
+        # TODO(lcdp): ajouter `fct_lcdp__appro` ici une fois le mart créé.
+        # Le monitoring LCDP n'existe aujourd'hui qu'en pipeline Python ;
+        # le mart dbt reste à porter (cf. consolidation passages_appro).
