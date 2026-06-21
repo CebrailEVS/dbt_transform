@@ -75,7 +75,7 @@ models:
         tests:
           - accepted_values:
               arguments:
-                values: ["Chiffre d'Affaires", "Masse Salariale", "Frais Directs & Amortissements", "Consommation MP & SSTT"]
+                values: ["Chiffre d\\'Affaires", "Masse Salariale", "Frais Directs & Amortissements", "Consommation MP & SSTT"]
               config:
                 severity: warn
       # TODO(métier): confirmer avec la finance — (1) sens_ecriture 0=débit / 1=crédit ;
