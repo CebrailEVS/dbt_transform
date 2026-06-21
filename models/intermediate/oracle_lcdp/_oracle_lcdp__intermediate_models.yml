@@ -378,97 +378,114 @@ models:
 
   - name: int_oracle_lcdp__inventaire_tasks
     description: >
-      Table intermédiaire des tâches de d'inventaire.
-      Filtrée sur les tâches de type INVENTAIRE (idtask_type=162)
-      avec statut FAIT/VALIDE/ANNULE.
+      [QUOI MÉTIER]
+      Inventaires de stock LCDP : une ligne par produit inventorié sur une tâche d'inventaire.
+      Photographie des quantités constatées par source de stock (véhicule ou dépôt).
 
+      [COMMENT CONSTRUITE]
+      stg_oracle_lcdp__task (idtask_type = 162 INVENTAIRE, statuts FAIT/VALIDE/ANNULE/ANOMALIE,
+      code_status_record = '1') croisé avec task_has_product (grain ligne produit), enrichi product.
+      La source est résolue selon son type : product_source_type = COMPANY → code dépôt (company),
+      RESOURCES → code ressource (véhicule/roadman). Quantité ramenée en unités de base.
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'un inventaire). ~18,1k lignes (~331 inventaires),
+      depuis fin 2024.
+
+      [NOTES]
+      Pas de destination (un inventaire constate un stock, il ne le déplace pas). Les lignes dont
+      la source ne se résout pas (source_code NULL) sont exclues.
     columns:
+      # --- IDENTIFIANTS ---
       - name: task_product_id
-        description: "Clé primaire de task_has_product - Identifiant unique de la relation task-produit"
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
         data_type: int64
         tests:
           - unique
           - not_null
-
       - name: task_id
-        description: "ID de la tâche (référence vers EVS.TASK)"
+        description: "Tâche d'inventaire Oracle LCDP (EVS.TASK)."
         data_type: int64
         tests:
           - not_null
-
       - name: company_id
-        description: "ID de l'entreprise cliente (peer company)"
+        description: "Client (peer company) de la tâche. FK → dim_lcdp__company."
         data_type: int64
-
       - name: product_id
-        description: "ID du produit"
+        description: "Produit inventorié. FK → dim_lcdp__product."
         data_type: int64
         tests:
           - not_null
-
       - name: product_source_id
-        description: "ID du produit source"
+        description: >
+          Identifiant de l'entité **source** du stock inventorié. Référence polymorphe : table cible
+          nommée par product_source_type — COMPANY → company (dépôt), RESOURCES → resources
+          (véhicule/roadman). Pas une FK produit.
         data_type: int64
-
       - name: product_source_type
-        description: "Type du produit source"
+        description: "Type de l'entité source = table cible de product_source_id. Valeurs : RESOURCES (stock véhicule), COMPANY (stock dépôt)."
         data_type: string
 
+      # --- CODES ---
       - name: source_code
-        description: "Code source du produit"
+        description: >
+          Code de l'entité source, résolu selon product_source_type : company.code si COMPANY,
+          resources.code si RESOURCES. Les lignes sans source résolue sont exclues du modèle.
         data_type: string
-
       - name: product_code
-        description: "Code métier du produit"
+        description: "Code métier du produit."
         data_type: string
-
       - name: task_status_code
-        description: "Code statut de la tâche (FAIT, VALIDE, ANNULE)"
+        description: >
+          Code du statut de la tâche. Valeurs : VALIDE (validé, majoritaire), FAIT, ANNULE
+          (ANOMALIE autorisé par le filtre).
         data_type: string
+        tests:
+          - accepted_values:
+              arguments: {values: [FAIT, VALIDE, ANNULE, ANOMALIE]}
+              config: {severity: warn}
 
+      # --- DATE ---
       - name: task_start_date
-        description: "Date et heure réelle de la tâche"
+        description: "Date et heure réelle de l'inventaire."
         data_type: timestamp
         tests:
           - not_null
 
+      # --- CONDITIONNEMENT & PRIX ---
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
+      - name: unit_coeff_div
+        description: "Coefficient diviseur de conditionnement."
       - name: base_unit_quantity
-        description: "Quantité unitaire (sans conditionnement)"
-        data_type: int64
-
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
       - name: product_unit_price_task
-        description: "Prix unitaire hors tax du produit au moment de la tâche"
-
+        description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
       - name: product_unit_price_latest
-        description: "Dernier Prix d'achat unitaire hors tax du produit"
-        data_type: int64
+        description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
 
+      # --- MESURES ---
       - name: quantity
-        description: "Quantité produit"
-        data_type: int64
-
+        description: "Quantité inventoriée en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
       - name: valuation
-        description: "Valorisation du produit (quantité * prix unitaire)"
-        data_type: int64
+        description: "Valorisation du stock inventorié en euros = quantity × prix d'achat unitaire. Mesure additive."
 
+      # --- MÉTADONNÉES ---
       - name: updated_at
-        description: "Timestamp de dernière modification (pour incrément)"
+        description: "Timestamp de dernière modification en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: created_at
-        description: "Timestamp de création"
+        description: "Timestamp de création en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: extracted_at
-        description: "Timestamp d'extraction depuis Oracle"
+        description: "Timestamp d'extraction depuis Oracle."
         data_type: timestamp
         tests:
           - not_null
-
 
   - name: int_oracle_lcdp__ecart_inventaire_tasks
     description: >
