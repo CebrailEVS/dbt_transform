@@ -710,105 +710,124 @@ models:
 
   - name: int_oracle_lcdp__livraison_interne_tasks
     description: >
-      Table intermédiaire des tâches de Livraison interne.
-      Filtrée sur les tâches de type LIVRAISON INTERNE (idtask_type=161)
-      avec statut FAIT/VALIDE/ANNULE.
+      [QUOI MÉTIER]
+      Livraisons internes LCDP : une ligne par produit déplacé lors d'un mouvement de stock interne
+      (typiquement dépôt → véhicule pour approvisionner les roadmen). Suivi des quantités et valeurs
+      transférées entre entités internes.
 
+      [COMMENT CONSTRUITE]
+      stg_oracle_lcdp__task (idtask_type = 161 LIVRAISONS INTERNE, statuts FAIT/VALIDE/ANNULE/ANOMALIE,
+      code_status_record = '1') croisé avec task_has_product (grain ligne produit), enrichi product.
+      Source ET destination résolues selon leur type (COMPANY → company, RESOURCES → resources).
+      Quantité ramenée en unités de base.
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'un mouvement interne). ~55,6k lignes (~4 162 tâches),
+      depuis fin 2024.
+
+      [NOTES]
+      Seules les lignes dont la source ET la destination se résolvent sont conservées. Flux dominant
+      COMPANY (dépôt) → RESOURCES (véhicule/roadman).
     columns:
+      # --- IDENTIFIANTS ---
       - name: task_product_id
-        description: "Clé primaire de task_has_product - Identifiant unique de la relation task-produit"
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
         data_type: int64
         tests:
           - unique
           - not_null
-
       - name: task_id
-        description: "ID de la tâche (référence vers EVS.TASK)"
+        description: "Tâche de livraison interne Oracle LCDP (EVS.TASK)."
         data_type: int64
         tests:
           - not_null
-
       - name: company_id
-        description: "ID de l'entreprise cliente (peer company)"
+        description: "Client (peer company) de la tâche. FK → dim_lcdp__company."
         data_type: int64
-
       - name: product_id
-        description: "ID du produit"
+        description: "Produit déplacé. FK → dim_lcdp__product."
         data_type: int64
         tests:
           - not_null
-
       - name: product_source_id
-        description: "ID du produit source"
+        description: >
+          Identifiant de l'entité **source**. Référence polymorphe : table cible nommée par
+          product_source_type — COMPANY → company (dépôt), RESOURCES → resources (véhicule).
+          Pas une FK produit.
         data_type: int64
-
       - name: product_source_type
-        description: "Type du produit source"
+        description: "Type de l'entité source = table cible de product_source_id. Valeurs : COMPANY (dépôt, majoritaire), RESOURCES (véhicule)."
         data_type: string
-
       - name: product_destination_id
-        description: "ID du produit de destination"
+        description: >
+          Identifiant de l'entité **destination**. Référence polymorphe : table cible nommée par
+          product_destination_type (COMPANY → company, RESOURCES → resources).
         data_type: int64
-
       - name: product_destination_type
-        description: "Type du produit de destination"
+        description: "Type de l'entité destination = table cible de product_destination_id. Valeurs : RESOURCES (véhicule, majoritaire), COMPANY (dépôt)."
         data_type: string
 
-      - name: destination_code
-        description: "Code de destination du produit"
-        data_type: string
-
+      # --- CODES ---
       - name: source_code
-        description: "Code source du produit"
+        description: "Code de l'entité source, résolu selon product_source_type (company.code si COMPANY, resources.code si RESOURCES). Toujours renseigné (filtre du modèle)."
         data_type: string
-
+        tests:
+          - not_null
+      - name: destination_code
+        description: "Code de l'entité destination, résolu selon product_destination_type (company.code si COMPANY, resources.code si RESOURCES). Toujours renseigné (filtre du modèle)."
+        data_type: string
+        tests:
+          - not_null
       - name: product_code
-        description: "Code métier du produit"
+        description: "Code métier du produit."
         data_type: string
-
       - name: task_status_code
-        description: "Code statut de la tâche (FAIT, VALIDE, ANNULE)"
+        description: >
+          Code du statut de la tâche. Valeurs : VALIDE (validé, majoritaire), FAIT, ANNULE, ANOMALIE.
         data_type: string
+        tests:
+          - accepted_values:
+              arguments: {values: [FAIT, VALIDE, ANNULE, ANOMALIE]}
+              config: {severity: warn}
 
+      # --- DATE ---
       - name: task_start_date
-        description: "Date et heure réelle de la tâche"
+        description: "Date et heure réelle du mouvement interne."
         data_type: timestamp
         tests:
           - not_null
 
+      # --- CONDITIONNEMENT & PRIX ---
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
+      - name: unit_coeff_div
+        description: "Coefficient diviseur de conditionnement."
       - name: base_unit_quantity
-        description: "Quantité unitaire (sans conditionnement)"
-        data_type: int64
-
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
       - name: product_unit_price_task
-        description: "Prix unitaire hors tax du produit au moment de la tâche"
-
+        description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
       - name: product_unit_price_latest
-        description: "Dernier Prix d'achat unitaire hors tax du produit"
-        data_type: int64
+        description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
 
+      # --- MESURES ---
       - name: quantity
-        description: "Quantité produit"
-        data_type: int64
-
+        description: "Quantité déplacée en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
       - name: valuation
-        description: "Valorisation du produit (quantité * prix unitaire)"
-        data_type: int64
+        description: "Valorisation du mouvement en euros = quantity × prix d'achat unitaire. Mesure additive."
 
+      # --- MÉTADONNÉES ---
       - name: updated_at
-        description: "Timestamp de dernière modification (pour incrément)"
+        description: "Timestamp de dernière modification en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: created_at
-        description: "Timestamp de création"
+        description: "Timestamp de création en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: extracted_at
-        description: "Timestamp d'extraction depuis Oracle"
+        description: "Timestamp d'extraction depuis Oracle."
         data_type: timestamp
         tests:
           - not_null
