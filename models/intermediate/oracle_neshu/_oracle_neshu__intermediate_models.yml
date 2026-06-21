@@ -1495,21 +1495,52 @@ models:
 
   - name: int_oracle_neshu__valorisation_parc_machines
     description: >
-      Table intermédiaire de valorisation du parc machines NESHU par device_name et device_group en filtrant sur les clients actifs NESHU
-      et calculant la valorisation à partir des références de capacité et des prix d'achat des produits lié à chaque machine/groupe de machines.
+      [QUOI MÉTIER]
+      Valorisation théorique du parc machines NESHU : pour chaque modèle de machine (device_name)
+      et son groupe, le nombre de machines actives et la valeur totale du stock théorique
+      qu'elles devraient contenir (capacité × prix d'achat des produits).
+
+      [COMMENT CONSTRUITE]
+      Part des clients actifs NESHU (dim_neshu__company : is_active, company_type CLIENTNESHU,
+      code 'CN' + 4 chiffres) et de leurs machines actives (dim_neshu__device). Chaque machine est
+      rattachée à un device_group (ref_oracle_neshu__groupement_machine), valorisée via les capacités
+      de référence (ref_oracle_neshu__valo_machine_capacite) et les prix d'achat produit
+      (dim_neshu__product), puis agrégée par (device_name, device_group).
+
+      [GRAIN]
+      1 ligne par (device_name, device_group). ~27 lignes (9 groupes), couvrant ~970 machines
+      actives pour ~101 k€ de stock théorique total.
+
+      [NOTES]
+      Modèle agrégé (pas de grain machine ni de FK device/company en sortie) : c'est une vue
+      de référence du parc, reconstruite à chaque run (cf. dbt_updated_at / dbt_invocation_id).
+      Valorisation = stock *théorique* (capacité de référence), pas le stock réel constaté.
     columns:
+      # --- GRAIN ---
       - name: device_name
-        description: "Nom de la machine"
+        description: "Modèle / désignation de la machine. Composante du grain."
         tests:
           - not_null
       - name: device_group
-        description: "Groupe de la machine (mapping avec référence)"
+        description: "Groupe de machines (mapping ref_oracle_neshu__groupement_machine). Composante du grain."
         tests:
           - not_null
+
+      # --- MESURES ---
       - name: nombre_machines
-        description: "Nombre de machines"
+        description: "Nombre de machines actives de ce modèle/groupe (clients NESHU actifs). Mesure additive."
       - name: valorisation_totale_machine
-        description: "Valorisation totale du parc machines"
+        description: "Valeur totale du stock théorique (€) pour ce modèle/groupe = somme sur les machines de (capacité de référence × prix d'achat produit). Mesure additive."
+
+      # --- MÉTADONNÉES D'EXÉCUTION ---
+      - name: dbt_updated_at
+        description: "Timestamp de calcul du modèle (current_timestamp au moment du run dbt). Le modèle est entièrement recalculé à chaque run."
+      - name: dbt_invocation_id
+        description: "Identifiant d'invocation dbt du run ayant produit la ligne (traçabilité)."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [device_name, device_group]
 
   - name: int_oracle_neshu__pointage_tasks
     description: >
