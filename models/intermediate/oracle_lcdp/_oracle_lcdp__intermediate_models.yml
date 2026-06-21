@@ -601,97 +601,112 @@ models:
 
   - name: int_oracle_lcdp__reception_tasks
     description: >
-      Table intermédiaire des tâches de RECEPTION.
-      Filtrée sur les tâches de type RECEPTION (idtask_type=121)
-      avec statut FAIT/VALIDE/ANNULE.
+      [QUOI MÉTIER]
+      Réceptions de marchandises LCDP : une ligne par produit sur un bon de réception
+      (entrée de stock dans un dépôt). Suivi des quantités et valeurs reçues.
 
+      [COMMENT CONSTRUITE]
+      stg_oracle_lcdp__task (idtask_type = 121 BON RECEPTION, statuts FAIT/VALIDE/ANNULE/ANOMALIE,
+      code_status_record = '1') croisé avec task_has_product (grain ligne produit), enrichi product.
+      La destination est résolue quand product_destination_type = COMPANY → code dépôt (company).
+      Quantité ramenée en unités de base.
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'un bon de réception). ~8,7k lignes (~636 bons),
+      depuis début 2025.
+
+      [NOTES]
+      Symétrique de la livraison côté entrée : product_destination_id est polymorphe et vaut
+      toujours COMPANY ici (réception dans un dépôt). Pas de source.
     columns:
+      # --- IDENTIFIANTS ---
       - name: task_product_id
-        description: "Clé primaire de task_has_product - Identifiant unique de la relation task-produit"
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
         data_type: int64
         tests:
           - unique
           - not_null
-
       - name: task_id
-        description: "ID de la tâche (référence vers EVS.TASK)"
+        description: "Tâche de bon de réception Oracle LCDP (EVS.TASK)."
         data_type: int64
         tests:
           - not_null
-
       - name: company_id
-        description: "ID de l'entreprise cliente (peer company)"
+        description: "Client (peer company) de la tâche. FK → dim_lcdp__company."
         data_type: int64
-
       - name: product_id
-        description: "ID du produit"
+        description: "Produit reçu. FK → dim_lcdp__product."
         data_type: int64
         tests:
           - not_null
-
       - name: product_destination_id
-        description: "ID du produit de destination"
+        description: >
+          Identifiant de l'entité **destination** (lieu de réception). Référence polymorphe : table
+          cible nommée par product_destination_type. Ici toujours COMPANY → company (dépôt).
+          Pas une FK produit malgré le nom.
         data_type: int64
-
       - name: product_destination_type
-        description: "Type du produit de destination"
+        description: "Type de l'entité destination = table cible de product_destination_id. Valeur : COMPANY (dépôt de réception)."
         data_type: string
 
+      # --- CODES ---
       - name: destination_code
-        description: "Code de destination du produit"
+        description: "Code du dépôt de réception (company.code), résolu via product_destination_type = COMPANY."
         data_type: string
-
       - name: product_code
-        description: "Code métier du produit"
+        description: "Code métier du produit."
         data_type: string
-
       - name: task_status_code
-        description: "Code statut de la tâche (FAIT, VALIDE, ANNULE)"
+        description: >
+          Code du statut de la tâche. Valeurs : VALIDE (validé, majoritaire), ANNULE, FAIT
+          (ANOMALIE autorisé par le filtre).
         data_type: string
+        tests:
+          - accepted_values:
+              arguments: {values: [FAIT, VALIDE, ANNULE, ANOMALIE]}
+              config: {severity: warn}
 
+      # --- DATE ---
       - name: task_start_date
-        description: "Date et heure réelle de la tâche"
+        description: "Date et heure réelle de la réception."
         data_type: timestamp
         tests:
           - not_null
 
+      # --- CONDITIONNEMENT & PRIX ---
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
+      - name: unit_coeff_div
+        description: "Coefficient diviseur de conditionnement."
       - name: base_unit_quantity
-        description: "Quantité unitaire (sans conditionnement)"
-        data_type: int64
-
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
       - name: product_unit_price_task
-        description: "Prix unitaire hors tax du produit au moment de la tâche"
-
+        description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
       - name: product_unit_price_latest
-        description: "Dernier Prix d'achat unitaire hors tax du produit"
-        data_type: int64
+        description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
 
+      # --- MESURES ---
       - name: quantity
-        description: "Quantité produit"
-        data_type: int64
-
+        description: "Quantité reçue en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
       - name: valuation
-        description: "Valorisation du produit (quantité * prix unitaire)"
-        data_type: int64
+        description: "Valorisation de la réception en euros = quantity × prix d'achat unitaire. Mesure additive."
 
+      # --- MÉTADONNÉES ---
       - name: updated_at
-        description: "Timestamp de dernière modification (pour incrément)"
+        description: "Timestamp de dernière modification en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: created_at
-        description: "Timestamp de création"
+        description: "Timestamp de création en source."
         data_type: timestamp
         tests:
           - not_null
-
       - name: extracted_at
-        description: "Timestamp d'extraction depuis Oracle"
+        description: "Timestamp d'extraction depuis Oracle."
         data_type: timestamp
         tests:
           - not_null
-
 
   - name: int_oracle_lcdp__livraison_interne_tasks
     description: >
