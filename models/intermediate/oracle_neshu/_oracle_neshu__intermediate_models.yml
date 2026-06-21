@@ -4,86 +4,96 @@ version: 2
 models:
   - name: int_oracle_neshu__telemetry_tasks
     description: >
-      Table intermédiaire des tâches de télémétrie.
-      Filtrée sur les tâches de type télémétrie (idtask_type=3) 
-      avec statut FAIT/VALIDE et label TELEM_SOURCE.
-      
+      [QUOI MÉTIER]
+      Relevés de télémétrie des distributeurs NESHU : une ligne par produit remonté par la
+      télémétrie d'une machine (consommation détectée). Origine : système de paiement NAYAX,
+      remonté dans l'ERP Distrilog Easy Web. Base des analyses de consommation télémétrique
+      par machine / produit.
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_neshu__task (idtask_type = 3 télémétrie, statuts FAIT/VALIDE uniquement,
+      code_status_record = '1', label de famille TELEM_SOURCE) croisé avec task_has_product
+      (grain ligne produit), enrichi company/device/location. La donnée provient de NAYAX
+      (paiement) via l'ERP Distrilog. Incrémental (merge sur task_product_id).
+
+      [GRAIN]
+      1 ligne par task_product_id (1 relevé = 1 produit télémétré). **~24,4M lignes** (très volumineux),
+      ~1 269 distributeurs, depuis fin 2022.
+
+      [NOTES]
+      Aucune colonne de statut exposée (déjà filtré FAIT/VALIDE). telemetry_quantity vaut toujours 1
+      (1 tâche = 1 unité de télémétrie) — sommer pour compter les relevés. Pas de notion de
+      source/destination ici (contrairement aux tâches de flux produit).
     columns:
+      # --- IDENTIFIANTS ---
       - name: task_product_id
-        description: "Clé primaire de task_has_product - Identifiant unique de la relation task-produit"
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
         data_type: int64
         tests:
           - unique
           - not_null
-          
       - name: task_id
-        description: "ID de la tâche (référence vers EVS.TASK)"
+        description: "Tâche de télémétrie Oracle (EVS.TASK)."
         data_type: int64
         tests:
           - not_null
-          
       - name: device_id
-        description: "ID du device associé à la tâche"
+        description: "Distributeur (machine) ayant remonté la télémétrie. FK → dim_neshu__device."
         data_type: int64
-        
       - name: company_id
-        description: "ID de l'entreprise cliente (peer company)"
+        description: "Client (peer company) de la machine. FK → dim_neshu__company."
         data_type: int64
-          
       - name: product_id
-        description: "ID du produit télémétrique"
+        description: "Produit télémétré. FK → dim_neshu__product."
         data_type: int64
         tests:
           - not_null
-          
       - name: location_id
-        description: "ID de la localisation de la tâche"
+        description: "Localisation de la tâche. FK → stg_oracle_neshu__location."
         data_type: int64
-        
+
+      # --- CODES / LIBELLÉS ---
       - name: device_code
-        description: "Code métier du device (numéro de série)"
+        description: "Code métier du device (numéro de série)."
         data_type: string
-        
       - name: product_code
-        description: "Code métier du produit"
+        description: "Code métier du produit."
         data_type: string
-        
       - name: company_code
-        description: "Code client de l'entreprise"
+        description: "Code client de l'entreprise."
         data_type: string
-        
       - name: company_name
-        description: "Nom de l'entreprise cliente"
+        description: "Nom de l'entreprise cliente (libellé d'affichage, aplati depuis company)."
         data_type: string
-        
       - name: task_location_info
-        description: "Informations d'accès de la localisation de la tâche"
+        description: "Informations d'accès / localisation de la tâche."
         data_type: string
-        
+
+      # --- DATE ---
       - name: task_start_date
-        description: "Date et heure réelle de la tâche télémétrique"
+        description: "Date et heure réelle du relevé de télémétrie. Clé de partitionnement."
         data_type: timestamp
         tests:
           - not_null
-        
+
+      # --- MESURE ---
       - name: telemetry_quantity
-        description: "Quantité télémétrique (toujours 1 par convention métier)"
+        description: "Toujours 1 (1 tâche = 1 unité de télémétrie). Sommer pour compter les relevés. Mesure additive."
         data_type: int64
-        
+
+      # --- MÉTADONNÉES ---
       - name: updated_at
-        description: "Timestamp de dernière modification (pour incrément)"
+        description: "Timestamp de dernière modification (filtre incrémental)."
         data_type: timestamp
         tests:
           - not_null
-          
       - name: created_at
-        description: "Timestamp de création"
+        description: "Timestamp de création en source."
         data_type: timestamp
         tests:
           - not_null
-          
       - name: extracted_at
-        description: "Timestamp d'extraction depuis Oracle"
+        description: "Timestamp d'extraction depuis Oracle."
         data_type: timestamp
         tests:
           - not_null
