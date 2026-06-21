@@ -1265,87 +1265,92 @@ models:
 
   - name: int_oracle_neshu__inter_techinique_tasks
     description: >
-      Table intermédiaire des inter technique.
-      Filtrée sur les tâches de type INTER TECHNIQUE (idtask_type=131)  & filtré sur label C4 Détartrage/filtre
-      avec statut actif (code_status_record=1) et enrichie avec code produit.
-      
+      [QUOI MÉTIER]
+      Interventions de petite maintenance technique NESHU (préventif) : une ligne par intervention
+      sur un distributeur, avec son statut et sa classification (labels). Orientées petites
+      opérations ; les cas non résolus sur place sont escaladés à l'équipe technique
+      (statut_inter = TOTECH).
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_neshu__task (idtask_type = 131 INTERVENTION TECHNIQUE, statuts FAIT/VALIDE/ANNULE/
+      ANOMALIE, code_status_record = '1') enrichi company/device/product, puis pivot des labels EAV
+      (label_has_task × label × label_family) en colonnes : statut_inter, dc04, mission_type,
+      objet_intervent. Filtré sur objet_intervent = 'OC04' (intervention préventive).
+
+      [GRAIN]
+      1 ligne par task_id (intervention). ~731 lignes, depuis mai 2025 (modèle récent).
+
+      [NOTES]
+      Pas de notion de flux produit (ni source/destination, ni quantité/valorisation) : c'est un
+      modèle d'évènement/statut d'intervention. Les codes de labels (statut_inter, dc04…) sont des
+      référentiels métier Oracle.
     columns:
+      # --- IDENTIFIANTS ---
       - name: task_id
-        description: "ID de la tâche"
-        data_type: int64
+        description: "Identifiant de la tâche d'intervention Oracle (EVS.TASK). PK de ce modèle."
         tests:
           - unique
           - not_null
-
       - name: device_id
-        description: "ID du device associé à la tâche"
-        data_type: int64
-        tests:
-          - not_null
-
+        description: "Distributeur (machine) concerné par l'intervention. FK → dim_neshu__device."
       - name: company_id
-        description: "ID de l'entreprise cliente (peer company)"
-        data_type: int64
-        tests:
-          - not_null 
-
+        description: "Client (peer company). FK → dim_neshu__company."
       - name: product_id
-        description: "ID du produit"
-        data_type: int64
+        description: "Produit / pièce liée à l'intervention (via task_has_product). FK → dim_neshu__product. Souvent NULL (ces interventions de petite maintenance n'ont en général pas de ligne produit)."
 
+      # --- CODES ---
       - name: company_code
-        description: "Code client de l'entreprise (company.code)"
-        data_type: string
-
+        description: "Code client de l'entreprise."
+      - name: device_code
+        description: "Code métier du device (numéro de série)."
       - name: product_code
-        description: "Code produit (si utilisé pour la tâche)"
-        data_type: string
-
+        description: "Code métier du produit / pièce."
       - name: task_status_code
-        description: "Code du statut de la tâche (task_status.code)"
-        data_type: string
+        description: >
+          Code du statut de la tâche. Valeurs : FAIT (réalisé, très majoritaire), ANNULE
+          (et, autorisés par le filtre, VALIDE / ANOMALIE).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [FAIT, VALIDE, ANNULE, ANOMALIE]
+              config:
+                severity: warn
 
+      # --- LABELS PIVOTÉS (référentiels métier) ---
       - name: statut_inter
-        description: "Statut de l'intervention technique (TERMINE ou envoyé à la technique)"
-        data_type: string
-
+        description: >
+          Statut de traitement de l'intervention (label de famille 'Statut inter'). Valeurs :
+          TERMINATED (traitée / clôturée sur place, majoritaire), TOTECH (non résolue sur place →
+          renvoyée à l'équipe technique), NULL. La famille comporte aussi UNTREATED et
+          WAITING_PIECE (absents de ce périmètre filtré).
       - name: dc04
-        description: "Label famille DC04 qui correspond au : Détail C4 -"
-        data_type: string
-      
+        description: >
+          Code de classification de l'intervention (label de famille 'DC04'). Valeurs :
+          DC0404 (majoritaire), DC0401, DC0403, DC0402, NULL.
       - name: mission_type
-        description: "Type de mission"
-        data_type: string
-
+        description: "Type de mission (label de famille 'MISSION_TYPE'). Quasi constant : INTER TECHNIQUE (ou NULL)."
       - name: objet_intervent
-        description: "Objet de l'intervention : Filtré sur C4 - Détartrage/filtre"
-        data_type: string
+        description: "Objet de l'intervention (label de famille 'Objet intervent'). Toujours OC04 ici (filtre du modèle = préventif)."
 
+      # --- DATES ---
       - name: task_start_date
-        description: "Date et heure de début réel du passage appro"
-        data_type: timestamp
+        description: "Date et heure réelle de début de l'intervention."
         tests:
           - not_null
-
       - name: task_end_date
-        description: "Date et heure de fin réel du passage appro"
-        data_type: timestamp
+        description: "Date et heure réelle de fin de l'intervention."
 
+      # --- MÉTADONNÉES ---
       - name: updated_at
-        description: "Timestamp de dernière modification (pour incrément)"
-        data_type: timestamp
+        description: "Timestamp de dernière modification en source."
         tests:
           - not_null
-
       - name: created_at
-        description: "Timestamp de création"
-        data_type: timestamp
+        description: "Timestamp de création en source."
         tests:
           - not_null
-
       - name: extracted_at
-        description: "Timestamp d'extraction depuis Oracle"
-        data_type: timestamp
+        description: "Timestamp d'extraction depuis Oracle."
         tests:
           - not_null
 
