@@ -691,78 +691,103 @@ models:
 
   - name: int_oracle_lcdp__appro_tasks
     description: >
-      Table intermédiaire des passages approvisionneurs.
-      Filtrée sur les tâches de type PASSAGE APPRO (idtask_type=32)
-      avec statut actif (code_status_record=1) et enrichie avec ressources (roadman, véhicule).
+      [QUOI MÉTIER]
+      Passages d'approvisionnement (réassort) des distributeurs LCDP : une ligne par tâche
+      de type « PASSAGE APPROVISIONNEURS ». Brique de base de la chaîne appro LCDP.
 
+      [COMMENT CONSTRUITE]
+      stg_oracle_lcdp__task filtré sur idtask_type = 32, statut d'enregistrement actif
+      (code_status_record = '1') et real_start_date renseignée ; jointures company (client),
+      task_status (code statut) et location (info d'accès).
+
+      [GRAIN]
+      1 ligne par task_id (PK). ~51,4k lignes, depuis fin 2023.
+
+      [NOTES]
+      Modèle de base. task_status_code couvre tout le cycle (PREVU → FAIT/ANNULE…), pas seulement
+      les passages réalisés. Source/destination = références polymorphes (cf. leur _type).
     columns:
       - name: task_id
-        description: "ID de la tâche (référence vers EVS.TASK)"
+        description: "Identifiant de la tâche Oracle LCDP (EVS.TASK). PK."
         data_type: int64
         tests:
           - unique
           - not_null
 
       - name: device_id
-        description: "ID du device associé à la tâche"
+        description: "Distributeur (machine) concerné. FK → dim_lcdp__device."
         data_type: int64
 
       - name: company_id
-        description: "ID de l'entreprise cliente (peer company)"
+        description: "Client (peer company) de la tâche. FK → dim_lcdp__company."
         data_type: int64
 
       - name: product_source_id
-        description: "ID du produit source de la tâche"
+        description: >
+          Identifiant de l'entité source du flux. Référence polymorphe : table cible nommée par
+          product_source_type (RESOURCES → resources, DEVICE → device, COMPANY → company). Pour
+          l'appro, type = RESOURCES (stock du véhicule/roadman). Pas une FK produit malgré le nom.
         data_type: int64
 
       - name: product_destination_id
-        description: "ID du produit destination de la tâche"
+        description: >
+          Identifiant de l'entité destination du flux. Référence polymorphe : table cible nommée par
+          product_destination_type. Pour l'appro, type = DEVICE → le distributeur rempli.
         data_type: int64
 
       - name: company_code
-        description: "Code client de l'entreprise (company.code)"
+        description: "Code client de l'entreprise (company.code)."
         data_type: string
 
       - name: product_source_type
-        description: "Type de la source produit"
+        description: "Type de l'entité source = table cible de product_source_id. Appro : RESOURCES (stock véhicule), ou NULL."
         data_type: string
 
       - name: product_destination_type
-        description: "Type de la destination produit"
+        description: "Type de l'entité destination = table cible de product_destination_id. Appro : DEVICE (le distributeur), ou NULL."
         data_type: string
 
       - name: task_location_info
-        description: "Informations de localisation de la tâche"
+        description: "Informations d'accès / localisation de la tâche."
         data_type: string
 
       - name: task_status_code
-        description: "Code du statut de la tâche (task_status.code)"
+        description: >
+          Code du statut de la tâche (task_status.code). Valeurs : FAIT (réalisé, majoritaire),
+          PREVU (planifié), ANNULE, ANOMALIE, ENCOURS, VALIDE.
+          Filtrer task_status_code = 'FAIT' pour les passages réellement réalisés.
         data_type: string
+        tests:
+          - accepted_values:
+              arguments:
+                values: [FAIT, ANNULE, PREVU, ENCOURS, ANOMALIE, VALIDE, ACQUITTE, ENATTENTE]
+              config:
+                severity: warn
 
       - name: task_start_date
-        description: "Date et heure de début réel du passage appro"
+        description: "Date et heure de début réel du passage. Clé de partitionnement."
         data_type: timestamp
         tests:
           - not_null
 
       - name: task_end_date
-        description: "Date et heure de fin réel du passage appro"
+        description: "Date et heure de fin réel du passage."
         data_type: timestamp
 
       - name: updated_at
-        description: "Timestamp de dernière modification (pour incrément)"
+        description: "Timestamp de dernière modification (filtre incrémental)."
         data_type: timestamp
         tests:
           - not_null
 
       - name: created_at
-        description: "Timestamp de création"
+        description: "Timestamp de création en source."
         data_type: timestamp
         tests:
           - not_null
 
       - name: extracted_at
-        description: "Timestamp d'extraction depuis Oracle"
+        description: "Timestamp d'extraction depuis Oracle."
         data_type: timestamp
         tests:
           - not_null
