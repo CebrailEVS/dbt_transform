@@ -1264,23 +1264,27 @@ models:
     description: >
       [QUOI MÉTIER]
       Comptages de caisse LCDP : une ligne par tâche de comptage (relève de l'argent physique d'un
-      monnayeur). Expose le **CA cash** (pièces + billets) par machine et par date de comptage.
-      Complète le CA électronique de la télémétrie Nayax (les ventes en espèces sont invisibles côté
-      Nayax). Synonymes : CA espèces, recette cash, comptage caisse / monnayeur.
+      monnayeur). Expose le **CA encaissé** (pièces + billets + titres-restaurant) par machine et par
+      date de comptage. Complète le CA électronique de la télémétrie Nayax (les paiements physiques
+      sont invisibles côté Nayax). Synonymes : CA espèces / cash, recette monnayeur, comptage caisse.
 
       [COMMENT CONSTRUITE]
       stg_oracle_lcdp__task (idtask_type = 30 REGL COMPTAGE, code_status_record = '1') × task_has_product
-      filtré sur les lignes PIECES / BILLET (montants encaissés, TTC par nature), enrichi company/device/
-      location. La ventilation HT / TVA vient de task_has_amount (somme par tâche). Incrémental.
+      filtré sur les moyens de paiement physiques PIECES / BILLET / CHECK_LUNCH (montants encaissés,
+      TTC par nature ; JETON exclu car valeur nulle), enrichi company/device/location. La ventilation
+      HT / TVA vient de task_has_amount (somme des taux par tâche). Incrémental.
 
       [GRAIN]
       1 ligne par task_id (un comptage = une relève sur une machine à une date). ~9,2k lignes,
-      308 distributeurs, depuis début 2025.
+      ~308 distributeurs, depuis début 2025.
 
       [NOTES]
-      Pour le **CA total** d'une machine, combiner ce CA cash (espèces) avec le CA Nayax de
+      Pour le **CA total** d'une machine, combiner ce CA encaissé (physique) avec le CA Nayax de
       int_oracle_lcdp__telemetry_tasks (électronique). ca_cash_eur est TTC ; ca_cash_ht_eur /
-      ca_cash_tva_eur viennent de task_has_amount (NULL sur ~10 tâches sans ventilation).
+      ca_cash_tva_eur viennent de task_has_amount. CHECK_LUNCH (titres-restaurant) est inclus dans le
+      CA encaissé (montant marginal mais rétablit la cohérence ca_cash_eur = ca_cash_ht + ca_cash_tva).
+      ⚠️ Suppose des titres-resto **papier** comptés au monnayeur ; si des titres dématérialisés
+      passaient par Nayax, ils seraient déjà dans telemetry_tasks (risque de double-compte à surveiller).
     columns:
       # --- IDENTIFIANTS ---
       - name: task_id
@@ -1320,21 +1324,24 @@ models:
         tests:
           - not_null
 
-      # --- MESURES (CA cash) ---
+      # --- MESURES (CA encaissé) ---
       - name: ca_pieces_eur
         description: "CA encaissé en pièces (€, TTC) sur la machine au comptage. Synonyme : recette pièces. Mesure additive."
         data_type: float64
       - name: ca_billets_eur
         description: "CA encaissé en billets (€, TTC) sur la machine au comptage. Synonyme : recette billets. Mesure additive."
         data_type: float64
+      - name: ca_titres_resto_eur
+        description: "CA encaissé en titres-restaurant (€, TTC, code CHECK_LUNCH). Marginal mais inclus dans le CA encaissé total. Mesure additive."
+        data_type: float64
       - name: ca_cash_eur
-        description: "CA cash total (€, TTC) = ca_pieces_eur + ca_billets_eur. Synonymes : CA espèces, recette cash. Mesure additive."
+        description: "CA encaissé total (€, TTC) = ca_pieces_eur + ca_billets_eur + ca_titres_resto_eur. Synonymes : CA espèces, recette monnayeur. Mesure additive."
         data_type: float64
       - name: ca_cash_ht_eur
-        description: "CA cash HT (€), ventilé depuis task_has_amount. NULL si la tâche n'a pas de ventilation HT/TVA (~10 tâches)."
+        description: "CA encaissé HT (€), ventilé depuis task_has_amount (somme sur les taux de TVA). NULL si la tâche n'a pas de ventilation HT/TVA (~10 tâches)."
         data_type: float64
       - name: ca_cash_tva_eur
-        description: "Montant de TVA (€) du CA cash, depuis task_has_amount. NULL si pas de ventilation."
+        description: "Montant de TVA (€) du CA encaissé, depuis task_has_amount. NULL si pas de ventilation."
         data_type: float64
 
       # --- MÉTADONNÉES ---
@@ -1353,4 +1360,3 @@ models:
         data_type: timestamp
         tests:
           - not_null
-
