@@ -678,7 +678,7 @@ models:
       [QUOI MÉTIER] Passages APPRO des roadmen enrichis des métriques journalières de temps de travail.
       [COMMENT CONSTRUITE] Issu de int_oracle_neshu__appro_tasks joint à int_oracle_neshu__pointage_tasks (START_DAY) pour le pointage journalier du roadman. Calculs window function par roadman et jour : rang du passage, nombre quotidien de passages, durée moyenne, durée nette du temps de travail (dernière fin - début effectif, nettoyée des valeurs aberrantes <0 ou >12h). Statut ENCOURS reclassé en FAIT après validation métier.
       [GRAIN] 1 ligne par task_id (1 tâche APPRO).
-      [NOTES] effective_work_start = pointage si disponible, sinon première tâche du jour. is_planned/is_done : indicateurs binaires.
+      [NOTES] effective_work_start = pointage si disponible, sinon première tâche du jour. is_planned (PREVU/FAIT/ENCOURS/ANOMALIE) / is_done (FAIT/ENCOURS) / is_anomaly (ANOMALIE) : indicateurs binaires. Ce mart est la source de vérité unique des passages appro (KPIs journaliers + attributs détaillés) et remplace l'ancienne table externe fct_neshu__monitoring_passage_appro (pipeline Python retiré).
 
     columns:
 
@@ -718,6 +718,12 @@ models:
                 to: ref('dim_neshu__resource')
                 field: resources_id
 
+      - name: product_source_id
+        description: Identifiant du produit source (chargé) de la tâche. Polymorphe selon product_source_type ; pas de FK dim garantie.
+
+      - name: product_destination_id
+        description: Identifiant du produit destination (déchargé) de la tâche. Polymorphe selon product_destination_type ; pas de FK dim garantie.
+
       # =====================
       # 2️⃣ Attributs
       # =====================
@@ -725,14 +731,35 @@ models:
       - name: company_info
         description: Nom et code de l'entreprise (format "Nom - Code")
 
+      - name: company_code
+        description: Code métier de l'entreprise cliente
+
+      - name: company_name
+        description: Nom de l'entreprise cliente
+
       - name: device_info
         description: Nom et code du device (format "Nom - Code")
+
+      - name: device_code
+        description: Code métier du device
+
+      - name: device_name
+        description: Nom du device
 
       - name: roadman_code
         description: Code métier du roadman
 
       - name: gea_code
         description: Code GEA rattaché au roadman
+
+      - name: product_source_type
+        description: Type du produit source (qualifie product_source_id)
+
+      - name: product_destination_type
+        description: Type du produit destination (qualifie product_destination_id)
+
+      - name: task_location_info
+        description: Informations de localisation de la tâche (access_info de la LOCATION Oracle)
 
       - name: task_status_code
         description: >
@@ -769,10 +796,27 @@ models:
       # =====================
 
       - name: is_planned
-        description: Indicateur binaire indiquant si la tâche est planifiée (1) ou non (0)
+        description: Indicateur binaire — tâche planifiée (1) si statut PREVU / FAIT / ENCOURS / ANOMALIE, sinon 0
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false
+              config:
+                severity: warn
 
       - name: is_done
-        description: Indicateur binaire indiquant si la tâche est réalisée (1) ou non (0)
+        description: Indicateur binaire indiquant si la tâche est réalisée (1, statut FAIT/ENCOURS) ou non (0)
+
+      - name: is_anomaly
+        description: Indicateur binaire indiquant si la tâche est en anomalie (1, statut ANOMALIE) ou non (0)
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false
+              config:
+                severity: warn
 
       - name: passage_rank_of_day
         description: Ordre du passage du roadman dans la journée (1 = premier passage)

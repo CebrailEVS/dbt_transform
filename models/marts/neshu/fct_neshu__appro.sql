@@ -187,12 +187,21 @@ select
     device_id,
     company_id,
     resources_roadman_id,
+    product_source_id,
+    product_destination_id,
 
     -- 2️⃣ Attributs
     company_info,
+    company_code,
+    company_name,
     device_info,
+    device_code,
+    device_name,
     roadman_code,
     gea_code,
+    product_source_type,
+    product_destination_type,
+    task_location_info,
     task_status_code,
 
     -- 3️⃣ Dates / Temps
@@ -207,6 +216,7 @@ select
     -- 4️⃣ Mesures / KPI
     is_planned,
     is_done,
+    is_anomaly,
     passage_rank_of_day,
     daily_task_count,
     avg_passage_duration_day,
