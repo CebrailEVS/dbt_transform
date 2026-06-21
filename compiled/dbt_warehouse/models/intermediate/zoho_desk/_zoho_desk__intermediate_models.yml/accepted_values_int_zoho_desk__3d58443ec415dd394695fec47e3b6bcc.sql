@@ -1,0 +1,22 @@
+
+    
+    
+
+with all_values as (
+
+    select
+        status_type as value_field,
+        count(*) as n_records
+
+    from `evs-datastack-prod`.`prod_intermediate`.`int_zoho_desk__ticket_enriched`
+    group by status_type
+
+)
+
+select *
+from all_values
+where value_field not in (
+    'Closed','Open','On Hold'
+)
+
+

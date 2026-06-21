@@ -1,0 +1,22 @@
+
+    
+    
+
+with all_values as (
+
+    select
+        label_code as value_field,
+        count(*) as n_records
+
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__commande_interne_tasks`
+    group by label_code
+
+)
+
+select *
+from all_values
+where value_field not in (
+    'LIVRE','LIVRE_PARTIEL','EN_ATTENTE'
+)
+
+

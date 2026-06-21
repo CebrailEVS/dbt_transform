@@ -21,10 +21,15 @@ with comptage_base as (
         -- Montants encaissés (argent physique relevé au comptage).
         -- sale_amount_net = sale_amount_net_tax et tax_rate = 0 → montant brut encaissé,
         -- donc TTC par nature (ce que le client a payé). À combiner au CA Nayax TTC.
+        -- JETON exclu (valeur 0). CHECK_LUNCH (titres-restaurant) inclus dans le CA encaissé.
         sum(case when thp.code = 'PIECES' then thp.sale_amount_net else 0 end) as ca_pieces_eur,
         sum(case when thp.code = 'BILLET' then thp.sale_amount_net else 0 end) as ca_billets_eur,
+        sum(case when thp.code = 'CHECK_LUNCH' then thp.sale_amount_net else 0 end) as ca_titres_resto_eur,
         sum(
-            case when thp.code in ('PIECES', 'BILLET') then thp.sale_amount_net else 0 end
+            case
+                when thp.code in ('PIECES', 'BILLET', 'CHECK_LUNCH') then thp.sale_amount_net
+                else 0
+            end
         ) as ca_cash_eur,
 
         -- Timestamps techniques
@@ -44,7 +49,7 @@ with comptage_base as (
         and t.idtask_type = 30  -- REGL COMPTAGE
         and t.code_status_record = '1'
         and t.real_start_date is not null
-        and thp.code in ('PIECES', 'BILLET')
+        and thp.code in ('PIECES', 'BILLET', 'CHECK_LUNCH')
 
     group by
         t.idtask, t.iddevice, t.idcompany_peer, t.idlocation,
@@ -76,6 +81,7 @@ comptage_enrichi as (
         cb.task_start_date,
         cb.ca_pieces_eur,
         cb.ca_billets_eur,
+        cb.ca_titres_resto_eur,
         cb.ca_cash_eur,
         a.ca_cash_ht_eur,
         a.ca_cash_tva_eur,
