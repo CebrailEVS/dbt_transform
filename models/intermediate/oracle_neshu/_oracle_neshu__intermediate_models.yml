@@ -1513,47 +1513,78 @@ models:
 
   - name: int_oracle_neshu__pointage_tasks
     description: >
-      Table intermédiaire des tâches des pointages roadman sur les débuts et fin de journées 
-      1 ligne = 1 tâche pointage.
-      Filtrée sur les tâches de type POINTAGE et FILTRER sur label START_DAY (idtask_type=194, idlabel=2685,2686) et filtrage sur les tâches associé à des idresources
-      avec code_status_record=1
+      [QUOI MÉTIER]
+      Pointages des roadmen NESHU : une ligne par pointage de début (START_DAY) ou de fin
+      (END_DAY) de journée. Sert au suivi du temps de travail / amplitude des tournées roadman.
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_neshu__task (idtask_type = 194 POINTAGE, code_status_record = '1'), filtré aux
+      labels START_DAY / END_DAY (idlabel 2685 / 2686), rattaché au roadman via task_has_resources
+      × resources (type 2 = PERSON). Conservé uniquement si un roadman est rattaché.
+
+      [GRAIN]
+      1 ligne par task_id (un pointage). ~43k lignes, 91 roadmen, depuis 2022. Une journée de
+      roadman = typiquement 2 pointages (un START_DAY + un END_DAY).
+
+      [NOTES]
+      Pas de notion de produit ni de flux. Pour reconstruire une amplitude de journée, apparier
+      START_DAY et END_DAY d'un même roadman sur date_pointage_jour.
     columns:
+      # --- IDENTIFIANTS ---
       - name: task_id
-        description: >
-          Identifiant unique de la tâche de pointage.
+        description: "Identifiant de la tâche de pointage Oracle (EVS.TASK). PK de ce modèle."
         tests:
+          - unique
           - not_null
-
       - name: company_id
-        description: >
-          Identifiant de l'entreprise (idcompany_peer de la tâche).
+        description: "Client (peer company) rattaché à la tâche. FK → dim_neshu__company."
+      - name: resources_roadman_id
+        description: "Roadman ayant pointé. FK → stg_oracle_neshu__resources (idresources, type 2 = PERSON). Toujours renseigné (filtre du modèle)."
         tests:
           - not_null
-
-      - name: resources_roadman_id
-        description: >
-          Identifiant de la ressource roadman (idresources_type=2) associée à la tâche.
-
       - name: roadman_code
-        description: >
-          Code métier du roadman associé à la tâche.
+        description: "Code métier du roadman."
 
+      # --- STATUT / TYPE ---
       - name: status_code
         description: >
-          Code statut de la tâche (depuis task_status).
-
+          Code du statut de la tâche de pointage (task_status.code). En pratique toujours VALIDE
+          (le modèle ne filtre pas le statut, mais seuls des pointages validés existent).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [VALIDE, FAIT, ANNULE, ANOMALIE, PREVU, ENCOURS, ACQUITTE, ENATTENTE]
+              config:
+                severity: warn
       - name: label_code
         description: >
-          Code du label de la tâche. Filtré sur START_DAY (idlabel=2685).
-
-      - name: date_pointage_jour
-        description: >
-          Date du jour du pointage (sans l'heure), extraite de real_start_date.
+          Type de pointage. Valeurs : START_DAY (début de journée), END_DAY (fin de journée).
         tests:
-          - not_null
+          - accepted_values:
+              arguments:
+                values: [START_DAY, END_DAY]
+              config:
+                severity: warn
 
+      # --- DATES ---
       - name: date_pointage
-        description: >
-          Timestamp du pointage
+        description: "Date et heure réelle du pointage (real_start_date)."
         tests:
           - not_null
+      - name: date_pointage_jour
+        description: "Jour du pointage (date_pointage tronqué au jour) — clé d'appariement START_DAY/END_DAY par roadman."
+
+      # --- MÉTADONNÉES ---
+      - name: created_at
+        description: "Timestamp de création en source."
+        tests:
+          - not_null
+      - name: updated_at
+        description: "Timestamp de dernière modification en source."
+        tests:
+          - not_null
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis Oracle."
+        tests:
+          - not_null
+
