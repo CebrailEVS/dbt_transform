@@ -23,150 +23,192 @@ models:
 
   - name: int_zoho_desk__ticket_enriched
     description: >
-      Vue enrichie 1:1 par ticket — fondation des marts ticket (dim).
-      Joint tickets + ticket_details (custom fields) + ticket_metrics (SLA,
-      compteurs) + accounts (avec fallback via le contact quand t.account_id
-      est NULL) + contacts + departments + agents.
-      Chaque ligne contient tout ce dont le métier a besoin pour analyser un
-      ticket : compte client, contact, agent assigné, département, catégories,
-      nature, threads, réponses agent, durées SLA.
+      [QUOI MÉTIER]
+      Vue enrichie 1 ligne par ticket de support Zoho Desk — fondation de la dim ticket.
+      Tout le contexte d'un ticket : compte client, contact, agent assigné, département,
+      catégorisation métier, flags SLA, compteurs de conversation et durées SLA.
+      Synonymes métier : « ticket » = demande / réclamation / dossier support.
+
+      [COMMENT CONSTRUITE]
+      Jointure tickets + ticket_details (champs custom cf_*) + ticket_metrics (SLA, compteurs) +
+      accounts (avec fallback via le contact quand t.account_id est NULL) + contacts + departments
+      + agents. Les durées SLA viennent directement de ticket_metrics (Zoho), pas recalculées ici.
+
+      [GRAIN]
+      1 ligne par ticket_id (PK). ~22,2k tickets, depuis février 2024.
+
+      [NOTES]
+      ⚠️ Les champs Zoho standard `category` / `sub_category` sont **toujours NULL** : la
+      catégorisation métier se fait via `nature_des_demandes` (1er niveau) et les colonnes `cf_*`
+      (catégories / sous-catégories custom). En quasi-totalité des tickets sont Clôturés.
+      `resolution` est presque toujours vide. Pour l'analyse temporelle (réouvertures, fermetures
+      par jour) utiliser int_zoho_desk__ticket_status_events ; pour le SLA détaillé int_zoho_desk__ticket_sla.
     columns:
+      # --- IDENTITÉ TICKET ---
       - name: ticket_id
-        description: "PK — identifiant unique du ticket"
+        description: "Identifiant unique du ticket Zoho Desk. PK."
         tests:
           - unique
           - not_null
       - name: ticket_number
-        description: "Numéro de ticket lisible dans Zoho (ex : 21952)"
+        description: "Numéro de ticket lisible dans Zoho (ex. 21952). Synonyme : numéro de demande."
       - name: subject
-        description: "Objet du ticket"
+        description: "Objet / sujet du ticket (texte libre)."
       - name: web_url
-        description: "URL de la fiche ticket dans Zoho Desk"
+        description: "URL de la fiche ticket dans Zoho Desk."
+
+      # --- STATUT & CLASSIFICATION ---
       - name: status
-        description: "Statut courant"
-      - name: status_type
-        description: "Catégorie du statut : open, closed, on_hold"
-      - name: priority
-        description: "Priorité : Low, Medium, High, Urgent"
-      - name: channel
-        description: "Canal d'entrée : Email, Phone, Chat, Web, etc."
-      - name: category
-        description: "Catégorie métier (premier niveau)"
-      - name: sub_category
-        description: "Sous-catégorie métier (deuxième niveau)"
-      - name: is_archived
-        description: "BOOLEAN — ticket archivé"
-      - name: is_spam
-        description: "BOOLEAN — ticket marqué comme spam"
-      - name: created_time
-        description: "Date/heure de création (TIMESTAMP UTC)"
-      - name: closed_time
         description: >
-          Date/heure de la dernière fermeture (TIMESTAMP UTC, NULL si jamais fermé).
-          Pour l'analyse temporelle (réouvertures, fermetures par jour),
-          utiliser int_zoho_desk__ticket_status_events.
+          Statut courant (libellé brut Zoho, en français, parfois incohérent). Valeurs : Clôturée
+          (très majoritaire), Nouveau, En attente infos complémentaires, En attente interne,
+          En cours de traitement, Closed/Clôturé (doublons). Préférer status_type pour regrouper.
+      - name: status_type
+        description: >
+          Catégorie de statut (regroupement propre). Valeurs : Closed (clôturé, ~99,8%), Open
+          (ouvert), On Hold (en attente). Synonyme : état du ticket. À utiliser plutôt que `status`.
+        tests:
+          - accepted_values:
+              arguments: {values: [Closed, Open, "On Hold"]}
+              config: {severity: warn}
+      - name: priority
+        description: >
+          Priorité du ticket. Valeurs : Medium, Low, High (pas d'Urgent observé). ~35% NULL
+          (priorité non renseignée). Synonyme : criticité.
+        tests:
+          - accepted_values:
+              arguments: {values: [Low, Medium, High, Urgent]}
+              config: {severity: warn}
+      - name: channel
+        description: >
+          Canal d'entrée du ticket. Valeurs : Email (~99%), Phone, Zoho Opportunity, Zoho Form,
+          Web. Synonyme : canal / source de la demande.
+      - name: category
+        description: "⚠️ Champ Zoho standard NON utilisé (toujours NULL). La catégorisation passe par nature_des_demandes + cf_*."
+      - name: sub_category
+        description: "⚠️ Champ Zoho standard NON utilisé (toujours NULL). Voir les cf_s_* pour les sous-catégories."
+      - name: is_archived
+        description: "True si le ticket est archivé."
+      - name: is_spam
+        description: "True si le ticket est marqué comme spam."
+
+      # --- DATES ---
+      - name: created_time
+        description: "Date/heure de création du ticket (TIMESTAMP UTC). Axe temporel principal."
+        tests:
+          - not_null
+      - name: closed_time
+        description: "Date/heure de la dernière fermeture (NULL si jamais fermé). Pour les cycles de réouverture, voir ticket_status_events."
       - name: due_date
-        description: "Échéance SLA de résolution"
+        description: "Échéance SLA de résolution (Zoho)."
       - name: response_due_date
-        description: "Échéance SLA de première réponse"
+        description: "Échéance SLA de première réponse (Zoho)."
+
+      # --- COMPTE / CONTACT / AGENT / DÉPARTEMENT (FK) ---
       - name: account_id
         description: >
-          ID du compte client (entreprise). COALESCE de t.account_id puis
-          c.account_id (compte du contact). NULL si ni le ticket ni le contact
-          n'est lié à un compte dans Zoho.
+          Compte client (entreprise) du ticket. FK → stg_zoho_desk__accounts. COALESCE de
+          t.account_id puis du compte du contact. NULL si aucun rattachement. Synonyme : client / société.
       - name: account_name
-        description: >
-          Nom du compte client. NULL quand account_id est NULL ou que le compte
-          n'a pas de nom. ~92% de couverture sur l'historique.
+        description: "Nom du compte client (~92% de couverture). NULL si account_id NULL."
       - name: contact_id
-        description: "FK contact ayant ouvert le ticket"
+        description: "Contact (personne) ayant ouvert le ticket. FK → stg_zoho_desk__contacts."
       - name: contact_first_name
-        description: "Prénom du contact"
+        description: "Prénom du contact."
       - name: contact_last_name
-        description: "Nom du contact"
+        description: "Nom du contact."
       - name: contact_email
-        description: "Email du contact"
+        description: "Email du contact."
       - name: assignee_id
-        description: "FK agent actuellement assigné"
+        description: "Agent support actuellement assigné. FK → stg_zoho_desk__agents."
       - name: assignee_name
-        description: "Nom complet de l'agent assigné"
+        description: "Nom complet de l'agent assigné. Synonyme : technicien support / conseiller."
       - name: department_id
-        description: "FK département"
+        description: "Département traitant. FK → stg_zoho_desk__departments."
       - name: department_name
-        description: "Nom du département (ex : Service Client, Facturation)"
-      - name: nature_des_demandes
-        description: "Nature de la demande (custom field cf_nature_des_demandes)"
-      - name: cf_contrat_avenant
-        description: "Catégorie principale : contrat / avenant"
-      - name: cf_creation_d_un_site
-        description: "Catégorie principale : création d'un site"
-      - name: cf_demande_intervention
-        description: "Catégorie principale : demande d'intervention"
-      - name: cf_inscription
-        description: "Catégorie principale : inscription"
-      - name: cf_machines
-        description: "Catégorie principale : machines"
-      - name: cf_modification
-        description: "Catégorie principale : modification"
-      - name: cf_modification_d_un_site
-        description: "Catégorie principale : modification d'un site"
-      - name: cf_modifications
-        description: "Catégorie principale : modifications"
-      - name: cf_rupture
-        description: "Catégorie principale : rupture de stock"
-      - name: cf_suivi_intervention
-        description: "Catégorie principale : suivi d'intervention"
-      - name: cf_s_systeme_de_paiement
-        description: "Catégorie principale : système de paiement"
-      - name: cf_technique
-        description: "Catégorie principale : technique"
-      - name: cf_s_equipements
-        description: "Sous-catégorie : équipements"
-      - name: cf_s_commande_directes
-        description: "Sous-catégorie : commandes directes"
-      - name: cf_s_commercial
-        description: "Sous-catégorie : commercial"
-      - name: cf_s_facturation
-        description: "Sous-catégorie : facturation"
-      - name: cf_s_gestion_des_cartes_privatives
-        description: "Sous-catégorie : gestion cartes privatives"
-      - name: cf_s_gestion_des_planogrammes
-        description: "Sous-catégorie : gestion planogrammes"
-      - name: cf_s_recyclage
-        description: "Sous-catégorie : recyclage"
-      - name: cf_s_remboursement
-        description: "Sous-catégorie : remboursement"
-      - name: cf_s_remontees_personnel_neshu
-        description: "Sous-catégorie : remontées personnel NESHU"
-      - name: cf_s_reappro
-        description: "Sous-catégorie : réapprovisionnement"
-      - name: is_over_due
-        description: "BOOLEAN — SLA résolution dépassé"
-      - name: is_response_overdue
-        description: "BOOLEAN — SLA première réponse dépassé"
-      - name: is_escalated
-        description: "BOOLEAN — ticket escaladé"
-      - name: resolution
-        description: "Texte de résolution saisi par l'agent à la fermeture"
-      - name: thread_count
-        description: "Nombre total de threads (client + agent)"
-      - name: agent_response_count
-        description: >
-          Nombre de réponses agent (= outgoing_count des metrics).
-          Vérifié contre threads où direction='out' AND author__type='AGENT'.
-      - name: response_count
-        description: "Nombre total de réponses (compteur Zoho — peut différer légèrement de outgoing_count)"
-      - name: reopen_count
-        description: "Nombre de réouvertures historiques du ticket"
-      - name: reassign_count
-        description: "Nombre de réassignations historiques"
-      - name: first_response_time_minutes
-        description: "Délai première réponse (minutes)"
-      - name: resolution_time_minutes
-        description: "Durée totale de résolution (minutes)"
-      - name: total_response_time_minutes
-        description: "Temps de réponse total cumulé (minutes)"
+        description: "Nom du département (ex. Service Client, Facturation)."
 
+      # --- CATÉGORISATION MÉTIER (custom fields) ---
+      - name: nature_des_demandes
+        description: >
+          **Nature / motif de la demande** — principal champ de catégorisation métier (cf_nature_des_demandes).
+          Valeurs fréquentes : Gestion des cartes privatives/Badges, Equipements, Remboursements,
+          Facturation, Commerce/CSM, Commandes directes/Négoce, Réappro, Recyclage… (~50% NULL).
+          Synonymes : type de demande / motif / sujet métier.
+      - name: cf_contrat_avenant
+        description: "Catégorie custom : contrat / avenant."
+      - name: cf_creation_d_un_site
+        description: "Catégorie custom : création d'un site."
+      - name: cf_demande_intervention
+        description: "Catégorie custom : demande d'intervention."
+      - name: cf_inscription
+        description: "Catégorie custom : inscription."
+      - name: cf_machines
+        description: "Catégorie custom : machines."
+      - name: cf_modification
+        description: "Catégorie custom : modification."
+      - name: cf_modification_d_un_site
+        description: "Catégorie custom : modification d'un site."
+      - name: cf_modifications
+        description: "Catégorie custom : modifications."
+      - name: cf_rupture
+        description: "Catégorie custom : rupture de stock."
+      - name: cf_suivi_intervention
+        description: "Catégorie custom : suivi d'intervention."
+      - name: cf_s_systeme_de_paiement
+        description: "Catégorie custom : système de paiement."
+      - name: cf_technique
+        description: "Catégorie custom : technique."
+      - name: cf_s_equipements
+        description: "Sous-catégorie custom : équipements."
+      - name: cf_s_commande_directes
+        description: "Sous-catégorie custom : commandes directes."
+      - name: cf_s_commercial
+        description: "Sous-catégorie custom : commercial."
+      - name: cf_s_facturation
+        description: "Sous-catégorie custom : facturation."
+      - name: cf_s_gestion_des_cartes_privatives
+        description: "Sous-catégorie custom : gestion cartes privatives."
+      - name: cf_s_gestion_des_planogrammes
+        description: "Sous-catégorie custom : gestion planogrammes."
+      - name: cf_s_recyclage
+        description: "Sous-catégorie custom : recyclage."
+      - name: cf_s_remboursement
+        description: "Sous-catégorie custom : remboursement."
+      - name: cf_s_remontees_personnel_neshu
+        description: "Sous-catégorie custom : remontées personnel NESHU."
+      - name: cf_s_reappro
+        description: "Sous-catégorie custom : réapprovisionnement."
+
+      # --- FLAGS SLA ---
+      - name: is_over_due
+        description: "True si le SLA de résolution est dépassé (Zoho)."
+      - name: is_response_overdue
+        description: "True si le SLA de première réponse est dépassé (Zoho)."
+      - name: is_escalated
+        description: "True si le ticket a été escaladé."
+      - name: resolution
+        description: "Texte de résolution saisi à la fermeture. Quasi toujours vide (~0,6% rempli)."
+
+      # --- COMPTEURS DE CONVERSATION ---
+      - name: thread_count
+        description: "Nombre total de threads (messages client + agent). Mesure."
+      - name: agent_response_count
+        description: "Nombre de réponses agent (= outgoing_count des metrics)."
+      - name: response_count
+        description: "Nombre total de réponses (compteur Zoho ; peut différer légèrement de agent_response_count)."
+      - name: reopen_count
+        description: "Nombre de réouvertures du ticket. Synonyme : nombre de relances."
+      - name: reassign_count
+        description: "Nombre de réassignations de l'agent."
+
+      # --- DURÉES SLA (minutes, source ticket_metrics) ---
+      - name: first_response_time_minutes
+        description: "Délai de première réponse (minutes). Synonymes : temps de 1re réponse, délai de prise en charge."
+      - name: resolution_time_minutes
+        description: "Durée totale de résolution (minutes), cumulée sur tous les cycles. Synonyme : délai de résolution."
+      - name: total_response_time_minutes
+        description: "Temps de réponse total cumulé (minutes)."
   - name: int_zoho_desk__ticket_status_events
     description: >
       Une ligne par changement de statut — vue brute mais normalisée.
