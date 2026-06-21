@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir -r requirements-lock.txt
 
 WORKDIR /app
 
-COPY dbt_project.yml packages.yml profiles.yml ./
+COPY dbt_project.yml packages.yml profiles.yml selectors.yml ./
 COPY models/ models/
 COPY snapshots/ snapshots/
 COPY data/ data/
