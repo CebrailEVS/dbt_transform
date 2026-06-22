@@ -570,21 +570,34 @@ models:
 
   - name: fct_neshu__chargement_quinzaine
     description: |
-      [QUOI MÉTIER] Quantités chargées par client, type de produit, année et quinzaine.
-      [COMMENT CONSTRUITE] Issu de int_oracle_neshu__chargement_tasks joint à dim_neshu__product (product_type) et dim_neshu__device (company_code). Regroupement BOISSONS FRAICHES + SNACKING → SODA + SNACKS pour le reporting BI. Quinzaine calculée depuis le lundi de référence de l'année (FLOOR(jours / 14) + 1).
+      [QUOI MÉTIER] Quantités chargées sur les machines GRATUITES uniquement, par client, type de produit, année et quinzaine.
+      [COMMENT CONSTRUITE] Issu de int_oracle_neshu__chargement_tasks : company_code provient directement de chargement_tasks, product_type de dim_neshu__product, company_name de stg_oracle_neshu__company ; le join dim_neshu__device sert UNIQUEMENT à filtrer device_economic_model = 'Gratuit' (machines gratuites). Regroupement BOISSONS FRAICHES + SNACKING → SODA + SNACKS pour le reporting BI. Quinzaine = floor(jours écoulés depuis le lundi de la semaine du 1er janvier / 14) + 1.
       [GRAIN] 1 ligne par (product_type, company_code, annee_chgt, quinzaine_chgt).
-      [NOTES] quinzaine_chgt ∈ [1, 27].
+      [NOTES]
+      ⚠️ Périmètre restreint aux machines GRATUITES (device_economic_model = 'Gratuit') — non comparable au chargement total.
+      ⚠️ Fenêtre glissante : seuls les 730 derniers jours (interval 730 day) sont inclus.
+      quantite_chargee = somme BRUTE de load_quantity, SANS multiplicateur de conditionnement — diffère du chargement arbitré de fct_neshu__consommation.
+      Aucun filtre de statut : inclut FAIT/VALIDE mais aussi ANNULE/ANOMALIE (volume négligeable, ~0,005 %).
+      quinzaine_chgt ∈ [1, 27].
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [product_type, company_code, annee_chgt, quinzaine_chgt]
 
     columns:
       - name: product_type
-        description: Type de produit issu de la dimension produit
+        description: Type de produit issu de la dimension produit (BOISSONS FRAICHES + SNACKING regroupés en SODA + SNACKS)
         tests:
           - not_null
 
       - name: company_code
-        description: Code de la société
+        description: Code de la société (issu de int_oracle_neshu__chargement_tasks)
         tests:
           - not_null
+
+      - name: company_name
+        description: Nom de la société (issu de stg_oracle_neshu__company)
 
       - name: annee_chgt
         description: Année de la date de démarrage de la tâche
@@ -597,7 +610,13 @@ models:
           - not_null
 
       - name: quantite_chargee
-        description: Quantité totale chargée sur la période
+        description: Quantité brute totale chargée sur la période (sans conditionnement)
+
+      - name: dbt_updated_at
+        description: "Horodatage de la dernière exécution dbt ayant matérialisé la ligne."
+
+      - name: dbt_invocation_id
+        description: "Identifiant d'invocation dbt ayant produit la ligne (traçabilité du run)."
 
 
   - name: dim_neshu__resource
