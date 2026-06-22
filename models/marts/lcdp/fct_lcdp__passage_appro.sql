@@ -101,7 +101,6 @@ select
     -- 3️⃣ Dates / Temps
     date_pointage_debut,
     date_pointage_fin,
-    date_pointage_jour,
     start_date_day,
     task_start_date,
     task_end_date,
