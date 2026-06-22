@@ -2,23 +2,42 @@ selectors:
   # ============================================================
   # FAST-LANE — Passages appro (refresh intra-day)
   # ============================================================
-  # Sous-graphe minimal alimentant les marts de passages appro.
-  # Construit UNIQUEMENT les ancêtres de fct_{neshu,lcdp}__appro
-  # (staging.task incremental + intermediate.appro_tasks incremental
-  # + dims neshu/lcdp), PAS tout le DAG des sources Oracle.
+  # Sous-graphe minimal alimentant un mart de passages appro : ancêtres
+  # de fct_<bu>__passage_appro (staging.task + intermediate.appro_tasks
+  # incrémentaux + enriched + pointage + dims), PAS tout le DAG Oracle.
   #
-  # Usage : voie rapide orchestrée plusieurs fois/jour, en parallèle
-  # du build nocturne `source:oracle_neshu+` / `source:oracle_lcdp+`.
-  #   dbt build --selector passage_appro_fastlane
+  # Production : chaque workflow EL appelle SON selector par BU (isolé),
+  # pour ne rebuild que sa propre BU :
+  #   pipeline-passages-appro-neshu  → passage_appro_fastlane_neshu
+  #   pipeline-passages-appro-lcdp   → passage_appro_fastlane_lcdp
   #
-  # Remplace les pipelines Python externes
-  # ingest-oracle-{neshu,lcdp}-passages-appro (cf. consolidation
-  # passages_appro : une seule définition métier, dans dbt).
+  # Le selector combiné `passage_appro_fastlane` reste disponible pour un
+  # full refresh manuel des deux BUs (`dbt build --selector passage_appro_fastlane`).
   # ============================================================
+
+  - name: passage_appro_fastlane_neshu
+    description: >
+      Sous-graphe ancêtre de fct_neshu__passage_appro (refresh intra-day neshu).
+    default: false
+    definition:
+      method: fqn
+      value: fct_neshu__passage_appro
+      parents: true
+
+  - name: passage_appro_fastlane_lcdp
+    description: >
+      Sous-graphe ancêtre de fct_lcdp__passage_appro (refresh intra-day lcdp).
+    default: false
+    definition:
+      method: fqn
+      value: fct_lcdp__passage_appro
+      parents: true
+
+  # Combiné : neshu + lcdp d'un coup. Pour full refresh manuel uniquement,
+  # PAS utilisé par les workflows (qui sont isolés par BU ci-dessus).
   - name: passage_appro_fastlane
     description: >
-      Sous-graphe ancêtre des marts passages appro (neshu + lcdp),
-      pour refresh intra-day sans rebuild des sources Oracle complètes.
+      Full refresh manuel des deux marts passages appro (neshu + lcdp).
     default: false
     definition:
       union:
