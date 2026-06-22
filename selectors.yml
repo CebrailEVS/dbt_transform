@@ -25,6 +25,6 @@ selectors:
         - method: fqn
           value: fct_neshu__passage_appro
           parents: true
-        # TODO(lcdp): ajouter `fct_lcdp__appro` ici une fois le mart créé.
-        # Le monitoring LCDP n'existe aujourd'hui qu'en pipeline Python ;
-        # le mart dbt reste à porter (cf. consolidation passages_appro).
+        - method: fqn
+          value: fct_lcdp__passage_appro
+          parents: true

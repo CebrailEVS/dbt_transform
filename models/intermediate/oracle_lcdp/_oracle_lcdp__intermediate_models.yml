@@ -1360,3 +1360,48 @@ models:
         data_type: timestamp
         tests:
           - not_null
+
+  - name: int_oracle_lcdp__appro_tasks_enriched
+    description: >
+      [QUOI MÉTIER]
+      Passages appro LCDP enrichis : roadman affecté (nom + code), référentiels client/machine
+      aplatis, statut normalisé et indicateurs. Brique directe du mart fct_lcdp__passage_appro.
+
+      [COMMENT CONSTRUITE]
+      int_oracle_lcdp__appro_tasks + roadman (task_has_resources × resources type=2) +
+      company (nom) + device (code/nom). Statut ENCOURS reclassé FAIT. Filtré sur les tâches
+      ayant un roadman associé.
+
+      [GRAIN]
+      1 ligne par task_id (PK), uniquement les passages avec roadman.
+
+      [NOTES]
+      is_planned = PREVU/FAIT/ENCOURS/ANOMALIE ; is_done = FAIT/ENCOURS ; is_anomaly = ANOMALIE.
+      passage_duration_min calculée seulement pour les passages FAIT.
+    columns:
+      - name: task_id
+        description: "Identifiant de la tâche appro (PK)."
+        data_type: int64
+        tests:
+          - unique
+          - not_null
+      - name: resources_roadman_id
+        description: "Roadman affecté (resources type=2). FK → dim_lcdp__resource."
+        data_type: int64
+        tests:
+          - not_null
+      - name: roadman_name
+        description: "Nom du roadman affecté au passage."
+        data_type: string
+      - name: is_done
+        description: "Indicateur binaire : 1 si réalisé (statut brut FAIT ou ENCOURS), sinon 0."
+        data_type: int64
+      - name: is_planned
+        description: "Indicateur binaire : 1 si statut brut PREVU, FAIT, ENCOURS ou ANOMALIE, sinon 0."
+        data_type: int64
+      - name: is_anomaly
+        description: "Indicateur binaire : 1 si statut brut ANOMALIE, sinon 0."
+        data_type: int64
+      - name: passage_duration_min
+        description: "Durée du passage en minutes (fin - début), uniquement pour les passages FAIT."
+        data_type: float64
