@@ -82,6 +82,7 @@ chargement_agg as (
         on
             pa.device_id = cm.device_id
             and date(pa.task_start_date) = date(cm.task_start_date)
+            and cm.task_status_code in ('FAIT', 'VALIDE')
     left join {{ ref('dim_neshu__product') }} as p
         on cm.product_id = p.product_id
     group by 1, 2, 3, 4, 5

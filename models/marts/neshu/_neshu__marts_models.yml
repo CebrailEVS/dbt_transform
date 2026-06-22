@@ -488,7 +488,7 @@ models:
       [NOTES]
       ⚠️ q_consommee = somme BRUTE des télémétries, SANS arbitrage télémétrie/chargement ni multiplicateur de conditionnement. Ce N'EST PAS la métrique officielle de consommation : le volume de consommation arbitré (consommation_volume du semantic layer) est porté par fct_neshu__consommation. Ne pas confondre les deux.
       Ce mart re-dérive sa propre notion de passage (int_oracle_neshu__appro_tasks filtré task_status_code='FAIT', depuis 2025-01-01) et n'est PAS aligné sur fct_neshu__passage_appro (source de vérité passages, périmètre PREVU/FAIT/ANOMALIE) — ré-ancrage à prévoir.
-      q_chargee utilise un MAX (et non un SUM) : sur un jour à plusieurs passages, la jointure chargement par DATE duplique le total journalier sur chaque passage, le MAX dédoublonne ce total. task_start_date_min = MIN des horodatages des passages du jour (pas un horodatage unique).
+      q_chargee : chargement filtré sur task_status_code in ('FAIT', 'VALIDE') (ANNULE/ANOMALIE exclus, aligné sur fct_neshu__consommation). Utilise un MAX (et non un SUM) : sur un jour à plusieurs passages, la jointure chargement par DATE duplique le total journalier sur chaque passage, le MAX dédoublonne ce total. task_start_date_min = MIN des horodatages des passages du jour (pas un horodatage unique).
       roadman_code = nom du roadman associé au véhicule source (attribut d'affichage). product_source_id / product_source_type = identifiant et type Oracle de la source du chargement (exposés pour diagnostic, pas de test FK car mart combinant plusieurs intermediates). product_type aplati pour filtre BI. product_code conservé en attribut d'affichage.
 
     tests:
@@ -577,7 +577,7 @@ models:
       ⚠️ Périmètre restreint aux machines GRATUITES (device_economic_model = 'Gratuit') — non comparable au chargement total.
       ⚠️ Fenêtre glissante : seuls les 730 derniers jours (interval 730 day) sont inclus.
       quantite_chargee = somme de load_quantity (déjà déconditionnée par les coefficients Oracle unit_coeff_multi/div dans l'intermediate), MAIS sans le multiplicateur de conditionnement seed (units_per_pack) que fct_neshu__consommation applique en plus — d'où un écart avec le chargement de fct_neshu__consommation.
-      Aucun filtre de statut : inclut FAIT/VALIDE mais aussi ANNULE/ANOMALIE (volume négligeable, ~0,005 %).
+      Chargement filtré sur task_status_code in ('FAIT', 'VALIDE') (ANNULE/ANOMALIE exclus), aligné sur fct_neshu__consommation.
       quinzaine_chgt ∈ [1, 27].
 
     tests:

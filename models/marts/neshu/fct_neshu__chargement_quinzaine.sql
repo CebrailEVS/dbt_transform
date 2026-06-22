@@ -29,7 +29,9 @@ with base as (
             and d.device_economic_model = 'Gratuit'
     left join {{ ref('dim_neshu__company') }} as comp
         on cm.company_id = comp.company_id
-    where cm.task_start_date >= timestamp_sub(current_timestamp(), interval 730 day)
+    where
+        cm.task_start_date >= timestamp_sub(current_timestamp(), interval 730 day)
+        and cm.task_status_code in ('FAIT', 'VALIDE')
 )
 
 select
