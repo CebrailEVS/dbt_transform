@@ -212,7 +212,6 @@ select
     passage_rank_of_day,
     daily_task_count,
     avg_passage_duration_day,
-    passage_duration_interval,
     passage_duration_min,
     passage_duration_hours,
     work_duration_min_raw,
@@ -237,6 +236,6 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    'cfa23d87-227d-402b-8d6b-cef29f76a2f6' as dbt_invocation_id  -- noqa: TMP
+    'e667a9b5-a276-4813-ae69-c6f4a666d379' as dbt_invocation_id  -- noqa: TMP
 
 from passage_work_duration
