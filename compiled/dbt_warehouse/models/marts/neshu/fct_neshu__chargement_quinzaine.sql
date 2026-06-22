@@ -1,4 +1,3 @@
--- models/fct_chargement_quinzaine.sql
 
 
 with base as (
@@ -8,13 +7,13 @@ with base as (
             else p.product_type
         end) as product_type,
         cm.company_code,
-        comp.name as company_name,
-        EXTRACT(year from cm.task_start_date) as annee_chgt,
-        FLOOR(
-            DATE_DIFF(
-                DATE(cm.task_start_date),
-                DATE_TRUNC(
-                    DATE_TRUNC(DATE(cm.task_start_date), year),
+        comp.company_name,
+        extract(year from cm.task_start_date) as annee_chgt,
+        floor(
+            date_diff(
+                date(cm.task_start_date),
+                date_trunc(
+                    date_trunc(date(cm.task_start_date), year),
                     week (monday)
                 ),
                 day
@@ -28,9 +27,11 @@ with base as (
         on
             cm.device_id = d.device_id
             and d.device_economic_model = 'Gratuit'
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` as comp
-        on cm.company_id = comp.idcompany
-    where cm.task_start_date >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), interval 730 day)
+    left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__company` as comp
+        on cm.company_id = comp.company_id
+    where
+        cm.task_start_date >= timestamp_sub(current_timestamp(), interval 730 day)
+        and cm.task_status_code in ('FAIT', 'VALIDE')
 )
 
 select
@@ -39,10 +40,11 @@ select
     company_name,
     annee_chgt,
     quinzaine_chgt,
-    SUM(load_quantity) as quantite_chargee,
+    sum(load_quantity) as quantite_chargee,
+
     -- Métadonnées dbt
-    CURRENT_TIMESTAMP() as dbt_updated_at,
-    'e5836d44-0b27-4d44-9e2d-b1612fde880f' as dbt_invocation_id  -- noqa: TMP
+    current_timestamp() as dbt_updated_at,
+    '0c5c5586-4bbf-45da-92b7-9f0f16f18661' as dbt_invocation_id  -- noqa: TMP
 from base
 group by
     product_type,
