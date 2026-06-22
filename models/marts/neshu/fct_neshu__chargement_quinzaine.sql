@@ -7,7 +7,7 @@ with base as (
             else p.product_type
         end) as product_type,
         cm.company_code,
-        comp.name as company_name,
+        comp.company_name,
         extract(year from cm.task_start_date) as annee_chgt,
         floor(
             date_diff(
@@ -27,8 +27,8 @@ with base as (
         on
             cm.device_id = d.device_id
             and d.device_economic_model = 'Gratuit'
-    left join {{ ref('stg_oracle_neshu__company') }} as comp
-        on cm.company_id = comp.idcompany
+    left join {{ ref('dim_neshu__company') }} as comp
+        on cm.company_id = comp.company_id
     where cm.task_start_date >= timestamp_sub(current_timestamp(), interval 730 day)
 )
 
