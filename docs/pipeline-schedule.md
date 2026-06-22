@@ -34,7 +34,7 @@ marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de 
 08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce
 09:00  SN    transform-snapshots-daily (tous snapshots)
 08,11,15h  EL+T  passages-appro-neshu (fast-lane: tap appro + selector passage_appro_fastlane) → fct_neshu__passage_appro
-07:00→18h  EL  passages-appro-lcdp (intra-day, 7x/jour, 1-5) → prod_marts (Cloud Run, hors dbt)
+07-18h  EL+T  passages-appro-lcdp (fast-lane: tap appro + selector passage_appro_fastlane) → fct_lcdp__passage_appro
 23:00  EL+T  oracle_stock_theorique                                  → + marts supply_chain
 23:15  EL+T  oracle_lcdp_stock_theorique                             → + marts supply_chain (lcdp)
 ─────────────────────────────────────────────────────────────────────────────────
@@ -59,6 +59,7 @@ homonyme dans `workflows/*.yaml`.
 | pipeline-oracle-neshu-full-refresh | `0 4 * * 0` | dim | pipeline-oracle-neshu-full-refresh.yaml | oracle_neshu (full) |
 | pipeline-passages-appro-neshu | `0 8,11,15 * * 1-5` | lun-ven | pipeline-passages-appro-neshu.yaml | oracle_neshu (fast-lane appro: EL `tap-oracle-appro-fastlane` + dbt selector `passage_appro_fastlane` + refresh PBI) |
 | pipeline-oracle-lcdp | `0 1 * * *` | tous | pipeline-oracle-lcdp.yaml | oracle_lcdp |
+| pipeline-passages-appro-lcdp | `5 7,8,9,11,15,17,18 * * 1-5` | lun-ven | pipeline-passages-appro-lcdp.yaml | oracle_lcdp (fast-lane appro: EL `tap-oracle-lcdp-appro-fastlane` + dbt selector `passage_appro_fastlane` + refresh PBI) |
 | pipeline-mssql-sage | `0 1 * * 1-5` | lun-ven | pipeline-mssql-sage.yaml | mssql_sage |
 | pipeline-yuman | `0 1 * * 1-5` | lun-ven | pipeline-yuman.yaml | yuman |
 | pipeline-zoho-desk | `0 3 * * 1-5` | lun-ven | pipeline-zoho-desk.yaml | zoho_desk |
@@ -68,15 +69,7 @@ homonyme dans `workflows/*.yaml`.
 | pipeline-nesp-co | `0 8 * * *` | tous | pipeline-nesp-co.yaml | nesp_co |
 | pipeline-oracle-stock-theorique | `0 23 * * *` | tous | pipeline-oracle-stock-theorique.yaml | oracle_neshu_gcs |
 
-### 2.2 Extract + ingestion directe en `prod_marts` (Cloud Run, hors dbt)
-
-| Scheduler | Cron | Jours | Workflow | Table cible |
-|---|---|---|---|---|
-| ingest-oracle-lcdp-passages-appro | `5 7,8,9,11,15,17,18 * * 1-5` | lun-ven (7x) | pipeline-passages-appro-lcdp.yaml | `prod_marts.fct_lcdp__monitoring_passage_appro` |
-
-> Ces tables sont déclarées en `source()` dbt via `_<bu>__marts_sources.yml` (cf. `CLAUDE.md`).
-
-### 2.3 Transform (dbt) — embarqué dans les pipelines EL (Option C)
+### 2.2 Transform (dbt) — embarqué dans les pipelines EL (Option C)
 
 Il n'existe **plus** de scheduler `transform-<bu>-daily`. Chaque pipeline EL de §2.1 exécute,
 après son extract/load, un `dbt build --select source:<source>+` (étape `run_dbt`, env var
@@ -99,13 +92,13 @@ après son extract/load, un `dbt build --select source:<source>+` (étape `run_d
 > `pipeline-oracle-neshu-full-refresh` garde `tag:oracle_neshu` (+`--full-refresh`, staging/int).
 > Snapshots exclus de tout `dbt build` via `--exclude resource_type:snapshot` (entrypoint).
 
-### 2.4 Snapshots
+### 2.3 Snapshots
 
 | Scheduler | Cron | Workflow | Périmètre |
 |---|---|---|---|
 | transform-snapshots-daily | `0 9 * * *` | transform-snapshots-daily.yaml | Tous les snapshots de `snapshots/` |
 
-### 2.5 Export
+### 2.4 Export
 
 | Scheduler | Cron | Jours | Workflow | Description |
 |---|---|---|---|---|
@@ -154,7 +147,7 @@ Permet de répondre à : *"Quelles sources doivent être fraîches pour que la B
 | BU | Sources upstream (via lineage) | Sources externes `prod_marts` (Cloud Run hors dbt) | Nb marts |
 |---|---|---|---|
 | neshu | `oracle_neshu`, `yuman` | — | 13 (6 dim + 7 fct) |
-| lcdp | `oracle_lcdp` | `marts_lcdp_external` (passage_appro) | 3 (3 dim + 0 fct) |
+| lcdp | `oracle_lcdp` | — | 4 (3 dim + 1 fct) |
 | technique | `yuman`, `nesp_tech` | — | 10 (5 dim + 5 fct) |
 | commerce | `nesp_co`, `nesp_tech` | — | 1 (0 dim + 1 fct) |
 | finance | `mssql_sage` (+ source statique `historic`) | — | 1 (0 dim + 1 fct) |
@@ -167,8 +160,6 @@ Permet de répondre à : *"Quelles sources doivent être fraîches pour que la B
 - `commerce` dépend de `nesp_tech` qui n'est rafraîchi que **le lundi à 07:30** : les autres jours,
   le run commerce retraite les mêmes interventions Nespresso Tech que le lundi précédent.
 - `supply_chain` est la seule BU qui consomme les exports GCS (`*_gcs`).
-- Marts external (`marts_*_external`) sont écrits par les Cloud Run `ingest-oracle-*-passages-appro`
-  (cf. §2.2), pas par dbt. Référencés en `source()` dans `_<bu>__marts_sources.yml`.
 
 ---
 
@@ -227,7 +218,7 @@ Ces infos ne sont pas dans le code, à enrichir au fil de l'eau :
 | Changement | Section à mettre à jour |
 |---|---|
 | Nouveau Cloud Scheduler EL (cron modifié, jour ajouté) | §2.1 + §1 timeline |
-| Nouvelle source dbt | §2.1 + §2.3 (ajouter le `source:X+`) + §3 matrice + §4 |
+| Nouvelle source dbt | §2.1 + §2.2 (ajouter le `source:X+`) + §3 matrice + §4 |
 | Nouveau mart dans une BU existante | rien côté scheduling (rebuild auto via `source:X+`) ; §3bis si nouvelle source upstream |
 | Nouveau rapport PBI / exposure | §5 |
 | Changement de SLA freshness | §4 |

@@ -16,13 +16,13 @@ exposures:
     type: dashboard
     maturity: medium
     description: >
-      Monitoring des passages appro Roadman chez les clients LCDP. Refresh 8x par jour.
-      Données chargées par le Cloud Run job "ingest-oracle-lcdp-passages-appro"
-      via GCP Cloud Workflows (pipeline-passages-appro-lcdp), qui écrit directement dans
-      prod_marts sans passer par dbt.
+      Monitoring des passages appro Roadman chez les clients LCDP. Rafraîchi par le workflow
+      pipeline-passages-appro-lcdp : EL fast-lane (tap-oracle-lcdp-appro-fastlane) + dbt
+      (selector passage_appro_fastlane) + refresh PBI.
+      Consomme le mart fct_lcdp__passage_appro.
       PBI : workspace "Lcdp" / dataset "DEV APPRO MONITORING".
     owner:
       name: Cebrail Aksoy
       email: cebrail.aksoy@evs-pro.com
     depends_on:
-      - source('marts_lcdp_external', 'fct_lcdp__monitoring_passage_appro')
+      - ref('fct_lcdp__passage_appro')
