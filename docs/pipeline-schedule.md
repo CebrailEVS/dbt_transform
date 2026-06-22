@@ -33,7 +33,8 @@ marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de 
 07:30  EL+T  nesp_tech (lundi seulement)                              → + marts technique, commerce
 08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce
 09:00  SN    transform-snapshots-daily (tous snapshots)
-10:00→18h  EL  passages-appro-neshu/lcdp (intra-day, 7-8x/jour, 1-5) → prod_marts (Cloud Run, hors dbt)
+08,11,15h  EL+T  passages-appro-neshu (fast-lane: tap appro + selector passage_appro_fastlane) → fct_neshu__passage_appro
+07:00→18h  EL  passages-appro-lcdp (intra-day, 7x/jour, 1-5) → prod_marts (Cloud Run, hors dbt)
 23:00  EL+T  oracle_stock_theorique                                  → + marts supply_chain
 23:15  EL+T  oracle_lcdp_stock_theorique                             → + marts supply_chain (lcdp)
 ─────────────────────────────────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ homonyme dans `workflows/*.yaml`.
 |---|---|---|---|---|
 | pipeline-oracle-neshu | `0 1 * * *` | tous | pipeline-oracle-neshu.yaml | oracle_neshu |
 | pipeline-oracle-neshu-full-refresh | `0 4 * * 0` | dim | pipeline-oracle-neshu-full-refresh.yaml | oracle_neshu (full) |
+| pipeline-passages-appro-neshu | `0 8,11,15 * * 1-5` | lun-ven | pipeline-passages-appro-neshu.yaml | oracle_neshu (fast-lane appro: EL `tap-oracle-appro-fastlane` + dbt selector `passage_appro_fastlane` + refresh PBI) |
 | pipeline-oracle-lcdp | `0 1 * * *` | tous | pipeline-oracle-lcdp.yaml | oracle_lcdp |
 | pipeline-mssql-sage | `0 1 * * 1-5` | lun-ven | pipeline-mssql-sage.yaml | mssql_sage |
 | pipeline-yuman | `0 1 * * 1-5` | lun-ven | pipeline-yuman.yaml | yuman |
@@ -70,7 +72,6 @@ homonyme dans `workflows/*.yaml`.
 
 | Scheduler | Cron | Jours | Workflow | Table cible |
 |---|---|---|---|---|
-| ingest-oracle-neshu-passages-appro | `0 7-11,13,15 * * 1-5` | lun-ven (8x) | pipeline-passages-appro-neshu.yaml | `prod_marts.fct_neshu__monitoring_passage_appro` |
 | ingest-oracle-lcdp-passages-appro | `5 7,8,9,11,15,17,18 * * 1-5` | lun-ven (7x) | pipeline-passages-appro-lcdp.yaml | `prod_marts.fct_lcdp__monitoring_passage_appro` |
 
 > Ces tables sont déclarées en `source()` dbt via `_<bu>__marts_sources.yml` (cf. `CLAUDE.md`).
@@ -152,7 +153,7 @@ Permet de répondre à : *"Quelles sources doivent être fraîches pour que la B
 
 | BU | Sources upstream (via lineage) | Sources externes `prod_marts` (Cloud Run hors dbt) | Nb marts |
 |---|---|---|---|
-| neshu | `oracle_neshu`, `yuman` | `marts_neshu_external` (passage_appro) | 13 (6 dim + 7 fct) |
+| neshu | `oracle_neshu`, `yuman` | — | 13 (6 dim + 7 fct) |
 | lcdp | `oracle_lcdp` | `marts_lcdp_external` (passage_appro) | 3 (3 dim + 0 fct) |
 | technique | `yuman`, `nesp_tech` | — | 10 (5 dim + 5 fct) |
 | commerce | `nesp_co`, `nesp_tech` | — | 1 (0 dim + 1 fct) |

@@ -536,7 +536,3 @@ Les modèles oracle_neshu alimentent principalement `marts/neshu/` et
 ### `marts/supply_chain/`
 
 - `fct_supply_chain__flux_neshu` — flux supply chain mensuel (stocks + réceptions + tous types de mouvements consolidés). Partitionné `mois_date`.
-
-### Sources externes Cloud Run
-
-- `fct_neshu__monitoring_passage_appro` — table écrite directement par un Cloud Run job, déclarée comme source dans `_neshu__marts_sources.yml`. Référencée via `source('marts_neshu_external', 'fct_neshu__monitoring_passage_appro')` — **ne pas wrapper dans un modèle dbt**.

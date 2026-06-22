@@ -166,7 +166,6 @@ Update l'exposure correspondante dès qu'un mart est créé/modifié et consomm�
 ### External marts sources
 
 Tables dans `prod_marts` écrites directement par des Cloud Run jobs (hors dbt). Déclarées comme sources dans `_<bu>__marts_sources.yml` au sein du folder BU :
-- `models/marts/neshu/_neshu__marts_sources.yml` — `fct_neshu__monitoring_passage_appro`
 - `models/marts/lcdp/_lcdp__marts_sources.yml` — `fct_lcdp__monitoring_passage_appro`
 
 Référencer via `source('marts_<bu>_external', '<table>')`. Ne jamais créer de modèle dbt wrappant ces tables.

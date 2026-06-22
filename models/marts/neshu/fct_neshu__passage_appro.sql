@@ -220,7 +220,6 @@ select
     passage_rank_of_day,
     daily_task_count,
     avg_passage_duration_day,
-    passage_duration_interval,
     passage_duration_min,
     passage_duration_hours,
     work_duration_min_raw,
