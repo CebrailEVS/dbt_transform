@@ -71,6 +71,10 @@ passage_appro as (
         on
             e.start_date_day = p.date_pointage_jour
             and e.resources_roadman_id = p.resources_roadman_id
+    -- Périmètre du rapport : PREVU / FAIT + ANOMALIE (NESHU compte les anomalies, is_planned les inclut).
+    -- ANNULE / VALIDE / ACQUITTE / ENATTENTE exclus. Filtré ici pour que les métriques
+    -- journalières (window functions) ne portent que sur ce périmètre.
+    where e.task_status_code in ('PREVU', 'FAIT', 'ANOMALIE')
 ),
 
 -- ============================================================
@@ -236,6 +240,6 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    'a7f5414a-28d7-499b-9bf5-f2facb8fa172' as dbt_invocation_id  -- noqa: TMP
+    'e5836d44-0b27-4d44-9e2d-b1612fde880f' as dbt_invocation_id  -- noqa: TMP
 
 from passage_work_duration

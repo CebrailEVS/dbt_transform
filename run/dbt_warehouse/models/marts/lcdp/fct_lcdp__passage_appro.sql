@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] Passages APPRO des roadmen chez les clients LCDP, enrichis du pointage d\u00e9but/fin de journ\u00e9e du roadman.\n[COMMENT CONSTRUITE] Issu de int_oracle_lcdp__appro_tasks_enriched (t\u00e2ches appro idtask_type=32 + roadman type 2 + r\u00e9f\u00e9rentiels company/device, statut ENCOURS reclass\u00e9 FAIT) joint au pointage journalier d\u00e9riv\u00e9 de int_oracle_lcdp__pointage_tasks : date_pointage_debut = premier START_DAY \u2265 03:00 par roadman/jour, date_pointage_fin = dernier END_DAY post\u00e9rieur au d\u00e9but le m\u00eame jour.\n[GRAIN] 1 ligne par task_id (1 t\u00e2che APPRO).\n[NOTES] is_planned (PREVU/FAIT/ENCOURS/ANOMALIE) / is_done (FAIT/ENCOURS) / is_anomaly (ANOMALIE) : indicateurs binaires. pointage_missing_flag=1 si aucun d\u00e9but de journ\u00e9e trouv\u00e9 pour le roadman ce jour. passage_duration_min calcul\u00e9e uniquement pour les passages FAIT.\n"""
+      description="""[QUOI M\u00c9TIER] Passages APPRO des roadmen chez les clients LCDP, enrichis du pointage d\u00e9but/fin de journ\u00e9e du roadman.\n[COMMENT CONSTRUITE] Issu de int_oracle_lcdp__appro_tasks_enriched (t\u00e2ches appro idtask_type=32 + roadman type 2 + r\u00e9f\u00e9rentiels company/device, statut ENCOURS reclass\u00e9 FAIT) joint au pointage journalier d\u00e9riv\u00e9 de int_oracle_lcdp__pointage_tasks : date_pointage_debut = premier START_DAY \u2265 03:00 par roadman/jour, date_pointage_fin = dernier END_DAY post\u00e9rieur au d\u00e9but le m\u00eame jour.\n[GRAIN] 1 ligne par task_id (1 t\u00e2che APPRO).\n[NOTES] P\u00e9rim\u00e8tre restreint aux statuts PREVU / FAIT / ANOMALIE (ENCOURS d\u00e9j\u00e0 repli\u00e9 en FAIT en interm\u00e9diaire) ; ANNULE et VALIDE sont exclus au niveau de ce mart (l'interm\u00e9diaire conserve le p\u00e9rim\u00e8tre complet). is_planned (PREVU/FAIT/ENCOURS) / is_done (FAIT/ENCOURS) / is_anomaly (ANOMALIE) : indicateurs binaires. ANOMALIE est exclu de is_planned (donc du d\u00e9nominateur du taux, r\u00e8gle m\u00e9tier non fig\u00e9e) mais les lignes anomalie restent pr\u00e9sentes et identifiables via is_anomaly. Taux de r\u00e9alisation = sum(is_done)/sum(is_planned). pointage_missing_flag=1 si aucun d\u00e9but de journ\u00e9e trouv\u00e9 pour le roadman ce jour. passage_duration_min calcul\u00e9e uniquement pour les passages FAIT.\n"""
     )
     as (
       
@@ -122,8 +122,11 @@ select
     created_at,
     updated_at,
     current_timestamp() as dbt_updated_at,
-    '0cb420e9-e707-453d-81bf-37c542eae351' as dbt_invocation_id  -- noqa: TMP
+    'c4ff7239-e9bf-40a9-ac07-a61dbb18b47d' as dbt_invocation_id  -- noqa: TMP
 
 from passage_appro
+-- Périmètre du rapport : PREVU / FAIT (ENCOURS déjà replié en FAIT) + ANOMALIE en flag.
+-- ANNULE / VALIDE exclus. ANOMALIE reste hors du taux via is_planned (défini en intermédiaire).
+where task_status_code in ('PREVU', 'FAIT', 'ANOMALIE')
     );
   

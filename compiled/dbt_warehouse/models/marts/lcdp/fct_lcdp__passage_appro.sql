@@ -108,6 +108,9 @@ select
     created_at,
     updated_at,
     current_timestamp() as dbt_updated_at,
-    'a7f5414a-28d7-499b-9bf5-f2facb8fa172' as dbt_invocation_id  -- noqa: TMP
+    'e5836d44-0b27-4d44-9e2d-b1612fde880f' as dbt_invocation_id  -- noqa: TMP
 
 from passage_appro
+-- Périmètre du rapport : PREVU / FAIT (ENCOURS déjà replié en FAIT) + ANOMALIE en flag.
+-- ANNULE / VALIDE exclus. ANOMALIE reste hors du taux via is_planned (défini en intermédiaire).
+where task_status_code in ('PREVU', 'FAIT', 'ANOMALIE')
