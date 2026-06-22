@@ -75,7 +75,7 @@ with appro_context as (
 --     en pause = pause historique, déjà reprise et clôturée).
 --
 -- Logique des buckets (statut-d'abord, mutuellement exclusifs) :
---   - past    : workorder_status = 'Closed'      + demand Accepted + date_done dans [J-15 ; aujourd'hui]
+--   - past    : workorder_status = 'Closed'      + demand Closed   + date_done dans [J-15 ; aujourd'hui]
 --   - current : workorder_status = 'In progress' + demand Accepted (toute date)
 --   - future  : workorder_status = 'Scheduled'   + demand Accepted (toute date, y compris planifié en retard)
 -- Chaque WO réel a un statut unique → tombe dans au plus un bucket
@@ -118,7 +118,9 @@ yuman_workorders as (
         case
             when
                 any_value(workorder_status) = 'Closed'
-                and any_value(demand_status) = 'Accepted'
+                -- une demande dont le WO est clôturé bascule en 'Closed'
+                -- (et non 'Accepted', contrairement aux buckets current/future)
+                and any_value(demand_status) = 'Closed'
                 and max(date_done) is not null
                 and date(max(date_done))
                 between date_sub(current_date(), interval 15 day)
