@@ -161,14 +161,7 @@ Exposures declare which Power BI reports consume which dbt models. One file per 
 - `neshu.yml` · `lcdp.yml` · `finance.yml` · `services_generaux.yml` · `supply_chain.yml`
 - `technique.yml`, `commerce.yml` à créer quand des rapports y seront affectés
 
-Update l'exposure correspondante dès qu'un mart est créé/modifié et consommé par un rapport BI. `ref()` pour dbt models, `source()` pour tables externes Cloud Run.
-
-### External marts sources
-
-Tables dans `prod_marts` écrites directement par des Cloud Run jobs (hors dbt). Déclarées comme sources dans `_<bu>__marts_sources.yml` au sein du folder BU :
-- `models/marts/lcdp/_lcdp__marts_sources.yml` — `fct_lcdp__monitoring_passage_appro`
-
-Référencer via `source('marts_<bu>_external', '<table>')`. Ne jamais créer de modèle dbt wrappant ces tables.
+Update l'exposure correspondante dès qu'un mart est créé/modifié et consommé par un rapport BI. `ref()` pour dbt models.
 
 ---
 

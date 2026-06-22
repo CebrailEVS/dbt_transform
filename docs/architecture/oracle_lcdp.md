@@ -85,21 +85,6 @@ dims + la table externe de monitoring (cf. section suivante). Pas de
 `snap_oracle_neshu__company`, `snap_oracle_neshu__device`,
 `snap_oracle_neshu__valo_parc_machines`).
 
-### Source externe Cloud Run
-
-`fct_lcdp__monitoring_passage_appro` — table écrite directement dans
-`prod_marts` par le Cloud Run `ingest-oracle-lcdp-passages-appro` (cron
-`pipeline-passages-appro-lcdp`). Déclarée comme source dans
-`_lcdp__marts_sources.yml` au sein de `marts/lcdp/`. Pattern identique au
-monitoring Neshu :
-- Mode : TRUNCATE + full reload
-- Historique 15 jours, statuts `PREVU` / `ENCOURS` / `FAIT`
-- Refresh horaire jours ouvrés 07h–15h Europe/Paris
-- Consommée par Power BI workspace **"Lcdp"** / dataset **"DEV APPRO MONITORING"**
-
-Référencer via `source('marts_lcdp_external', 'fct_lcdp__monitoring_passage_appro')` —
-ne pas wrapper dans un modèle dbt.
-
 ---
 
 ## Marts consommateurs
