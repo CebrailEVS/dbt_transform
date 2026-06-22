@@ -33,8 +33,8 @@ marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de 
 07:30  EL+T  nesp_tech (lundi seulement)                              → + marts technique, commerce
 08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce
 09:00  SN    transform-snapshots-daily (tous snapshots)
-08,11,15h  EL+T  passages-appro-neshu (fast-lane: tap appro + selector passage_appro_fastlane) → fct_neshu__passage_appro
-08,11,15,18h  EL+T  passages-appro-lcdp (fast-lane: tap appro + selector passage_appro_fastlane) → fct_lcdp__passage_appro
+08,11,15h  EL+T  passages-appro-neshu (fast-lane: tap appro + selector passage_appro_fastlane_neshu) → fct_neshu__passage_appro
+08,11,15,18h  EL+T  passages-appro-lcdp (fast-lane: tap appro + selector passage_appro_fastlane_lcdp) → fct_lcdp__passage_appro
 23:00  EL+T  oracle_stock_theorique                                  → + marts supply_chain
 23:15  EL+T  oracle_lcdp_stock_theorique                             → + marts supply_chain (lcdp)
 ─────────────────────────────────────────────────────────────────────────────────
@@ -57,9 +57,9 @@ homonyme dans `workflows/*.yaml`.
 |---|---|---|---|---|
 | pipeline-oracle-neshu | `0 1 * * *` | tous | pipeline-oracle-neshu.yaml | oracle_neshu |
 | pipeline-oracle-neshu-full-refresh | `0 4 * * 0` | dim | pipeline-oracle-neshu-full-refresh.yaml | oracle_neshu (full) |
-| pipeline-passages-appro-neshu | `0 8,11,15 * * 1-5` | lun-ven | pipeline-passages-appro-neshu.yaml | oracle_neshu (fast-lane appro: EL `tap-oracle-appro-fastlane` + dbt selector `passage_appro_fastlane` + refresh PBI) |
+| pipeline-passages-appro-neshu | `0 8,11,15 * * 1-5` | lun-ven | pipeline-passages-appro-neshu.yaml | oracle_neshu (fast-lane appro: EL `tap-oracle-appro-fastlane` + dbt selector `passage_appro_fastlane_neshu` + refresh PBI) |
 | pipeline-oracle-lcdp | `0 1 * * *` | tous | pipeline-oracle-lcdp.yaml | oracle_lcdp |
-| pipeline-passages-appro-lcdp | `5 8,11,15,18 * * 1-5` | lun-ven | pipeline-passages-appro-lcdp.yaml | oracle_lcdp (fast-lane appro: EL `tap-oracle-lcdp-appro-fastlane` + dbt selector `passage_appro_fastlane` + refresh PBI) |
+| pipeline-passages-appro-lcdp | `0 8,11,15,18 * * 1-5` | lun-ven | pipeline-passages-appro-lcdp.yaml | oracle_lcdp (fast-lane appro: EL `tap-oracle-lcdp-appro-fastlane` + dbt selector `passage_appro_fastlane_lcdp` + refresh PBI) |
 | pipeline-mssql-sage | `0 1 * * 1-5` | lun-ven | pipeline-mssql-sage.yaml | mssql_sage |
 | pipeline-yuman | `0 1 * * 1-5` | lun-ven | pipeline-yuman.yaml | yuman |
 | pipeline-zoho-desk | `0 3 * * 1-5` | lun-ven | pipeline-zoho-desk.yaml | zoho_desk |
