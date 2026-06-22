@@ -464,7 +464,7 @@ models:
       [QUOI MÉTIER] Passages APPRO des roadmen chez les clients LCDP, enrichis du pointage début/fin de journée du roadman.
       [COMMENT CONSTRUITE] Issu de int_oracle_lcdp__appro_tasks_enriched (tâches appro idtask_type=32 + roadman type 2 + référentiels company/device, statut ENCOURS reclassé FAIT) joint au pointage journalier dérivé de int_oracle_lcdp__pointage_tasks : date_pointage_debut = premier START_DAY ≥ 03:00 par roadman/jour, date_pointage_fin = dernier END_DAY postérieur au début le même jour.
       [GRAIN] 1 ligne par task_id (1 tâche APPRO).
-      [NOTES] is_planned (PREVU/FAIT/ENCOURS/ANOMALIE) / is_done (FAIT/ENCOURS) / is_anomaly (ANOMALIE) : indicateurs binaires. pointage_missing_flag=1 si aucun début de journée trouvé pour le roadman ce jour. passage_duration_min calculée uniquement pour les passages FAIT.
+      [NOTES] Périmètre restreint aux statuts PREVU / FAIT / ANOMALIE (ENCOURS déjà replié en FAIT en intermédiaire) ; ANNULE et VALIDE sont exclus au niveau de ce mart (l'intermédiaire conserve le périmètre complet). is_planned (PREVU/FAIT/ENCOURS) / is_done (FAIT/ENCOURS) / is_anomaly (ANOMALIE) : indicateurs binaires. ANOMALIE est exclu de is_planned (donc du dénominateur du taux, règle métier non figée) mais les lignes anomalie restent présentes et identifiables via is_anomaly. Taux de réalisation = sum(is_done)/sum(is_planned). pointage_missing_flag=1 si aucun début de journée trouvé pour le roadman ce jour. passage_duration_min calculée uniquement pour les passages FAIT.
 
     columns:
       - name: task_id
@@ -571,7 +571,9 @@ models:
         description: Durée du passage en minutes (fin - début). NULL si passage non terminé.
 
       - name: is_planned
-        description: Indicateur binaire — tâche planifiée (1) si statut PREVU / FAIT / ENCOURS / ANOMALIE, sinon 0
+        description: >
+          Indicateur binaire — tâche planifiée (1) si statut PREVU / FAIT / ENCOURS, sinon 0.
+          ANOMALIE volontairement exclu : base du dénominateur du taux de réalisation (règle métier non figée).
         tests:
           - accepted_values:
               arguments:

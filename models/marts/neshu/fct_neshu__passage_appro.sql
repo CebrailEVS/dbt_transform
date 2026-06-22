@@ -79,6 +79,10 @@ passage_appro as (
         on
             e.start_date_day = p.date_pointage_jour
             and e.resources_roadman_id = p.resources_roadman_id
+    -- Périmètre du rapport : PREVU / FAIT + ANOMALIE (NESHU compte les anomalies, is_planned les inclut).
+    -- ANNULE / VALIDE / ACQUITTE / ENATTENTE exclus. Filtré ici pour que les métriques
+    -- journalières (window functions) ne portent que sur ce périmètre.
+    where e.task_status_code in ('PREVU', 'FAIT', 'ANOMALIE')
 ),
 
 -- ============================================================
