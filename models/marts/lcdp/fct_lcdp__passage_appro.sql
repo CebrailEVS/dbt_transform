@@ -119,3 +119,6 @@ select
     '{{ invocation_id }}' as dbt_invocation_id  -- noqa: TMP
 
 from passage_appro
+-- Périmètre du rapport : PREVU / FAIT (ENCOURS déjà replié en FAIT) + ANOMALIE en flag.
+-- ANNULE / VALIDE exclus. ANOMALIE reste hors du taux via is_planned (défini en intermédiaire).
+where task_status_code in ('PREVU', 'FAIT', 'ANOMALIE')

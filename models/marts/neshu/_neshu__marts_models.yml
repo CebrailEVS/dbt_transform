@@ -678,7 +678,7 @@ models:
       [QUOI MÉTIER] Passages APPRO des roadmen enrichis des métriques journalières de temps de travail.
       [COMMENT CONSTRUITE] Issu de int_oracle_neshu__appro_tasks joint à int_oracle_neshu__pointage_tasks (START_DAY) pour le pointage journalier du roadman. Calculs window function par roadman et jour : rang du passage, nombre quotidien de passages, durée moyenne, durée nette du temps de travail (dernière fin - début effectif, nettoyée des valeurs aberrantes <0 ou >12h). Statut ENCOURS reclassé en FAIT après validation métier.
       [GRAIN] 1 ligne par task_id (1 tâche APPRO).
-      [NOTES] effective_work_start = pointage si disponible, sinon première tâche du jour. is_planned (PREVU/FAIT/ENCOURS/ANOMALIE) / is_done (FAIT/ENCOURS) / is_anomaly (ANOMALIE) : indicateurs binaires. Source de vérité unique des passages appro (KPIs journaliers + attributs détaillés), consommée par le monitoring et le reporting appro.
+      [NOTES] Périmètre restreint aux statuts PREVU / FAIT / ANOMALIE (filtré dans la CTE passage_appro, avant les window functions, pour que les métriques journalières ne portent que sur ce périmètre) ; ANNULE / VALIDE / ACQUITTE / ENATTENTE exclus. NESHU compte les anomalies : ANOMALIE est inclus dans is_planned (donc dans le taux). effective_work_start = pointage si disponible, sinon première tâche du jour. is_planned (PREVU/FAIT/ENCOURS/ANOMALIE) / is_done (FAIT/ENCOURS) / is_anomaly (ANOMALIE) : indicateurs binaires. Source de vérité unique des passages appro (KPIs journaliers + attributs détaillés), consommée par le monitoring et le reporting appro.
 
     columns:
 
