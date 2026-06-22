@@ -69,6 +69,10 @@ homonyme dans `workflows/*.yaml`.
 | pipeline-nesp-co | `0 8 * * *` | tous | pipeline-nesp-co.yaml | nesp_co |
 | pipeline-oracle-stock-theorique | `0 23 * * *` | tous | pipeline-oracle-stock-theorique.yaml | oracle_neshu_gcs |
 
+> Les pipelines `pipeline-passages-appro-{neshu,lcdp}` sont une **voie rapide** (EL partiel +
+> dbt par selector + refresh PBI), pas un EL standard. Détail du design et dépannage :
+> [`docs/architecture/passages-appro-fast-lane.md`](architecture/passages-appro-fast-lane.md).
+
 ### 2.2 Transform (dbt) — embarqué dans les pipelines EL (Option C)
 
 Il n'existe **plus** de scheduler `transform-<bu>-daily`. Chaque pipeline EL de §2.1 exécute,
