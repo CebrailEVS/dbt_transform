@@ -43,7 +43,6 @@ telemetry_agg as (
     select
         pa.device_id,
         pa.task_start_date,
-        p.product_type as product_type_2,
         (case
             when p.product_type in ('BOISSONS FRAICHES', 'SNACKING') then 'SODA + SNACKS'
             else p.product_type
@@ -59,8 +58,8 @@ telemetry_agg as (
             between coalesce(pa.date_passage_precedent, timestamp('2024-12-30 00:00:00')) and pa.task_start_date
     left join {{ ref('dim_neshu__product') }} as p
         on t.product_id = p.product_id
-    group by 1, 2, 3, 4, 5, 6
-    having p.product_type is not null or sum(t.telemetry_quantity) > 0
+    group by 1, 2, 3, 4, 5
+    having product_type is not null or sum(t.telemetry_quantity) > 0
 ),
 
 -- -----------------------------------------------------------------------------------
@@ -71,7 +70,6 @@ chargement_agg as (
     select
         pa.device_id,
         pa.task_start_date,
-        p.product_type as product_type_2,
         (case
             when p.product_type in ('BOISSONS FRAICHES', 'SNACKING') then 'SODA + SNACKS'
             else p.product_type
@@ -86,7 +84,7 @@ chargement_agg as (
             and date(pa.task_start_date) = date(cm.task_start_date)
     left join {{ ref('dim_neshu__product') }} as p
         on cm.product_id = p.product_id
-    group by 1, 2, 3, 4, 5, 6
+    group by 1, 2, 3, 4, 5
     having product_type is not null or sum(cm.load_quantity) > 0
 ),
 

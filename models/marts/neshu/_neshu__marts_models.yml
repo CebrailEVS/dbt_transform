@@ -482,10 +482,19 @@ models:
 
   - name: fct_neshu__chargement_consommation
     description: |
-      [QUOI MÉTIER] Quantités chargées vs consommées par machine et par passage APPRO (taux d'écoulement).
+      [QUOI MÉTIER] Quantités chargées vs consommées par machine et par jour de passage APPRO (taux d'écoulement).
       [COMMENT CONSTRUITE] Pour chaque passage APPRO d'une machine, calcul via LAG du passage précédent pour borner la période d'écoulement ; q_consommee = somme des télémétries entre les deux passages ; q_chargee = somme des chargements lors du passage actuel. Sources : int_oracle_neshu__chargement_tasks, int_oracle_neshu__telemetry_tasks, jointes par device_id et period bounds.
-      [GRAIN] 1 ligne par (device_id, date_debut_passage_appro, product_id).
-      [NOTES] roadman_code = nom du roadman associé au véhicule source (attribut d'affichage). product_source_id / product_source_type = identifiant et type Oracle de la source du chargement (exposés pour diagnostic, pas de test FK car mart combinant plusieurs intermediates). product_type aplati pour filtre BI. product_code conservé en attribut d'affichage.
+      [GRAIN] 1 ligne par (device_id, date_debut_passage_appro, product_id). Grain JOURNALIER, pas par passage : les jours à plusieurs passages (~1,7 % des device-jours) sont fusionnés en une seule ligne.
+      [NOTES]
+      ⚠️ q_consommee = somme BRUTE des télémétries, SANS arbitrage télémétrie/chargement ni multiplicateur de conditionnement. Ce N'EST PAS la métrique officielle de consommation : le volume de consommation arbitré (consommation_volume du semantic layer) est porté par fct_neshu__consommation. Ne pas confondre les deux.
+      Ce mart re-dérive sa propre notion de passage (int_oracle_neshu__appro_tasks filtré task_status_code='FAIT', depuis 2025-01-01) et n'est PAS aligné sur fct_neshu__passage_appro (source de vérité passages, périmètre PREVU/FAIT/ANOMALIE) — ré-ancrage à prévoir.
+      q_chargee utilise un MAX (et non un SUM) : sur un jour à plusieurs passages, la jointure chargement par DATE duplique le total journalier sur chaque passage, le MAX dédoublonne ce total. task_start_date_min = MIN des horodatages des passages du jour (pas un horodatage unique).
+      roadman_code = nom du roadman associé au véhicule source (attribut d'affichage). product_source_id / product_source_type = identifiant et type Oracle de la source du chargement (exposés pour diagnostic, pas de test FK car mart combinant plusieurs intermediates). product_type aplati pour filtre BI. product_code conservé en attribut d'affichage.
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [device_id, date_debut_passage_appro, product_id]
 
     columns:
       - name: device_id
@@ -503,7 +512,7 @@ models:
           - not_null
 
       - name: task_start_date_min
-        description: "Horodatage exact du passage APPRO."
+        description: "Horodatage du premier passage APPRO du jour (MIN sur les passages fusionnés dans la ligne)."
 
       - name: date_passage_precedent
         description: "Date du passage APPRO précédent pour ce device."
@@ -547,10 +556,16 @@ models:
           - not_null
 
       - name: q_consommee
-        description: "Quantité consommée entre le passage précédent et le passage actuel."
+        description: "Somme BRUTE des télémétries écoulées entre le passage précédent et le passage actuel (sans arbitrage ni conditionnement). Ne correspond PAS à la métrique officielle consommation_volume (cf. fct_neshu__consommation)."
 
       - name: q_chargee
-        description: "Quantité chargée lors du passage APPRO."
+        description: "Quantité chargée lors du passage APPRO (MAX du total journalier, cf. NOTES)."
+
+      - name: dbt_updated_at
+        description: "Horodatage de la dernière exécution dbt ayant matérialisé la ligne."
+
+      - name: dbt_invocation_id
+        description: "Identifiant d'invocation dbt ayant produit la ligne (traçabilité du run)."
 
 
   - name: fct_neshu__chargement_quinzaine
@@ -587,10 +602,10 @@ models:
 
   - name: dim_neshu__resource
     description: |
-      [QUOI MÉTIER] Dimension ressource Oracle Neshu : roadmen (PERSON) + véhicules (VEHICULE) avec hiérarchie.
+      [QUOI MÉTIER] Dimension ressource Oracle Neshu : roadmen (PERSON) + véhicules (VEHICLE) avec hiérarchie.
       [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__resources, pivot des labels via stg_oracle_neshu__label_has_resources : ISACTIVE, Fonction. Enrichi du code GEA depuis ref_oracle_neshu__roadman_gea (seed) sur les PERSON uniquement (jointure resources_code).
       [GRAIN] 1 ligne par resources_id.
-      [NOTES] Hiérarchie : resources_idresources d'un VEHICULE pointe vers l'ID du roadman PERSON associé ; NULL pour les roadmen. code_status_record conservé (1=actif) sans filtre — filtrage à la volée côté BI. is_active converti en booléen.
+      [NOTES] Hiérarchie : resources_idresources d'un VEHICLE pointe vers l'ID du roadman PERSON associé ; NULL pour les roadmen. code_status_record conservé (1=actif) sans filtre — filtrage à la volée côté BI. is_active converti en booléen.
     columns:
       - name: resources_id
         description: "Identifiant unique de la ressource dans Oracle"
@@ -603,7 +618,7 @@ models:
 
       - name: resources_idresources
         description: >
-          Lien vers la ressource associée. Pour un véhicule (VEHICULE) : pointe vers l'ID du roadman (PERSON) associé.
+          Lien vers la ressource associée. Pour un véhicule (VEHICLE) : pointe vers l'ID du roadman (PERSON) associé.
           Pour un roadman (PERSON) : NULL.
 
       - name: company_id
@@ -634,7 +649,7 @@ models:
         description: "Nom de la ressource"
 
       - name: resources_type
-        description: "Type de ressource : PERSON (roadman) ou VEHICULE"
+        description: "Type de ressource : PERSON (roadman) ou VEHICLE (véhicule)"
         tests:
           - not_null
 
