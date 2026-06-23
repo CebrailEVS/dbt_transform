@@ -43,9 +43,15 @@ else
   fi
   # Selection mode: a named selector (selectors.yml) takes precedence over the
   # inline --select. They are mutually exclusive — never pass both to dbt build.
+  #
+  # --indirect-selection=cautious (selector mode = voie rapide / build partiel) :
+  # un test ne tourne que si TOUS ses modèles parents sont dans la sélection. Les
+  # tests relationships qui franchissent la frontière du sous-graphe (ex.
+  # task→task_type, company→company_type) sont donc ignorés ici et restent testés
+  # par le build nocturne complet — pas de flapping sur un build partiel.
   if [ -n "${DBT_SELECTOR_NAME:-}" ]; then
-    SELECTION_ARGS=(--selector "${DBT_SELECTOR_NAME}")
-    echo "[dbt] Building via selector: ${DBT_SELECTOR_NAME}${FULL_REFRESH_FLAG:+ (full-refresh)}"
+    SELECTION_ARGS=(--selector "${DBT_SELECTOR_NAME}" --indirect-selection cautious)
+    echo "[dbt] Building via selector: ${DBT_SELECTOR_NAME} (indirect-selection=cautious)${FULL_REFRESH_FLAG:+ (full-refresh)}"
   else
     SELECTION_ARGS=(--select "${DBT_TAG_SELECTOR}")
     echo "[dbt] Building models: ${DBT_TAG_SELECTOR}${FULL_REFRESH_FLAG:+ (full-refresh)}"
