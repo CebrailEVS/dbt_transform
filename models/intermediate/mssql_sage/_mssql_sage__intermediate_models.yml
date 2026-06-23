@@ -122,3 +122,47 @@ models:
         description: Timestamp de création de l'écriture en source (coalesce analytique / comptable).
       - name: updated_at
         description: Timestamp de dernière modification en source (coalesce analytique / comptable).
+
+  - name: int_mssql_sage__ecriture_non_ventilee
+    description: >
+      [QUOI MÉTIER]
+      Écritures comptables de charge (classe 6) ou de produit (classe 7) qui n'ont reçu
+      aucune ventilation analytique dans Sage — la file de travail des écritures restant
+      à ventiler par la comptabilité.
+
+      [COMMENT CONSTRUITE]
+      stg_mssql_sage__f_ecriturec filtré aux comptes de classe 6 et 7 et à partir du plancher
+      var('ecriture_non_ventilee_floor'), en anti-jointure sur les écritures analytiques
+      (stg_mssql_sage__f_ecriturea) : on ne garde que les ec_no absents de la table analytique.
+      date_facturation est reconstruite (jm_date + (ec_jour-1) jours).
+
+      [GRAIN]
+      1 ligne par écriture comptable (numero_ecriture_comptable).
+
+      [NOTES]
+      Modèle ephemeral (inliné dans fct_finance__ecriture_non_ventilee) : aucune table physique,
+      la logique vit ici pour respecter la séparation des couches. Pas de tests portés ici (un
+      modèle ephemeral n'a pas de relation interrogeable) — les tests sont sur la view du mart.
+      Le montant est brut (non signé) ; sens_ecriture (0 = débit, 1 = crédit) permet de l'interpréter.
+
+    columns:
+      - name: numero_ecriture_comptable
+        description: Numéro de l'écriture comptable Sage (ec_no). Grain du modèle.
+      - name: numero_compte_general
+        description: Numéro de compte général, filtré aux classes 6 (charges) et 7 (produits).
+      - name: libelle_ecriture
+        description: Libellé libre de l'écriture comptable (ec_intitule).
+      - name: sens_ecriture
+        description: "Sens comptable de l'écriture : 0 = débit, 1 = crédit."
+      - name: montant
+        description: Montant (€) de l'écriture, brut non signé (ec_montant).
+      - name: date_facturation
+        description: Date de facturation reconstruite (jm_date + (ec_jour-1) jours).
+      - name: date_ecriture_comptable
+        description: Date de l'écriture comptable (ec_date).
+      - name: date_periode_facturation
+        description: Date de la période de facturation (jm_date), avant ajout du jour.
+      - name: jour_facturation
+        description: Jour du mois de facturation (ec_jour) utilisé pour reconstruire date_facturation.
+      - name: extracted_at
+        description: Timestamp d'extraction de la source (fraîcheur de la donnée).

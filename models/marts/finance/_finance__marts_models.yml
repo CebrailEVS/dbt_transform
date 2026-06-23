@@ -80,3 +80,40 @@ models:
 
       - name: evolution_pct_ytd
         description: Évolution en pourcentage entre YTD N et YTD N-1
+
+  - name: fct_finance__ecriture_non_ventilee
+    description: |
+      [QUOI MÉTIER] Liste des écritures comptables de charge (classe 6) ou produit (classe 7) sans aucune ventilation analytique dans Sage — la file des écritures restant à ventiler par la comptabilité, consommée par l'app compta.
+      [COMMENT CONSTRUITE] int_mssql_sage__ecriture_non_ventilee : f_ecriturec filtré aux classes 6/7 et >= var('ecriture_non_ventilee_floor', défaut 2025-01-01), en anti-jointure sur les écritures analytiques f_ecriturea (ec_no absents). date_facturation = jm_date + (ec_jour-1) jours.
+      [GRAIN] 1 ligne par écriture comptable (ecriture_comptable_id).
+      [NOTES] Matérialisée en **view** (et non table) : déviation assumée à la convention marts, justifiée par un petit volume (~27k lignes), une conso opérationnelle par l'app compta (/mnt/data/project/compta) sensible à la fraîcheur et un requêtage peu fréquent. montant brut non signé ; sens_ecriture (0 = débit, 1 = crédit) pour l'interpréter.
+
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "substr(numero_compte_general, 1, 1) in ('6', '7')"
+
+    columns:
+      - name: date_facturation
+        description: Date de facturation reconstruite (jm_date + (ec_jour-1) jours). Axe temporel principal.
+        tests:
+          - not_null
+      - name: ecriture_comptable_id
+        description: Numéro de l'écriture comptable Sage. Clé primaire / grain.
+        tests:
+          - unique
+          - not_null
+      - name: numero_compte_general
+        description: Numéro de compte général (classe 6 = charges, 7 = produits).
+        tests:
+          - not_null
+      - name: libelle_ecriture
+        description: Libellé libre de l'écriture comptable.
+      - name: sens_ecriture
+        description: "Sens comptable de l'écriture : 0 = débit, 1 = crédit."
+      - name: date_ecriture_comptable
+        description: Date de l'écriture comptable Sage (ec_date).
+      - name: montant
+        description: Montant (€) de l'écriture, brut non signé.
+      - name: extracted_at
+        description: Timestamp d'extraction de la source (fraîcheur de la donnée exposée à l'app).
