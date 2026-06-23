@@ -50,12 +50,12 @@ sous-graphe reconstruit (`COMPANY, DEVICE, LOCATION, TASK_STATUS, RESOURCES, LAB
 Résultat : dims fraîches dès l'intra-day, tests `relationships` qui restent **stricts
 (`error`)** sans flapping, et un nouveau client/machine/site visible le jour même.
 
-> **Garder une réf fraîche = tap réf (`prod_raw`) + reconstruction du `stg_*` (selector).**
-> Le tap seul ne suffit pas : le test `relationships` compare deux modèles *staging*.
-> Ex. `contact` (champ d'affichage utile, non joint par la chaîne appro) est ajouté au tap
-> réf (`CONTACT`) **et** au selector (`stg_oracle_<bu>__contact`) → il est frais ET son test
-> reste strict en voie rapide. Pour une réf de bord qu'on ne tient pas à tester en rapide,
-> ne rien faire : `cautious` (cf. § Stratégie de tests) la diffère au nocturne.
+> **Quelles réfs sont fraîches en voie rapide ?** Celles que la chaîne appro **joint**
+> (company, device, location, resources, task_status, label) : elles sont dans le
+> sous-graphe et rafraîchies par le tap réf → fraîches **et** testées strict. Une réf **non
+> jointe** par le mart (ex. `contact`) n'a PAS à être ajoutée au selector : son test FK est
+> simplement différé au nocturne par `cautious` (cf. § Stratégie de tests). Ne mettre dans le
+> tap réf / selector que les réfs réellement utilisées par le mart.
 
 ## Isolation par BU
 
