@@ -50,11 +50,12 @@ sous-graphe reconstruit (`COMPANY, DEVICE, LOCATION, TASK_STATUS, RESOURCES, LAB
 Résultat : dims fraîches dès l'intra-day, tests `relationships` qui restent **stricts
 (`error`)** sans flapping, et un nouveau client/machine/site visible le jour même.
 
-> **Ajouter une réf au tap ne suffit pas si la chaîne appro ne la joint pas.** Le test
-> `relationships` compare deux modèles *staging* ; il faut donc aussi que le `stg_*` de la
-> réf soit **reconstruit** par la voie rapide. Ex. `contact` : il n'est joint par aucun
-> modèle appro, donc on l'a ajouté **à la fois** au tap réf (`CONTACT`) **et** au selector
-> (`stg_oracle_<bu>__contact`) pour que `stg_task.idcontact → contact` reste strict.
+> **Quelles réfs sont fraîches en voie rapide ?** Celles que la chaîne appro **joint**
+> (company, device, location, resources, task_status, label) : elles sont dans le
+> sous-graphe et rafraîchies par le tap réf → fraîches **et** testées strict. Une réf **non
+> jointe** par le mart (ex. `contact`) n'a PAS à être ajoutée au selector : son test FK est
+> simplement différé au nocturne par `cautious` (cf. § Stratégie de tests). Ne mettre dans le
+> tap réf / selector que les réfs réellement utilisées par le mart.
 
 ## Isolation par BU
 
@@ -63,14 +64,24 @@ Chaque workflow utilise **son** selector (`passage_appro_fastlane_neshu` /
 existe encore mais **uniquement pour un full refresh manuel des deux** :
 `dbt build --selector passage_appro_fastlane`.
 
-## Limite connue (eventual consistency)
+## Stratégie de tests : `--indirect-selection cautious`
 
-Quelques FK pointent vers des références **hors** du sous-graphe appro (ex.
-`task → task_type`, `company → company_type`). Leur modèle staging n'est pas reconstruit
-par la voie rapide, donc leur test `relationships` peut rarement flapper sur un
-enregistrement créé le jour même. Ces réfs changent très rarement → laissé en `error`, à
-traiter au cas par cas (cf. § Dépannage). Si l'une se met à flapper régulièrement, la
-traiter comme `contact` : l'ajouter au tap réf **et** au selector (cf. encart ci-dessus).
+La voie rapide est un **build partiel** → certains tests `relationships` croisent sa
+frontière : FK du mart vers les dims (le mart ne joint pas les dims, star schema), ou
+cross-refs vers des `stg_*` non reconstruits ici. En `eager` (défaut dbt) ces tests
+tourneraient contre des données stale et **flapperaient**.
+
+Le build rapide tourne donc avec **`dbt build --selector … --indirect-selection cautious`**
+(dans `entrypoint.sh`, branche selector) : un test n'est exécuté que si **tous** ses
+modèles parents sont dans la sélection.
+
+- Tests **entièrement dans** le sous-graphe (task→location/company/device/task_status,
+  PK, tests propres du mart) → exécutés, **stricts (`error`)**.
+- Tests **de bord** (FK mart→dim, task→task_type, company→company_type…) → **ignorés en
+  voie rapide**, exécutés au **nocturne** (`--select source:X+`, eager) où tout est cohérent.
+
+Principe : on ne relâche aucune sévérité et on ne court pas après chaque réf de bord —
+le partiel ne teste que son périmètre, l'intégrité complète reste garantie 1×/jour au nocturne.
 
 ## Opérer
 
@@ -86,9 +97,11 @@ traiter comme `contact` : l'ajouter au tap réf **et** au selector (cf. encart c
 
 ## Dépannage
 
-- **Échec test `relationships` sur une réf du cœur** (company/device/location/task_status/
-  resources/label) : ne devrait plus arriver (tap réf). Vérifier que le tap réf tourne bien
-  dans la branche `branch_refs` du workflow.
-- **Échec sur une réf de bord** (task_type, contact, company_type…) : passer ce test précis
-  en `severity: warn` (la réf n'est pas reconstruite par la voie rapide ; la rebuild
-  entièrement reviendrait à refaire le nocturne).
+- **Échec `relationships` sur une réf du cœur en voie rapide** (company/device/location/
+  task_status/resources/label) : le tap réf n'a pas tourné/abouti → vérifier la branche
+  `branch_refs` du workflow et le tap `*-appro-refs`.
+- **Échec sur une réf de bord en voie rapide** : ne devrait plus arriver — `cautious` les
+  diffère au nocturne. Si ça arrive, c'est que la réf est dans le sous-graphe : soit la
+  laisser (tap réf + selector, cf. contact), soit la sortir du selector pour la renvoyer au nocturne.
+- **Échec de bord au nocturne** : vrai problème d'intégrité source à investiguer (pas un
+  artefact de la voie rapide).
