@@ -13,6 +13,33 @@ sources:
         warn_after: {count: 7, period: day}
         error_after: {count: 14, period: day}
     tables:
+      - name: gac_parc_vehicule
+        description: "Export du parc véhicule (GAC → SFTP SG), fichier statique parc_vehicule.csv. 1 ligne = 1 période de contrat type (déclaration AEN) ; un véhicule/immat peut porter plusieurs lignes."
+        columns:
+          - name: contrat_id_gac
+            description: "Identifiant GAC du contrat"
+          - name: contrat_immatriculation_edi
+            description: "Immatriculation du véhicule (format EDI, sans tiret)"
+          - name: contrat_statut_actuel
+            description: "Statut actuel du contrat (A la route, Clos, En attente de livraison)"
+          - name: contrat_motif_de_cl_ture
+            description: "Motif de clôture du contrat (Restitution, Mise en épave, Vente)"
+          - name: contrat_type_etat
+            description: "État de la ligne de contrat type / déclaration AEN (Actif, Inactif)"
+          - name: contrat_type_date_d_effet
+            description: "Date d'effet de la ligne de contrat type"
+          - name: contrat_type_date_de_fin
+            description: "Date de fin de la ligne de contrat type"
+          - name: dernier_v_nement_disponibilit_du_v_hicule
+            description: "Disponibilité du véhicule au dernier événement (Disponible, Affecté, Indisponible, En maintenance)"
+          - name: dernier_v_nement_date_d_effet
+            description: "Date d'effet du dernier événement de disponibilité"
+          - name: dernier_v_nement_date_de_fin
+            description: "Date de fin du dernier événement de disponibilité"
+          - name: collaborateur_fonction_actuelle
+            description: "Nom trompeur : porte en réalité le code analytique (compta) du véhicule, ex. SAVLYOTECH"
+          - name: date_de_saisie
+            description: "Date de saisie du contrat (horodatée)"
       - name: gac_sinistre
         description: "Snapshots quotidiens cumulatifs des sinistres véhicules (GAC → SFTP SG). Chargé en append immuable : 1 ligne = 1 sinistre dans 1 snapshot daté. L'état courant est dérivé par dédup dans stg_gac__sinistres."
         columns:

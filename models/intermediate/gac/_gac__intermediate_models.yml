@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: int_gac__vehicule_code_analytique
+    description: >
+      [QUOI MÉTIER]
+      Table de correspondance immatriculation → code analytique (compta) du véhicule.
+      Brique réutilisable pour ventiler analytiquement un véhicule identifié par son immat
+      (équivalent dérivé de la source GAC du mapping compta mapping_immat_code.csv).
+
+      [COMMENT CONSTRUITE]
+      Dédup de stg_gac__vehicule (1 ligne par période de contrat type) à 1 ligne par
+      immatriculation, en gardant la période de contrat type la plus récente
+      (row_number partition by immat order by contrat_type_date_d_effet desc, contrat_id_gac desc).
+      Le code analytique provient de la colonne source collaborateur_fonction_actuelle, dont
+      le nom est trompeur : elle porte en réalité le code analytique (ex. SAVLYOTECH, COMLYOHOR),
+      pas un libellé de poste. Exclut les immatriculations non réelles (refs internes GAC
+      préfixées '#') et les véhicules sans code analytique (valeur NULL).
+
+      [GRAIN]
+      1 ligne par immatriculation (contrat_immatriculation_edi). Clé strictement unique.
+      ~126 immatriculations renseignées (sur 271 immats réels : ~145 véhicules de pool /
+      non affectés, sans code analytique, sont volontairement exclus).
+
+      [NOTES]
+      Le code analytique est constant sur toutes les lignes d'un même immat dans la source :
+      la dédup ne fait que choisir une ligne représentative, sans arbitrage de valeur.
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - contrat_immatriculation_edi
+
+    columns:
+      - name: contrat_immatriculation_edi
+        description: "Immatriculation du véhicule (format EDI, sans tiret). Clé du mapping."
+        tests:
+          - unique
+          - not_null
+      - name: code_analytique
+        description: >
+          Code analytique (compta) du véhicule, ex. SAVLYOTECH, COMLYOHOR. Issu de la colonne
+          source collaborateur_fonction_actuelle (nom source trompeur).
+        tests:
+          - not_null
