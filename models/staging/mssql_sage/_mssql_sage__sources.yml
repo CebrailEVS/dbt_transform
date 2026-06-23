@@ -127,7 +127,7 @@ sources:
           - name: n_devise
             description: "Code devise"
           - name: ec_sens
-            description: "Sens de l’écriture (Débit/Crédit)"
+            description: "Sens comptable de l’écriture : 0 = débit, 1 = crédit."
           - name: ec_montant
             description: "Montant de l’écriture"
           - name: ec_lettre

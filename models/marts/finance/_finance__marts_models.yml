@@ -114,6 +114,10 @@ models:
       - name: date_ecriture_comptable
         description: Date de l'écriture comptable Sage (ec_date).
       - name: montant
-        description: Montant (€) de l'écriture, brut non signé.
+        description: Montant (€) de l'écriture, brut non signé (toujours positif).
+      - name: montant_signe
+        description: >
+          Montant (€) orienté selon le sens comptable : positif au crédit (sens_ecriture = 1),
+          négatif au débit (sens_ecriture = 0). Même convention que le P&L (somme = produits − charges).
       - name: extracted_at
         description: Timestamp d'extraction de la source (fraîcheur de la donnée exposée à l'app).

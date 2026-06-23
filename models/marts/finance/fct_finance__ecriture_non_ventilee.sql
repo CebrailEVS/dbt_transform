@@ -8,5 +8,6 @@ select
     sens_ecriture,
     date_ecriture_comptable,
     montant,
+    montant_signe,
     extracted_at
 from {{ ref('int_mssql_sage__ecriture_non_ventilee') }}

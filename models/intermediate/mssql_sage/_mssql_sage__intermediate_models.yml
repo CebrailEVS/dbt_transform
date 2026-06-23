@@ -78,9 +78,10 @@ models:
                 values: ["Chiffre d\\'Affaires", "Masse Salariale", "Frais Directs & Amortissements", "Consommation MP & SSTT"]
               config:
                 severity: warn
-      # TODO(métier): confirmer avec la finance — (1) sens_ecriture 0=débit / 1=crédit ;
-      # (2) convention de signe de montant_analytique_signe (crédit positif / débit négatif,
-      # à sommer pour le P&L). Inféré du SQL, non validé métier au 2026-06-20.
+      # Validé sur données (2026-06-23) : sens_ecriture 0 = débit, 1 = crédit (corrélation
+      # classe de compte ↔ sens conforme au PCG : charges classe 6 au débit, produits classe 7
+      # au crédit). Convention montant_analytique_signe : crédit positif / débit négatif → la
+      # somme vaut produits − charges (résultat).
       - name: sens_ecriture
         description: "Sens comptable de l'écriture (Sage) : 0 = débit, 1 = crédit. Combiné à la classe de compte pour signer le montant."
 
@@ -155,7 +156,12 @@ models:
       - name: sens_ecriture
         description: "Sens comptable de l'écriture : 0 = débit, 1 = crédit."
       - name: montant
-        description: Montant (€) de l'écriture, brut non signé (ec_montant).
+        description: Montant (€) de l'écriture, brut non signé (ec_montant, toujours positif).
+      - name: montant_signe
+        description: >
+          Montant (€) orienté selon le sens comptable : positif au crédit (sens_ecriture = 1),
+          négatif au débit (sens_ecriture = 0). Même convention que montant_analytique_signe
+          du P&L (somme = produits − charges).
       - name: date_facturation
         description: Date de facturation reconstruite (jm_date + (ec_jour-1) jours).
       - name: date_ecriture_comptable
