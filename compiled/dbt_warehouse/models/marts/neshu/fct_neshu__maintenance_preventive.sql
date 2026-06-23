@@ -495,7 +495,7 @@ final as (
 
         -- Métadonnées dbt
         CURRENT_TIMESTAMP() as dbt_updated_at,
-        '433d1ac9-ed27-423f-9491-4ae203795399' as dbt_invocation_id  -- noqa: TMP
+        'd5aa37dc-72d3-4406-9592-69dfebecf5e4' as dbt_invocation_id  -- noqa: TMP
 
     from deduplicated
     where rn = 1  -- Ne garder qu'une ligne par device_id
