@@ -51,9 +51,7 @@ models:
         description: "Genre fiscal du véhicule"
 
       - name: reference_gac
-        description: "Référence GAC du dossier sinistre"
-        tests:
-          - unique
+        description: "Référence GAC du contrat/véhicule (NON unique : un véhicule peut avoir plusieurs sinistres). Clé unique du grain = n_de_sinistre."
 
 
       - name: entite_entite_2

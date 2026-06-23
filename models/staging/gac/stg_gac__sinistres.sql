@@ -8,7 +8,7 @@
 
 
 with source as (
-    select * from {{ source('gac', 'gac_suivi_sinistres_sg') }}
+    select * from {{ source('gac', 'gac_sinistre') }}
 ),
 
 cleaned as (
@@ -71,6 +71,12 @@ cleaned as (
             '%d/%m/%Y', nullif(trim(date_de_cl_ture_du_sinistre), '')
         ) as date_cloture_sinistre,
 
+        -- Date métier du snapshot, dérivée du nom de fichier daté
+        -- (suivi_sinistres_EB_YYYYMMDD_*.csv). ≠ heure de chargement : c'est
+        -- elle qui doit arbitrer la dédup (un ré-append d'un vieux fichier ne
+        -- doit pas pouvoir se faire passer pour l'état courant).
+        parse_date('%Y%m%d', regexp_extract(_sdc_source_file, r'_(\d{8})_')) as snapshot_date,
+
         -- Métadonnées Meltano
         _sdc_source_file,
         _sdc_source_lineno,
@@ -97,7 +103,10 @@ deduplicated as (
                         when reference_gac is not null then reference_gac
                     end
 
-                order by _sdc_received_at desc
+                -- Tri par date métier du snapshot (et non l'heure de chargement) :
+                -- garantit qu'on garde la version la plus récente du sinistre,
+                -- robuste aux ré-appends de fichiers antérieurs.
+                order by snapshot_date desc, _sdc_received_at desc
 
             ) as rn
 
