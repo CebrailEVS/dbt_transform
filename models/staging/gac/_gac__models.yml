@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: stg_gac__vehicule
+    columns:
+      - name: contrat_id_gac
+        description: "Identifiant GAC du contrat (non unique au grain de la table : un contrat porte plusieurs lignes de contrat type)"
+        tests:
+          - not_null
+      - name: contrat_immatriculation_edi
+        description: "Immatriculation du véhicule (format EDI, sans tiret)"
+        tests:
+          - not_null
+      - name: contrat_statut_actuel
+        description: "Statut actuel du contrat"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['A la route', 'Clos', 'En attente de livraison']
+              config:
+                severity: warn
+      - name: contrat_motif_de_cloture
+        description: "Motif de clôture du contrat (NULL si contrat non clos)"
+      - name: contrat_type_etat
+        description: "État de la ligne de contrat type / déclaration AEN"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Actif', 'Inactif']
+              config:
+                severity: warn
+      - name: contrat_type_date_d_effet
+        description: "Date d'effet de la ligne de contrat type"
+      - name: contrat_type_date_de_fin
+        description: "Date de fin de la ligne de contrat type"
+      - name: dernier_evenement_disponibilite_du_vehicule
+        description: "Disponibilité du véhicule au dernier événement"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Disponible', 'Affecté', 'Indisponible', 'En maintenance']
+              config:
+                severity: warn
+      - name: dernier_evenement_date_d_effet
+        description: "Date d'effet du dernier événement de disponibilité"
+      - name: dernier_evenement_date_de_fin
+        description: "Date de fin du dernier événement de disponibilité"
+      - name: collaborateur_fonction_actuelle
+        description: "Nom source trompeur : porte en réalité le code analytique (compta) du véhicule, ex. SAVLYOTECH. Voir int_gac__vehicule_code_analytique."
+      - name: date_de_saisie
+        description: "Date de saisie du contrat (horodatée)"
+      - name: extracted_at
+        description: "Timestamp d'extraction Meltano (_sdc_extracted_at)"
+      - name: deleted_at
+        description: "Timestamp de suppression Meltano (_sdc_deleted_at), NULL si actif"

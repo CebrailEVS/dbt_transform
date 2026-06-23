@@ -95,6 +95,9 @@ models:
       zoho_desk:
         +tags: ['intermediate', 'zoho_desk']
 
+      gac:
+        +tags: ['intermediate', 'gac']
+
     marts:
       +schema: marts
       +tags: ['marts']
