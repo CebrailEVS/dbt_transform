@@ -15,6 +15,7 @@ ecritures_6_7 as (
         ec_intitule as libelle_ecriture,
         ec_sens as sens_ecriture,
         ec_montant as montant,
+        case when ec_sens = 1 then abs(ec_montant) else -abs(ec_montant) end as montant_signe,
         date_add(date(jm_date), interval ec_jour - 1 day) as date_facturation,
         date(ec_date) as date_ecriture_comptable,
         date(jm_date) as date_periode_facturation,
@@ -39,5 +40,6 @@ where v.ec_no is null
     sens_ecriture,
     date_ecriture_comptable,
     montant,
+    montant_signe,
     extracted_at
 from __dbt__cte__int_mssql_sage__ecriture_non_ventilee
