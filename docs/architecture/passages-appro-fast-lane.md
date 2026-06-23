@@ -25,7 +25,7 @@ Cloud Scheduler (jours ouvrés)            workflow pipeline-passages-appro-<bu>
   lcdp  : 0 8,11,15,18      ──────────────► │ 1) EL en PARALLÈLE :                     │
                                             │    • tap transactionnel (incr.)         │  TASK, TASK_HAS_RESOURCES,
                                             │      tap-oracle-<bu>-appro-fastlane      │  LABEL_HAS_TASK  → prod_raw
-                                            │    • tap référentiels (full table)      │  COMPANY, DEVICE, LOCATION,
+                                            │    • tap référentiels (full table)      │  COMPANY, DEVICE, LOCATION, CONTACT,
                                             │      tap-oracle-<bu>-appro-refs          │  TASK_STATUS, RESOURCES, LABEL
                                             │ 2) dbt build                            │
                                             │    --selector passage_appro_fastlane_<bu>│  → fct_<bu>__passage_appro
@@ -50,6 +50,12 @@ sous-graphe reconstruit (`COMPANY, DEVICE, LOCATION, TASK_STATUS, RESOURCES, LAB
 Résultat : dims fraîches dès l'intra-day, tests `relationships` qui restent **stricts
 (`error`)** sans flapping, et un nouveau client/machine/site visible le jour même.
 
+> **Ajouter une réf au tap ne suffit pas si la chaîne appro ne la joint pas.** Le test
+> `relationships` compare deux modèles *staging* ; il faut donc aussi que le `stg_*` de la
+> réf soit **reconstruit** par la voie rapide. Ex. `contact` : il n'est joint par aucun
+> modèle appro, donc on l'a ajouté **à la fois** au tap réf (`CONTACT`) **et** au selector
+> (`stg_oracle_<bu>__contact`) pour que `stg_task.idcontact → contact` reste strict.
+
 ## Isolation par BU
 
 Chaque workflow utilise **son** selector (`passage_appro_fastlane_neshu` /
@@ -60,10 +66,11 @@ existe encore mais **uniquement pour un full refresh manuel des deux** :
 ## Limite connue (eventual consistency)
 
 Quelques FK pointent vers des références **hors** du sous-graphe appro (ex.
-`task → task_type`, `task → contact`, `company → company_type`). Leur modèle staging
-n'est pas reconstruit par la voie rapide, donc leur test `relationships` peut rarement
-flapper sur un enregistrement créé le jour même. Ces réfs changent très rarement → laissé
-en `error`, à traiter au cas par cas (cf. § Dépannage).
+`task → task_type`, `company → company_type`). Leur modèle staging n'est pas reconstruit
+par la voie rapide, donc leur test `relationships` peut rarement flapper sur un
+enregistrement créé le jour même. Ces réfs changent très rarement → laissé en `error`, à
+traiter au cas par cas (cf. § Dépannage). Si l'une se met à flapper régulièrement, la
+traiter comme `contact` : l'ajouter au tap réf **et** au selector (cf. encart ci-dessus).
 
 ## Opérer
 
