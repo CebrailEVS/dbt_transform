@@ -15,23 +15,33 @@ selectors:
   # full refresh manuel des deux BUs (`dbt build --selector passage_appro_fastlane`).
   # ============================================================
 
+  # NB : stg_<bu>__contact est ajouté bien qu'il ne soit PAS joint par la chaîne
+  # appro — stg_task porte un test relationships idcontact→contact. Le reconstruire
+  # ici (depuis le prod_raw.contact rafraîchi par le tap réf) garde ce test strict
+  # en intra-day au lieu de comparer un stg_contact stale.
   - name: passage_appro_fastlane_neshu
     description: >
-      Sous-graphe ancêtre de fct_neshu__passage_appro (refresh intra-day neshu).
+      Sous-graphe ancêtre de fct_neshu__passage_appro + stg contact (refresh intra-day neshu).
     default: false
     definition:
-      method: fqn
-      value: fct_neshu__passage_appro
-      parents: true
+      union:
+        - method: fqn
+          value: fct_neshu__passage_appro
+          parents: true
+        - method: fqn
+          value: stg_oracle_neshu__contact
 
   - name: passage_appro_fastlane_lcdp
     description: >
-      Sous-graphe ancêtre de fct_lcdp__passage_appro (refresh intra-day lcdp).
+      Sous-graphe ancêtre de fct_lcdp__passage_appro + stg contact (refresh intra-day lcdp).
     default: false
     definition:
-      method: fqn
-      value: fct_lcdp__passage_appro
-      parents: true
+      union:
+        - method: fqn
+          value: fct_lcdp__passage_appro
+          parents: true
+        - method: fqn
+          value: stg_oracle_lcdp__contact
 
   # Combiné : neshu + lcdp d'un coup. Pour full refresh manuel uniquement,
   # PAS utilisé par les workflows (qui sont isolés par BU ci-dessus).
@@ -47,3 +57,7 @@ selectors:
         - method: fqn
           value: fct_lcdp__passage_appro
           parents: true
+        - method: fqn
+          value: stg_oracle_neshu__contact
+        - method: fqn
+          value: stg_oracle_lcdp__contact
