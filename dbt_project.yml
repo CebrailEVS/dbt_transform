@@ -139,4 +139,6 @@ vars:
   # Required by dbt_date (transitive dep of dbt_expectations) for recency checks.
   # Cf. docs/freshness.md méthode B.
   'dbt_date:time_zone': 'Europe/Paris'
+  # Plancher de date des écritures à ventiler (fct_finance__ecriture_non_ventilee).
+  ecriture_non_ventilee_floor: '2025-01-01'
     
