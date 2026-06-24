@@ -246,6 +246,103 @@ models:
       - name: updated_at
         description: "Date de dernière mise à jour de la machine dans la base source"
 
+    # DEVICE — HISTORIQUE (SCD2)
+  - name: dim_neshu__device_history
+    description: |
+      [QUOI MÉTIER] Dimension machine **versionnée (SCD Type 2)** : l'état historique de chaque machine (rattachement client, localisation, modèle économique, statut...) à chaque période de validité. Sert aux jointures « à la date » (point-in-time) : retrouver l'état d'une machine au moment d'une consommation, plutôt que son état courant.
+      [COMMENT CONSTRUITE] Issu du snapshot snap_oracle_neshu__device (SCD2 géré par dbt/Cloud Workflows). Les bornes dbt_valid_from/dbt_valid_to sont nettoyées en valid_from/valid_to (bornes fermées inclusives, en date ; la 1ère version est plancherée au 2000-01-01 car il n'y a pas d'historique avant le démarrage du snapshot). device_economic_model : backfill des NULL en tête de vie par la 1ère valeur connue de la machine (rattrapage de saisie tardive — n'agit que sur NULL, un vrai changement X→Y reste intact). Aucun filtre marque/type : dimension générale, c'est au fait consommateur de filtrer son périmètre.
+      [GRAIN] 1 ligne par machine × période de validité (device_id × valid_from). PK = device_version_key.
+      [NOTES] L'historisation porte surtout sur le rattachement (client/localisation/date d'installation) ; le modèle économique change rarement (~43 machines). Horizon limité au démarrage du snapshot (nov. 2025) ; avant = pas d'historique (1ère version plancherée 2000-01-01). Jointure point-in-time : `consumption_date between valid_from and valid_to`. is_current = TRUE pour la version courante. Pour un simple état courant, préférer dim_neshu__device.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - device_id
+              - valid_from
+    columns:
+      - name: device_version_key
+        description: "PK : identifiant unique de la version de machine (dbt_scd_id). 1 ligne = 1 version."
+        tests:
+          - not_null
+          - unique
+
+      - name: device_id
+        description: "Clé naturelle durable de la machine (stable dans le temps ; non unique ici car versionnée)."
+        tests:
+          - not_null
+
+      - name: valid_from
+        description: "Début de validité de la version (date, inclusif). 1ère version plancherée au 2000-01-01."
+        tests:
+          - not_null
+
+      - name: valid_to
+        description: "Fin de validité de la version (date, **inclusif** = borne fermée). 9999-12-31 si version courante."
+
+      - name: is_current
+        description: "TRUE si c'est la version courante de la machine (dbt_valid_to IS NULL)."
+
+      - name: parent_device_id
+        description: "Machine parente (device_iddevice) : NULL si pas de parent, sinon l'ID de la machine mère (cas AGUILA fille → mère)."
+
+      - name: device_type_id
+        description: "Type de machine (1 = machine ; autres types = systèmes de paiement, accessoires...)."
+
+      - name: company_id
+        description: "Client (company) rattaché à la machine sur cette période. Attribut historisé (relocations)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+
+      - name: company_code
+        description: "Code client rattaché sur cette période."
+
+      - name: company_name
+        description: "Nom du client rattaché sur cette période."
+
+      - name: location_id
+        description: "Identifiant de localisation sur cette période (attribut historisé)."
+
+      - name: device_location
+        description: "Informations d'accès au site sur cette période (attribut historisé)."
+
+      - name: device_code
+        description: "Code interne de la machine (quasi stable)."
+
+      - name: device_name
+        description: "Nom / modèle de la machine (ex. AGUILA 420, ZENIUS)."
+
+      - name: device_brand
+        description: "Marque de la machine (NESPRESSO, NESTLE, ANIMO, FAS...)."
+
+      - name: device_gamme
+        description: "Gamme de la machine (ex. AGUILA, MILANO)."
+
+      - name: device_category
+        description: "Catégorie de la machine."
+
+      - name: device_economic_model
+        description: >
+          Modèle économique sur cette période (Payant, Gratuit, Participatif valeurs/unités,
+          Livraison, NC...). **Backfill** : une valeur NULL en tête de vie hérite de la 1ère
+          valeur connue de la machine (saisie tardive). NC laissé tel quel.
+
+      - name: is_active
+        description: "TRUE si la machine est active sur cette période (label ISACTIVE)."
+
+      - name: last_installation_date
+        description: "Date de dernière installation connue sur cette période."
+
+      - name: created_at
+        description: "Date de création de la machine dans la base source."
+
+      - name: updated_at
+        description: "Date de dernière mise à jour de la machine dans la base source."
+
 # FACT BUSINESS REVIEW
   - name: fct_neshu__consommation
     description: |

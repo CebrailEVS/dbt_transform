@@ -51,8 +51,17 @@ Pas de One Big Table.
   l'intermediate ou dans la couche Power BI. Le critere de decision est
   **grain + cardinalite de jointure**, jamais l'appartenance BU : un
   fait-a-fait meme BU peut double compter, un agregat cross-BU peut etre sain.
-- **Dimensions** (`dim_*`) : 1 ligne par entite metier (ticket, compte,
-  agent, machine, contrat...).
+- **Dimensions** (`dim_*`) : par defaut **Type 1** (etat courant), 1 ligne par
+  entite metier (ticket, compte, agent, machine, contrat...).
+  - **SCD Type 2 (dimension historisee)** : pour conserver l'historique des
+    attributs et permettre une jointure « etat a la date » (point-in-time),
+    le grain est **1 ligne par entite x periode de validite** (et non 1 ligne
+    par entite). Conventions : PK = surrogate de version
+    (`<entite>_version_key`), bornes `valid_from`/`valid_to` + flag
+    `is_current`, suffixe **`_history`**. Elle coexiste avec la Type 1
+    (ex. `dim_neshu__device` courant + `dim_neshu__device_history` versionnee).
+    Construite a partir d'un snapshot dbt (`ref('snap_*')`) ; les faits y
+    accedent en point-in-time join (`date between valid_from and valid_to`).
   - **Aplatir uniquement les attributs d'affichage du parent direct** (1-3
     colonnes max) pour eviter une jointure cote consommateur. Ex :
     `dim_neshu__device` contient `company_name` pour les tooltips
