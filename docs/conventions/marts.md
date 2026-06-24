@@ -60,8 +60,9 @@ Pas de One Big Table.
     (`<entite>_version_key`), bornes `valid_from`/`valid_to` + flag
     `is_current`, suffixe **`_history`**. Elle coexiste avec la Type 1
     (ex. `dim_neshu__device` courant + `dim_neshu__device_history` versionnee).
-    Construite a partir d'un snapshot dbt (`ref('snap_*')`) ; les faits y
-    accedent en point-in-time join (`date between valid_from and valid_to`).
+    Construite a partir d'un snapshot dbt (`ref('snap_*')`) ; bornes
+    semi-ouvertes `[valid_from, valid_to)` en timestamp, les faits y accedent
+    en point-in-time join (`event_ts >= valid_from and event_ts < valid_to`).
   - **Aplatir uniquement les attributs d'affichage du parent direct** (1-3
     colonnes max) pour eviter une jointure cote consommateur. Ex :
     `dim_neshu__device` contient `company_name` pour les tooltips
