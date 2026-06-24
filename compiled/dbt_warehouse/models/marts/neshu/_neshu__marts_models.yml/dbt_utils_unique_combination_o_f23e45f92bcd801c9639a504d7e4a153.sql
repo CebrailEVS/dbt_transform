@@ -1,0 +1,20 @@
+
+
+
+
+
+
+with validation_errors as (
+
+    select
+        device_id, valid_from
+    from `evs-datastack-prod`.`prod_marts`.`dim_neshu__device_history`
+    group by device_id, valid_from
+    having count(*) > 1
+
+)
+
+select *
+from validation_errors
+
+
