@@ -65,6 +65,15 @@ models:
         tests:
           - not_null
 
+      - name: is_depot
+        description: >
+          TRUE si la société est un dépôt / site de remise en état / stock /
+          logistique interne (company_type_id = 6). Le label TYPECOMPAGNIE étant
+          null pour ces entités, seul le type numérique les isole. Ce ne sont
+          jamais des clients (is_client_neshu = FALSE).
+        tests:
+          - not_null
+
       - name: key_account
         description: "KA grand compte (label KA)"
 
