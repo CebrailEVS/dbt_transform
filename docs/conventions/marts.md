@@ -63,6 +63,10 @@ Pas de One Big Table.
     Construite a partir d'un snapshot dbt (`ref('snap_*')`) ; bornes
     semi-ouvertes `[valid_from, valid_to)` en timestamp, les faits y accedent
     en point-in-time join (`event_ts >= valid_from and event_ts < valid_to`).
+    **Exception de nommage** : les bornes gardent les noms standard SCD2
+    `valid_from`/`valid_to` (convention universelle Kimball/dbt), meme si ce
+    sont des timestamps — on ne leur applique pas le suffixe `_at`, qui reste
+    reserve aux timestamps metier (evenements/etats).
   - **Aplatir uniquement les attributs d'affichage du parent direct** (1-3
     colonnes max) pour eviter une jointure cote consommateur. Ex :
     `dim_neshu__device` contient `company_name` pour les tooltips
