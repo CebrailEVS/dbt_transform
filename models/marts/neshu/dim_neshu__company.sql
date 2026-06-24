@@ -110,6 +110,10 @@ select
         false
     ) as is_client_neshu,
 
+    -- 🏭 Dépôt / remise en état / stock / logistique interne (idcompany_type = 6).
+    -- Le label TYPECOMPAGNIE est null pour ces entités ; seul le type numérique les isole.
+    company_type_id = 6 as is_depot,
+
     -- 👥 Gestion commerciale
     key_account,
     katiers,
