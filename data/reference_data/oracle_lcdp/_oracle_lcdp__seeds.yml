@@ -1,0 +1,35 @@
+version: 2
+
+seeds:
+  - name: ref_oracle_lcdp__product_group_vendable
+    description: "Classification des groupes de produits LCDP : article vendu tel quel (ressort comme une vente) vs intrant/consommable. Clé de filtre pour fct_lcdp__chargement_sortie. Jointure sur product_group trimé."
+    config:
+      column_types:
+        product_group: STRING
+        is_vendable: BOOLEAN
+    columns:
+      - name: product_group
+        description: "Groupe de produit (dim_lcdp__product.product_group, trimé)"
+        tests:
+          - not_null
+          - unique
+      - name: is_vendable
+        description: "TRUE si le groupe correspond à un article vendu à l'unité (comparable au nombre de ventes télémétrie), FALSE pour les intrants/consommables"
+        tests:
+          - not_null
+  - name: ref_oracle_lcdp__appel_categorie
+    description: "Libellés métier des catégories d'appel SAV LCDP (label EAV famille FAPP01, codes APP01-APP08). Jointure sur appel_categorie_code dans int_oracle_lcdp__appel_sav_tasks."
+    config:
+      column_types:
+        appel_categorie_code: STRING
+        appel_categorie_label: STRING
+    columns:
+      - name: appel_categorie_code
+        description: "Code de la catégorie d'appel (label FAPP01 : APP01-APP08)"
+        tests:
+          - not_null
+          - unique
+      - name: appel_categorie_label
+        description: "Libellé métier de la catégorie d'appel (ADV, COMMANDE / LOGISTIQUE, RH SERVICES GENERAUX, COMPTABILITE, QUALITE, COMMERCE, TECHNIQUE, SAV APPRO)"
+        tests:
+          - not_null

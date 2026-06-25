@@ -45,6 +45,7 @@ Le double underscore `__` sépare la source (ou la BU pour les marts) de l'entit
 | `_<source>__models.yml` | Doc + tests des staging |
 | `_<source>__intermediate_models.yml` | Doc + tests des intermediate |
 | `_<bu>__marts_models.yml` / `_<bu>__marts_sources.yml` | Doc/tests des marts / tables externes Cloud Run |
+| `_<source>__seeds.yml` | Doc + tests + `column_types` des seeds (un par source, dans `data/reference_data/<source>/`) |
 
 ### Colonnes
 

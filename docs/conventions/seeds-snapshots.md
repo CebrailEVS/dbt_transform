@@ -6,23 +6,29 @@
 ## Seeds (`data/reference_data/`)
 
 Fichiers CSV chargés via `dbt seed`. Données de référence statiques (mappings,
-paramètres). Organisés par domaine source :
+paramètres). Organisés par domaine source, **un fichier YAML de doc par source**
+co-localisé avec ses CSV (comme staging/marts) :
 
 ```
 data/reference_data/
-├── yuman/              # ref_yuman__cp_metropole.csv, ref_yuman__machine_clean.csv, ...
-├── oracle_neshu/       # ref_oracle_neshu__valo_parc_machine.csv, ...
-├── mssql_sage/         # ref_mssql_sage__code_analytique_bu.csv, ...
-├── nesp_tech/          # ref_nesp_tech__articles_prix.csv, ...
-├── nesp_co/            # ref_nesp_co__commerciaux.csv, ...
-└── general/            # ref_general__feries_metropole.csv, ...
+├── yuman/              # ref_yuman__*.csv          + _yuman__seeds.yml
+├── oracle_neshu/       # ref_oracle_neshu__*.csv   + _oracle_neshu__seeds.yml
+├── oracle_lcdp/        # ref_oracle_lcdp__*.csv     + _oracle_lcdp__seeds.yml
+├── mssql_sage/         # ref_mssql_sage__*.csv     + _mssql_sage__seeds.yml
+├── nesp_tech/          # ref_nesp_tech__*.csv      + _nesp_tech__seeds.yml
+├── nesp_co/            # ref_nesp_co__*.csv        + _nesp_co__seeds.yml
+├── zoho_desk/          # ref_zoho_desk__*.csv      (doc YAML à créer)
+└── general/            # ref_general__*.csv        + _general__seeds.yml
 ```
 
-- Nommage : `ref_<source>__<entity>.csv`. Schéma de destination : `prod_reference` / `dev_reference`.
+- Nommage CSV : `ref_<source>__<entity>.csv`. Schéma de destination : `prod_reference` / `dev_reference`.
+- Nommage YAML : `_<source>__seeds.yml`, **un par source**, dans le dossier de la source.
+  `seed-paths: ["data"]` → dbt découvre ces YAML automatiquement (pas de config à toucher).
+  Il n'y a **plus** de `data/schema.yml` monolithique.
 
 ### Déclaration des types de colonnes
 
-Types déclarés **dans `data/schema.yml`** sous chaque seed, via `config: column_types:`.
+Types déclarés **dans `_<source>__seeds.yml`** sous chaque seed, via `config: column_types:`.
 Ne pas utiliser `dbt_project.yml` pour les types par colonne.
 
 ```yaml
@@ -55,7 +61,7 @@ Ne pas utiliser `dbt_project.yml` pour les types par colonne.
 > `INT64` par BigQuery — le typer `STRING` casserait les joins existants. Ne pas
 > se fier au nom de la colonne seul.
 
-### Colonnes dans `data/schema.yml`
+### Colonnes dans `_<source>__seeds.yml`
 
 Chaque colonne du CSV doit avoir une entrée dans `columns:` avec une description.
 Les colonnes importantes doivent avoir des tests (`not_null`, `unique`, `relationships`).

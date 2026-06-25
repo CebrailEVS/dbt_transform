@@ -44,8 +44,8 @@ Seeds are in `data/reference_data/<source>/` and land in `prod_reference` / `dev
   - BUs : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`
   - Entité **singulier**, snake_case, nom métier (pas le nom source, pas le nom du rapport BI)
 - Prefixes: `stg_` staging · `int_` intermediate · `dim_` dimension · `fct_` fact · `snap_` snapshot
-- YAML files: `_<source>__models.yml` (staging/intermediate) · `_<bu>__marts_models.yml` (marts) · `_<bu>__marts_sources.yml` (external Cloud Run tables)
-- Seeds: `ref_<source>__<entity>.csv`
+- YAML files: `_<source>__models.yml` (staging/intermediate) · `_<bu>__marts_models.yml` (marts) · `_<bu>__marts_sources.yml` (external Cloud Run tables) · `_<source>__seeds.yml` (seeds, one per source, co-located in `data/reference_data/<source>/`)
+- Seeds: `ref_<source>__<entity>.csv` (no monolithic `data/schema.yml` — doc lives in the per-source `_<source>__seeds.yml`)
 - Columns: snake_case · IDs as `id<entity>` in staging, `<entity>_id` in marts
 - Booleans: `is_` / `has_` prefix · timestamps: `_at` suffix · dates: `_date` suffix
 - Every staging model exposes: `created_at`, `updated_at`, `extracted_at`, `deleted_at`
