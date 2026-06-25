@@ -5,7 +5,10 @@ packages:
   - name: dbt_expectations
     package: metaplane/dbt_expectations
     version: 0.10.10
+  - git: https://github.com/Matts52/dbt-orphan.git
+    name: dbt_orphan
+    revision: 529960b00ad9ff664b4c2146e0b5023b1bd851fb
   - name: dbt_date
     package: godatadriven/dbt_date
-    version: 0.17.1
-sha1_hash: d46262da56c4456d8e21914ec17a05de5964329b
+    version: 0.19.0
+sha1_hash: 9bfd52c62a3ed7c305482ec573801c9050fcaf32

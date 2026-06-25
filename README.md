@@ -239,6 +239,7 @@ Toujours verifier avec `git diff` apres un `sqlfluff fix`. Voir [CONVENTIONS.md]
 |---------|---------|------|
 | `dbt-utils` | 1.1.1 | Tests avances (unique_combination, expression_is_true) |
 | `dbt_expectations` | 0.10.10 | Tests de qualite (row count, date range, distributions) |
+| `dbt_orphan` | v0.1.3 (git) | Detection/suppression des objets orphelins (cf. [docs/maintenance.md](docs/maintenance.md)) |
 
 ---
 
@@ -265,6 +266,7 @@ dbt ls --select +mon_modele            # Voir les dependances d'un modele
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Workflow Git et collaboration
 - [CONVENTIONS.md](CONVENTIONS.md) — Conventions de nommage et qualite
 - [docs/pipeline-schedule.md](docs/pipeline-schedule.md) — Horaires extract/transform/snapshot et synchro par BU
+- [docs/maintenance.md](docs/maintenance.md) — Nettoyage des objets orphelins BigQuery (`dbt_orphan`)
 
 ---
 
