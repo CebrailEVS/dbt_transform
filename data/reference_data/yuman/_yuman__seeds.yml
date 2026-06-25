@@ -1,0 +1,237 @@
+version: 2
+
+seeds:
+  - name: ref_yuman__cp_metropole
+    description: "Correspondance codes postaux vers métropoles"
+    config:
+      column_types:
+        Code_Postal: STRING
+        Metropole: STRING
+    columns:
+      - name: Code_Postal
+        description: "Code postal (5 chiffres)"
+        tests:
+          - not_null
+      - name: Metropole
+        description: "Nom de la métropole"
+
+  - name: ref_yuman__cp_tech
+    description: "Correspondance codes postaux et regions pour les techniciens"
+    config:
+      column_types:
+        cp_depart_int: INT64
+        cp_depart_texte: STRING
+        cp_final_int: INT64
+        cp_final_texte: STRING
+        libelle_cp: STRING
+        num_departement_texte: STRING
+        nom_departement: STRING
+        region_tech: STRING
+    columns:
+      - name: cp_depart_int
+        description: "code postal de départ (cedex) - integer"
+        tests:
+          - not_null
+          - unique
+      - name: cp_depart_texte
+        description: "code postal de départ (cedex) - texte"
+        tests:
+          - not_null
+          - unique
+      - name: cp_final_int
+        description: "code postal de fin (simplifié) - integer"
+        tests:
+          - not_null
+      - name: cp_final_texte
+        description: "code postal de fin (simplifié) - texte"
+        tests:
+          - not_null
+      - name: libelle_cp
+        description: "libellé du code postal de fin"
+        tests:
+          - not_null
+      - name: num_departement_texte
+        description: "numéro du département - texte (2 chiffres)"
+        tests:
+          - not_null
+      - name: nom_departement
+        description: "Nom du département"
+        tests:
+          - not_null
+      - name: region_tech
+        description: "Région correspondante pour la sectorisation des techniciens"
+        tests:
+          - not_null
+
+  - name: ref_yuman__tech_agence
+    description: "Mapping entre tech et agence stock"
+    config:
+      column_types:
+        nom: STRING
+        prenom: STRING
+        Chef: STRING
+        agence: STRING
+        equipe: STRING
+    columns:
+      - name: nom
+        description: "nom tech"
+        tests:
+          - not_null
+      - name: prenom
+        description: "prénom du tech"
+        tests:
+          - not_null
+      - name: Chef
+        description: "Nom du chef d'équipe"
+      - name: agence
+        description: "agence rattaché pour le stock"
+        tests:
+          - not_null
+      - name: equipe
+        description: "équipe du technicien"
+        tests:
+          - not_null
+
+  - name: ref_yuman__dpt_metropole
+    description: "Correspondance départements vers métropoles"
+    config:
+      column_types:
+        Departement: STRING
+        Metropole: STRING
+    columns:
+      - name: Departement
+        description: "Numéro de département"
+        tests:
+          - not_null
+      - name: Metropole
+        description: "Nom de la métropole"
+
+  - name: ref_yuman__machine_clean
+    description: "Mapping noms machines bruts vers standardisés"
+    config:
+      column_types:
+        Machine_Brut: STRING
+        MACHINE: STRING
+        famille_neshu: STRING
+    columns:
+      - name: Machine_Brut
+        description: "Nom machine tel qu'en source"
+        tests:
+          - not_null
+          - unique
+      - name: MACHINE
+        description: "Nom machine standardisé"
+      - name: famille_neshu
+        description: "Famille de la machine"
+        tests:
+          - not_null
+
+  - name: ref_yuman__marque_clean
+    description: "Correspondance technicien vers marque"
+    config:
+      column_types:
+        NOM_DU_TECHNICIEN: STRING
+        MARQUE: STRING
+    columns:
+      - name: NOM_DU_TECHNICIEN
+        description: "Nom du technicien"
+      - name: MARQUE
+        description: "Marque associée"
+
+  - name: ref_yuman__technicien_clean
+    description: "Référentiel des techniciens et équipes"
+    config:
+      column_types:
+        TECHNICIEN: STRING
+        Nom: STRING
+        Prenom: STRING
+        Nom_Prenom: STRING
+        EQUIPE: STRING
+    columns:
+      - name: TECHNICIEN
+        description: "Format 'prénom nom'"
+        tests:
+          - not_null
+      - name: Nom
+        description: "Nom de famille du technicien"
+      - name: Prenom
+        description: "Prénom du technicien"
+      - name: Nom_Prenom
+        description: "Concaténation nom et prénom"
+      - name: EQUIPE
+        description: "Équipe d'affectation"
+        tests:
+          - not_null
+
+  - name: ref_yuman__type_inter_clean
+    description: "Mapping types d'interventions"
+    config:
+      column_types:
+        Type_intervention_Brut: STRING
+        TYPE_INTER: STRING
+    columns:
+      - name: Type_intervention_Brut
+        description: "Type intervention source"
+      - name: TYPE_INTER
+        description: "Type intervention standardisé"
+
+  - name: ref_yuman__tarification_clean
+    description: "Grille tarifaire complète"
+    config:
+      column_types:
+        TYPE_INTER: STRING
+        MACHINE: STRING
+        KEY: STRING
+        MARQUE: STRING
+        METROPOLE: STRING
+        Type_tarif: STRING
+        Montant: INT64
+        PROD: INT64
+        valid_from: DATE
+        valid_to: DATE
+    columns:
+      - name: TYPE_INTER
+        description: "Type d'intervention standardisé"
+      - name: MACHINE
+        description: "Nom machine standardisé"
+      - name: KEY
+        description: "Clé de tarification composite"
+        tests:
+          - not_null
+      - name: MARQUE
+        description: "Marque associée"
+      - name: METROPOLE
+        description: "Métropole associée"
+      - name: Type_tarif
+        description: "Type de tarif"
+      - name: Montant
+        description: "Montant en euros (NULL pour les lignes en attente de tarification)"
+      - name: PROD
+        description: "Indicateur production"
+      - name: valid_from
+        description: "Date de début de validité du tarif"
+        tests:
+          - not_null
+      - name: valid_to
+        description: "Date de fin de validité du tarif (NULL = tarif actif)"
+
+  - name: ref_yuman__tech_nomad
+    description: "Mapping utilisateurs Yuman vers identifiants Nomad"
+    config:
+      column_types:
+        user_id: INT64
+        user_name: STRING
+        nomad_id: STRING
+        user_stock_name: STRING
+        user_stock_agence: STRING
+    columns:
+      - name: user_id
+        description: "Identifiant utilisateur Yuman"
+      - name: user_name
+        description: "Nom utilisateur Yuman"
+      - name: nomad_id
+        description: "Identifiant Nomad associé"
+      - name: user_stock_name
+        description: "Nom du stock associé"
+      - name: user_stock_agence
+        description: "Agence de stock associée"

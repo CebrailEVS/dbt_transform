@@ -1,0 +1,140 @@
+version: 2
+
+seeds:
+  - name: ref_oracle_neshu__valo_parc_machine
+    description: "Fichier de référence (machine -> valorisation unitaire)."
+    config:
+      column_types:
+        machine_modele: STRING
+        montant_inv: FLOAT64
+    columns:
+      - name: machine_modele
+        description: "Identifiant / libellé du modèle de machine."
+      - name: montant_inv
+        description: "Valorisation unitaire."
+
+  - name: ref_oracle_neshu__roadman_gea
+    description: "Mapping code roadman NESHU vers GEA"
+    config:
+      column_types:
+        roadman_code: STRING
+        gea_code: STRING
+    columns:
+      - name: roadman_code
+        description: "Code roadman NESHU"
+        tests:
+          - not_null
+      - name: gea_code
+        description: "Code GEA associé"
+        tests:
+          - not_null
+
+  - name: ref_oracle_neshu__groupement_machine
+    description: "Mapping nom machine vers groupement machine pour valorisation parc"
+    config:
+      column_types:
+        device_name: STRING
+        device_group: STRING
+    columns:
+      - name: device_name
+        description: "Nom de la machine"
+        tests:
+          - not_null
+      - name: device_group
+        description: "Groupement machine associé."
+        tests:
+          - not_null
+
+  - name: ref_oracle_neshu__product_packaging
+    description: "Multiplicateur de conditionnement par produit : nombre d'unités par colis chargé/livré (rame, boîte, carton, distributeur). Utilisé par fct_neshu__consommation pour convertir les quantités de chargement/livraison en unités consommées. Une ligne par produit conditionné ; les produits absents valent 1 (unité = unité)."
+    config:
+      column_types:
+        product_id: INT64
+        product_name: STRING
+        units_per_pack: INT64
+    columns:
+      - name: product_id
+        description: "Identifiant produit (dim_neshu__product.product_id)"
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__product')
+                field: product_id
+      - name: product_name
+        description: "Libellé produit, repris en clair pour la relecture du seed (non utilisé dans les jointures)"
+        tests:
+          - not_null
+      - name: units_per_pack
+        description: "Nombre d'unités contenues dans un colis (ex: rame de 50 gobelets => 50)"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: " > 1"
+
+  - name: ref_oracle_neshu__consommation_source_override
+    description: >
+      Overrides d'arbitrage de source pour fct_neshu__consommation : cas
+      particuliers (machine ou client) qui dérogent à la règle générale
+      gratuit/payant télémétrie<->chargement. Deux modes selon is_takeover :
+      (1) redirection ciblée (is_takeover = false) => dévie seulement les lignes
+      matchant company_code + device_serial_number + product_type + fenêtre ;
+      le reste de la machine/du client suit la règle générale ;
+      (2) takeover machine (is_takeover = true, machine renseignée) => la machine
+      est entièrement pilotée par le seed, toute ligne non reprise est écartée.
+      L'arbitrage ne porte que sur TELEMETRIE et CHARGEMENT (la livraison n'est
+      jamais arbitrée). Les colonnes vides valent "tous" (wildcard).
+    config:
+      column_types:
+        company_code: STRING
+        device_serial_number: STRING
+        product_type: STRING
+        forced_source: STRING
+        is_takeover: BOOLEAN
+        date_from: DATE
+        date_to: DATE
+    columns:
+      - name: company_code
+        description: "Code client ciblé (vide = tous les clients)"
+      - name: device_serial_number
+        description: "Numéro de série machine ciblé (vide = toutes les machines du client)"
+      - name: product_type
+        description: "Type produit ciblé (vide = tous les types)"
+      - name: forced_source
+        description: "Source imposée pour les lignes ciblées"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['TELEMETRIE', 'CHARGEMENT']
+      - name: is_takeover
+        description: "true => takeover complet de la machine (toute ligne non reprise écartée). false => redirection ciblée (seules les lignes matchées sont déviées, le reste suit la règle générale)."
+        tests:
+          - not_null
+      - name: date_from
+        description: "Début de validité inclus (vide = depuis toujours)"
+      - name: date_to
+        description: "Fin de validité exclue (vide = sans borne)"
+
+  - name: ref_oracle_neshu__valo_machine_capacite
+    description: "Fichier de référence pour le groupe de machine animo grain modulo et la quantité maximal de produit associé"
+    config:
+      column_types:
+        product_code: STRING
+        quantite: INT64
+        device_group: STRING
+    columns:
+      - name: product_code
+        description: "Code produit"
+        tests:
+          - not_null
+      - name: quantite
+        description: "Quantité que peut contenir la machine pour le produit associé"
+        tests:
+          - not_null
+      - name: device_group
+        description: "Groupement machine associé."
+        tests:
+          - not_null
