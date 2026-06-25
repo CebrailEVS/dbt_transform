@@ -4,6 +4,11 @@
 # =============================================================================
 FROM python:3.11-slim
 
+# git is required by `dbt deps` to install git-sourced packages (e.g. dbt_orphan).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt requirements-lock.txt ./
 RUN pip install --no-cache-dir -r requirements-lock.txt
 
