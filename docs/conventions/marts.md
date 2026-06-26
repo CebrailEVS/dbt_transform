@@ -323,13 +323,44 @@ contexte → quand) avant « combien » (mesures).
 > `entity_code`/`entity_name` juste apres leur FK), c'est tolere. Le grain en
 > tete et les metadonnees en queue, en revanche, sont systematiques.
 
-## 8. Checklist avant PR
+## 8. Nommage des mesures
+
+Le nom d'une mesure doit dire **sa nature** (donc son calcul) avant son sujet
+metier. On lit `qty_chargee` et on sait qu'on somme des quantites ; `nb_ventes`
+et on sait qu'on compte des evenements.
+
+**Prefixe = nature de la mesure :**
+
+| Prefixe | Nature | Calcul typique | Exemples |
+|---|---|---|---|
+| `qty_` | quantite physique en unites de base | `sum(...)` (peut etre fractionnaire / negative) | `qty_chargee`, `qty_retiree`, `qty_invendus` |
+| `nb_` | compte d'evenements / lignes | `count(*)` (entier par construction) | `nb_ventes`, `nb_passages` |
+| `ca_` / `montant_` | euros | `sum(... * prix)` | `ca_cash_eur`, `montant_ht` |
+| `taux_` / `pct_` | ratio (NON additif) | `safe_divide(a, b)` | `taux_ecoulement_volume_4wk` |
+
+**Regles :**
+
+1. **Le perimetre transverse au modele est un invariant** documente au niveau
+   modele (`[COMMENT CONSTRUITE]`), **pas repete dans chaque colonne**. Ex. si
+   tout le mart est restreint aux produits vendables, la colonne est `qty_chargee`,
+   **pas** `qty_vendable_chargee`.
+2. **Privilegier le nom metier** de l'evenement (`ventes`, `chargee`, `invendus`)
+   plutot qu'un mot de tuyauterie generique (`entree`, `sortie`).
+3. **Documenter la commensurabilite** quand un ratio melange deux unites ou deux
+   systemes de mesure (ex. « 1 event Nayax = 1 unite vendue » qui valide
+   `nb_ventes / qty_chargee` — un `count` declare comparable a une `qty` mesuree).
+4. **Indiquer additif / non-additif** dans la description de chaque mesure (les
+   `taux_`/`pct_` ne se somment jamais ; utile en BI et pour le semantic layer).
+5. Suffixe de fenetre en fin de nom quand c'est un cumul glissant (`_4wk`, `_ytd`).
+
+## 9. Checklist avant PR
 
 - [ ] Fichier `<dim|fct>_<bu>__<entity>.sql` dans `models/marts/<bu>/` + entrée dans `_<bu>__marts_models.yml`
 - [ ] Description YAML en 4 blocs (`[QUOI MÉTIER]`/`[COMMENT CONSTRUITE]`/`[GRAIN]`/`[NOTES]`), **grain obligatoire**
 - [ ] Star schema : FK `<entity>_id` only, pas de jointure fait-à-fait, pas de snowflake, pas d'OBT
 - [ ] Tests minimum (Dim : PK `unique`+`not_null` ; Fact : FK `relationships` + clé composite + invariants)
 - [ ] `{{ config() }}` = matérialisation only (pas de `description`, pas de `tags`)
+- [ ] Nommage des mesures (`qty_`/`nb_`/`ca_`/`taux_`, périmètre invariant non répété, additif/non-additif documenté)
 - [ ] Ordre des colonnes grain-first
 - [ ] `exposure` mise à jour si un rapport Power BI consomme le mart
 - [ ] `sqlfluff lint` OK

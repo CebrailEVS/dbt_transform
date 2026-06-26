@@ -7,14 +7,28 @@
 }}
 
 -- Taux d'écoulement (VOLUME) des DA FROID full Nayax, par device × semaine ISO.
--- Modèle VOLUME PUR : entrées (qty vendable chargée / retirée) vs sorties (nb ventes Nayax).
+-- Modèle VOLUME PUR : entrées (qty chargée / retirée) vs sorties (nb ventes Nayax).
 -- Aucune mesure monétaire ici : le CA est porté par fct_lcdp__ca_mensuel (tout le
 -- parc + cash). Périmètre limité au full Nayax car sur les machines à monnayeur
 -- une partie des ventes part en espèces (invisible côté Nayax) → le volume serait faux.
+--
+-- PÉRIMÈTRE PRODUIT (invariant du modèle) : toutes les mesures de quantité sont
+-- restreintes aux groupes de produits VENDABLES (ref_oracle_lcdp__product_group_vendable,
+-- is_vendable = true : SNACK / BOISSON FROIDE / PRODUIT FRAIS). Le filtre vendable
+-- s'applique à tout le modèle → il n'est PAS répété dans le nom des colonnes.
+--
+-- COMMENSURABILITÉ : le taux d'écoulement = nb_ventes / qty_chargee n'a de sens que
+-- parce que 1 event télémétrie Nayax = 1 unité vendue (telemetry_quantity toujours = 1
+-- en amont). nb_ventes est un count(*) d'events (entier), comparé à une quantité
+-- déclarée chargée (somme en unités de base) : deux systèmes de mesure distincts.
+--
 -- Mouvements de stock classés par movement_type (signe de la quantité, cf.
 -- int_oracle_lcdp__chargement_tasks) : LOADING = chargé, REMOVING = retiré
 -- (produit sorti de la machine, ex. péremption). Le taux d'écoulement NET tient
 -- compte du retiré au dénominateur : ventes / (chargé − retiré).
+-- Les invendus (constat dédié, task_type 11, cf. int_oracle_lcdp__invendus_tasks)
+-- sont exposés à part (qty_invendus) : brique additive informative, distincte des
+-- retraits de chargement (pas de double comptage) — n'entre PAS dans le taux net.
 
 with devices_perimeter as (
     select device_id
@@ -40,9 +54,9 @@ chargement_weekly as (
         c.device_id,
         date_trunc(date(c.task_start_date), week (monday)) as week_start_date,
         sum(case when c.movement_type = 'LOADING' then c.load_quantity else 0 end)
-            as qty_vendable_chargee,
+            as qty_chargee,
         sum(case when c.movement_type = 'REMOVING' then -c.load_quantity else 0 end)
-            as qty_vendable_retiree
+            as qty_retiree
     from {{ ref('int_oracle_lcdp__chargement_tasks') }} as c
     inner join {{ ref('dim_lcdp__product') }} as p
         on c.product_id = p.product_id
@@ -66,31 +80,57 @@ telemetry_weekly as (
     group by 1, 2
 ),
 
+-- Invendus (task_type 11) : produits retirés car invendus (péremption / casse).
+-- Distinct de qty_retiree (retraits issus du chargement) : événement de constat
+-- dédié, pas de double comptage. Même filtre vendable que le chargement.
+invendus_weekly as (
+    select
+        i.device_id,
+        date_trunc(date(i.task_start_date), week (monday)) as week_start_date,
+        sum(i.quantity) as qty_invendus
+    from {{ ref('int_oracle_lcdp__invendus_tasks') }} as i
+    inner join {{ ref('dim_lcdp__product') }} as p
+        on i.product_id = p.product_id
+    inner join vendable_groups as v
+        on trim(p.product_group) = v.product_group
+    where
+        i.device_id in (select dp.device_id from devices_perimeter as dp)
+        and date(i.task_start_date) >= date('2025-01-01')
+    group by 1, 2
+),
+
 joined as (
     select
-        coalesce(c.device_id, t.device_id) as device_id,
-        coalesce(c.week_start_date, t.week_start_date) as week_start_date,
-        coalesce(c.qty_vendable_chargee, 0) as qty_vendable_chargee,
-        coalesce(c.qty_vendable_retiree, 0) as qty_vendable_retiree,
-        coalesce(t.nb_ventes, 0) as nb_ventes
+        coalesce(c.device_id, t.device_id, i.device_id) as device_id,
+        coalesce(c.week_start_date, t.week_start_date, i.week_start_date) as week_start_date,
+        coalesce(c.qty_chargee, 0) as qty_chargee,
+        coalesce(c.qty_retiree, 0) as qty_retiree,
+        coalesce(t.nb_ventes, 0) as nb_ventes,
+        coalesce(i.qty_invendus, 0) as qty_invendus
     from chargement_weekly as c
     full outer join telemetry_weekly as t
         on
             c.device_id = t.device_id
             and c.week_start_date = t.week_start_date
+    full outer join invendus_weekly as i
+        on
+            coalesce(c.device_id, t.device_id) = i.device_id
+            and coalesce(c.week_start_date, t.week_start_date) = i.week_start_date
 ),
 
 with_rolling as (
     select
         device_id,
         week_start_date,
-        qty_vendable_chargee,
-        qty_vendable_retiree,
+        qty_chargee,
+        qty_retiree,
         nb_ventes,
+        qty_invendus,
 
-        sum(qty_vendable_chargee) over wk4 as qty_vendable_chargee_4wk,
-        sum(qty_vendable_retiree) over wk4 as qty_vendable_retiree_4wk,
-        sum(nb_ventes) over wk4 as nb_ventes_4wk
+        sum(qty_chargee) over wk4 as qty_chargee_4wk,
+        sum(qty_retiree) over wk4 as qty_retiree_4wk,
+        sum(nb_ventes) over wk4 as nb_ventes_4wk,
+        sum(qty_invendus) over wk4 as qty_invendus_4wk
 
     from joined
     window wk4 as (
@@ -105,24 +145,29 @@ select
     week_start_date,
 
     -- Briques additives (entrées)
-    qty_vendable_chargee,
-    qty_vendable_retiree,
+    qty_chargee,
+    qty_retiree,
 
     -- Briques additives (sorties)
     nb_ventes,
 
+    -- Invendus (constat task_type 11) : produits retirés car invendus (péremption / casse).
+    -- Informatif, additif — n'entre PAS dans le taux d'écoulement net (distinct des retraits).
+    qty_invendus,
+
     -- Ratio volume (non additif — fourni pour confort, recalcul possible en BI)
-    safe_divide(nb_ventes, qty_vendable_chargee) as taux_ecoulement_volume_hebdo,
+    safe_divide(nb_ventes, qty_chargee) as taux_ecoulement_volume_hebdo,
 
     -- Briques additives rolling 4 semaines
-    qty_vendable_chargee_4wk,
-    qty_vendable_retiree_4wk,
+    qty_chargee_4wk,
+    qty_retiree_4wk,
     nb_ventes_4wk,
-    safe_divide(nb_ventes_4wk, qty_vendable_chargee_4wk) as taux_ecoulement_volume_4wk,
+    qty_invendus_4wk,
+    safe_divide(nb_ventes_4wk, qty_chargee_4wk) as taux_ecoulement_volume_4wk,
 
     -- Taux d'écoulement NET 4 sem. : tient compte du retiré au dénominateur.
     -- NULL si retiré >= chargé (dénominateur <= 0, fenêtre de déstockage non interprétable).
-    safe_divide(nb_ventes_4wk, nullif(greatest(qty_vendable_chargee_4wk - qty_vendable_retiree_4wk, 0), 0))
+    safe_divide(nb_ventes_4wk, nullif(greatest(qty_chargee_4wk - qty_retiree_4wk, 0), 0))
         as taux_ecoulement_volume_net_4wk
 
 from with_rolling
