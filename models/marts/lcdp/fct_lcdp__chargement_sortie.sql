@@ -100,6 +100,22 @@ invendus_weekly as (
     group by 1, 2
 ),
 
+-- Contexte de réassort : nombre de passages approvisionneurs RÉALISÉS dans la semaine
+-- (task_type 32, is_done = FAIT/ENCOURS, cf. int_oracle_lcdp__appro_tasks_enriched).
+-- Simple contexte (combien de fois la machine a été servie) → rattaché en LEFT JOIN,
+-- ne crée pas de ligne : un device×semaine sans flux de stock n'est pas ajouté ici.
+appro_weekly as (
+    select
+        a.device_id,
+        date_trunc(date(a.task_start_date), week (monday)) as week_start_date,
+        sum(a.is_done) as nb_passages_appro
+    from {{ ref('int_oracle_lcdp__appro_tasks_enriched') }} as a
+    where
+        a.device_id in (select dp.device_id from devices_perimeter as dp)
+        and date(a.task_start_date) >= date('2025-01-01')
+    group by 1, 2
+),
+
 joined as (
     select
         coalesce(c.device_id, t.device_id, i.device_id) as device_id,
@@ -142,29 +158,33 @@ with_rolling as (
 )
 
 select
-    device_id,
-    week_start_date,
+    wr.device_id,
+    wr.week_start_date,
 
     -- Briques additives (entrées)
-    qty_chargee,
-    qty_retiree,
+    wr.qty_chargee,
+    wr.qty_retiree,
 
     -- Briques additives (sorties)
-    nb_ventes,
+    wr.nb_ventes,
 
     -- Invendus (constat task_type 11) : produits retirés car invendus (péremption / casse).
     -- Additif. Déduit du dénominateur du taux NET (même nature que le retiré).
-    qty_invendus,
+    wr.qty_invendus,
+
+    -- Contexte de réassort : nombre de passages approvisionneurs réalisés dans la semaine.
+    -- Additif, INFORMATIF — n'entre dans aucun ratio d'écoulement. 0 si aucun passage.
+    coalesce(a.nb_passages_appro, 0) as nb_passages_appro,
 
     -- Ratio volume (non additif — fourni pour confort, recalcul possible en BI)
-    safe_divide(nb_ventes, qty_chargee) as taux_ecoulement_volume_hebdo,
+    safe_divide(wr.nb_ventes, wr.qty_chargee) as taux_ecoulement_volume_hebdo,
 
     -- Briques additives rolling 4 semaines
-    qty_chargee_4wk,
-    qty_retiree_4wk,
-    nb_ventes_4wk,
-    qty_invendus_4wk,
-    safe_divide(nb_ventes_4wk, qty_chargee_4wk) as taux_ecoulement_volume_4wk,
+    wr.qty_chargee_4wk,
+    wr.qty_retiree_4wk,
+    wr.nb_ventes_4wk,
+    wr.qty_invendus_4wk,
+    safe_divide(wr.nb_ventes_4wk, wr.qty_chargee_4wk) as taux_ecoulement_volume_4wk,
 
     -- Taux d'écoulement NET 4 sem. : déduit le retiré ET les invendus du dénominateur
     -- (deux retraits de stock vendable de même nature). Mesure la part vendue du stock
@@ -172,8 +192,12 @@ select
     -- NULL si (retiré + invendus) >= chargé (dénominateur <= 0, fenêtre de déstockage
     -- non interprétable).
     safe_divide(
-        nb_ventes_4wk,
-        nullif(greatest(qty_chargee_4wk - qty_retiree_4wk - qty_invendus_4wk, 0), 0)
+        wr.nb_ventes_4wk,
+        nullif(greatest(wr.qty_chargee_4wk - wr.qty_retiree_4wk - wr.qty_invendus_4wk, 0), 0)
     ) as taux_ecoulement_volume_net_4wk
 
-from with_rolling
+from with_rolling as wr
+left join appro_weekly as a
+    on
+        wr.device_id = a.device_id
+        and wr.week_start_date = a.week_start_date
