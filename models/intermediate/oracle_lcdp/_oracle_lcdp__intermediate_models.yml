@@ -371,6 +371,125 @@ models:
         tests:
           - not_null
 
+  - name: int_oracle_lcdp__invendus_tasks
+    description: >
+      [QUOI MÉTIER]
+      Invendus des distributeurs LCDP : une ligne par produit constaté invendu et retiré d'une
+      machine lors d'une tâche INVENDUS (idtask_type 11). Mesure la casse / les pertes produit
+      (péremption, déstockage) au grain device × produit. Distinct des retraits de chargement
+      (movement_type REMOVING de int_oracle_lcdp__chargement_tasks) : événement de constat dédié,
+      pas de double comptage.
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_lcdp__task (idtask_type = 11 INVENDUS, statuts FAIT/VALIDE, code_status_record = '1',
+      real_start_date renseignée) croisé avec task_has_product (grain ligne produit), enrichi
+      company/device/product/location. Quantité ramenée en unités de base ; valorisation = quantité ×
+      prix d'achat. Incrémental (merge sur task_product_id).
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'une tâche invendus). ~4,9k lignes (~2k tâches),
+      185 distributeurs, depuis décembre 2024.
+
+      [NOTES]
+      real_quantity toujours positive (quantité retirée car invendue). Majoritairement des PRODUIT
+      FRAIS (péremption), puis SNACK et BOISSON FROIDE ; quelques lignes non vendables marginales
+      (filtrées en aval par le mart via ref_oracle_lcdp__product_group_vendable). Statuts FAIT/VALIDE
+      uniquement (un invendu ne compte que s'il est réalisé) — aligné sur la logique « event réalisé »
+      de int_oracle_lcdp__telemetry_tasks.
+    columns:
+      # --- IDENTIFIANTS ---
+      - name: task_product_id
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
+        data_type: int64
+        tests:
+          - unique
+          - not_null
+      - name: task_id
+        description: "Tâche d'invendus Oracle LCDP (EVS.TASK)."
+        data_type: int64
+        tests:
+          - not_null
+      - name: device_id
+        description: "Distributeur (machine) concerné par l'invendu. FK → dim_lcdp__device."
+        data_type: int64
+      - name: company_id
+        description: "Client (peer company). FK → dim_lcdp__company."
+        data_type: int64
+      - name: product_id
+        description: "Produit constaté invendu. FK → dim_lcdp__product."
+        data_type: int64
+        tests:
+          - not_null
+      - name: location_id
+        description: "Localisation de la tâche. FK → stg_oracle_lcdp__location."
+        data_type: int64
+
+      # --- CODES ---
+      - name: company_code
+        description: "Code client de l'entreprise."
+        data_type: string
+      - name: device_code
+        description: "Code métier du device (numéro de série)."
+        data_type: string
+      - name: product_code
+        description: "Code métier du produit."
+        data_type: string
+      - name: task_status_code
+        description: >
+          Code du statut de la tâche. Valeurs : VALIDE (validé, majoritaire), FAIT.
+        data_type: string
+        tests:
+          - accepted_values:
+              arguments: {values: [FAIT, VALIDE]}
+              config: {severity: warn}
+
+      # --- INFOS MÉTIER ---
+      - name: task_location_info
+        description: "Informations d'accès / localisation de la tâche."
+        data_type: string
+
+      # --- DATE ---
+      - name: task_start_date
+        description: "Date et heure réelle du constat d'invendus. Clé de partitionnement."
+        data_type: timestamp
+        tests:
+          - not_null
+
+      # --- CONDITIONNEMENT & PRIX ---
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
+      - name: unit_coeff_div
+        description: "Coefficient diviseur de conditionnement."
+      - name: base_unit_quantity
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
+      - name: product_unit_price_task
+        description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
+      - name: product_unit_price_latest
+        description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
+
+      # --- MESURES ---
+      - name: quantity
+        description: "Quantité invendue en unités de base = real_quantity × coeff_multi / coeff_div. Toujours positive. Mesure additive."
+      - name: valuation
+        description: "Valorisation des invendus en euros = quantity × prix d'achat unitaire. Mesure additive (perte produit)."
+
+      # --- MÉTADONNÉES ---
+      - name: updated_at
+        description: "Timestamp de dernière modification (filtre incrémental)."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: created_at
+        description: "Timestamp de création en source."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis Oracle."
+        data_type: timestamp
+        tests:
+          - not_null
+
   - name: int_oracle_lcdp__livraison_tasks
     description: >
       [QUOI MÉTIER]

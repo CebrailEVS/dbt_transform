@@ -335,10 +335,10 @@ models:
   # CHARGEMENT vs SORTIE (taux d'écoulement Nayax)
   - name: fct_lcdp__chargement_sortie
     description: |
-      [QUOI MÉTIER] Taux d'écoulement (VOLUME) hebdomadaire des machines LCDP télémétrées Nayax FULL NAYAX (sans monnayeur) — comparaison entrées (quantités vendables chargées) vs sorties (nombre de ventes Nayax). Modèle volume pur, sans mesure monétaire (le CA est porté par fct_lcdp__ca_mensuel).
-      [COMMENT CONSTRUITE] Périmètre filtré sur dim_lcdp__device.audit_type='1- AUDIT TELEMETRIE (NAYAX)' AND device_category='DA FROID' AND currency_mode='SANS MONNAIE' (full Nayax). Les machines à monnayeur (currency_mode='AVEC MONNAIE') sont EXCLUES : une partie de leurs ventes est encaissée en espèces (invisible côté Nayax) → le taux d'écoulement volume y serait faussé ; leur suivi CA passe par fct_lcdp__ca_mensuel. Entrées issues de int_oracle_lcdp__chargement_tasks, classées par movement_type (sens dérivé du SIGNE de la quantité, pas du label) : les LOADING alimentent qty_vendable_chargee, les REMOVING (retraits de stock, ex. péremption) alimentent qty_vendable_retiree ; jointes à dim_lcdp__product et au seed ref_oracle_lcdp__product_group_vendable (filtre is_vendable=true → 3 groupes SNACK / BOISSON FROIDE / PRODUIT FRAIS). Sorties issues de int_oracle_lcdp__telemetry_tasks (1 event = 1 vente). Agrégation par device × semaine ISO (lundi), FULL OUTER JOIN entre les deux flux. Rolling 4 semaines (W-3 à W incluse) calculé via window function bornée à 21 jours.
-      [GRAIN] 1 ligne par device_id × week_start_date.
-      [NOTES] Hors périmètre : DA CHAUD, DA SEMI-AUTO, BORNE/BROYEUR (chargement non commensurable aux events) et machines à monnayeur (volume faussé — voir fct_lcdp__ca_mensuel pour leur CA). Backfill depuis 2025-01-01. taux_ecoulement_volume = NULL si chargement = 0 (vidange de stock historique attendue). MODÈLE VOLUME PUR : aucune mesure monétaire (CA, coût, marge) n'est exposée ici (décision 2026-06-17) — le suivi repose uniquement sur le rapport quantités chargées / nombre de ventes. Le CA full-Nayax est disponible dans fct_lcdp__ca_mensuel (grain mensuel). RETRAITS : les REMOVING (produit sorti des machines, ex. péremption) sont exposés via qty_vendable_retiree (volume d'articles, pas de count d'opérations) ; le taux d'écoulement NET (taux_ecoulement_volume_net_4wk = ventes / (chargé − retiré)) corrige le dénominateur. Classement chargé/retiré piloté par movement_type (signe de la quantité, cf. int_oracle_lcdp__chargement_tasks).
+      [QUOI MÉTIER] Taux d'écoulement (VOLUME) hebdomadaire des machines LCDP télémétrées Nayax FULL NAYAX (sans monnayeur), par client — comparaison entrées (quantités chargées) vs sorties (nombre de ventes Nayax). Modèle volume pur, sans mesure monétaire (le CA est porté par fct_lcdp__ca_mensuel).
+      [COMMENT CONSTRUITE] Périmètre filtré sur dim_lcdp__device.audit_type='1- AUDIT TELEMETRIE (NAYAX)' AND device_category='DA FROID' AND currency_mode='SANS MONNAIE' (full Nayax). Les machines à monnayeur (currency_mode='AVEC MONNAIE') sont EXCLUES : une partie de leurs ventes est encaissée en espèces (invisible côté Nayax) → le taux d'écoulement volume y serait faussé ; leur suivi CA passe par fct_lcdp__ca_mensuel. PÉRIMÈTRE PRODUIT (invariant du modèle) : toutes les mesures de quantité sont restreintes aux groupes de produits VENDABLES via dim_lcdp__product × seed ref_oracle_lcdp__product_group_vendable (is_vendable=true → 3 groupes SNACK / BOISSON FROIDE / PRODUIT FRAIS) ; ce filtre s'applique à tout le modèle, il n'est donc PAS répété dans le nom des colonnes. company_id = client (company_peer) porté par la tâche elle-même (et non l'attribut figé de dim_lcdp__device : ~21% des devices changent de client dans le temps). Entrées issues de int_oracle_lcdp__chargement_tasks, classées par movement_type (sens dérivé du SIGNE de la quantité, pas du label) : les LOADING alimentent qty_chargee, les REMOVING (retraits de stock, ex. péremption) alimentent qty_retiree. Sorties issues de int_oracle_lcdp__telemetry_tasks (1 event = 1 vente). Invendus issus de int_oracle_lcdp__invendus_tasks (task_type 11, produits retirés car invendus : péremption/casse), exposés à part (qty_invendus). Agrégation par device × company × semaine ISO (lundi), FULL OUTER JOIN entre les trois flux sur (device, company, semaine). Rolling 4 semaines (W-3 à W incluse) partitionné par device × company, via window function bornée à 21 jours.
+      [GRAIN] 1 ligne par device_id × company_id × week_start_date.
+      [NOTES] GRAIN PAR CLIENT : 99,7% des device-semaines n'ont qu'un seul client → le grain équivaut alors à device×semaine. Sur les ~12 semaines de TRANSFERT (machine changeant de client dans la même semaine), on obtient 1 ligne par client : les volumes (qty_*, nb_ventes) restent correctement attribués et additifs (somme des lignes client = total device), MAIS le taux hebdo peut être partiel sur ces semaines (chargé et ventes parfois sur des clients différents le jour du handoff) — le rolling 4 sem. (partition device×client) lisse l'effet ; un transfert repart sur une fenêtre propre. Hors périmètre : DA CHAUD, DA SEMI-AUTO, BORNE/BROYEUR (chargement non commensurable aux events) et machines à monnayeur (volume faussé — voir fct_lcdp__ca_mensuel pour leur CA). Backfill depuis 2025-01-01. taux_ecoulement_volume = NULL si chargement = 0 (vidange de stock historique attendue). COMMENSURABILITÉ : le taux nb_ventes / qty_chargee n'a de sens que parce que 1 event télémétrie Nayax = 1 unité vendue (telemetry_quantity = 1 en amont) ; nb_ventes est un count(*) d'events (entier), comparé à une quantité chargée DÉCLARÉE (somme en unités de base) — deux systèmes de mesure distincts. CONVENTION MESURES : préfixe qty_ = somme de quantités physiques en unités de base ; nb_ = compte d'événements (count). MODÈLE VOLUME PUR : aucune mesure monétaire (CA, coût, marge) n'est exposée ici (décision 2026-06-17) — le suivi repose uniquement sur le rapport quantités chargées / nombre de ventes. Le CA full-Nayax est disponible dans fct_lcdp__ca_mensuel (grain mensuel). RETRAITS : les REMOVING (produit sorti des machines, ex. péremption) sont exposés via qty_retiree (volume d'articles, pas de count d'opérations) ; le taux d'écoulement NET (taux_ecoulement_volume_net_4wk = ventes / (chargé − retiré)) corrige le dénominateur. Classement chargé/retiré piloté par movement_type (signe de la quantité, cf. int_oracle_lcdp__chargement_tasks). INVENDUS : qty_invendus (et qty_invendus_4wk) exposent les produits constatés invendus et retirés (task_type 11, ex. péremption) — brique additive INFORMATIVE, distincte des retraits de chargement (constat dédié, pas de double comptage). N'entre PAS dans le taux d'écoulement net (décision métier 2026-06-26) ; à mobiliser séparément pour le suivi de la casse/pertes.
     config:
       contract:
         enforced: false
@@ -357,54 +357,75 @@ models:
         tests:
           - not_null
 
-      - name: qty_vendable_chargee
-        description: "Quantité vendable chargée sur la semaine (movement_type='LOADING'), restreinte aux product_group vendables"
+      - name: company_id
+        description: "Client (company_peer) porté par la tâche, composante du grain (device × company × week). FK vers dim_lcdp__company. ~21% des devices changent de client dans le temps → distinct de l'attribut figé de dim_lcdp__device. Sur une semaine de transfert, la machine apparaît sur 1 ligne par client."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_lcdp__company')
+                field: company_id
+
+      - name: qty_chargee
+        description: "Quantité chargée sur la semaine (movement_type='LOADING'), en unités de base. Périmètre vendable (invariant du modèle). Mesure additive."
         tests:
           - not_null
 
-      - name: qty_vendable_retiree
-        description: "Quantité vendable retirée des machines sur la semaine (movement_type='REMOVING', ex. péremption), en valeur positive, restreinte aux product_group vendables"
+      - name: qty_retiree
+        description: "Quantité retirée des machines sur la semaine (movement_type='REMOVING', ex. péremption), en valeur positive et en unités de base. Périmètre vendable. Mesure additive."
         tests:
           - not_null
 
       - name: nb_ventes
-        description: "Nombre d'events télémétrie Nayax (= nombre de ventes) sur la semaine"
+        description: "Nombre d'events télémétrie Nayax (= nombre de ventes, count) sur la semaine. 1 event = 1 unité vendue (telemetry_quantity = 1) → commensurable avec qty_chargee. Mesure additive."
+        tests:
+          - not_null
+
+      - name: qty_invendus
+        description: "Quantité de produits constatés invendus et retirés sur la semaine (task_type 11 INVENDUS, ex. péremption/casse), en unités de base. Périmètre vendable. Informative — distincte de qty_retiree (pas de double comptage), n'entre pas dans le taux net. Mesure additive."
         tests:
           - not_null
 
       - name: taux_ecoulement_volume_hebdo
-        description: "Ratio nb_ventes / qty_vendable_chargee sur la semaine. NULL si chargement = 0."
+        description: "Ratio nb_ventes / qty_chargee sur la semaine (non additif). NULL si chargement = 0."
 
-      - name: qty_vendable_chargee_4wk
-        description: "Quantité chargée vendable cumulée sur la fenêtre W-3 à W (4 semaines glissantes)"
+      - name: qty_chargee_4wk
+        description: "Quantité chargée cumulée sur la fenêtre W-3 à W (4 semaines glissantes). Mesure additive."
 
-      - name: qty_vendable_retiree_4wk
-        description: "Quantité retirée vendable cumulée sur la fenêtre W-3 à W (4 semaines glissantes)"
+      - name: qty_retiree_4wk
+        description: "Quantité retirée cumulée sur la fenêtre W-3 à W (4 semaines glissantes). Mesure additive."
 
       - name: nb_ventes_4wk
-        description: "Nombre d'events télémétrie cumulé sur la fenêtre W-3 à W"
+        description: "Nombre d'events télémétrie cumulé sur la fenêtre W-3 à W. Mesure additive."
+
+      - name: qty_invendus_4wk
+        description: "Quantité d'invendus cumulée sur la fenêtre W-3 à W (4 semaines glissantes). Mesure additive."
 
       - name: taux_ecoulement_volume_4wk
-        description: "Ratio nb_ventes_4wk / qty_vendable_chargee_4wk. Lisse les décalages chargement → vente."
+        description: "Ratio nb_ventes_4wk / qty_chargee_4wk (non additif). Lisse les décalages chargement → vente."
 
       - name: taux_ecoulement_volume_net_4wk
-        description: "Taux d'écoulement NET 4 sem. : nb_ventes_4wk / (qty_vendable_chargee_4wk − qty_vendable_retiree_4wk). Déduit les retraits du dénominateur. NULL si retiré >= chargé (dénominateur <= 0, fenêtre de déstockage non interprétable)."
+        description: "Taux d'écoulement NET 4 sem. : nb_ventes_4wk / (qty_chargee_4wk − qty_retiree_4wk). Déduit les retraits du dénominateur. NULL si retiré >= chargé (dénominateur <= 0, fenêtre de déstockage non interprétable)."
 
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
               - device_id
+              - company_id
               - week_start_date
       - dbt_utils.expression_is_true:
           arguments:
-            expression: "qty_vendable_chargee >= 0"
+            expression: "qty_chargee >= 0"
       - dbt_utils.expression_is_true:
           arguments:
-            expression: "qty_vendable_retiree >= 0"
+            expression: "qty_retiree >= 0"
       - dbt_utils.expression_is_true:
           arguments:
             expression: "nb_ventes >= 0"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "qty_invendus >= 0"
 
   - name: fct_lcdp__ca_mensuel
     description: |
