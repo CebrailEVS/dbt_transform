@@ -18,11 +18,12 @@
 --
 -- Mouvements de stock classés par movement_type (signe de la quantité, cf.
 -- int_oracle_lcdp__chargement_tasks) : LOADING = chargé, REMOVING = retiré
--- (produit sorti de la machine, ex. péremption). Le taux d'écoulement NET tient
--- compte du retiré au dénominateur : ventes / (chargé − retiré).
+-- (produit sorti de la machine, ex. péremption).
 -- Les invendus (constat dédié, task_type 11, cf. int_oracle_lcdp__invendus_tasks)
--- sont exposés à part (qty_invendus) : brique additive informative, distincte des
--- retraits de chargement (pas de double comptage) — n'entre PAS dans le taux net.
+-- sont un second canal de retrait de stock vendable, distinct du REMOVING (pas de
+-- double comptage). Le taux d'écoulement NET déduit LES DEUX du dénominateur :
+-- ventes / (chargé − retiré − invendus) → part vendue du stock réellement resté
+-- disponible. qty_invendus reste exposé à part pour le suivi de la casse/pertes.
 
 with devices_perimeter as (
     select device_id
@@ -146,7 +147,7 @@ select
     nb_ventes,
 
     -- Invendus (constat task_type 11) : produits retirés car invendus (péremption / casse).
-    -- Informatif, additif — n'entre PAS dans le taux d'écoulement net (distinct des retraits).
+    -- Additif. Déduit du dénominateur du taux NET (même nature que le retiré).
     qty_invendus,
 
     -- Ratio volume (non additif — fourni pour confort, recalcul possible en BI)
@@ -159,9 +160,14 @@ select
     qty_invendus_4wk,
     safe_divide(nb_ventes_4wk, qty_chargee_4wk) as taux_ecoulement_volume_4wk,
 
-    -- Taux d'écoulement NET 4 sem. : tient compte du retiré au dénominateur.
-    -- NULL si retiré >= chargé (dénominateur <= 0, fenêtre de déstockage non interprétable).
-    safe_divide(nb_ventes_4wk, nullif(greatest(qty_chargee_4wk - qty_retiree_4wk, 0), 0))
-        as taux_ecoulement_volume_net_4wk
+    -- Taux d'écoulement NET 4 sem. : déduit le retiré ET les invendus du dénominateur
+    -- (deux retraits de stock vendable de même nature). Mesure la part vendue du stock
+    -- réellement resté disponible (ni retiré, ni constaté invendu).
+    -- NULL si (retiré + invendus) >= chargé (dénominateur <= 0, fenêtre de déstockage
+    -- non interprétable).
+    safe_divide(
+        nb_ventes_4wk,
+        nullif(greatest(qty_chargee_4wk - qty_retiree_4wk - qty_invendus_4wk, 0), 0)
+    ) as taux_ecoulement_volume_net_4wk
 
 from with_rolling
