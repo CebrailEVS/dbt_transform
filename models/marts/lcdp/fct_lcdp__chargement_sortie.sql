@@ -2,24 +2,15 @@
     config(
         materialized='table',
         partition_by={'field': 'week_start_date', 'data_type': 'date'},
-        cluster_by=['device_id', 'company_id']
+        cluster_by=['device_id']
     )
 }}
 
--- Taux d'écoulement (VOLUME) des DA FROID full Nayax, par device × client × semaine ISO.
+-- Taux d'écoulement (VOLUME) des DA FROID full Nayax, par device × semaine ISO.
 -- Modèle VOLUME PUR : entrées (qty chargée / retirée) vs sorties (nb ventes Nayax).
 -- Aucune mesure monétaire ici : le CA est porté par fct_lcdp__ca_mensuel (tout le
 -- parc + cash). Périmètre limité au full Nayax car sur les machines à monnayeur
 -- une partie des ventes part en espèces (invisible côté Nayax) → le volume serait faux.
---
--- GRAIN device × company × week : company_id = client (company_peer) porté par la
--- tâche elle-même (et non l'attribut figé de dim_lcdp__device : ~21% des devices
--- changent de client dans le temps). 99,7% des device-semaines n'ont qu'un client →
--- le grain est alors identique à device×semaine. Sur les ~12 semaines de TRANSFERT
--- (machine qui change de client dans la semaine), on obtient 1 ligne par client : les
--- volumes restent correctement attribués (somme des lignes client = total device),
--- mais le taux hebdo peut être partiel (chargé et ventes parfois sur des clients
--- différents la semaine du handoff) — le rolling 4 sem. (partition device×client) lisse.
 --
 -- PÉRIMÈTRE PRODUIT (invariant du modèle) : toutes les mesures de quantité sont
 -- restreintes aux groupes de produits VENDABLES (ref_oracle_lcdp__product_group_vendable,
@@ -61,7 +52,6 @@ vendable_groups as (
 chargement_weekly as (
     select
         c.device_id,
-        c.company_id,
         date_trunc(date(c.task_start_date), week (monday)) as week_start_date,
         sum(case when c.movement_type = 'LOADING' then c.load_quantity else 0 end)
             as qty_chargee,
@@ -75,20 +65,19 @@ chargement_weekly as (
     where
         c.device_id in (select dp.device_id from devices_perimeter as dp)
         and date(c.task_start_date) >= date('2025-01-01')
-    group by 1, 2, 3
+    group by 1, 2
 ),
 
 telemetry_weekly as (
     select
         t.device_id,
-        t.company_id,
         date_trunc(date(t.task_start_date), week (monday)) as week_start_date,
         count(*) as nb_ventes
     from {{ ref('int_oracle_lcdp__telemetry_tasks') }} as t
     where
         t.device_id in (select dp.device_id from devices_perimeter as dp)
         and date(t.task_start_date) >= date('2025-01-01')
-    group by 1, 2, 3
+    group by 1, 2
 ),
 
 -- Invendus (task_type 11) : produits retirés car invendus (péremption / casse).
@@ -97,7 +86,6 @@ telemetry_weekly as (
 invendus_weekly as (
     select
         i.device_id,
-        i.company_id,
         date_trunc(date(i.task_start_date), week (monday)) as week_start_date,
         sum(i.quantity) as qty_invendus
     from {{ ref('int_oracle_lcdp__invendus_tasks') }} as i
@@ -108,13 +96,12 @@ invendus_weekly as (
     where
         i.device_id in (select dp.device_id from devices_perimeter as dp)
         and date(i.task_start_date) >= date('2025-01-01')
-    group by 1, 2, 3
+    group by 1, 2
 ),
 
 joined as (
     select
         coalesce(c.device_id, t.device_id, i.device_id) as device_id,
-        coalesce(c.company_id, t.company_id, i.company_id) as company_id,
         coalesce(c.week_start_date, t.week_start_date, i.week_start_date) as week_start_date,
         coalesce(c.qty_chargee, 0) as qty_chargee,
         coalesce(c.qty_retiree, 0) as qty_retiree,
@@ -124,19 +111,16 @@ joined as (
     full outer join telemetry_weekly as t
         on
             c.device_id = t.device_id
-            and c.company_id = t.company_id
             and c.week_start_date = t.week_start_date
     full outer join invendus_weekly as i
         on
             coalesce(c.device_id, t.device_id) = i.device_id
-            and coalesce(c.company_id, t.company_id) = i.company_id
             and coalesce(c.week_start_date, t.week_start_date) = i.week_start_date
 ),
 
 with_rolling as (
     select
         device_id,
-        company_id,
         week_start_date,
         qty_chargee,
         qty_retiree,
@@ -149,10 +133,8 @@ with_rolling as (
         sum(qty_invendus) over wk4 as qty_invendus_4wk
 
     from joined
-    -- Rolling partitionné par device × client : un transfert de machine vers un autre
-    -- client repart sur une fenêtre propre (le handoff est une frontière métier).
     window wk4 as (
-        partition by device_id, company_id
+        partition by device_id
         order by unix_date(week_start_date)
         range between 21 preceding and current row
     )
@@ -160,7 +142,6 @@ with_rolling as (
 
 select
     device_id,
-    company_id,
     week_start_date,
 
     -- Briques additives (entrées)
