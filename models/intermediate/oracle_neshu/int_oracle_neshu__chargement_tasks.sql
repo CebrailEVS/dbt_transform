@@ -8,7 +8,21 @@
     )
 }}
 
-with chargement_base as (
+with task_load_type as (
+
+    -- Type de chargement agrégé au grain tâche (1 ligne par idtask) pour ne pas
+    -- dédoubler le grain produit : une tâche peut porter plusieurs labels.
+    select
+        lht.idtask,
+        logical_or(la.code = 'LOADING') as has_loading,
+        logical_or(la.code = 'REMOVING') as has_removing
+    from {{ ref('stg_oracle_neshu__label_has_task') }} as lht
+    inner join {{ ref('stg_oracle_neshu__label') }} as la on lht.idlabel = la.idlabel
+    where la.code in ('LOADING', 'REMOVING')
+    group by lht.idtask
+),
+
+chargement_base as (
 
     select
         -- Identifiants
@@ -28,7 +42,14 @@ with chargement_base as (
         d.code as device_code,
         p.code as product_code,
         ts.code as task_status_code,
-        la.code as load_type_code,
+        -- Type de chargement : le label est porté au grain tâche. Si une tâche
+        -- porte les deux labels (anomalie ERP), on tranche au signe de la quantité.
+        case
+            when tlt.has_loading and tlt.has_removing
+                then case when thp.real_quantity < 0 then 'REMOVING' else 'LOADING' end
+            when tlt.has_removing then 'REMOVING'
+            when tlt.has_loading then 'LOADING'
+        end as load_type_code,
 
         -- Informations métier
         l.access_info as task_location_info,
@@ -56,8 +77,7 @@ with chargement_base as (
     left join {{ ref('stg_oracle_neshu__device') }} as d on t.iddevice = d.iddevice
     left join {{ ref('stg_oracle_neshu__product') }} as p on thp.idproduct = p.idproduct
     left join {{ ref('stg_oracle_neshu__location') }} as l on t.idlocation = l.idlocation
-    left join {{ ref('stg_oracle_neshu__label_has_task') }} as lht on t.idtask = lht.idtask
-    left join {{ ref('stg_oracle_neshu__label') }} as la on lht.idlabel = la.idlabel
+    left join task_load_type as tlt on t.idtask = tlt.idtask
     left join {{ ref('stg_oracle_neshu__task_status') }} as ts on t.idtask_status = ts.idtask_status
 
     where
@@ -73,7 +93,7 @@ with chargement_base as (
         t.idproduct_destination, t.type_product_destination,
         thp.idproduct,
         c.code, d.code, p.code,
-        ts.code, la.code,
+        ts.code, tlt.has_loading, tlt.has_removing,
         l.access_info, t.real_start_date,
         thp.unit_coeff_multi,
         thp.unit_coeff_div,
