@@ -3,7 +3,7 @@
 ## Project overview
 ELT data warehouse for EVS Professionnelle France.
 **Stack:** Meltano + Cloud Run jobs (extract) → BigQuery `prod_raw` (lake) → dbt (transform) → GCP Cloud Workflows (orchestrate) → Power BI (viz)
-**dbt version:** 1.11.7 / dbt-bigquery 1.11.1
+**dbt version:** 1.11.11 / dbt-bigquery 1.11.3
 **Team:** 1 Data Engineer (owner), 1 Data Analyst (contributes to marts)
 
 ---
