@@ -1,0 +1,25 @@
+
+    
+    
+
+with child as (
+    select site_id as from_field
+    from `evs-datastack-prod`.`prod_marts`.`fct_technique__consommation_article_yuman`
+    where site_id is not null
+),
+
+parent as (
+    select site_id as to_field
+    from `evs-datastack-prod`.`prod_marts`.`dim_technique__site`
+)
+
+select
+    from_field
+
+from child
+left join parent
+    on child.from_field = parent.to_field
+
+where parent.to_field is null
+
+
