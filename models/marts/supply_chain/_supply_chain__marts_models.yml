@@ -145,7 +145,7 @@ models:
       [QUOI MÉTIER] Stock journalier des articles Yuman au niveau **article** (tous magasins agrégés), avec le drapeau de rupture. Répond à « quels articles sont en rupture totale » et sert de base à un futur taux de disponibilité article.
       [COMMENT CONSTRUITE] Agrégation de stg_yuman_gcs__stock_theorique par (reference, date). Chaque emplacement (nom_du_stock) est classé DÉPÔT (libellé contenant 'DEPOT', 4 sites) ou TECHNICIEN (van, actif 'ST - …' ou inactif). total_quantity = somme tous emplacements ; depot_quantity / technicien_quantity = sommes ventilées ; is_out_of_stock = total nul (absent partout) ; is_out_of_stock_depot = total dépôt nul (indisponible au réappro). Contrairement au mart par magasin, AUCUN filtre sur nom_du_stock : les lignes de rupture (quantite = 0, sans emplacement en source) sont conservées.
       [GRAIN] 1 ligne par (reference, stock_date).
-      [NOTES] ⚠️ Spécificité Yuman : la rupture n'existe qu'au niveau **article**, pas par emplacement (l'export ne localise pas une rupture — contrairement à Neshu où stock_neshu la porte par entité). Les emplacements mêlent **dépôts ET techniciens** : un article présent uniquement chez un technicien est en stock globalement (is_out_of_stock = false) mais en rupture dépôt (is_out_of_stock_depot = true) → pour le réappro, se fier à is_out_of_stock_depot ; is_out_of_stock_technicien donne la vue terrain (vans). Invariant : is_out_of_stock = is_out_of_stock_depot AND is_out_of_stock_technicien. La distinction dépôt/technicien n'est possible que sur les lignes en stock (quantite > 0, seules à porter un emplacement) ; une rupture totale (quantite = 0) arrive sans emplacement et compte comme vide des deux côtés. Classification dépôt/technicien = heuristique sur le libellé ('DEPOT'). Le détail par emplacement reste dans fct_supply_chain__stock_yuman. ~181 couples reference/date ont 2 désignations en source → min() retenu.
+      [NOTES] ⚠️ Spécificité Yuman : la rupture n'existe qu'au niveau **article**, pas par emplacement (l'export ne localise pas une rupture — contrairement à Neshu où stock_neshu la porte par entité). Les emplacements mêlent **dépôts ET techniciens** : un article présent uniquement chez un technicien est en stock globalement (is_out_of_stock = false) mais en rupture dépôt (is_out_of_stock_depot = true) → pour le réappro, se fier à is_out_of_stock_depot ; is_out_of_stock_technicien donne la vue terrain (vans). Invariant : is_out_of_stock = is_out_of_stock_depot AND is_out_of_stock_technicien. La distinction dépôt/technicien n'est possible que sur les lignes en stock (quantite > 0, seules à porter un emplacement) ; une rupture totale (quantite = 0) arrive sans emplacement et compte comme vide des deux côtés. Classification dépôt/technicien = heuristique sur le libellé ('DEPOT'). Le détail par emplacement reste dans fct_supply_chain__stock_yuman. La désignation est résolue au grain référence en écartant les libellés-marqueur (voir macro yuman_is_marqueur_designation).
     columns:
       - name: stock_date
         description: "Date du stock (DATE), colonne de partition"
@@ -156,7 +156,11 @@ models:
         tests:
           - not_null
       - name: designation
-        description: "Désignation de l'article (min() si plusieurs libellés en source)"
+        description: >
+          Désignation de l'article, résolue au grain **référence** (même libellé sur toutes les dates).
+          Quand une référence porte plusieurs libellés en source, les libellés « marqueur »
+          (« NE PAS UTILISER », « OLD … », « Remplacé par … ») sont écartés via la macro
+          yuman_is_marqueur_designation ; fallback min() si la référence n'a que des marqueurs.
       - name: is_out_of_stock
         description: "TRUE si l'article est en rupture totale ce jour-là (aucun emplacement, dépôt ni technicien, total_quantity = 0). Vaut is_out_of_stock_depot AND is_out_of_stock_technicien."
       - name: is_out_of_stock_depot

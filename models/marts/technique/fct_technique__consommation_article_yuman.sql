@@ -11,6 +11,8 @@ with consumed_products as (
     select
         workorder_id,
         product_id,
+        -- Référence article = 1:1 avec product_id (et = dim product_code / clé stock)
+        min(product_reference) as product_reference,
         sum(product_quantity) as quantity,
         min(product_created_at) as first_recorded_at,
         max(product_updated_at) as last_updated_at
@@ -30,38 +32,57 @@ workorders as (
         workorder_number,
         workorder_type,
         workorder_category,
-        workorder_status,
         demand_category_name,
-        demand_status,
-        is_workorder_paused,
-        is_workorder_not_done,
+        -- État métier canonique (source de vérité de l'intermediate) + détails
+        intervention_state,
+        workorder_motif_non_intervention,
+        workorder_detail_non_intervention,
+        workorder_raison_mise_en_pause,
+        workorder_explication_mise_en_pause,
         date_done
     from {{ ref('int_yuman__demands_workorders_enriched') }}
-    where workorder_id is not null
+    -- Exclut les workorders hors flux demande (orphelins / absents de l'intermediate) :
+    -- FK non exploitables. Toute conso conservée est rattachée à une demande.
+    where workorder_id is not null and demand_id is not null
     qualify row_number() over (partition by workorder_id order by date_done desc) = 1
 )
 
 select
+    -- Grain (dimensions dégénérées + FK produit)
     cp.workorder_id,
     w.demand_id,
     cp.product_id,
+
+    -- FK dimensions
     w.material_id,
     w.site_id,
     w.client_id,
     w.technician_id,
+
+    -- Attributs d'affichage
+    cp.product_reference,
     w.partner_name,
     w.workorder_number,
     w.workorder_type,
     w.workorder_category,
-    w.workorder_status,
     w.demand_category_name,
-    w.demand_status,
-    w.is_workorder_paused,
-    w.is_workorder_not_done,
+
+    -- État métier de l'intervention (canonique) + motifs
+    w.intervention_state,
+    w.workorder_motif_non_intervention,
+    w.workorder_detail_non_intervention,
+    w.workorder_raison_mise_en_pause,
+    w.workorder_explication_mise_en_pause,
+
+    -- Date d'intervention
     w.date_done,
+
+    -- Mesure
     cp.quantity,
+
+    -- Métadonnées
     cp.first_recorded_at,
     cp.last_updated_at
 from consumed_products as cp
-left join workorders as w
+inner join workorders as w
     on cp.workorder_id = w.workorder_id
