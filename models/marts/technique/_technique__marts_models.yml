@@ -471,7 +471,7 @@ models:
 
       [NOTES]
       Dimension conforme : sert aux analyses technique (consommation
-      d'articles via `fct_technique__workorder_product`) et supply_chain
+      d'articles via `fct_technique__consommation_article_yuman`) et supply_chain
       (le stock `fct_supply_chain__stock_yuman` se joint via
       `product_code` = `reference`). Les prix achat/vente sont les prix
       courants Yuman, sans historique — toute valorisation est indicative.
@@ -522,30 +522,40 @@ models:
           config:
             severity: warn
 
-  - name: fct_technique__workorder_product
+  - name: fct_technique__consommation_article_yuman
     description: |
       [QUOI MÉTIER]
-      Consommation d'articles (pièces détachées, consommables) par
-      intervention Yuman. Permet l'analyse des pièces consommées par client /
-      site / machine / technicien, et le rapprochement avec les stocks
-      théoriques (`fct_supply_chain__stock_yuman`).
+      Consommation d'articles (pièces détachées, consommables) lors des
+      interventions Yuman — « article » au sens catalogue Yuman, à ne pas
+      confondre avec la consommation de boissons NESHU (`fct_neshu__consommation`).
+      Permet l'analyse des articles consommés par client / site / machine /
+      technicien / type d'intervention, et le rapprochement avec les stocks
+      (`fct_supply_chain__stock_yuman`, `fct_supply_chain__stock_article_yuman`)
+      via `dim_technique__product` (product_code = reference).
 
       [COMMENT CONSTRUITE]
       Agrégation de `stg_yuman__workorder_products` (lignes de saisie) au
-      grain workorder x produit (`sum(quantity)`), enrichie via
-      `int_yuman__demands_workorders_enriched` (dédupliqué par workorder)
-      pour porter les FK client / site / matériel / technicien et la date
-      d'intervention.
+      grain workorder x article (`sum(quantity)`), jointe (inner join) à
+      `int_yuman__demands_workorders_enriched` (dédupliqué par workorder,
+      restreint aux workorders rattachés à une demande) pour porter les FK
+      client / site / matériel / technicien, l'état métier canonique
+      `intervention_state` et les motifs de non-intervention / pause.
 
       [GRAIN]
-      1 ligne par couple (`workorder_id`, `product_id`).
+      1 ligne par couple (`workorder_id`, `product_id`). ~16,6k lignes.
 
       [NOTES]
-      Les workorders hors flux demande (~6) ont leurs FK et `date_done` null
-      (left join sur l'intermediate). Pas de valorisation dans le fait : les
-      prix Yuman sont courants, sans historique — valoriser une consommation
-      passée au prix du jour serait faux (calcul indicatif possible côté PBI
-      via `dim_technique__product`).
+      Périmètre : les workorders **hors flux demande** (sans demande rattachée,
+      ~10 lignes, FK non exploitables) sont **exclus**. Aucun filtre de statut en
+      revanche : ~99,8 % de la conso est sur des interventions REALISEE, le reste
+      (NON_REALISEE / EN_COURS / EN_PAUSE) est conservé et qualifié par
+      `intervention_state` pour laisser le choix au métier — filtrer
+      `intervention_state = 'REALISEE'` pour la conso confirmée. Les NON_REALISEE
+      sont majoritairement des « Erreur de saisie » (cf.
+      `workorder_motif_non_intervention`) → conso probablement erronée. Les
+      interventions EN_COURS ont `date_done` null (partition null). Pas de
+      valorisation : prix Yuman courants sans historique (calcul indicatif
+      possible côté PBI via `dim_technique__product`).
     columns:
       - name: workorder_id
         description: Identifiant du bon de travail (dimension dégénérée).
@@ -555,7 +565,9 @@ models:
       - name: demand_id
         description: >
           Identifiant de la demande d'intervention rattachée (dimension
-          dégénérée). Null pour les interventions hors flux demande.
+          dégénérée). Toujours renseigné : les workorders sans demande sont exclus.
+        tests:
+          - not_null
 
       - name: product_id
         description: Identifiant de l'article consommé (FK).
@@ -571,8 +583,8 @@ models:
       - name: material_id
         description: >
           Identifiant du matériel concerné par l'intervention (FK).
-          Nullable : null quand le workorder n'a pas de machine rattachée
-          (interventions hors flux demande). Pas de not_null volontairement.
+          Nullable : null quand la demande n'a pas de machine rattachée
+          (~819 lignes, cas légitime). Pas de not_null volontairement.
         tests:
           - relationships:
               arguments:
@@ -583,8 +595,8 @@ models:
 
       - name: site_id
         description: >
-          Identifiant du site client (FK). Nullable (idem material_id :
-          interventions hors flux demande).
+          Identifiant du site client (FK). Non null : toute conso est rattachée
+          à une demande (les workorders hors flux demande sont exclus).
         tests:
           - relationships:
               arguments:
@@ -595,8 +607,8 @@ models:
 
       - name: client_id
         description: >
-          Identifiant du client (FK). Nullable (idem material_id :
-          interventions hors flux demande).
+          Identifiant du client (FK). Non null : toute conso est rattachée à une
+          demande (workorders hors flux demande exclus).
         tests:
           - relationships:
               arguments:
@@ -608,7 +620,7 @@ models:
       - name: technician_id
         description: >
           Identifiant du technicien associé (FK vers dim_technique__technician,
-          PK user_id). Nullable pour les interventions hors flux demande.
+          PK user_id). Non null : les workorders hors flux demande sont exclus.
         tests:
           - relationships:
               arguments:
@@ -616,6 +628,14 @@ models:
                 field: user_id
               config:
                 severity: warn
+
+      - name: product_reference
+        description: >
+          Référence de l'article consommé (aplati pour lecture directe ; 1:1
+          avec product_id). Identique au `product_code` de dim_technique__product
+          et à la `reference` du stock Yuman → clé de rapprochement conso ↔ stock.
+          Pour les autres attributs article, joindre dim_technique__product via
+          product_id.
 
       - name: partner_name
         description: Partenaire client de l'intervention (attribut d'affichage).
@@ -639,28 +659,48 @@ models:
           Catégorie libre du bon de travail (complément de workorder_type,
           plus granulaire mais non normalisé).
 
-      - name: workorder_status
-        description: Statut du bon de travail (attribut d'affichage).
-
       - name: demand_category_name
         description: Catégorie métier de la demande d'intervention.
 
-      - name: demand_status
+      - name: intervention_state
         description: >
-          Statut de la demande rattachée. Toujours « Accepted » sur les
-          interventions du flux normal ; null pour les interventions hors
-          flux demande (contrôle qualité : permet d'isoler ces cas).
+          État métier canonique de l'intervention, repris de
+          `int_yuman__demands_workorders_enriched` (source de vérité). Valeurs :
+          REALISEE, NON_REALISEE, EN_COURS, EN_PAUSE, PLANIFIEE,
+          DEMANDE_OUVERTE, DEMANDE_REJETEE, AUTRE. Axe de filtrage principal de
+          la consommation.
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - REALISEE
+                  - NON_REALISEE
+                  - EN_COURS
+                  - EN_PAUSE
+                  - PLANIFIEE
+                  - DEMANDE_OUVERTE
+                  - DEMANDE_REJETEE
+                  - AUTRE
+              config:
+                severity: warn
 
-      - name: is_workorder_paused
+      - name: workorder_motif_non_intervention
         description: >
-          True si l'intervention est en pause (raison/explication de mise en
-          pause renseignée).
+          Motif de non-intervention (renseigné quand
+          intervention_state = NON_REALISEE). Ex. « Erreur de saisie »
+          (majoritaire → conso probablement erronée), « Résolue roadman ».
+          Permet au métier d'écarter la conso non pertinente.
 
-      - name: is_workorder_not_done
+      - name: workorder_detail_non_intervention
+        description: Détail complémentaire du motif de non-intervention, si renseigné.
+
+      - name: workorder_raison_mise_en_pause
         description: >
-          True si l'intervention n'a pas été réalisée (motif/détail de
-          non-intervention renseigné). Des pièces consommées sur un workorder
-          à true sont une anomalie à surveiller.
+          Raison de mise en pause de l'intervention (renseignée si pause active
+          ou historique). Ex. « PB Stock véhicule », « PB technique non résolu ».
+
+      - name: workorder_explication_mise_en_pause
+        description: Explication détaillée de la mise en pause, si renseignée.
 
       - name: date_done
         description: >
