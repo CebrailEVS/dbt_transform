@@ -12,6 +12,7 @@ with filtered_stocks as (
         reference,
         designation,
         nom_du_stock as stock,
+        {{ yuman_stock_type('nom_du_stock') }} as type_stock,
 
         -- Mesure
         quantite,
