@@ -2,6 +2,7 @@ version: 2
 
 sources:
   - name: yuman_gcs
+    database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     config:
       tags: ['yuman_gcs', 'source']

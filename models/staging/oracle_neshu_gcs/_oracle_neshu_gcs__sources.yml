@@ -2,6 +2,7 @@ version: 2
 
 sources:
   - name: oracle_neshu_gcs
+    database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     tables:
       - name: ext_gcs_oracle_neshu__stock_theorique

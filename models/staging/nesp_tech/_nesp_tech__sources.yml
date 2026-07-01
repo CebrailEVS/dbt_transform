@@ -3,6 +3,7 @@ version: 2
 
 sources:
   - name: nesp_tech
+    database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     description: "Données brutes extraites du fichier excel depuis l'API Arbiter Nomad Repair afin de récupérer les interventions et les articles consommées"  
     config:

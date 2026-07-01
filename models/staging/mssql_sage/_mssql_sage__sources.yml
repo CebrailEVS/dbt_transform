@@ -4,6 +4,7 @@ version: 2
 sources:
   - name: mssql_sage
     description: "Source des données issues de Sage (MSSQL) — données brutes extraites vers BigQuery"
+    database: "{{ var('raw_project') }}"
     schema: prod_raw
     config:
       tags: ['mssql_sage', 'source']  # Déplacé dans config
