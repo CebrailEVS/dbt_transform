@@ -626,6 +626,13 @@ models:
       [NOTES]
       Symétrique de la livraison mais côté entrée : product_destination_id est polymorphe et vaut
       toujours COMPANY ici (réception dans un dépôt). Pas de source.
+      Enrichi avec la date de la commande fournisseur (type 120) rattachée pour calculer le délai
+      de livraison : le lien passe par le document parent partagé (task_idtask), une réception
+      pointe vers au plus 1 commande. Certaines réceptions n'ont pas de commande rapprochable
+      (commande_start_date et délai NULL), et de rares saisies incohérentes donnent un délai négatif
+      (réception datée avant la commande) : filtrer sur is_lead_time_valid. Le statut de livraison
+      (LIVRE/PARTIEL/EN_ATTENTE), saisi manuellement côté ERP, est peu fiable et n'est pas repris
+      ici — tout écart de complétude quantité se traite côté métier.
     columns:
       # --- IDENTIFIANTS ---
       - name: task_product_id
@@ -682,6 +689,20 @@ models:
         data_type: timestamp
         tests:
           - not_null
+      - name: commande_start_date
+        description: >
+          Date de la commande fournisseur (type 120) rattachée, via le document parent partagé
+          (task_idtask). NULL si la réception n'a pas de commande rapprochable.
+        data_type: timestamp
+
+      # --- DÉLAI DE LIVRAISON ---
+      - name: delivery_lead_time_days
+        description: >
+          Délai fournisseur en jours = task_start_date − commande_start_date.
+          NULL si commande_start_date absente. Filtrer sur is_lead_time_valid.
+      - name: is_lead_time_valid
+        description: "Vrai si commande_start_date présente et délai ≥ 0 (réception après commande)."
+        data_type: boolean
 
       # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi
