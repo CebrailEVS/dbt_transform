@@ -10,15 +10,27 @@
 -- 4 sites), soit un TECHNICIEN (van, actif 'ST - …' ou inactif 'Stock technicien - …').
 -- La rupture (quantite = 0) arrive en source sans emplacement (nom_du_stock NULL).
 
-with article_stock as (
+with reference_designation as (
+    -- Désignation unique par référence (attribut article, invariant dans le temps).
+    -- Une même référence porte parfois plusieurs libellés : on écarte les "marqueurs"
+    -- (NE PAS UTILISER, OLD, Remplacé par...) et on retient le plus petit des libellés
+    -- valides ; fallback sur min(tout) si la référence n'a QUE des marqueurs (jamais NULL).
+    select
+        reference,
+        coalesce(
+            min(case when not {{ yuman_is_marqueur_designation('designation') }} then designation end),
+            min(designation)
+        ) as designation
+    from {{ ref('stg_yuman_gcs__stock_theorique') }}
+    where reference is not null
+    group by reference
+),
+
+article_stock as (
     select
         -- Grain
         date(export_date) as stock_date,
         reference,
-
-        -- Attribut metier (min() = choix deterministe : ~181 couples reference/date
-        -- portent 2 designations distinctes en source)
-        min(designation) as designation,
 
         -- Disponibilite : global (tous emplacements), depot (reappro), technicien (terrain).
         -- Invariant : is_out_of_stock = is_out_of_stock_depot AND is_out_of_stock_technicien.
@@ -49,5 +61,20 @@ with article_stock as (
     group by stock_date, reference
 )
 
-select *
-from article_stock
+select
+    a.stock_date,
+    a.reference,
+    rd.designation,
+    a.is_out_of_stock,
+    a.is_out_of_stock_depot,
+    a.is_out_of_stock_technicien,
+    a.total_quantity,
+    a.depot_quantity,
+    a.technicien_quantity,
+    a.nb_depots_en_stock,
+    a.nb_techniciens_en_stock,
+    a.dbt_updated_at,
+    a.dbt_invocation_id
+from article_stock as a
+left join reference_designation as rd
+    on a.reference = rd.reference
