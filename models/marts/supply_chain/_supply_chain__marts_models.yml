@@ -134,6 +134,64 @@ models:
         tests:
           - not_null
 
+  - name: fct_supply_chain__stock_article_yuman
+    description: |
+      [QUOI MÉTIER] Stock journalier des articles Yuman au niveau **article** (tous magasins agrégés), avec le drapeau de rupture. Répond à « quels articles sont en rupture totale » et sert de base à un futur taux de disponibilité article.
+      [COMMENT CONSTRUITE] Agrégation de stg_yuman_gcs__stock_theorique par (reference, date). Chaque emplacement (nom_du_stock) est classé DÉPÔT (libellé contenant 'DEPOT', 4 sites) ou TECHNICIEN (van, actif 'ST - …' ou inactif). total_quantity = somme tous emplacements ; depot_quantity / technicien_quantity = sommes ventilées ; is_out_of_stock = total nul (absent partout) ; is_out_of_stock_depot = total dépôt nul (indisponible au réappro). Contrairement au mart par magasin, AUCUN filtre sur nom_du_stock : les lignes de rupture (quantite = 0, sans emplacement en source) sont conservées.
+      [GRAIN] 1 ligne par (reference, stock_date).
+      [NOTES] ⚠️ Spécificité Yuman : la rupture n'existe qu'au niveau **article**, pas par emplacement (l'export ne localise pas une rupture — contrairement à Neshu où stock_neshu la porte par entité). Les emplacements mêlent **dépôts ET techniciens** : un article présent uniquement chez un technicien est en stock globalement (is_out_of_stock = false) mais en rupture dépôt (is_out_of_stock_depot = true) → pour le réappro, se fier à is_out_of_stock_depot ; is_out_of_stock_technicien donne la vue terrain (vans). Invariant : is_out_of_stock = is_out_of_stock_depot AND is_out_of_stock_technicien. La distinction dépôt/technicien n'est possible que sur les lignes en stock (quantite > 0, seules à porter un emplacement) ; une rupture totale (quantite = 0) arrive sans emplacement et compte comme vide des deux côtés. Classification dépôt/technicien = heuristique sur le libellé ('DEPOT'). Le détail par emplacement reste dans fct_supply_chain__stock_yuman. ~181 couples reference/date ont 2 désignations en source → min() retenu.
+    columns:
+      - name: stock_date
+        description: "Date du stock (DATE), colonne de partition"
+        tests:
+          - not_null
+      - name: reference
+        description: "Référence de l'article"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation de l'article (min() si plusieurs libellés en source)"
+      - name: is_out_of_stock
+        description: "TRUE si l'article est en rupture totale ce jour-là (aucun emplacement, dépôt ni technicien, total_quantity = 0). Vaut is_out_of_stock_depot AND is_out_of_stock_technicien."
+      - name: is_out_of_stock_depot
+        description: "TRUE si l'article n'est en stock dans aucun dépôt ce jour-là (depot_quantity = 0), même s'il reste du stock chez des techniciens. Indicateur de rupture pour le réappro."
+      - name: is_out_of_stock_technicien
+        description: "TRUE si l'article n'est en stock chez aucun technicien ce jour-là (technicien_quantity = 0), même s'il reste du stock en dépôt. Indicateur de disponibilité terrain (vans)."
+      - name: total_quantity
+        description: "Quantité totale de l'article, agrégée sur tous les emplacements (dépôts + techniciens ; 0 si rupture)"
+      - name: depot_quantity
+        description: "Quantité de l'article dans les dépôts uniquement (0 si aucun dépôt approvisionné)"
+      - name: technicien_quantity
+        description: "Quantité de l'article dans les stocks techniciens uniquement (total_quantity − depot_quantity)"
+      - name: nb_depots_en_stock
+        description: "Nombre de dépôts où l'article a une quantité > 0 ce jour-là"
+      - name: nb_techniciens_en_stock
+        description: "Nombre de stocks techniciens où l'article a une quantité > 0 ce jour-là"
+      - name: dbt_updated_at
+        description: "Timestamp de reconstruction de la table"
+      - name: dbt_invocation_id
+        description: "Identifiant du run dbt ayant produit la ligne"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - reference
+              - stock_date
+      # cohérence des drapeaux de rupture vs les mesures agrégées
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_out_of_stock = (total_quantity = 0)"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_out_of_stock_depot = (depot_quantity = 0)"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_out_of_stock_technicien = (technicien_quantity = 0)"
+      # invariant : rupture globale = rupture dépôt ET rupture technicien
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_out_of_stock = (is_out_of_stock_depot and is_out_of_stock_technicien)"
+
   - name: fct_supply_chain__disponibilite_article_neshu_depot_mensuel
     description: |
       [QUOI MÉTIER] Taux de disponibilité mensuel des articles dans les dépôts Neshu : part des jours du mois où l'article était en stock (> 0).
