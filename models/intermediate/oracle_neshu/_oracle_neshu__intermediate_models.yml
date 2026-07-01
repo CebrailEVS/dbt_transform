@@ -626,6 +626,13 @@ models:
       [NOTES]
       Symétrique de la livraison mais côté entrée : product_destination_id est polymorphe et vaut
       toujours COMPANY ici (réception dans un dépôt). Pas de source.
+      Enrichi avec la date de la commande fournisseur (type 120) rattachée pour calculer le délai
+      de livraison : le lien passe par le document parent partagé (task_idtask), une réception
+      pointe vers au plus 1 commande. Certaines réceptions n'ont pas de commande rapprochable
+      (commande_start_date et délai NULL), et de rares saisies incohérentes donnent un délai négatif
+      (réception datée avant la commande) : filtrer sur is_lead_time_valid. Le statut de livraison
+      (LIVRE/PARTIEL/EN_ATTENTE), saisi manuellement côté ERP, est peu fiable et n'est pas repris
+      ici — tout écart de complétude quantité se traite côté métier.
     columns:
       # --- IDENTIFIANTS ---
       - name: task_product_id
@@ -682,6 +689,20 @@ models:
         data_type: timestamp
         tests:
           - not_null
+      - name: commande_start_date
+        description: >
+          Date de la commande fournisseur (type 120) rattachée, via le document parent partagé
+          (task_idtask). NULL si la réception n'a pas de commande rapprochable.
+        data_type: timestamp
+
+      # --- DÉLAI DE LIVRAISON ---
+      - name: delivery_lead_time_days
+        description: >
+          Délai fournisseur en jours = task_start_date − commande_start_date.
+          NULL si commande_start_date absente. Filtrer sur is_lead_time_valid.
+      - name: is_lead_time_valid
+        description: "Vrai si commande_start_date présente et délai ≥ 0 (réception après commande)."
+        data_type: boolean
 
       # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi
@@ -1456,6 +1477,150 @@ models:
       # --- DATE ---
       - name: task_start_date
         description: "Date et heure réelle de la commande interne."
+        data_type: timestamp
+        tests:
+          - not_null
+
+      # --- CONDITIONNEMENT & PRIX ---
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
+      - name: unit_coeff_div
+        description: "Coefficient diviseur de conditionnement."
+      - name: base_unit_quantity
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
+      - name: product_unit_price_task
+        description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
+      - name: product_unit_price_latest
+        description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
+
+      # --- MESURES ---
+      - name: quantity
+        description: "Quantité commandée en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
+      - name: valuation
+        description: "Valorisation de la commande en euros = quantity × prix d'achat unitaire. Mesure additive."
+
+      # --- MÉTADONNÉES ---
+      - name: updated_at
+        description: "Timestamp de dernière modification en source."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: created_at
+        description: "Timestamp de création en source."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis Oracle."
+        data_type: timestamp
+        tests:
+          - not_null
+
+  - name: int_oracle_neshu__commande_fournisseur_tasks
+    description: >
+      [QUOI MÉTIER]
+      Commandes fournisseur NESHU (type 120) : une ligne par produit commandé à un fournisseur
+      externe (source) et livré dans un dépôt (destination), avec son statut de livraison.
+      Approvisionnement externe, typiquement fournisseur → dépôt.
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_neshu__task (idtask_type = 120, code_status_record = '1', real_start_date non nul,
+      tous statuts de tâche conservés) croisé avec task_has_product (grain ligne produit), enrichi
+      product et task_status. Source (fournisseur) et destination (dépôt) résolues sur company
+      (type COMPANY dans 100 % des cas). Le statut de livraison est pivoté au grain tâche depuis le
+      label de famille STATUT_LIVRAISON (max(case ...)), puis rattaché aux lignes produit — pas de
+      déduplication. Seules les lignes dont source ET destination se résolvent sont conservées.
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'une commande fournisseur). ~7 760 lignes
+      (~1 670 tâches), depuis 2022.
+
+      [NOTES]
+      Jumeau structurel de int_oracle_neshu__commande_interne_tasks (flux COMPANY → COMPANY), mais
+      la source est un fournisseur externe (NESPRESSO, NUNSHEN, LIDIS…) et non un dépôt interne ;
+      logiquement en amont de int_oracle_neshu__reception_tasks (type 121, bon de réception).
+      Contrairement à commande_interne, le label est pivoté au grain tâche (1 label STATUT_LIVRAISON
+      par tâche aujourd'hui) plutôt que dédupliqué. Aucun filtre statut ici : le tri
+      FAIT/VALIDE/ANNULE se fait en marts / couche métier.
+    columns:
+      # --- IDENTIFIANTS ---
+      - name: task_product_id
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
+        data_type: int64
+        tests:
+          - unique
+          - not_null
+      - name: task_id
+        description: "Tâche de commande fournisseur Oracle (EVS.TASK)."
+        data_type: int64
+        tests:
+          - not_null
+      - name: company_id
+        description: "Client (peer company) de la tâche. FK → dim_neshu__company."
+        data_type: int64
+      - name: product_id
+        description: "Produit commandé. FK → dim_neshu__product."
+        data_type: int64
+        tests:
+          - not_null
+      - name: product_source_id
+        description: >
+          Identifiant de l'entité **source** (le fournisseur). Référence polymorphe : table cible
+          nommée par product_source_type — COMPANY → stg_oracle_neshu__company. Pas une FK produit.
+        data_type: int64
+      - name: product_source_type
+        description: "Type de l'entité source = table cible de product_source_id. Toujours COMPANY (fournisseur) sur ce type de tâche."
+        data_type: string
+      - name: product_destination_id
+        description: >
+          Identifiant de l'entité **destination** (le dépôt). Référence polymorphe : table cible
+          nommée par product_destination_type — COMPANY → stg_oracle_neshu__company.
+        data_type: int64
+      - name: product_destination_type
+        description: "Type de l'entité destination = table cible de product_destination_id. Toujours COMPANY (dépôt) sur ce type de tâche."
+        data_type: string
+
+      # --- CODES ---
+      - name: source_code
+        description: "Code du fournisseur (company.code de la source). Ex. NESPRESSO, NUNSHEN, LIDIS PARIS."
+        data_type: string
+        tests:
+          - not_null
+      - name: destination_code
+        description: "Code du dépôt destinataire (company.code de la destination). Ex. DEPOTRUNGIS, DEPOTLYON."
+        data_type: string
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code métier du produit."
+        data_type: string
+      - name: task_status_code
+        description: >
+          Code du statut de la tâche. Valeurs observées : FAIT (réalisé, majoritaire), VALIDE, ANNULE.
+          Aucun filtre appliqué ici (tri en marts / couche métier).
+        data_type: string
+        tests:
+          - accepted_values:
+              arguments:
+                values: [FAIT, VALIDE, ANNULE, ANOMALIE]
+              config:
+                severity: warn
+      - name: delivery_status_code
+        description: >
+          Statut de livraison de la commande fournisseur, pivoté au grain tâche depuis le label de
+          famille STATUT_LIVRAISON. Valeurs : LIVRE (livré, majoritaire), LIVRE_PARTIEL (livraison
+          partielle), EN_ATTENTE (en attente). Nul si la tâche ne porte aucun label.
+        data_type: string
+        tests:
+          - accepted_values:
+              arguments:
+                values: [LIVRE, LIVRE_PARTIEL, EN_ATTENTE]
+              config:
+                severity: warn
+
+      # --- DATE ---
+      - name: task_start_date
+        description: "Date et heure réelle de la commande fournisseur."
         data_type: timestamp
         tests:
           - not_null
