@@ -1,5 +1,10 @@
 
 
+-- Dépend du snapshot SCD2 snap_oracle_neshu__device. Les snapshots sont un
+-- artefact de PROD (historique accumulé) et ne sont pas reconstruits en dev.
+-- Le build dev tourne donc avec --defer : ref('snap_...') résout vers la
+-- version prod (evs-datastack-prod.snapshots). Cf. CI pr-check.
+
 with snapshot as (
     select * from `evs-datastack-prod`.`snapshots`.`snap_oracle_neshu__device`
 )
