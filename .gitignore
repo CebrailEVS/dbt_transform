@@ -34,3 +34,7 @@ keyfile.json
 # Local working files (not versioned)
 scripts/
 docs/audits/
+
+# Modèles d'analyse ad hoc / jetables (comparaisons vs prod, dev-only).
+# Non versionnés : ils tournent en local à la demande, hors CI.
+models/_analysis/
