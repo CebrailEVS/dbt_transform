@@ -126,11 +126,11 @@ jobs:
       - name: dbt build
         run: |
           if [[ -f "state/manifest.json" ]]; then
-            echo "Running SELECTIVE build (state:modified+), excluding snapshots..."
-            dbt build --target dev --select state:modified+ --exclude resource_type:snapshot --state state/
+            echo "SELECTIVE build (state:modified+) + --defer: snapshots & unbuilt refs resolve to PROD"
+            dbt build --target dev --select state:modified+ --defer --state state/ --exclude resource_type:snapshot
           else
-            echo "Running FULL build (no state available), excluding snapshots..."
-            dbt build --target dev --exclude resource_type:snapshot
+            echo "No prod manifest to defer to -> full standalone build (snapshots included)"
+            dbt build --target dev
           fi
 
 # ============================================================
