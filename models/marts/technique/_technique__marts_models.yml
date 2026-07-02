@@ -41,7 +41,7 @@ models:
       - Plusieurs colonnes sont harmonisées mais portent une sémantique
         différente selon la source — voir les descriptions de `statut_facturation`,
         `categorie_machine` / `machine_clean`, `delai_heures_*`, `bonus_bool`,
-        `delai_tech` / `delai_partenaire`, `alias_obj_*`.
+        `delai_tech` / `delai_partenaire`, `alias_obj_*`, `client_id`.
       - Rafraîchissement : aucun scheduler dédié à la BU technique. Le mart se
         reconstruit automatiquement via `source:<source>+` quand une source
         upstream charge (refacto Option C) — pipeline EL `nesp_tech` (lundi 07:30,
@@ -84,6 +84,19 @@ models:
           Identifiant du technicien dans le système source : `nomad_id`
           (minuscule) côté NESP, `technician_id` Yuman côté YUMAN. Sert de clé de
           mapping vers `stg_yuman__users`.
+
+      - name: client_id
+        description: >
+          Numéro client dans le système source (attribut à plat, homogénéisé en
+          string) : `n_client` côté NESP, `client_code` côté YUMAN (ex.
+          `NESH_CN1017`). ⚠️ Ce N'EST PAS la PK `client_id` (entier) de
+          `dim_technique__client` : types hétérogènes et périmètre Nespresso hors
+          dim → non joignable. Nullable côté NESP.
+
+      - name: client_nom
+        description: >
+          Raison sociale du client, harmonisée en Initial Caps (`initcap`).
+          NESP = `raison_sociale_client` ; YUMAN = `client_name`.
 
       - name: intervention_statut
         description: >
