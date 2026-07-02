@@ -18,6 +18,7 @@ sources:
     description: >
       Données brutes extraites de l'API Zoho Desk (EU region) via dlt (data load tool).
       Dataset BigQuery : evs-datastack-prod.prod_raw.
+    database: "{{ var('raw_project') }}"
     schema: prod_raw
     config:
       tags: ['zoho_desk', 'source']

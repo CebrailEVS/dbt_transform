@@ -3,6 +3,7 @@ version: 2
 
 sources:
   - name: nesp_co
+    database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     description: "Données brutes extraites des fichiers excel Activité et Opportunités Nespresso depuis le FTP nespresso commerce"  
     config:

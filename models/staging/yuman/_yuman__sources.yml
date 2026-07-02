@@ -3,6 +3,7 @@ version: 2
 
 sources:
   - name: yuman_api
+    database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     description: "Données brutes extraites de l'API Yuman (full refresh quotidien)"
 

@@ -2,6 +2,7 @@ version: 2
 
 sources:
   - name: gac
+    database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     description: "Données brutes extraites du fichier suivi des sinistres envoyé par GAC vers le FTP SG"
     config:

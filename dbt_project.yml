@@ -136,6 +136,11 @@ snapshots:
 
 # Vars
 vars:
+  # Projet GCP du data lake (prod_raw, historic…). Les sources le lisent via
+  # database: "{{ var('raw_project') }}" pour que `dbt --target dev` (projet
+  # evs-datastack-dev) lise le lac en cross-project read-only sans le dupliquer.
+  # Cf. infra/dev_project_isolation.tf.
+  raw_project: 'evs-datastack-prod'
   # Required by dbt_date (transitive dep of dbt_expectations) for recency checks.
   # Cf. docs/freshness.md méthode B.
   'dbt_date:time_zone': 'Europe/Paris'

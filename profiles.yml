@@ -2,23 +2,26 @@
 dbt_warehouse:
   target: "{{ env_var('DBT_TARGET', 'dev') }}"
   outputs:
+    # Isolation projet : le target dev écrit dans evs-datastack-dev et
+    # s'authentifie avec le SA dbt-dev (droits dev + lecture prod_raw only).
+    # Les sources restent lues dans evs-datastack-prod via var('raw_project').
     dev:
       type: bigquery
       method: service-account
-      project: "{{ env_var('DBT_BIGQUERY_PROJECT') }}"
+      project: "{{ env_var('DBT_BIGQUERY_PROJECT_DEV', 'evs-datastack-dev') }}"
       dataset: "{{ env_var('DBT_BIGQUERY_DATASET_DEV') }}"
       threads: 6
       location: europe-west1
-      keyfile: "{{ env_var('DBT_BIGQUERY_KEYFILE') }}"
+      keyfile: "{{ env_var('DBT_BIGQUERY_KEYFILE_DEV') }}"
 
     dev_analyst:
       type: bigquery
       method: service-account
-      project: "{{ env_var('DBT_BIGQUERY_PROJECT') }}"
+      project: "{{ env_var('DBT_BIGQUERY_PROJECT_DEV', 'evs-datastack-dev') }}"
       dataset: "{{ env_var('DBT_BIGQUERY_DATASET_DEV') }}"  # Utilisera dev_analyst via .env
       threads: 6
       location: europe-west1
-      keyfile: "{{ env_var('DBT_BIGQUERY_KEYFILE') }}"
+      keyfile: "{{ env_var('DBT_BIGQUERY_KEYFILE_DEV') }}"
       
     prod:
       type: bigquery

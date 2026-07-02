@@ -3,6 +3,7 @@ version: 2
 
 sources:
   - name: oracle_neshu
+    database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     description: "Données brutes extraites de l'ERP Oracle Neshu (mix full/incremental)"
 

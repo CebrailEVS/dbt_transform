@@ -79,12 +79,19 @@ jobs:
       - name: Setup Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Decode and write dev service account keyfile
+        run: echo "${{ secrets.DBT_BIGQUERY_KEYFILE_DEV }}" | base64 -d > $GITHUB_WORKSPACE/keyfile_dev.json
+
       - name: Export env variables for dbt
         run: |
           echo "DBT_BIGQUERY_PROJECT=${{ secrets.DBT_BIGQUERY_PROJECT }}" >> $GITHUB_ENV
           echo "DBT_BIGQUERY_KEYFILE=$GITHUB_WORKSPACE/keyfile.json" >> $GITHUB_ENV
           echo "DBT_BIGQUERY_DATASET_DEV=${{ secrets.DBT_BIGQUERY_DATASET_DEV }}" >> $GITHUB_ENV
           echo "DBT_BIGQUERY_DATASET_PROD=${{ secrets.DBT_BIGQUERY_DATASET_PROD }}" >> $GITHUB_ENV
+          # Target dev → projet isolé evs-datastack-dev via la clé du SA dbt-dev.
+          # Les sources restent lues dans evs-datastack-prod (var raw_project).
+          echo "DBT_BIGQUERY_PROJECT_DEV=evs-datastack-dev" >> $GITHUB_ENV
+          echo "DBT_BIGQUERY_KEYFILE_DEV=$GITHUB_WORKSPACE/keyfile_dev.json" >> $GITHUB_ENV
 
       - name: dbt deps + debug
         run: |
