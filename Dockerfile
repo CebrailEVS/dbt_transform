@@ -16,6 +16,7 @@ WORKDIR /app
 
 COPY dbt_project.yml packages.yml profiles.yml selectors.yml ./
 COPY models/ models/
+COPY macros/ macros/
 COPY snapshots/ snapshots/
 COPY data/ data/
 COPY entrypoint.sh .
