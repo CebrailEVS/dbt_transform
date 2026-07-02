@@ -129,9 +129,12 @@ seeds:
     +tags: ['reference']
 
 # Configuration des snapshots
+# Les snapshots sont un artefact de PROD (historique SCD2 continu, maintenu par
+# Cloud Run). En dev on ne les reconstruit pas : les builds dev les lisent depuis
+# prod via --defer (cf. dim_neshu__device_history).
 snapshots:
   dbt_warehouse:
-    +target_schema: "{{ 'snapshots_dev' if target.name == 'dev' else 'snapshots' }}"
+    +target_schema: snapshots
     +tags: ['snapshots']
 
 # Vars
