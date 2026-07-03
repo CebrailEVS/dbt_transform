@@ -12,13 +12,22 @@ ELT data warehouse for EVS Professionnelle France.
 
 Required env vars (set in `.env`):
 ```
+# prod target (Cloud Run runtime)
 DBT_BIGQUERY_PROJECT=evs-datastack-prod
-DBT_BIGQUERY_KEYFILE=/path/to/keyfile.json
-DBT_BIGQUERY_DATASET_DEV=dev_      # prefix — actual datasets are dev_staging, dev_intermediate, dev_marts
+DBT_BIGQUERY_KEYFILE=/path/to/prod-keyfile.json
+DBT_BIGQUERY_DATASET_PROD=prod_    # prefix — prod_staging, prod_intermediate, prod_marts
+
+# dev target (default) — isolated GCP project since PR #165
+DBT_BIGQUERY_PROJECT_DEV=evs-datastack-dev
+DBT_BIGQUERY_KEYFILE_DEV=/path/to/dbt-dev-keyfile.json   # SA dbt-dev (dev write + prod_raw read-only)
+DBT_BIGQUERY_DATASET_DEV=dev_      # prefix — dev_staging, dev_intermediate, dev_marts
 DBT_TARGET=dev                     # defaults to dev if not set
 ```
 
-Default target is `dev`. Dev uses the same GCP project as prod but writes to `dev_*` datasets.
+Default target is `dev`. **Dev builds write to a dedicated GCP project `evs-datastack-dev`**
+(not prod), authenticated with the `dbt-dev` service account. Sources are still read
+cross-project from `evs-datastack-prod` `prod_raw` via `var('raw_project')` — no pipeline
+duplication. Dev snapshots read from prod (PR #166).
 Never run against `prod` target unless explicitly asked.
 
 ---
