@@ -22,6 +22,11 @@ cleaned_users as (
             from unnest(json_query_array(_embed_fields)) as field
             where json_value(field, '$.name') = 'SECTEUR'
         ), '') as user_secteur,
+        nullif((
+            select json_value(field, '$.value')
+            from unnest(json_query_array(_embed_fields)) as field
+            where json_value(field, '$.name') = 'ENTREPOT RATTACHEMENT'
+        ), '') as entrepot_rattachement,
         name as user_name,
         email as user_email,
         user_type,
@@ -52,6 +57,7 @@ final as (
         user_email,
         user_type,
         user_phone,
+        entrepot_rattachement,
         is_manager_as_technician,
         lower(user_inactif) not in ('oui', 'sì', 'si', 'yes', 'true') as is_active,
         created_at,
