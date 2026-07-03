@@ -32,6 +32,41 @@ Never run against `prod` target unless explicitly asked.
 
 ---
 
+## CI/CD (GitHub Actions — `.github/workflows/dbt-ci.yml`)
+
+One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/**`, `tests/**`,
+`dbt_project.yml`, `profiles.yml`, `packages.yml`, `selectors.yml`, `Dockerfile`, `entrypoint.sh`,
+`requirements*.txt`, `.sqlfluff`. Three jobs:
+
+**`pr-check`** — runs on `pull_request` → master (model paths only; `models/exposures/**` excluded):
+- `dbt deps` + `dbt debug --target dev`
+- SQLFluff lint on **changed** models only (git diff vs base ref)
+- `dbt parse --target dev` (warnings surfaced, non-blocking)
+- Pulls prod `manifest.json` from the GCS state bucket, then a **deferred incremental** build:
+  `dbt build --target dev --select state:modified+ --defer --state state/ --exclude resource_type:snapshot`
+  → builds only modified+downstream in `evs-datastack-dev`; unbuilt refs & snapshots **defer to prod**.
+  (No manifest → full `dbt build --target dev`, snapshots included.)
+
+**`cd`** — runs on `push` → master (**including direct pushes that bypass the PR rule**):
+- `dbt deps` + `dbt debug --target prod`
+- Pulls prod manifest, then **state-based incremental** build **directly in prod**:
+  `dbt build --target prod --select state:modified+ --exclude resource_type:snapshot --state state/`
+  (No manifest → full build, snapshots excluded.)
+- `dbt docs generate --target prod`, then **uploads `manifest.json` back to GCS** (state for next run)
+- Builds & pushes `dbt-runner:latest` to Artifact Registry
+  (`europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner`)
+
+**`deploy-docs`** — `needs: cd`: deploys the generated dbt docs to GitHub Pages.
+
+**Key facts (don't forget these):**
+- Snapshots are **always excluded** from CI/CD builds — owned by Cloud Workflows only.
+- Builds are **state-based incremental** (`state:modified+`) against the GCS manifest, **not** full rebuilds.
+- A **direct push to master triggers `cd`** → the change builds in prod immediately, not only on PR merge.
+  The rebuilt `dbt-runner` image is then picked up **per-execution** by scheduled Cloud Workflows runs.
+- CI/CD (immediate build on push/PR) is **distinct from Cloud Workflows** (scheduled EL + transform orchestration).
+
+---
+
 ## Architecture — 3 layers
 
 | Layer | Schema | Materialization |
