@@ -118,6 +118,9 @@ models:
       - name: nomad_id
         description: "Identifiant de l'utilisateur dans le système Nomad (si applicable)"
 
+      - name: entrepot_rattachement
+        description: "Entrepôt/dépôt de rattachement du technicien. Dérivé du champ personnalisé Yuman 'ENTREPOT RATTACHEMENT'. Null si non renseigné."
+
       - name: is_active
         description: "Indique si l'utilisateur est actif (true) ou inactif (false). Dérivé du champ personnalisé INACTIF (Oui/Non)."
         tests:

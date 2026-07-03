@@ -921,8 +921,12 @@ models:
       Lecture de `stg_yuman__users` filtré sur user_type IN ('technician',
       'manager') avec flag `is_manager_as_technician`. Enrichie avec :
       - le nom du manager direct (via self-join sur stg_yuman__users)
-      - le dépôt (storehouse) rattaché via jointure `storehouses_id = user_id`
-        sur `stg_yuman__storehouses`.
+      - le dépôt via deux angles complémentaires : `storehouses_name` = stock
+        nominatif individuel du technicien ('ST - NOM'), via jointure
+        `storehouses_id = user_id` sur `stg_yuman__storehouses` ;
+        `entrepot_rattachement` = atelier/dépôt physique parent regroupant les
+        techniciens par site (ex. '06 - ATELIER RUNGIS DEPOT'), issu du champ
+        personnalisé Yuman.
 
       [GRAIN]
       1 ligne par `user_id` (PK Yuman du technicien).
@@ -958,6 +962,15 @@ models:
 
       - name: user_secteur
         description: Secteur géographique ou opérationnel d'affectation du technicien.
+
+      - name: entrepot_rattachement
+        description: >-
+          Atelier/dépôt physique de rattachement du technicien (ex.
+          '06 - ATELIER RUNGIS DEPOT', '07 - ATELIER LYON DEPOT',
+          '08 - ATELIER BORDEAUX DEPOT'), issu du champ personnalisé Yuman
+          'ENTREPOT RATTACHEMENT'. Regroupe les techniciens par site.
+          À distinguer de storehouses_name, qui est le stock nominatif
+          individuel du technicien ('ST - NOM PRENOM'). Null si non renseigné.
 
       - name: is_manager_as_technician
         description: True si le technicien est un manager intervenant également sur le terrain.

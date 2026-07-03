@@ -31,6 +31,7 @@ final as (
         t.user_phone,
         t.user_type,
         t.user_secteur,
+        t.entrepot_rattachement,
         m.user_name as manager_name,
         s.storehouses_name,
 
