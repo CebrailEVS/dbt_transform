@@ -1,0 +1,3 @@
+reference,designation,motif_exclusion
+EVS_NESPRESSO_0000100,Détartrage,Ligne de saisie d'intervention (prestation) — pas une pièce stockable
+EVS_NESPRESSO_0000001,Pas de pièce,Ligne de saisie d'intervention (aucune pièce utilisée) — pas une pièce stockable
