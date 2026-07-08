@@ -749,6 +749,132 @@ models:
           config:
             severity: warn
 
+  - name: fct_technique__consommation_article_nespresso
+    description: >
+      [QUOI MÉTIER]
+      Consommation d'articles (pièces détachées, consommables) lors des interventions
+      techniques Nespresso (Nomad Repair) — le pendant Nespresso de
+      `fct_technique__consommation_article_yuman` : ces interventions ne passent pas
+      par les bons Yuman, mais leurs articles sont centralisés dans le référentiel
+      Yuman sous le préfixe `EVS_NESPRESSO_` (colonne product_reference = clé de
+      rapprochement avec les stocks Yuman).
+
+      [COMMENT CONSTRUITE]
+      `int_nesp_tech__articles_dedup` (une ligne = un article posé sur une
+      intervention), joint (inner join) à `int_nesp_tech__interventions_dedup`
+      restreint aux agences EVS ('evs', 'evs paris', 'evs idf', 'evs paris 2' —
+      'nespresso sud' = sous-traitant hors flux de stock EVS, plus actif depuis 2025)
+      pour l'état, l'agence et les horodatages début/fin. technician_id résolu via
+      le matricule Nomad (n_tech ↔ dim_technique__technician.nomad_id, unique).
+      product_reference = 'EVS_NESPRESSO_' + upper(code_article).
+
+      [GRAIN]
+      1 ligne par (n_planning, code_article). ~168k lignes depuis nov. 2023.
+
+      [NOTES]
+      Aucun filtre d'état : une ligne de la table articles = une pose réelle
+      (validé métier ; 99,95 % des lignes portent un état terminé), etat_intervention
+      est exposé en information. Contient les lignes de saisie non stockables
+      (Détartrage '0000100', Pas de pièce '0000001', flag 'miniprev') — à exclure
+      selon l'usage via le seed ref_yuman__pseudo_article (sur product_reference).
+      Source extraite chaque lundi (fenêtre 7 jours glissants) : fraîcheur
+      hebdomadaire, pas quotidienne. Flux disjoint des bons Yuman (outils non
+      mélangés, vérifié métier).
+    columns:
+      - name: n_planning
+        description: "Intervention Nomad Repair concernée (clé du grain). Dimension dégénérée."
+        tests:
+          - not_null
+      - name: code_article
+        description: "Code article source Nomad (clé du grain, lowercase). Valeurs spéciales : '0000100' Détartrage, '0000001' Pas de pièce, 'miniprev' flag mini-préventive."
+        tests:
+          - not_null
+      - name: technician_id
+        description: "FK vers dim_technique__technician (user Yuman), résolue via le matricule Nomad. NULL si le matricule n'est plus dans le référentiel."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__technician')
+                field: user_id
+              config:
+                severity: warn
+      - name: product_reference
+        description: "Référence article dans le référentiel Yuman ('EVS_NESPRESSO_' + code article en majuscules). Clé de rapprochement avec les stocks Yuman."
+        tests:
+          - not_null
+      - name: nom_article
+        description: "Libellé de l'article (source Nomad)"
+      - name: n_tech
+        description: "Matricule Nomad du technicien (type 'tec-xxxxx')"
+      - name: nom_tech
+        description: "Nom du technicien (source Nomad)"
+      - name: prenom_tech
+        description: "Prénom du technicien (source Nomad)"
+      - name: n_client
+        description: "Identifiant client Nespresso (Nessoft)"
+      - name: raison_sociale_client
+        description: "Raison sociale du client"
+      - name: n_site
+        description: "Identifiant du site d'intervention"
+      - name: nom_site
+        description: "Nom du site d'intervention"
+      - name: code_machine
+        description: "Code de la machine intervenue"
+      - name: nom_machine
+        description: "Nom / modèle de la machine"
+      - name: num_serie_machine
+        description: "Numéro de série de la machine"
+      - name: etat_intervention
+        description: "État de l'intervention porteuse (information, non filtré) : 'terminée signée' (~99,7 %), 'signature différée', 'terminée non signée', 'mise en échec', 'annulée'"
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - "terminée signée"
+                  - "signature différée"
+                  - "terminée non signée"
+                  - "mise en échec"
+                  - "annulée"
+              config:
+                severity: warn
+      - name: agency
+        description: "Agence EVS en charge de l'intervention (périmètre filtré aux agences EVS)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: [evs, evs paris, evs idf, evs paris 2]
+      - name: date_heure_debut
+        description: "Date/heure de début réel de l'intervention (colonne de partition). La date de la table articles source correspond à cette date (99,95 % des lignes)."
+        tests:
+          - not_null
+      - name: date_heure_fin
+        description: "Date/heure de fin de l'intervention"
+      - name: qty_consommee
+        description: "Quantité de l'article posée sur l'intervention. Additive"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "> 0"
+              config:
+                severity: warn
+      - name: dbt_updated_at
+        description: "Timestamp de reconstruction de la table"
+      - name: dbt_invocation_id
+        description: "Identifiant du run dbt ayant produit la ligne"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - n_planning
+              - code_article
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 100000
+            max_value: 1000000
+          config:
+            severity: warn
+
   - name: fct_technique__suivi_partenaire
     description: |
       [QUOI MÉTIER]
