@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] Suivi quotidien des ruptures de stock par d\u00e9p\u00f4t Yuman, sur l'assortiment attendu de chaque d\u00e9p\u00f4t. R\u00e9pond \u00e0 \u00ab quel d\u00e9p\u00f4t doit r\u00e9approvisionner quelles r\u00e9f\u00e9rences \u00bb et permet un taux de disponibilit\u00e9 par d\u00e9p\u00f4t dans le temps. R\u00e8gle m\u00e9tier valid\u00e9e avec la logistique (V. \u2014 juillet 2026).\n\n[COMMENT CONSTRUITE] La rupture par d\u00e9p\u00f4t n'existe pas en source (une rupture Yuman arrive sans emplacement) : elle est reconstruite. Assortiment attendu d'un d\u00e9p\u00f4t = r\u00e9f\u00e9rences consomm\u00e9es \u2265 2 fois sur les 180 jours glissants pr\u00e9c\u00e9dant chaque date d'export (fct_technique__consommation_article_yuman) par les techniciens rattach\u00e9s au d\u00e9p\u00f4t (dim_technique__technician.entrepot_rattachement). Pour chaque (date, d\u00e9p\u00f4t, r\u00e9f\u00e9rence) de l'assortiment, le stock du jour (stg_yuman_gcs__stock_theorique) est ventil\u00e9 : d\u00e9p\u00f4t lui-m\u00eame, autres d\u00e9p\u00f4ts, vans des techniciens du d\u00e9p\u00f4t (mapping van\u2192technicien via storehouses_name), tous vans. Absence de ligne de stock = quantit\u00e9 0. Pseudo-r\u00e9f\u00e9rences de saisie d'intervention exclues via le seed ref_yuman__pseudo_article.\n\n[GRAIN] 1 ligne par (stock_date, depot, reference) \u2014 tout l'assortiment, en stock ou non.\n\n[NOTES] Pas de transfert inter-d\u00e9p\u00f4t en pratique : toute rupture renvoie vers une commande fournisseur, rupture_statut sert \u00e0 prioriser (RUPTURE_TOTALE = plus rien nulle part ; STOCK_RESTANT_VANS = les vans du d\u00e9p\u00f4t portent l'autonomie terrain restante ; STOCK_AILLEURS = informatif). Le rattachement technicien\u2192d\u00e9p\u00f4t est l'\u00e9tat courant (dim Type 1), appliqu\u00e9 \u00e0 tout l'historique ; ~4 % des consommations (techniciens d\u00e9sactiv\u00e9s, comptes ASTREINTE, sans rattachement) sont hors p\u00e9rim\u00e8tre. Le d\u00e9p\u00f4t de Strasbourg n'a pas de technicien rattach\u00e9 (secteur Est rattach\u00e9 \u00e0 Lyon/Dardilly) : il est structurellement absent. Les exports sont quotidiens sauf dimanche : les taux de disponibilit\u00e9 se calculent en jours observ\u00e9s. Consommations Nespresso (Nomad Repair) non int\u00e9gr\u00e9es \u00e0 ce stade \u2014 extension pr\u00e9vue via un mod\u00e8le d\u00e9di\u00e9.\n"""
+      description="""[QUOI M\u00c9TIER] Suivi quotidien des ruptures de stock par d\u00e9p\u00f4t Yuman, sur l'assortiment attendu de chaque d\u00e9p\u00f4t. R\u00e9pond \u00e0 \u00ab quel d\u00e9p\u00f4t doit r\u00e9approvisionner quelles r\u00e9f\u00e9rences \u00bb et permet un taux de disponibilit\u00e9 par d\u00e9p\u00f4t dans le temps. R\u00e8gle m\u00e9tier valid\u00e9e avec la logistique (V. \u2014 juillet 2026).\n\n[COMMENT CONSTRUITE] La rupture par d\u00e9p\u00f4t n'existe pas en source (une rupture Yuman arrive sans emplacement) : elle est reconstruite. Assortiment attendu d'un d\u00e9p\u00f4t = r\u00e9f\u00e9rences consomm\u00e9es \u2265 2 fois sur les 180 jours glissants pr\u00e9c\u00e9dant chaque date d'export (fct_technique__consommation_article_yuman, filtr\u00e9 sur intervention_state REALISEE/EN_COURS \u2014 une conso saisie sur un workorder non r\u00e9alis\u00e9 ou en pause n'est pas une sortie de pi\u00e8ce s\u00fbre) par les techniciens rattach\u00e9s au d\u00e9p\u00f4t (dim_technique__technician.entrepot_rattachement). Pour chaque (date, d\u00e9p\u00f4t, r\u00e9f\u00e9rence) de l'assortiment, le stock du jour (stg_yuman_gcs__stock_theorique) est ventil\u00e9 : d\u00e9p\u00f4t lui-m\u00eame, autres d\u00e9p\u00f4ts, vans des techniciens du d\u00e9p\u00f4t (mapping van\u2192technicien via storehouses_name), tous vans. Absence de ligne de stock = quantit\u00e9 0. Pseudo-r\u00e9f\u00e9rences de saisie d'intervention exclues via le seed ref_yuman__pseudo_article.\n\n[GRAIN] 1 ligne par (stock_date, depot, reference) \u2014 tout l'assortiment, en stock ou non.\n\n[NOTES] Pas de transfert inter-d\u00e9p\u00f4t en pratique : toute rupture renvoie vers une commande fournisseur, rupture_statut sert \u00e0 prioriser (RUPTURE_TOTALE = plus rien nulle part ; STOCK_RESTANT_VANS = les vans du d\u00e9p\u00f4t portent l'autonomie terrain restante ; STOCK_AILLEURS = informatif). Le rattachement technicien\u2192d\u00e9p\u00f4t est l'\u00e9tat courant (dim Type 1), appliqu\u00e9 \u00e0 tout l'historique ; ~4 % des consommations (techniciens d\u00e9sactiv\u00e9s, comptes ASTREINTE, sans rattachement) sont hors p\u00e9rim\u00e8tre. Le d\u00e9p\u00f4t de Strasbourg n'a pas de technicien rattach\u00e9 (secteur Est rattach\u00e9 \u00e0 Lyon/Dardilly) : il est structurellement absent. Les exports sont quotidiens sauf dimanche : les taux de disponibilit\u00e9 se calculent en jours observ\u00e9s. Consommations Nespresso (Nomad Repair) non int\u00e9gr\u00e9es \u00e0 ce stade \u2014 extension pr\u00e9vue via un mod\u00e8le d\u00e9di\u00e9.\n"""
     )
     as (
       
@@ -33,6 +33,8 @@ pseudo_articles as (
 conso as (
     -- Consommations Yuman rattachées à un dépôt via le technicien.
     -- Dim Type 1 : le rattachement est l'état courant, appliqué à tout l'historique.
+    -- Seules les interventions réalisées ou en cours comptent : une conso saisie
+    -- sur un workorder NON_REALISEE / EN_PAUSE n'est pas une sortie de pièce sûre.
     select
         t.entrepot_rattachement as depot,
         c.product_reference as reference,
@@ -43,7 +45,8 @@ conso as (
     left join pseudo_articles as pa
         on c.product_reference = pa.reference
     where
-        t.entrepot_rattachement is not null
+        c.intervention_state in ('REALISEE', 'EN_COURS')
+        and t.entrepot_rattachement is not null
         and c.product_reference is not null
         and pa.reference is null
 ),
@@ -159,7 +162,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '38fc1ffa-da48-445f-91ab-d0172d770d10' as dbt_invocation_id
+    'bab2cfc6-c93a-4130-8366-e36a0c81a011' as dbt_invocation_id
 from assortiment_stock as ast
 left join reference_designation as rd
     on ast.reference = rd.reference
