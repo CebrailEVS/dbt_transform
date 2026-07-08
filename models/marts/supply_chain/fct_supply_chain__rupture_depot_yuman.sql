@@ -26,6 +26,8 @@ pseudo_articles as (
 conso as (
     -- Consommations Yuman rattachées à un dépôt via le technicien.
     -- Dim Type 1 : le rattachement est l'état courant, appliqué à tout l'historique.
+    -- Seules les interventions réalisées ou en cours comptent : une conso saisie
+    -- sur un workorder NON_REALISEE / EN_PAUSE n'est pas une sortie de pièce sûre.
     select
         t.entrepot_rattachement as depot,
         c.product_reference as reference,
@@ -36,7 +38,8 @@ conso as (
     left join pseudo_articles as pa
         on c.product_reference = pa.reference
     where
-        t.entrepot_rattachement is not null
+        c.intervention_state in ('REALISEE', 'EN_COURS')
+        and t.entrepot_rattachement is not null
         and c.product_reference is not null
         and pa.reference is null
 ),
