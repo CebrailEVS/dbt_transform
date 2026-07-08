@@ -118,7 +118,13 @@ cleaned_data as (
         end as date_planning_nomadrepair,
 
         -- Metadata
-        safe.parse_timestamp('%Y-%m-%d %H:%M:%S%Ez', extracted_at) as extracted_at,
+        -- L'extracteur a changé deux fois de format ('YYYY-MM-DD HH:MM:SS+TZ',
+        -- puis nanosecondes, puis ISO 'T') : safe_cast couvre les formats ISO,
+        -- %E*S accepte les fractions de seconde de longueur libre (nanosecondes).
+        coalesce(
+            safe_cast(extracted_at as timestamp),
+            safe.parse_timestamp('%Y-%m-%d %H:%M:%E*S%Ez', extracted_at)
+        ) as extracted_at,
         source_file
 
     from source_data
