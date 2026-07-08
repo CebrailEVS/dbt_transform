@@ -35,10 +35,12 @@ parsed_data as (
         trim(engagement) as engagement_raw,
 
         -- version nettoyée numérique
+        -- nullif protège le cast quand l'extraction ne contient aucun chiffre
+        -- (ex. saisie texte libre « PAS D'ENGAGEMENT ») → NULL au lieu de Bad int64
         case
             when upper(trim(engagement)) = 'AUCUN' then 0
             else cast(
-                regexp_replace(regexp_extract(engagement, r'[\d\s]+'), r'\s+', '') as int64
+                nullif(regexp_replace(regexp_extract(engagement, r'[\d\s]+'), r'\s+', ''), '') as int64
             )
         end as engagement_clean,
 

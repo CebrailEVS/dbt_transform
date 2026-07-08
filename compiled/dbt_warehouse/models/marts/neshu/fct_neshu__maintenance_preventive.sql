@@ -88,9 +88,9 @@ yuman_materials_clean as (
             'NESH_MA00182', 'NESH_MA00184', 'NESH_MA00185', 'NESH_MA00183', 'NESH_MA00186',
             'NESH_MA00187', 'NESH_AS00401', 'NESH_AS00403', 'NESH_AS00393', 'NESH_AS00557',
             'NESH_AS00558', 'NESH_AS00242', 'NESH_AS00241', 'NESH_AS00562', 'NESH_AS00559',
-            'NESH_AS00070', 'NESH_AS00568', 'NESH_AS00563', 'NESH_AS00561', 'NESH_AS00560',
-            'NESH_AS00317', 'NESH_AS00314', 'NESH_MA00136', 'NESH_AS00011', 'NESH_AS00012',
-            'NESH_MA00170', 'NESH_AS00004'
+            'NESH_AS00070', 'NESH_AS00568', 'NESH_AS00563', 'NESH_AS00561', 'NESH_AS00317',
+            'NESH_AS00314', 'NESH_MA00136', 'NESH_AS00011', 'NESH_AS00012', 'NESH_MA00170',
+            'NESH_AS00004'
         )
 ),
 
@@ -495,7 +495,7 @@ final as (
 
         -- Métadonnées dbt
         CURRENT_TIMESTAMP() as dbt_updated_at,
-        'd82a266e-3b40-4c50-941e-121cfe49b260' as dbt_invocation_id  -- noqa: TMP
+        '686fc251-6ad8-4f1c-a9fa-2e8ba0fa76de' as dbt_invocation_id  -- noqa: TMP
 
     from deduplicated
     where rn = 1  -- Ne garder qu'une ligne par device_id
