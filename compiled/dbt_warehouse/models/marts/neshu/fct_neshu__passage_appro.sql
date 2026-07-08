@@ -240,6 +240,6 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '2f2062f1-6226-4296-a568-e5c872781c4a' as dbt_invocation_id  -- noqa: TMP
+    '2363fe04-c239-4ad0-ba80-f4b5742bcfc1' as dbt_invocation_id  -- noqa: TMP
 
 from passage_work_duration
