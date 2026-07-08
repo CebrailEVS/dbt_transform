@@ -235,3 +235,26 @@ seeds:
         description: "Nom du stock associé"
       - name: user_stock_agence
         description: "Agence de stock associée"
+
+  - name: ref_yuman__pseudo_article
+    description: >
+      Références Yuman qui ne sont pas des pièces stockables mais des lignes de
+      saisie d'intervention (prestation « Détartrage », mention « Pas de pièce »).
+      Exclues du calcul d'assortiment / rupture dépôt
+      (fct_supply_chain__rupture_depot_yuman). Ajouter une ligne suffit pour
+      exclure une nouvelle référence.
+    config:
+      column_types:
+        reference: STRING
+        designation: STRING
+        motif_exclusion: STRING
+    columns:
+      - name: reference
+        description: "Référence article Yuman à exclure (clé, format fichier stock)"
+        tests:
+          - not_null
+          - unique
+      - name: designation
+        description: "Désignation de la référence (informatif)"
+      - name: motif_exclusion
+        description: "Raison de l'exclusion (informatif)"

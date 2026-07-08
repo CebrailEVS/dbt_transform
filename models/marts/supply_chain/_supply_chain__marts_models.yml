@@ -202,6 +202,94 @@ models:
           arguments:
             expression: "is_out_of_stock = (is_out_of_stock_depot and is_out_of_stock_technicien)"
 
+  - name: fct_supply_chain__rupture_depot_yuman
+    description: |
+      [QUOI MÉTIER] Suivi quotidien des ruptures de stock par dépôt Yuman, sur l'assortiment attendu de chaque dépôt. Répond à « quel dépôt doit réapprovisionner quelles références » et permet un taux de disponibilité par dépôt dans le temps. Règle métier validée avec la logistique (V. — juillet 2026).
+
+      [COMMENT CONSTRUITE] La rupture par dépôt n'existe pas en source (une rupture Yuman arrive sans emplacement) : elle est reconstruite. Assortiment attendu d'un dépôt = références consommées ≥ 2 fois sur les 180 jours glissants précédant chaque date d'export (fct_technique__consommation_article_yuman) par les techniciens rattachés au dépôt (dim_technique__technician.entrepot_rattachement). Pour chaque (date, dépôt, référence) de l'assortiment, le stock du jour (stg_yuman_gcs__stock_theorique) est ventilé : dépôt lui-même, autres dépôts, vans des techniciens du dépôt (mapping van→technicien via storehouses_name), tous vans. Absence de ligne de stock = quantité 0. Pseudo-références de saisie d'intervention exclues via le seed ref_yuman__pseudo_article.
+
+      [GRAIN] 1 ligne par (stock_date, depot, reference) — tout l'assortiment, en stock ou non.
+
+      [NOTES] Pas de transfert inter-dépôt en pratique : toute rupture renvoie vers une commande fournisseur, rupture_statut sert à prioriser (RUPTURE_TOTALE = plus rien nulle part ; STOCK_RESTANT_VANS = les vans du dépôt portent l'autonomie terrain restante ; STOCK_AILLEURS = informatif). Le rattachement technicien→dépôt est l'état courant (dim Type 1), appliqué à tout l'historique ; ~4 % des consommations (techniciens désactivés, comptes ASTREINTE, sans rattachement) sont hors périmètre. Le dépôt de Strasbourg n'a pas de technicien rattaché (secteur Est rattaché à Lyon/Dardilly) : il est structurellement absent. Les exports sont quotidiens sauf dimanche : les taux de disponibilité se calculent en jours observés. Consommations Nespresso (Nomad Repair) non intégrées à ce stade — extension prévue via un modèle dédié.
+    columns:
+      - name: stock_date
+        description: "Date de l'export stock Yuman (DATE), colonne de partition"
+        tests:
+          - not_null
+      - name: depot
+        description: "Libellé du dépôt Yuman (nom_du_stock), clé du grain"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - "06 - ATELIER RUNGIS DEPOT"
+                  - "07 - ATELIER LYON DEPOT"
+                  - "08 - ATELIER BORDEAUX DEPOT"
+                  - "09 - ATELIER STRASBOURG DEPOT"
+              config:
+                severity: warn
+      - name: reference
+        description: "Référence de l'article, clé du grain"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation de l'article, résolue au grain référence (libellés-marqueur écartés via yuman_is_marqueur_designation)"
+      - name: rupture_statut
+        description: "Qualification de la rupture pour la priorisation, NULL si en stock. RUPTURE_TOTALE = 0 partout (commande urgente) ; STOCK_RESTANT_VANS = les vans des techniciens du dépôt ont du stock (l'autonomie terrain, qty_vans_depot, priorise la commande) ; STOCK_AILLEURS = du stock existe ailleurs (autre dépôt ou vans d'autres dépôts) mais pas chez nous — informatif, pas de transfert inter-dépôt en pratique"
+        tests:
+          - accepted_values:
+              arguments:
+                values: [RUPTURE_TOTALE, STOCK_RESTANT_VANS, STOCK_AILLEURS]
+      - name: derniere_conso_date
+        description: "Date de la dernière consommation de la référence par un technicien du dépôt dans la fenêtre de 180 jours"
+      - name: is_out_of_stock_depot
+        description: "TRUE si le dépôt n'a aucun stock de la référence ce jour-là (qty_depot = 0). C'est l'alerte de réapprovisionnement"
+      - name: is_out_of_stock_global
+        description: "TRUE si la référence est en rupture totale ce jour-là (aucun dépôt, aucun van)"
+      - name: qty_depot
+        description: "Quantité en stock dans le dépôt ce jour-là (0 si absent de l'export). Additive"
+      - name: qty_vans_depot
+        description: "Quantité dans les vans des techniciens rattachés au dépôt — l'autonomie terrain restante. Additive. Vans non mappés à un technicien exclus (comptés dans qty_vans_total)"
+      - name: qty_vans_total
+        description: "Quantité dans l'ensemble des vans techniciens, tous dépôts confondus. Additive"
+      - name: qty_autres_depots
+        description: "Quantité en stock dans les autres dépôts. Additive, informatif (pas de transfert inter-dépôt)"
+      - name: nb_conso_180j
+        description: "Nombre de consommations de la référence par les techniciens du dépôt sur les 180 jours glissants (≥ 2 par construction). Additive sur le grain, non sommable entre dates (fenêtres qui se recouvrent)"
+      - name: dbt_updated_at
+        description: "Timestamp de reconstruction de la table"
+      - name: dbt_invocation_id
+        description: "Identifiant du run dbt ayant produit la ligne"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - stock_date
+              - depot
+              - reference
+      # cohérence flags / mesures
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_out_of_stock_depot = (qty_depot = 0)"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_out_of_stock_global = (qty_depot + qty_autres_depots + qty_vans_total = 0)"
+      # le statut n'est renseigné que sur les ruptures, et toujours sur les ruptures
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "(rupture_statut is not null) = is_out_of_stock_depot"
+      # seuil d'assortiment validé métier
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "nb_conso_180j >= 2"
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 10000
+            max_value: 2000000
+          config:
+            severity: warn
+
   - name: fct_supply_chain__disponibilite_article_neshu_depot_mensuel
     description: |
       [QUOI MÉTIER] Taux de disponibilité mensuel des articles dans les dépôts Neshu : part des jours du mois où l'article était en stock (> 0).
