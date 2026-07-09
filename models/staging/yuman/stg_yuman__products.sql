@@ -24,6 +24,16 @@ cleaned_products as (
         purchase_price as product_purchase_price,
         sale_price as product_sale_price,
         active as is_active,
+        coalesce(lower((
+            select json_value(field, '$.value')
+            from unnest(json_query_array(_embed_fields)) as field
+            where json_value(field, '$.name') = 'ARTICLE INTERDIT'
+        )) in ('oui', 'yes', 'true'), false) as is_forbidden_article,
+        coalesce(lower((
+            select json_value(field, '$.value')
+            from unnest(json_query_array(_embed_fields)) as field
+            where json_value(field, '$.name') = 'ARTICLE OBLIGATOIRE'
+        )) in ('oui', 'yes', 'true'), false) as is_mandatory_article,
         timestamp(created_at) as created_at,
         timestamp(updated_at) as updated_at,
         timestamp(_sdc_extracted_at) as extracted_at,
