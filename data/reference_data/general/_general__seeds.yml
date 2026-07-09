@@ -26,3 +26,29 @@ seeds:
         description: "Nom du jour férié"
         tests:
           - not_null
+
+  - name: ref_general__calendrier_saison
+    description: >
+      Calendrier saisonnier hebdomadaire (été / hiver) de la logistique NESHU (Cockpit Supply,
+      table S01→S52 servant au CODIR). Été = semaines ISO 22 à 40 (~1er juin → début octobre) ;
+      hiver = le reste. Sert au gating saisonnier de la classification/réappro : croisé avec les
+      flags product_planoete / product_planohiver pour savoir si un article est "en saison" à une
+      date donnée. Semaine 53 (années ISO à 53 semaines, absente de la table source) complétée
+      en hiver.
+    config:
+      column_types:
+        numero_semaine: INT64
+        saison: STRING
+    columns:
+      - name: numero_semaine
+        description: "Numéro de semaine ISO (1 à 53 ; correspond à S01→S52 de Cockpit Supply). Se joint via extract(isoweek from date)."
+        tests:
+          - not_null
+          - unique
+      - name: saison
+        description: "Saison de la semaine : ete ou hiver."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [ete, hiver]
