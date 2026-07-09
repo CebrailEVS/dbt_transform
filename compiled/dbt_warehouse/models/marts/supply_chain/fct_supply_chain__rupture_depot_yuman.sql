@@ -17,10 +17,13 @@ pseudo_articles as (
 ),
 
 conso as (
-    -- Consommations Yuman rattachées à un dépôt via le technicien.
-    -- Dim Type 1 : le rattachement est l'état courant, appliqué à tout l'historique.
-    -- Seules les interventions réalisées ou en cours comptent : une conso saisie
-    -- sur un workorder NON_REALISEE / EN_PAUSE n'est pas une sortie de pièce sûre.
+    -- Consommations rattachées à un dépôt via le technicien, deux flux unis :
+    -- les bons Yuman et les interventions Nespresso (Nomad Repair, articles
+    -- centralisés dans le référentiel Yuman sous EVS_NESPRESSO_). Flux disjoints
+    -- (vérifié métier : outils non mélangés). Dim Type 1 : le rattachement est
+    -- l'état courant, appliqué à tout l'historique.
+    -- Yuman : seules les interventions réalisées ou en cours comptent (une conso
+    -- saisie sur un workorder NON_REALISEE / EN_PAUSE n'est pas une sortie sûre).
     select
         t.entrepot_rattachement as depot,
         c.product_reference as reference,
@@ -34,6 +37,24 @@ conso as (
         c.intervention_state in ('REALISEE', 'EN_COURS')
         and t.entrepot_rattachement is not null
         and c.product_reference is not null
+        and pa.reference is null
+
+    union all
+
+    -- Nespresso : aucun filtre d'état (une ligne article = une pose réelle,
+    -- décision métier) ; agences EVS déjà filtrées dans le fact amont ;
+    -- date de conso = fin d'intervention (décision métier).
+    select
+        t.entrepot_rattachement as depot,
+        n.product_reference as reference,
+        date(n.date_heure_fin) as conso_date
+    from `evs-datastack-prod`.`prod_marts`.`fct_technique__consommation_article_nespresso` as n
+    inner join `evs-datastack-prod`.`prod_marts`.`dim_technique__technician` as t
+        on n.technician_id = t.user_id
+    left join pseudo_articles as pa
+        on n.product_reference = pa.reference
+    where
+        t.entrepot_rattachement is not null
         and pa.reference is null
 ),
 
@@ -148,7 +169,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    'c9b10493-316f-4e28-a6b5-76a94eda5406' as dbt_invocation_id
+    'fabacc6b-785d-4251-a790-7ee5e54b1acb' as dbt_invocation_id
 from assortiment_stock as ast
 left join reference_designation as rd
     on ast.reference = rd.reference
