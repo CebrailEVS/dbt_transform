@@ -12,6 +12,8 @@ select
     product_purchase_price,
     product_sale_price,
     is_active,
+    is_forbidden_article,
+    is_mandatory_article,
     created_at,
     updated_at
 

@@ -521,6 +521,16 @@ models:
       - name: is_active
         description: Article actif dans le catalogue Yuman.
 
+      - name: is_forbidden_article
+        description: >
+          Article interdit (true). Dérivé du champ personnalisé Yuman booléen
+          « ARTICLE INTERDIT » (Oui/Non). false si non renseigné.
+
+      - name: is_mandatory_article
+        description: >
+          Article obligatoire (true). Dérivé du champ personnalisé Yuman booléen
+          « ARTICLE OBLIGATOIRE » (Oui/Non). false si non renseigné.
+
       - name: created_at
         description: Date de création de l'article dans Yuman.
 
