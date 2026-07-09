@@ -106,6 +106,16 @@ models:
           - unique
           - not_null
 
+      - name: is_forbidden_article
+        description: "Indique si l'article est interdit. Dérivé du champ personnalisé Yuman booléen 'ARTICLE INTERDIT' (Oui/Non) extrait de `_embed_fields`. false si non renseigné."
+        tests:
+          - not_null
+
+      - name: is_mandatory_article
+        description: "Indique si l'article est obligatoire. Dérivé du champ personnalisé Yuman booléen 'ARTICLE OBLIGATOIRE' (Oui/Non) extrait de `_embed_fields`. false si non renseigné."
+        tests:
+          - not_null
+
   - name: stg_yuman__users
     description: "Utilisateurs transformés et nettoyés depuis l'API Yuman"
     columns:
