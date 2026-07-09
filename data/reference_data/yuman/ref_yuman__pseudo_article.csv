@@ -1,5 +1,8 @@
 reference,designation,motif_exclusion
 EVS_NESPRESSO_0000100,Détartrage,Ligne de saisie d'intervention (prestation) — pas une pièce stockable
 EVS_NESPRESSO_0000001,Pas de pièce,Ligne de saisie d'intervention (aucune pièce utilisée) — pas une pièce stockable
-EVS_NESPRESSO_MINIPREV,Mini préventive,Flag de facturation mini-préventive (Nomad Repair) — pas une pièce stockable
 EVS_NESPRESSO_AVERTISSEMENT,Avertissement mauvaise utilisation client,Ligne de saisie d'intervention (Nomad Repair) — pas une pièce stockable
+EVS_NESPRESSO_0000120,Détartrage partie Lait,Ligne de saisie d'intervention (prestation) — exclusion validée logistique 2026-07
+EVS_NESPRESSO_PREV,Préventive complète Aguila,Faux article de remontée d'information Nespresso — exclusion validée logistique 2026-07
+EVS_NESPRESSO_PREVLAIT,Préventive M120 Lait,Faux article de remontée d'information Nespresso — exclusion validée logistique 2026-07
+EVS_NESPRESSO_MINIPREV,Mini Préventive Aguila,Faux article de remontée d'information Nespresso — exclusion validée logistique 2026-07
