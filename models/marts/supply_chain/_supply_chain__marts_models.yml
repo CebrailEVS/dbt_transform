@@ -540,3 +540,102 @@ models:
       - dbt_utils.expression_is_true:
           arguments:
             expression: "statut != 'RUPTURE TOTALE' or (conso_journaliere_n1 > 0 and stock_actuel <= 0)"
+
+  - name: fct_supply_chain__classification_article_neshu
+    description: |
+      [QUOI MÉTIER] Classification des articles Neshu par dépôt pour piloter le forecast/réappro : l'"aiguilleur" qui range chaque couple (dépôt, article) selon son comportement de demande, son cycle de vie et son importance, et en déduit la méthode de prévision à appliquer. N'émet AUCUN forecast (calculé par le modèle de prévision en aval).
+      [COMMENT CONSTRUITE] À partir du socle int_oracle_neshu__demande_mensuelle. Stats de demande sur la vie active (min→max des mois observés, sparse) : adi = span / nb de mois avec demande, cv2 = (écart-type/moyenne)² des mois non nuls. classe_demande via la grille Syntetos-Boylan (seuils ADI 1,32 / CV² 0,49 ; indetermine si < 3 mois d'historique). statut_vie (ACTION) au grain couple : actif si vente < 4 mois (le réel gagne, quel que soit le label), sinon arrete (product_exploit=NON) ou inactif. alerte_label (WARNING) au grain ARTICLE : arrete_mais_vend (exploit=NON mais l'article vend encore quelque part) ou actif_mais_silencieux (exploit=OUI mais silencieux partout ≥ 4 mois). classe_abc = Pareto en VALEUR (€ = demande_12m × prix d'achat), cumulé par dépôt (A ≤ 80 % / B ≤ 95 % / C). methode_prevision = exclu (arrete/inactif), naif (indetermine), moyenne_mobile_surveille (intermittent/lumpy), moyenne_mobile sinon. Périmètre : 5 dépôts de distribution produits (dim_neshu__company.company_code Rungis/Lyon/Bordeaux/Strasbourg/Marseille), articles product_owner='Neshu', hors familles PRESENTOIR/PRESTATION SERVICE et hors BADGENESHU.
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
+      [NOTES] V1. L'ABC ne pilote QUE le niveau de service (stock de sécurité en aval), JAMAIS l'exclusion (exclu = cycle de vie uniquement : un article classe C mais actif est prévu). alerte_label au grain article (le label exploit est article-level) pour éviter les faux positifs d'un article actif ailleurs mais silencieux à un dépôt ; elle s'auto-résout quand le métier corrige le label. Saisonnalité (plano été/hiver) non gérée ici (V2 : gating en_saison en aval + exception d'alerte pour les saisonniers hors-saison). Croston/SBA (intermittent/lumpy) = V2 ; en V1 ils passent en moyenne_mobile_surveille. date_calcul = date d'exécution (photo du jour, non historisée).
+    columns:
+      - name: date_calcul
+        description: "Date d'exécution du calcul (photo du jour, non historisée)"
+        tests:
+          - not_null
+      - name: company_id
+        description: "Identifiant du dépôt (FK vers dim_neshu__company)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: product_id
+        description: "Identifiant du produit (FK vers dim_neshu__product)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__product')
+                field: product_id
+              config:
+                severity: warn
+      - name: product_code
+        description: "Code métier du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit (aplati depuis dim_neshu__product)"
+      - name: statut_vie
+        description: "ACTION cycle de vie (grain couple) : actif (vend < 4 mois → prévu), inactif (silencieux ≥ 4 mois non labellisé arrêté → exclu), arrete (exploit=NON + silencieux → exclu)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['actif', 'inactif', 'arrete']
+      - name: classe_demande
+        description: "Comportement de demande (Syntetos-Boylan) : regulier, erratique, intermittent, lumpy, ou indetermine (< 3 mois d'historique)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['regulier', 'erratique', 'intermittent', 'lumpy', 'indetermine']
+      - name: classe_abc
+        description: "Importance ABC en VALEUR (€), Pareto par dépôt : A (≤ 80 %), B (≤ 95 %), C. NULL si aucune demande sur 12 mois. Pilote le niveau de service, pas l'exclusion"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['A', 'B', 'C']
+      - name: methode_prevision
+        description: "Méthode de prévision V1 : exclu (arrete/inactif), naif (indetermine), moyenne_mobile_surveille (intermittent/lumpy, Croston en V2), moyenne_mobile (regulier/erratique)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['moyenne_mobile', 'moyenne_mobile_surveille', 'naif', 'exclu']
+      - name: alerte_label
+        description: "WARNING incohérence label ↔ réel (grain ARTICLE) : arrete_mais_vend (exploit=NON mais vend encore), actif_mais_silencieux (exploit=OUI mais silencieux partout). NULL si cohérent"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['arrete_mais_vend', 'actif_mais_silencieux']
+      - name: premiere_sortie
+        description: "1er mois avec demande observée à ce dépôt (= lancement effectif)"
+      - name: derniere_sortie
+        description: "Dernier mois avec demande observée à ce dépôt"
+      - name: mois_inactif
+        description: "Nombre de mois depuis la dernière sortie à ce dépôt (pilote statut_vie)"
+      - name: nb_mois_demande
+        description: "Nombre de mois distincts avec demande sur la vie active (< 3 → classe_demande=indetermine)"
+      - name: adi
+        description: "Average Demand Interval = span de la vie active / nb de mois avec demande. 1 = demande tous les mois. Seuil Syntetos-Boylan 1,32"
+      - name: cv2
+        description: "Carré du coefficient de variation des quantités (mois non nuls) = (écart-type/moyenne)². Seuil Syntetos-Boylan 0,49"
+      - name: demande_totale
+        description: "Demande cumulée sur toute la vie active (unités déconditionnées)"
+      - name: demande_12m
+        description: "Demande cumulée sur les 12 derniers mois (unités). Base de l'ABC. ≠ récence : peut être élevé même si arrête (ventes en début de fenêtre)"
+      - name: valeur_12m
+        description: "Valeur de la demande 12 mois = demande_12m × prix d'achat unitaire (€). Base du classement ABC"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - company_id
+              - product_id
+      # invariant : exclu SSI cycle de vie arrete/inactif (jamais à cause de l'ABC/valeur)
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "(methode_prevision = 'exclu') = (statut_vie in ('arrete', 'inactif'))"
