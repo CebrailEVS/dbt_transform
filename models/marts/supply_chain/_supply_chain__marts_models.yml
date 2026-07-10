@@ -639,3 +639,73 @@ models:
       - dbt_utils.expression_is_true:
           arguments:
             expression: "(methode_prevision = 'exclu') = (statut_vie in ('arrete', 'inactif'))"
+
+  - name: fct_supply_chain__prevision_demande_neshu
+    description: |
+      [QUOI MÉTIER] Prévision de demande (mensuelle et journalière) par dépôt et article Neshu — le forecast lui-même, qui alimente le calcul du point de commande en aval.
+      [COMMENT CONSTRUITE] À partir du socle int_oracle_neshu__demande_mensuelle, en appliquant la méthode routée par fct_supply_chain__classification_article_neshu (methode_prevision). moyenne_mobile / moyenne_mobile_surveille = somme de la demande sur les N derniers mois COMPLETS / N (mois courant incomplet exclu ; les mois sans demande comptent comme 0, implicite dans le /N). naif (indetermine) = moyenne des mois présents sur la fenêtre. exclu (arrete/inactif) = 0. Fenêtre N paramétrable via var prevision_nb_mois_moyenne (défaut 3). demande_prevue_journaliere = demande_prevue_mensuelle / 30,4.
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
+      [NOTES] V1 = moyenne mobile ; Croston/SBA (intermittent/lumpy) = V2 (aujourd'hui traités en moyenne_mobile_surveille, mêmes calculs mais flaggés). Le mois courant est exclu volontairement (sinon sous-estimation par le mois partiel). date_calcul = date d'exécution (photo du jour, non historisée).
+    columns:
+      - name: date_calcul
+        description: "Date d'exécution du calcul (photo du jour, non historisée)"
+        tests:
+          - not_null
+      - name: company_id
+        description: "Identifiant du dépôt (FK vers dim_neshu__company)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: product_id
+        description: "Identifiant du produit (FK vers dim_neshu__product)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__product')
+                field: product_id
+              config:
+                severity: warn
+      - name: product_code
+        description: "Code métier du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit"
+      - name: statut_vie
+        description: "Statut cycle de vie hérité de la classification (actif/inactif/arrete)"
+      - name: classe_abc
+        description: "Classe ABC en valeur héritée de la classification (A/B/C, NULL si pas de demande récente)"
+      - name: methode_prevision
+        description: "Méthode appliquée (héritée de la classification) : moyenne_mobile, moyenne_mobile_surveille, naif, exclu"
+        tests:
+          - not_null
+      - name: demande_fenetre
+        description: "Demande cumulée sur les N derniers mois complets (mois courant exclu), unités déconditionnées"
+      - name: nb_mois_avec_demande
+        description: "Nombre de mois avec demande dans la fenêtre (sert au dénominateur de la méthode naif)"
+      - name: demande_prevue_mensuelle
+        description: "Prévision de demande mensuelle (unités). 0 pour les articles exclus (arrete/inactif) ou sans demande récente"
+        tests:
+          - not_null
+      - name: demande_prevue_journaliere
+        description: "Prévision de demande journalière = demande_prevue_mensuelle / 30,4. Base du point de commande (× délai fournisseur)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - company_id
+              - product_id
+      # cohérence : une prévision de demande n'est jamais négative
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "demande_prevue_mensuelle >= 0"
+      # invariant : les articles exclus ont une prévision nulle
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "methode_prevision != 'exclu' or demande_prevue_mensuelle = 0"
