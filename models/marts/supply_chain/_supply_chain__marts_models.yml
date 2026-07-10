@@ -579,12 +579,12 @@ models:
       - name: product_name
         description: "Nom du produit (aplati depuis dim_neshu__product)"
       - name: statut_vie
-        description: "ACTION cycle de vie (grain couple) : actif (vend < 4 mois → prévu), inactif (silencieux ≥ 4 mois non labellisé arrêté → exclu), arrete (exploit=NON + silencieux → exclu)"
+        description: "ACTION cycle de vie (grain couple) : actif (vend < 4 mois → prévu), hors_saison (saisonnier silencieux HORS de sa saison → à anticiper, pas mort), inactif (silencieux ≥ 4 mois non saisonnier non arrêté → exclu), arrete (exploit=NON + silencieux → exclu)"
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['actif', 'inactif', 'arrete']
+                values: ['actif', 'hors_saison', 'inactif', 'arrete']
       - name: classe_demande
         description: "Comportement de demande (Syntetos-Boylan) : regulier, erratique, intermittent, lumpy, ou indetermine (< 3 mois d'historique)"
         tests:
@@ -599,18 +599,26 @@ models:
               arguments:
                 values: ['A', 'B', 'C']
       - name: methode_prevision
-        description: "Méthode de prévision V1 : exclu (arrete/inactif), naif (indetermine), moyenne_mobile_surveille (intermittent/lumpy, Croston en V2), moyenne_mobile (regulier/erratique)"
+        description: "Méthode de prévision V1 : exclu (arrete/inactif), reference_saisonniere (saisonnier avec ≥13 mois d'historique → N-1 anticipatif), naif (indetermine), moyenne_mobile_surveille (intermittent/lumpy, Croston en V2), moyenne_mobile (regulier/erratique)"
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['moyenne_mobile', 'moyenne_mobile_surveille', 'naif', 'exclu']
+                values: ['moyenne_mobile', 'moyenne_mobile_surveille', 'reference_saisonniere', 'naif', 'exclu']
       - name: alerte_label
-        description: "WARNING incohérence label ↔ réel (grain ARTICLE) : arrete_mais_vend (exploit=NON mais vend encore), actif_mais_silencieux (exploit=OUI mais silencieux partout). NULL si cohérent"
+        description: "WARNING incohérence label ↔ réel (grain ARTICLE) : arrete_mais_vend (exploit=NON mais vend encore), actif_mais_silencieux (exploit=OUI mais silencieux partout, hors saisonniers hors-saison). NULL si cohérent"
         tests:
           - accepted_values:
               arguments:
                 values: ['arrete_mais_vend', 'actif_mais_silencieux']
+      - name: saison_produit
+        description: "Saisonnalité de l'article (labels plano) : ete (été-seul), hiver (hiver-seul), annuel (les deux), non_renseigne"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['ete', 'hiver', 'annuel', 'non_renseigne']
+      - name: en_saison
+        description: "TRUE si l'article est DANS sa saison à la date du jour (plano × calendrier ISO). Sert au statut hors_saison et à neutraliser la fausse alerte saisonnière"
       - name: premiere_sortie
         description: "1er mois avec demande observée à ce dépôt (= lancement effectif)"
       - name: derniere_sortie

@@ -14,6 +14,9 @@
 -- Périmètre : 5 dépôts de distribution produits (hors ateliers / périmés / rebus / stock Nunshen
 -- et entités non-dépôt), articles Neshu, hors familles non-consommables (PRESENTOIR, PRESTATION
 -- SERVICE) et hors BADGENESHU. Représentation : 1 ligne par (dépôt, article) — état courant.
+-- Saisonnalité : plano été/hiver (dim produit) × calendrier ISO (seed ref_general__calendrier_saison)
+-- → statut 'hors_saison' (silence hors-saison ≠ mort) + route les saisonniers AVEC historique vers
+-- la méthode 'reference_saisonniere' (anticipation via N-1, cf. maillon prévision).
 
 with demande as (
 
@@ -74,6 +77,8 @@ produit as (
         s.*,
         p.product_name,
         p.product_exploit,
+        p.product_planoete,
+        p.product_planohiver,
         s.demande_12m * coalesce(p.purchase_unit_price, 0) as valeur_12m
     from stats as s
     inner join depots as d on s.company_id = d.company_id
@@ -103,23 +108,62 @@ abc as (
 
 ),
 
+saison_courante as (
+
+    -- Saison de la semaine ISO en cours (été / hiver), depuis le calendrier logistique.
+    select saison
+    from {{ ref('ref_general__calendrier_saison') }}
+    where numero_semaine = extract(isoweek from current_date())
+
+),
+
+saisonnalite as (
+
+    -- Enrichissement saisonnalité (plano × calendrier) :
+    --  - est_saisonnier : l'article n'est vendu qu'une saison (une seule des 2 plano à OUI) ;
+    --  - saison_produit : ete / hiver / annuel / non_renseigne ;
+    --  - en_saison : l'article est-il DANS sa saison à la date du jour ;
+    --  - mois_depuis_premiere : ancienneté (≥ 13 → un N-1 saisonnier existe).
+    select
+        a.*,
+        (a.product_planoete = 'OUI' and a.product_planohiver = 'NON')
+        or (a.product_planoete = 'NON' and a.product_planohiver = 'OUI') as est_saisonnier,
+        case
+            when a.product_planoete = 'OUI' and a.product_planohiver = 'NON' then 'ete'
+            when a.product_planoete = 'NON' and a.product_planohiver = 'OUI' then 'hiver'
+            when a.product_planoete = 'OUI' and a.product_planohiver = 'OUI' then 'annuel'
+            else 'non_renseigne'
+        end as saison_produit,
+        (a.product_planoete = 'OUI' and sc.saison = 'ete')
+        or (a.product_planohiver = 'OUI' and sc.saison = 'hiver') as en_saison,
+        date_diff(date_trunc(current_date(), month), a.premiere_sortie, month) as mois_depuis_premiere
+    from abc as a
+    cross join saison_courante as sc
+
+),
+
 classifie as (
 
     select
         *,
         -- Statut = ACTION (prévoir / exclure), au grain couple : un article qui vend récemment à
         -- ce dépôt est 'actif' quel que soit son label (le réel gagne, jamais de rupture manquée).
+        -- hors_saison = saisonnier silencieux car HORS de sa saison (≠ mort) → à anticiper, pas exclu.
         -- L'incohérence de label est portée à part, au grain article, par alerte_label.
         case
             when mois_inactif < 4 then 'actif'
             when product_exploit = 'NON' then 'arrete'
+            when est_saisonnier and not en_saison then 'hors_saison'
             else 'inactif'
         end as statut_vie,
         -- Alerte d'incohérence label ↔ réel, au grain ARTICLE (le label exploit est article-level) :
-        -- évite les faux positifs d'un article actif ailleurs mais silencieux à ce dépôt.
+        -- évite les faux positifs d'un article actif ailleurs mais silencieux à ce dépôt, ET d'un
+        -- saisonnier légitimement silencieux hors de sa saison.
         case
             when product_exploit = 'NON' and mois_inactif_article < 4 then 'arrete_mais_vend'
-            when product_exploit = 'OUI' and mois_inactif_article >= 4 then 'actif_mais_silencieux'
+            when
+                product_exploit = 'OUI' and mois_inactif_article >= 4
+                and not (est_saisonnier and not en_saison) then 'actif_mais_silencieux'
         end as alerte_label,
         -- Comportement de demande (Syntetos-Boylan) ; indetermine si trop peu d'historique.
         case
@@ -136,7 +180,7 @@ classifie as (
             when cumul_valeur_pct <= 95 then 'B'
             else 'C'
         end as classe_abc
-    from abc
+    from saisonnalite
 
 )
 
@@ -149,14 +193,18 @@ select
     statut_vie,
     classe_demande,
     classe_abc,
-    -- Méthode V1 : moyenne mobile pour l'essentiel ; Croston (intermittent/lumpy) = V2.
+    -- Méthode V1 : reference_saisonniere pour les saisonniers avec historique (anticipation via
+    -- N-1) ; moyenne mobile pour l'essentiel ; Croston (intermittent/lumpy) = V2.
     case
         when statut_vie in ('arrete', 'inactif') then 'exclu'
+        when est_saisonnier and mois_depuis_premiere >= 13 then 'reference_saisonniere'
         when classe_demande = 'indetermine' then 'naif'
         when classe_demande in ('intermittent', 'lumpy') then 'moyenne_mobile_surveille'
         else 'moyenne_mobile'
     end as methode_prevision,
     alerte_label,
+    saison_produit,
+    en_saison,
     premiere_sortie,
     derniere_sortie,
     mois_inactif,
