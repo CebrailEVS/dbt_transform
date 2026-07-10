@@ -20,9 +20,10 @@
 --   statut          = rupture (position ≤ sécurité) / a_commander (≤ point de commande) / ok / exclu
 --
 -- Grain : 1 ligne par (dépôt, article), aligné sur la classification ② et la prévision ③.
--- Périmètre encours : commande fournisseur FAIT + livraison EN_ATTENTE, < 60 j (règle métier, var).
--- NOTE : l'encours fournisseur direct est concentré sur Rungis (hub) ; les dépôts régionaux se
--- réapprovisionnent surtout par transfert interne (hors périmètre encours V1) — cf. note d'archi.
+-- Périmètre encours : commande fournisseur FAIT/VALIDE + livraison EN_ATTENTE, < 60 j (règle métier, var).
+-- NOTE : chaque dépôt principal (Rungis, Lyon, Marseille) gère son propre stock et passe ses propres
+-- commandes fournisseur, rattachées par product_destination_id. Bordeaux/Strasbourg : peu ou pas de
+-- commandes directes (à confirmer avec le métier).
 -- Paramètres métier en var() dbt : z_service_a/b/c, encours_max_jours (défauts = proposition Vincent).
 
 with prevision as (
@@ -101,14 +102,14 @@ encours as (
 
     -- Commandes fournisseur en cours (émises, pas encore reçues) à destination du dépôt.
     -- Rattachement par product_destination_id (= dépôt destinataire, type COMPANY), pas company_id
-    -- (qui porte le fournisseur). Filtre : FAIT + EN_ATTENTE, passées depuis moins de N jours.
+    -- (qui porte le fournisseur). Filtre : commande faite/validée + livraison EN_ATTENTE, < N jours.
     select
         product_destination_id as company_id,
         product_id,
         sum(quantity) as encours_fournisseur
     from {{ ref('int_oracle_neshu__commande_fournisseur_tasks') }}
     where
-        task_status_code = 'FAIT'
+        task_status_code in ('FAIT', 'VALIDE')
         and delivery_status_code = 'EN_ATTENTE'
         and date(task_start_date) >= date_sub(current_date(), interval {{ var('encours_max_jours', 60) }} day)
     group by product_destination_id, product_id
@@ -136,13 +137,17 @@ assemble as (
             when 'A' then {{ var('z_service_a', 2.05) }}
             when 'B' then {{ var('z_service_b', 1.645) }}
             else {{ var('z_service_c', 1.28) }}
-        end as z_service
+        end as z_service,
+        -- Conditionnement de commande (unité d'achat, cf. dim) : coeff = nb d'unités par carton/pack.
+        prod.purchase_unit_coeff,
+        prod.purchase_unit_code
     from prevision as p
     left join variabilite as v on p.company_id = v.company_id and p.product_id = v.product_id
     left join delai_article as da on p.product_id = da.product_id
     cross join delai_global as dg
     left join stock_actuel as s on p.company_id = s.company_id and p.product_code = s.product_code
     left join encours as e on p.company_id = e.company_id and p.product_id = e.product_id
+    left join {{ ref('dim_neshu__product') }} as prod on p.product_id = prod.product_id
 
 ),
 
@@ -165,6 +170,26 @@ final as (
         round(demande_prevue_journaliere * delai_jours + z_service * sigma_lead_time, 2) as point_commande
     from calcul
 
+),
+
+suggestion as (
+
+    select
+        *,
+        -- Feu tricolore d'action. exclu = article arrêté/inactif (③ ne prévoit rien).
+        case
+            when methode_prevision = 'exclu' then 'exclu'
+            when position_stock <= stock_securite then 'rupture'
+            when position_stock <= point_commande then 'a_commander'
+            else 'ok'
+        end as statut_reappro,
+        -- Quantité suggérée en unités : combler l'écart jusqu'au point de commande (0 si couvert/exclu).
+        case
+            when methode_prevision = 'exclu' then 0
+            else greatest(0, round(point_commande - position_stock, 2))
+        end as quantite_a_commander
+    from final
+
 )
 
 select
@@ -176,6 +201,7 @@ select
     statut_vie,
     classe_abc,
     methode_prevision,
+    purchase_unit_code as unite_commande_code,
     round(delai_jours, 1) as delai_jours,
     z_service,
     round(demande_prevue_mensuelle, 2) as demande_prevue_mensuelle,
@@ -186,16 +212,13 @@ select
     round(position_stock, 2) as position_stock,
     stock_securite,
     point_commande,
-    -- Feu tricolore d'action. exclu = article arrêté/inactif (③ ne prévoit rien).
-    case
-        when methode_prevision = 'exclu' then 'exclu'
-        when position_stock <= stock_securite then 'rupture'
-        when position_stock <= point_commande then 'a_commander'
-        else 'ok'
-    end as statut_reappro,
-    -- Quantité suggérée : combler l'écart jusqu'au point de commande (0 si couvert ou exclu).
+    statut_reappro,
+    coalesce(purchase_unit_coeff, 1) as coeff_conditionnement,
+    quantite_a_commander,
+    -- Reconditionnement : quantité arrondie au conditionnement de commande supérieur (carton/pack).
+    -- fallback coeff 1 = commande à l'unité (article sans unité d'achat au master, ~8 produits actifs).
     case
         when methode_prevision = 'exclu' then 0
-        else greatest(0, round(point_commande - position_stock, 2))
-    end as quantite_a_commander
-from final
+        else cast(ceil(quantite_a_commander / coalesce(purchase_unit_coeff, 1)) as int64)
+    end as quantite_a_commander_conditionnee
+from suggestion
