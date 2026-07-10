@@ -605,12 +605,18 @@ models:
           - accepted_values:
               arguments:
                 values: ['moyenne_mobile', 'moyenne_mobile_surveille', 'reference_saisonniere', 'naif', 'exclu']
-      - name: alerte_label
-        description: "WARNING incohérence label ↔ réel (grain ARTICLE) : arrete_mais_vend (exploit=NON mais vend encore), actif_mais_silencieux (exploit=OUI mais silencieux partout, hors saisonniers hors-saison). NULL si cohérent"
+      - name: alerte_exploit
+        description: "WARNING incohérence du label EXPLOIT ↔ réel (grain ARTICLE) : arrete_mais_vend (exploit=NON mais vend encore), actif_mais_silencieux (exploit=OUI mais silencieux partout, hors saisonniers hors-saison). NULL si cohérent"
         tests:
           - accepted_values:
               arguments:
                 values: ['arrete_mais_vend', 'actif_mais_silencieux']
+      - name: alerte_saison
+        description: "WARNING incohérence du label SAISON (plano) ↔ comportement (grain ARTICLE) : saison_hiver_mais_vend_ete (plano hiver mais ≥ 25 % du volume l'été), saison_ete_mais_vend_hiver (plano été mais < 50 % l'été). NULL si cohérent. Ex. Oasis/Orangina étiquetés hiver mais vendus toute l'année"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['saison_hiver_mais_vend_ete', 'saison_ete_mais_vend_hiver']
       - name: saison_produit
         description: "Saisonnalité de l'article (labels plano) : ete (été-seul), hiver (hiver-seul), annuel (les deux), non_renseigne"
         tests:

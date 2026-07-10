@@ -57,6 +57,23 @@ stats as (
 
 ),
 
+part_ete as (
+
+    -- Part du volume vendu en mois d'été (juin→sept) par article, sur 24 mois. Sert à détecter
+    -- les mislabels de saisonnalité : un plano « hiver » avec une forte part d'été (ou l'inverse)
+    -- = étiquette incohérente avec le comportement (alerte_saison).
+    select
+        product_id,
+        safe_divide(
+            sum(if(extract(month from demande_mois) in (6, 7, 8, 9), quantite_demandee, 0)),
+            sum(quantite_demandee)
+        ) as part_volume_ete
+    from demande
+    where demande_mois >= date_sub(date_trunc(current_date(), month), interval 24 month)
+    group by product_id
+
+),
+
 depots as (
 
     -- Les 5 dépôts de distribution produits uniquement. Exclut ateliers, périmés, rebus, stock
@@ -136,9 +153,11 @@ saisonnalite as (
         end as saison_produit,
         (a.product_planoete = 'OUI' and sc.saison = 'ete')
         or (a.product_planohiver = 'OUI' and sc.saison = 'hiver') as en_saison,
-        date_diff(date_trunc(current_date(), month), a.premiere_sortie, month) as mois_depuis_premiere
+        date_diff(date_trunc(current_date(), month), a.premiere_sortie, month) as mois_depuis_premiere,
+        pe.part_volume_ete
     from abc as a
     cross join saison_courante as sc
+    left join part_ete as pe on a.product_id = pe.product_id
 
 ),
 
@@ -156,15 +175,23 @@ classifie as (
             when est_saisonnier and not en_saison then 'hors_saison'
             else 'inactif'
         end as statut_vie,
-        -- Alerte d'incohérence label ↔ réel, au grain ARTICLE (le label exploit est article-level) :
-        -- évite les faux positifs d'un article actif ailleurs mais silencieux à ce dépôt, ET d'un
-        -- saisonnier légitimement silencieux hors de sa saison.
+        -- Alerte incohérence du label EXPLOIT ↔ réel (grain ARTICLE) : évite les faux positifs
+        -- (actif ailleurs mais silencieux à ce dépôt ; saisonnier silencieux hors saison).
         case
             when product_exploit = 'NON' and mois_inactif_article < 4 then 'arrete_mais_vend'
             when
                 product_exploit = 'OUI' and mois_inactif_article >= 4
                 and not (est_saisonnier and not en_saison) then 'actif_mais_silencieux'
-        end as alerte_label,
+        end as alerte_exploit,
+        -- Alerte incohérence du label SAISON (plano) ↔ comportement réel : un plano « hiver » qui
+        -- vend ≥ 25 % l'été (ou « été » qui vend > 50 % hors été) = étiquette à corriger (ex. Oasis,
+        -- Orangina labellisés hiver mais qui vendent toute l'année).
+        case
+            when est_saisonnier and saison_produit = 'hiver' and part_volume_ete >= 0.25
+                then 'saison_hiver_mais_vend_ete'
+            when est_saisonnier and saison_produit = 'ete' and part_volume_ete < 0.50
+                then 'saison_ete_mais_vend_hiver'
+        end as alerte_saison,
         -- Comportement de demande (Syntetos-Boylan) ; indetermine si trop peu d'historique.
         case
             when nb_mois_demande < 3 then 'indetermine'
@@ -202,7 +229,8 @@ select
         when classe_demande in ('intermittent', 'lumpy') then 'moyenne_mobile_surveille'
         else 'moyenne_mobile'
     end as methode_prevision,
-    alerte_label,
+    alerte_exploit,
+    alerte_saison,
     saison_produit,
     en_saison,
     premiere_sortie,
