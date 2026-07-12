@@ -243,6 +243,33 @@ sources:
           - name: purchase_unit_price
             description: "Prix d'achat unitaire"
 
+      - name: evs_product_unit
+        description: "Unités de conditionnement par produit (base, achat, stock, réception) - référentiel"
+        config:
+          freshness: null
+        columns:
+          - name: idproduct_unit
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de l'unité de conditionnement"
+          - name: idproduct
+            tests:
+              - not_null
+            description: "Identifiant du produit (Link to PRODUCT)"
+          - name: idunit_type
+            description: "Type d'unité (1=Achat, 2=base/vente, 3=Stock, 5=Réception)"
+          - name: code
+            description: "Code de l'unité (ex. CARTON300, POCHE)"
+          - name: coeff_multi
+            description: "Coefficient multiplicateur vers l'unité de base (nb d'unités par conditionnement)"
+          - name: coeff_div
+            description: "Coefficient diviseur vers l'unité de base"
+          - name: base_unit
+            description: "Flag unité de base (1 = unité de base du produit)"
+          - name: isactive
+            description: "Flag unité active (1 = active)"
+
       # RESOURCES
       - name: evs_resources
         description: "Ressources (roadmen, véhicules)"

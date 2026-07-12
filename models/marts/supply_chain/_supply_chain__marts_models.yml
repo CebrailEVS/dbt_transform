@@ -540,3 +540,291 @@ models:
       - dbt_utils.expression_is_true:
           arguments:
             expression: "statut != 'RUPTURE TOTALE' or (conso_journaliere_n1 > 0 and stock_actuel <= 0)"
+
+  - name: fct_supply_chain__classification_article_neshu
+    description: |
+      [QUOI MÉTIER] Classification des articles Neshu par dépôt pour piloter le forecast/réappro : l'"aiguilleur" qui range chaque couple (dépôt, article) selon son comportement de demande, son cycle de vie et son importance, et en déduit la méthode de prévision à appliquer. N'émet AUCUN forecast (calculé par le modèle de prévision en aval).
+      [COMMENT CONSTRUITE] À partir du socle int_oracle_neshu__demande_mensuelle. Stats de demande sur la vie active (min→max des mois observés, sparse) : adi = span / nb de mois avec demande, cv2 = (écart-type/moyenne)² des mois non nuls. classe_demande via la grille Syntetos-Boylan (seuils ADI 1,32 / CV² 0,49 ; indetermine si < 3 mois d'historique). statut_vie (ACTION) au grain couple : actif si vente < 4 mois (le réel gagne, quel que soit le label), hors_saison (saisonnier silencieux hors de sa saison), sinon arrete (product_exploit=NON) ou inactif. Saisonnalité = plano été/hiver (dim_neshu__product) × calendrier ISO (seed ref_general__calendrier_saison) : est_saisonnier (une seule saison plano à OUI), en_saison (dans sa saison ce jour). alerte_exploit (WARNING, grain ARTICLE) : arrete_mais_vend / actif_mais_silencieux (label exploit ↔ réel). alerte_saison (WARNING, grain ARTICLE) : plano hiver qui vend ≥ 25 % l'été, ou plano été qui vend < 50 % l'été (Oasis/Orangina). classe_abc = Pareto en VALEUR (€ = demande_12m × prix d'achat), cumulé par dépôt (A ≤ 80 % / B ≤ 95 % / C). methode_prevision = exclu (arrete/inactif), reference_saisonniere (saisonnier avec ≥ 13 mois d'historique), naif (indetermine), moyenne_mobile_surveille (intermittent/lumpy), moyenne_mobile sinon. Périmètre : 5 dépôts de distribution produits (dim_neshu__company.company_code Rungis/Lyon/Bordeaux/Strasbourg/Marseille), articles product_owner='Neshu', hors familles PRESENTOIR/PRESTATION SERVICE et hors BADGENESHU.
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
+      [NOTES] V1. L'ABC ne pilote QUE le niveau de service (stock de sécurité en aval), JAMAIS l'exclusion (exclu = cycle de vie uniquement : un article classe C mais actif est prévu). alerte_exploit au grain article (le label exploit est article-level) pour éviter les faux positifs d'un article actif ailleurs mais silencieux à un dépôt ; elle s'auto-résout quand le métier corrige le label. Saisonnalité : les saisonniers hors-saison passent en statut hors_saison (pas exclus) et, avec ≥ 13 mois d'historique, sont routés vers reference_saisonniere (anticipation N-1) dans la prévision ; alerte_saison signale les plano incohérents avec le comportement réel. La détection saisonnière repose entièrement sur les labels plano : un saisonnier NON étiqueté n'est pas détecté (pas de filet automatique, contrairement au cycle de vie). Croston/SBA (intermittent/lumpy) = V2 ; en V1 ils passent en moyenne_mobile_surveille. date_calcul = date d'exécution (photo du jour, non historisée).
+    columns:
+      - name: date_calcul
+        description: "Date d'exécution du calcul (photo du jour, non historisée)"
+        tests:
+          - not_null
+      - name: company_id
+        description: "Identifiant du dépôt (FK vers dim_neshu__company)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: product_id
+        description: "Identifiant du produit (FK vers dim_neshu__product)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__product')
+                field: product_id
+              config:
+                severity: warn
+      - name: product_code
+        description: "Code métier du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit (aplati depuis dim_neshu__product)"
+      - name: statut_vie
+        description: "ACTION cycle de vie (grain couple) : actif (vend < 4 mois → prévu), hors_saison (saisonnier silencieux HORS de sa saison → à anticiper, pas mort), inactif (silencieux ≥ 4 mois non saisonnier non arrêté → exclu), arrete (exploit=NON + silencieux → exclu)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['actif', 'hors_saison', 'inactif', 'arrete']
+      - name: classe_demande
+        description: "Comportement de demande (Syntetos-Boylan) : regulier, erratique, intermittent, lumpy, ou indetermine (< 3 mois d'historique)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['regulier', 'erratique', 'intermittent', 'lumpy', 'indetermine']
+      - name: classe_abc
+        description: "Importance ABC en VALEUR (€), Pareto par dépôt : A (≤ 80 %), B (≤ 95 %), C. NULL si aucune demande sur 12 mois. Pilote le niveau de service, pas l'exclusion"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['A', 'B', 'C']
+      - name: methode_prevision
+        description: "Méthode de prévision V1 : exclu (arrete/inactif), reference_saisonniere (saisonnier avec ≥13 mois d'historique → N-1 anticipatif), naif (indetermine), moyenne_mobile_surveille (intermittent/lumpy, Croston en V2), moyenne_mobile (regulier/erratique)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['moyenne_mobile', 'moyenne_mobile_surveille', 'reference_saisonniere', 'naif', 'exclu']
+      - name: alerte_exploit
+        description: "WARNING incohérence du label EXPLOIT ↔ réel (grain ARTICLE) : arrete_mais_vend (exploit=NON mais vend encore), actif_mais_silencieux (exploit=OUI mais silencieux partout, hors saisonniers hors-saison). NULL si cohérent"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['arrete_mais_vend', 'actif_mais_silencieux']
+      - name: alerte_saison
+        description: "WARNING incohérence du label SAISON (plano) ↔ comportement (grain ARTICLE) : saison_hiver_mais_vend_ete (plano hiver mais ≥ 25 % du volume l'été), saison_ete_mais_vend_hiver (plano été mais < 50 % l'été). NULL si cohérent. Ex. Oasis/Orangina étiquetés hiver mais vendus toute l'année"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['saison_hiver_mais_vend_ete', 'saison_ete_mais_vend_hiver']
+      - name: saison_produit
+        description: "Saisonnalité de l'article (labels plano) : ete (été-seul), hiver (hiver-seul), annuel (les deux), non_renseigne"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['ete', 'hiver', 'annuel', 'non_renseigne']
+      - name: en_saison
+        description: "TRUE si l'article est DANS sa saison à la date du jour (plano × calendrier ISO). Sert au statut hors_saison et à neutraliser la fausse alerte saisonnière"
+      - name: premiere_sortie
+        description: "1er mois avec demande observée à ce dépôt (= lancement effectif)"
+      - name: derniere_sortie
+        description: "Dernier mois avec demande observée à ce dépôt"
+      - name: mois_inactif
+        description: "Nombre de mois depuis la dernière sortie à ce dépôt (pilote statut_vie)"
+      - name: nb_mois_demande
+        description: "Nombre de mois distincts avec demande sur la vie active (< 3 → classe_demande=indetermine)"
+      - name: adi
+        description: "Average Demand Interval = span de la vie active / nb de mois avec demande. 1 = demande tous les mois. Seuil Syntetos-Boylan 1,32"
+      - name: cv2
+        description: "Carré du coefficient de variation des quantités (mois non nuls) = (écart-type/moyenne)². Seuil Syntetos-Boylan 0,49"
+      - name: demande_totale
+        description: "Demande cumulée sur toute la vie active (unités déconditionnées)"
+      - name: demande_12m
+        description: "Demande cumulée sur les 12 derniers mois (unités). Base de l'ABC. ≠ récence : peut être élevé même si arrête (ventes en début de fenêtre)"
+      - name: valeur_12m
+        description: "Valeur de la demande 12 mois = demande_12m × prix d'achat unitaire (€). Base du classement ABC"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - company_id
+              - product_id
+      # invariant : exclu SSI cycle de vie arrete/inactif (jamais à cause de l'ABC/valeur)
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "(methode_prevision = 'exclu') = (statut_vie in ('arrete', 'inactif'))"
+
+  - name: fct_supply_chain__prevision_demande_neshu
+    description: |
+      [QUOI MÉTIER] Prévision de demande (mensuelle et journalière) par dépôt et article Neshu — le forecast lui-même, qui alimente le calcul du point de commande en aval.
+      [COMMENT CONSTRUITE] À partir du socle int_oracle_neshu__demande_mensuelle, en appliquant la méthode routée par fct_supply_chain__classification_article_neshu (methode_prevision). moyenne_mobile / moyenne_mobile_surveille = somme de la demande sur les N derniers mois COMPLETS / N (mois courant incomplet exclu ; les mois sans demande comptent comme 0, implicite dans le /N). naif (indetermine) = moyenne des mois présents sur la fenêtre. exclu (arrete/inactif) = 0. Fenêtre N paramétrable via var prevision_nb_mois_moyenne (défaut 3). demande_prevue_journaliere = demande_prevue_mensuelle / 30,4.
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
+      [NOTES] V1 = moyenne mobile ; Croston/SBA (intermittent/lumpy) = V2 (aujourd'hui traités en moyenne_mobile_surveille, mêmes calculs mais flaggés). Le mois courant est exclu volontairement (sinon sous-estimation par le mois partiel). date_calcul = date d'exécution (photo du jour, non historisée).
+    columns:
+      - name: date_calcul
+        description: "Date d'exécution du calcul (photo du jour, non historisée)"
+        tests:
+          - not_null
+      - name: company_id
+        description: "Identifiant du dépôt (FK vers dim_neshu__company)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: product_id
+        description: "Identifiant du produit (FK vers dim_neshu__product)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__product')
+                field: product_id
+              config:
+                severity: warn
+      - name: product_code
+        description: "Code métier du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit"
+      - name: statut_vie
+        description: "Statut cycle de vie hérité de la classification (actif/inactif/arrete)"
+      - name: classe_abc
+        description: "Classe ABC en valeur héritée de la classification (A/B/C, NULL si pas de demande récente)"
+      - name: methode_prevision
+        description: "Méthode appliquée (héritée de la classification) : moyenne_mobile, moyenne_mobile_surveille, naif, exclu"
+        tests:
+          - not_null
+      - name: demande_fenetre
+        description: "Demande cumulée sur les N derniers mois complets (mois courant exclu), unités déconditionnées"
+      - name: nb_mois_avec_demande
+        description: "Nombre de mois avec demande dans la fenêtre (sert au dénominateur de la méthode naif)"
+      - name: demande_prevue_mensuelle
+        description: "Prévision de demande mensuelle (unités). 0 pour les articles exclus (arrete/inactif) ou sans demande récente"
+        tests:
+          - not_null
+      - name: demande_prevue_journaliere
+        description: "Prévision de demande journalière = demande_prevue_mensuelle / 30,4. Base du point de commande (× délai fournisseur)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - company_id
+              - product_id
+      # cohérence : une prévision de demande n'est jamais négative
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "demande_prevue_mensuelle >= 0"
+      # invariant : les articles exclus ont une prévision nulle
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "methode_prevision != 'exclu' or demande_prevue_mensuelle = 0"
+
+  - name: fct_supply_chain__point_commande_neshu
+    description: |
+      [QUOI MÉTIER] Suggestion de réapprovisionnement par dépôt et article Neshu — le maillon final du forecast : à partir de la prévision de demande, du stock actuel, du délai fournisseur, des commandes en cours et d'un stock de sécurité calibré par classe ABC, calcule un point de commande, un feu tricolore (rupture / a_commander / ok / exclu) et une quantité à commander. Construite EN PARALLÈLE de fct_supply_chain__couverture_stock_neshu (méthode point de commande vs couverture en jours), pour comparaison avant bascule Power BI.
+      [COMMENT CONSTRUITE] Base = fct_supply_chain__prevision_demande_neshu (demande_prevue_journaliere/mensuelle, classe_abc, methode_prevision). sigma_demande_mensuelle = écart-type de la demande mensuelle par couple (socle int_oracle_neshu__demande_mensuelle, vie active sparse). delai_jours = délai fournisseur moyen PAR ARTICLE (int_oracle_neshu__reception_tasks, is_lead_time_valid, 12 mois), fallback médiane globale si l'article n'a pas de réception récente. stock_actuel = dernier snapshot de fct_supply_chain__stock_neshu (entity_type='company', 5 dépôts de distribution : 114/116/118/120/364 ; hors périmés 251, rebus 244, véhicules). encours_fournisseur = somme des commandes fournisseur émises non reçues (int_oracle_neshu__commande_fournisseur_tasks, task_status_code IN ('FAIT','VALIDE') + delivery_status_code='EN_ATTENTE', < 60 j), rattachées au dépôt par product_destination_id. Formules : position_stock = stock_actuel + encours ; horizon_jours = delai_jours + revue_jours (période de revue = intervalle entre 2 passations de commande, var, défaut 0 = commande possible tous les jours) ; sigma_lead_time = sigma_demande_mensuelle × √(horizon_jours / 30,4) ; stock_securite = z(service ABC) × sigma_lead_time ; point_commande = demande_prevue_journaliere × horizon_jours + stock_securite ; quantite_a_commander = max(0, point_commande − position_stock). Reconditionnement : quantite_a_commander_conditionnee = plafond(quantite_a_commander / coeff_conditionnement), où coeff_conditionnement = purchase_unit_coeff de dim_neshu__product (unité d'achat, idunit_type=1 ; fallback 1 = commande à l'unité). Vars dbt métier : z_service_a/b/c (2,05/1,645/1,28 = service 98/95/90 %), encours_max_jours (60), revue_jours (0 — à caler sur la cadence réelle de commande, question posée au métier).
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build, aligné sur la classification ② et la prévision ③.
+      [NOTES] V1. Le stock de sécurité ramène la variabilité mensuelle à la durée du délai (√(delai/30,4)) : sans ce facteur il serait surdimensionné (~×3 pour un délai de 4 j). L'ABC pilote UNIQUEMENT le niveau de service (z), jamais l'exclusion (exclu = cycle de vie via ③). Chaque dépôt principal (Rungis, Lyon, Marseille) gère son propre stock et ses propres commandes fournisseur (rattachées par product_destination_id) ; Bordeaux/Strasbourg passent peu ou pas de commandes directes (à confirmer métier). LIMITES : (1) un stock théorique négatif (ghost stock) déclenche rupture et gonfle la quantité suggérée — comportement défendable (à corriger à la source) ; (2) ~22 % des couples n'ont pas de ligne d'inventaire au dernier snapshot (stock_actuel=0 par défaut) ; (3) sigma calculé sur mois observés (sparse) et sur toute la vie active — non désaisonnalisé, donc sur-estimé pour les saisonniers et sous-estimé pour les articles récents (raffinement V2 = sigma même-saison ou sigma de l'erreur de prévision backtestée) ; (4) reconditionnement basé sur le master evs_product_unit (Option A) : ~8 produits actifs sans unité d'achat au master tombent sur le fallback « à l'unité » (coeff 1) — à compléter côté ERP. date_calcul = date d'exécution (photo du jour, non historisée).
+    columns:
+      - name: date_calcul
+        description: "Date d'exécution du calcul (photo du jour, non historisée)"
+        tests:
+          - not_null
+      - name: company_id
+        description: "Identifiant du dépôt (FK vers dim_neshu__company)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: product_id
+        description: "Identifiant du produit (FK vers dim_neshu__product)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__product')
+                field: product_id
+              config:
+                severity: warn
+      - name: product_code
+        description: "Code métier du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit (aplati depuis la prévision)"
+      - name: statut_vie
+        description: "Statut cycle de vie hérité de la classification (actif/hors_saison/inactif/arrete)"
+      - name: classe_abc
+        description: "Classe ABC en valeur héritée de la classification (A/B/C, NULL si pas de demande récente). Pilote le niveau de service z"
+      - name: methode_prevision
+        description: "Méthode de prévision héritée de la classification (exclu → aucune suggestion)"
+      - name: unite_commande_code
+        description: "Code de l'unité de commande fournisseur (conditionnement d'achat, ex. CARTON300, BOITE30_A), depuis dim_neshu__product. NULL si absent du master"
+      - name: delai_jours
+        description: "Délai fournisseur moyen de l'article (jours), reconstitué commande→réception. Fallback médiane globale si pas de réception récente"
+      - name: z_service
+        description: "Coefficient de sécurité lié au niveau de service, piloté par la classe ABC (A=2,05 / B=1,645 / C=1,28 ; C par défaut si non classé)"
+      - name: demande_prevue_mensuelle
+        description: "Prévision de demande mensuelle (unités), héritée de ③"
+      - name: demande_prevue_journaliere
+        description: "Prévision de demande journalière = mensuelle / 30,4. Multipliée par le délai pour la demande pendant le réappro"
+      - name: sigma_demande_mensuelle
+        description: "Écart-type de la demande mensuelle sur la vie active (mesure la variabilité, base du stock de sécurité)"
+      - name: stock_actuel
+        description: "Stock théorique de l'article au dernier snapshot du dépôt (déconditionné). 0 si absent de l'inventaire ; peut être négatif (ghost stock)"
+      - name: encours_fournisseur
+        description: "Quantité en commande fournisseur émise et non encore reçue (FAIT/VALIDE + EN_ATTENTE, < 60 j) à destination du dépôt. Concentrée sur Rungis"
+      - name: position_stock
+        description: "Position de stock = stock_actuel + encours_fournisseur. Comparée au point de commande pour décider du réappro"
+      - name: stock_securite
+        description: "Stock de sécurité = z × sigma × √(delai/30,4). Marge absorbant la variabilité de la demande pendant le délai fournisseur"
+      - name: point_commande
+        description: "Seuil de déclenchement = demande pendant le délai + stock de sécurité. On commande quand la position passe sous ce seuil"
+      - name: statut_reappro
+        description: "Feu tricolore d'action : rupture (position ≤ stock de sécurité), a_commander (position ≤ point de commande), ok (couvert), exclu (article arrêté/inactif)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['rupture', 'a_commander', 'ok', 'exclu']
+      - name: coeff_conditionnement
+        description: "Nombre d'unités par conditionnement de commande (purchase_unit_coeff de dim_neshu__product). 1 par défaut (commande à l'unité) si pas d'unité d'achat au master"
+      - name: quantite_a_commander
+        description: "Quantité suggérée EN UNITÉS = max(0, point_commande − position_stock). 0 si couvert ou exclu"
+        tests:
+          - not_null
+      - name: quantite_a_commander_conditionnee
+        description: "Quantité suggérée EN CONDITIONNEMENTS de commande (cartons/packs) = plafond(quantite_a_commander / coeff_conditionnement). C'est la quantité actionnable pour passer commande. 0 si couvert ou exclu"
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - company_id
+              - product_id
+      # cohérence : une quantité à commander n'est jamais négative
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "quantite_a_commander >= 0"
+      # invariant : un article exclu ne génère aucune suggestion
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "methode_prevision != 'exclu' or (quantite_a_commander = 0 and statut_reappro = 'exclu')"
+      # cohérence reconditionnement : la quantité conditionnée (arrondi sup.) couvre les unités demandées
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "quantite_a_commander_conditionnee * coeff_conditionnement >= quantite_a_commander"
+      # cohérence : le stock de sécurité n'est jamais négatif
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "stock_securite >= 0"

@@ -1786,3 +1786,62 @@ models:
         tests:
           - not_null
 
+
+  - name: int_oracle_neshu__demande_mensuelle
+    description: >
+      [QUOI MÉTIER]
+      Socle de demande NESHU : consommation mensuelle par dépôt et par article. Matière première
+      commune à la chaîne de prévision/réapprovisionnement (classification ABC × Syntetos-Boylan,
+      forecast, point de commande). "Demande" = ce qui sort réellement du dépôt.
+
+      [COMMENT CONSTRUITE]
+      Union de deux flux, statuts FAIT/VALIDE, agrégée par mois :
+      - sorties clients : int_oracle_neshu__livraison_tasks (source = dépôt, toujours COMPANY) ;
+      - chargements véhicules : int_oracle_neshu__livraison_interne_tasks (source COMPANY,
+        destination ≠ COMPANY pour neutraliser les transferts inter-dépôts).
+      Quantité = quantity (déconditionnée en unités de base). Reprend la définition de demande
+      validée avec la logistique sur le mart de couverture. Les lignes à quantité nulle
+      (mouvements fantômes) sont exclues ; aucune quantité négative n'existe en source, donc la
+      demande agrégée est toujours strictement positive.
+
+      [GRAIN]
+      1 ligne par (company_id, product_id, product_code, demande_mois). Représentation *sparse* :
+      seuls les mois avec demande existent (pas de ligne à zéro) ; la densification calendaire
+      (pour l'ADI) est faite en aval, dans la classification.
+
+      [NOTES]
+      company_id = dépôt source (product_source_id). Le périmètre (Neshu, hors accessoires
+      non-consommables, articles arrêtés) est appliqué en aval, pas ici : le socle reste la
+      demande brute observée.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - company_id
+              - product_id
+              - demande_mois
+    columns:
+      - name: company_id
+        description: "Dépôt d'où part la demande (product_source_id). FK → dim_neshu__company."
+        data_type: int64
+        tests:
+          - not_null
+      - name: product_id
+        description: "Produit consommé. FK → dim_neshu__product."
+        data_type: int64
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code métier du produit."
+        data_type: string
+        tests:
+          - not_null
+      - name: demande_mois
+        description: "Mois de la demande (1er jour du mois, date_trunc month)."
+        data_type: date
+        tests:
+          - not_null
+      - name: quantite_demandee
+        description: "Demande du mois en unités de base (somme de quantity déconditionnée). Toujours strictement positive (lignes nulles exclues, aucun négatif en source). Mesure additive."
+      - name: nb_mouvements
+        description: "Nombre de mouvements réels (quantité > 0) agrégés ce mois-là. Indicateur de fréquence, utile pour l'ADI."

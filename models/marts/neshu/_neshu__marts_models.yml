@@ -120,9 +120,9 @@ models:
   - name: dim_neshu__product
     description: |
       [QUOI MÉTIER] Dimension produit Neshu enrichie des labels métier (famille, groupe, marque, bio, propriétaire).
-      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__product filtré sur product_type_id IN (1, 5), enrichi par pivot des labels via stg_oracle_neshu__label_has_product : MARQUEP, PROPRIETAIRE, FAMILLE, BIO, GROUPE, ISACTIVE. product_type standardisé via règle métier (CAFE CAPS, THE, CHOCOLATS VAN HOUTEN, BOISSONS GOURMANDES, ACCESSOIRES, CAFENOIR, SNACKING, BOISSONS FRAICHES, INDEFINI).
+      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__product filtré sur product_type_id IN (1, 5), enrichi par pivot des labels via stg_oracle_neshu__label_has_product : MARQUEP, PROPRIETAIRE, FAMILLE, BIO, GROUPE, ISACTIVE. product_type standardisé via règle métier (CAFE CAPS, THE, CHOCOLATS VAN HOUTEN, BOISSONS GOURMANDES, ACCESSOIRES, CAFENOIR, SNACKING, BOISSONS FRAICHES, INDEFINI). Unité d'achat (conditionnement de commande fournisseur) aplatie depuis stg_oracle_neshu__product_unit (idunit_type=1 active, unique par produit) : purchase_unit_coeff + purchase_unit_code.
       [GRAIN] 1 ligne par product_id.
-      [NOTES] product_type_id : 1 = produit, 5 = ligne de prix. is_active converti en booléen.
+      [NOTES] product_type_id : 1 = produit, 5 = ligne de prix. is_active converti en booléen. purchase_unit_coeff NULL pour ~8 produits actifs sans unité d'achat au master (à compléter côté ERP).
     columns:
       - name: product_id
         description: "Identifiant unique du produit"
@@ -166,6 +166,12 @@ models:
         description: >
           État d'activité du produit, converti en booléen :
           TRUE si le label ISACTIVE = 'YES', sinon FALSE.
+
+      - name: purchase_unit_coeff
+        description: "Nombre d'unités de base par conditionnement d'achat (unité de commande fournisseur, idunit_type=1). NULL si pas d'unité d'achat active au master"
+
+      - name: purchase_unit_code
+        description: "Code de l'unité de commande fournisseur (ex. CARTON300, BOITE30_A). NULL si absent du master"
 
       - name: created_at
         description: "Date de création du produit dans la source"
