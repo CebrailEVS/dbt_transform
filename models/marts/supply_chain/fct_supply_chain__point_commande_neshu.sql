@@ -13,9 +13,11 @@
 -- Formules (point de commande, gestion de stock standard) :
 --   position_stock  = stock_actuel + encours_fournisseur
 --   delai_jours     = délai fournisseur moyen PAR ARTICLE (réceptions 12 mois), fallback médiane globale
---   sigma_lead_time = σ(demande mensuelle) × √(delai / 30.4)  -- variabilité ramenée à la durée du délai
+--   horizon_jours   = delai_jours + revue_jours (période entre 2 passations de commande, var, défaut 0 :
+--                     en attente de la cadence réelle de commande côté métier — question 6 du mail)
+--   sigma_lead_time = σ(demande mensuelle) × √(horizon / 30.4)  -- variabilité ramenée à l'horizon couvert
 --   stock_securite  = z(niveau de service ABC) × sigma_lead_time  -- z : A=2,05 (98%) / B=1,645 (95%) / C=1,28 (90%)
---   point_commande  = demande_prevue_journaliere × delai + stock_securite
+--   point_commande  = demande_prevue_journaliere × horizon + stock_securite
 --   qte_a_commander = greatest(0, point_commande − position_stock)
 --   statut          = rupture (position ≤ sécurité) / a_commander (≤ point de commande) / ok / exclu
 --
@@ -156,8 +158,12 @@ calcul as (
     select
         *,
         stock_actuel + encours_fournisseur as position_stock,
-        -- σ ramené à la durée du délai (variabilité indépendante jour à jour) : σ_mois × √(délai/30.4).
-        sigma_demande_mensuelle * sqrt(delai_jours / 30.4) as sigma_lead_time
+        -- Horizon à couvrir = délai fournisseur + période de revue (intervalle entre 2 passations,
+        -- var revue_jours, défaut 0 = commande possible tous les jours — cf. question 6 mail Vincent).
+        delai_jours + {{ var('revue_jours', 0) }} as horizon_jours,
+        -- σ ramené à l'horizon (variabilité indépendante jour à jour) : σ_mois × √(horizon/30.4).
+        sigma_demande_mensuelle
+        * sqrt((delai_jours + {{ var('revue_jours', 0) }}) / 30.4) as sigma_lead_time
     from assemble
 
 ),
@@ -167,7 +173,7 @@ final as (
     select
         *,
         round(z_service * sigma_lead_time, 2) as stock_securite,
-        round(demande_prevue_journaliere * delai_jours + z_service * sigma_lead_time, 2) as point_commande
+        round(demande_prevue_journaliere * horizon_jours + z_service * sigma_lead_time, 2) as point_commande
     from calcul
 
 ),
