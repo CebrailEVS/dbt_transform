@@ -123,26 +123,42 @@ standardized as (
         updated_at,
         product_type
     from final
+),
+
+purchase_unit as (
+    -- Unité d'achat = conditionnement de commande fournisseur (idunit_type=1 active).
+    -- coeff_multi = nb d'unités de base par conditionnement. Unique par produit
+    -- (vérifié : 0 produit avec plusieurs unités d'achat actives) ; max() = collapse défensif.
+    select
+        idproduct as product_id,
+        MAX(coeff_multi) as purchase_unit_coeff,
+        MAX(code) as purchase_unit_code
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__product_unit`
+    where idunit_type = 1 and isactive = 1
+    group by idproduct
 )
 
 select
-    product_id,
-    product_type_id,
-    product_code,
-    product_name,
-    purchase_unit_price,
-    product_brand,
-    product_owner,
-    product_family,
-    product_bio,
-    product_planoete,
-    product_planohiver,
-    product_hpalme,
-    product_classabc,
-    product_exploit,
-    product_group,
-    product_type,
-    is_active,
-    created_at,
-    updated_at
-from standardized
+    s.product_id,
+    s.product_type_id,
+    s.product_code,
+    s.product_name,
+    s.purchase_unit_price,
+    s.product_brand,
+    s.product_owner,
+    s.product_family,
+    s.product_bio,
+    s.product_planoete,
+    s.product_planohiver,
+    s.product_hpalme,
+    s.product_classabc,
+    s.product_exploit,
+    s.product_group,
+    s.product_type,
+    s.is_active,
+    pu.purchase_unit_coeff,
+    pu.purchase_unit_code,
+    s.created_at,
+    s.updated_at
+from standardized as s
+left join purchase_unit as pu on s.product_id = pu.product_id
