@@ -367,7 +367,7 @@ models:
               config:
                 severity: warn
       - name: idunit_type
-        description: "Type d'unité : 1=Achat, 2=base/vente, 3=Stock, 5=Réception"
+        description: "Type d'unité, référentiel UNIT_TYPE vérifié à la source Oracle : 1=ACHAT (PURCHASE), 2=VENTE (SALE), 3=STOCK (STORAGE), 4=COMPOSITION (COMPONENTS), 5=REAPPRO (RESUPPLY), 6=WEB"
       - name: code
         description: "Code de l'unité (ex. CARTON300, POCHE)"
       - name: coeff_multi

@@ -1,7 +1,7 @@
 {{
     config(
         materialized='table',
-        description='Unités de conditionnement par produit (base, achat, stock, réception) depuis evs_product_unit. idunit_type=1 = unité d''ACHAT (conditionnement de commande fournisseur), coeff_multi/coeff_div = conversion vers l''unité de base.'
+        description='Unités de conditionnement par produit depuis evs_product_unit. idunit_type (référentiel UNIT_TYPE Oracle) : 1=ACHAT, 2=VENTE, 3=STOCK, 4=COMPOSITION, 5=REAPPRO, 6=WEB. idunit_type=1 = unité d''ACHAT (conditionnement de commande fournisseur), coeff_multi/coeff_div = conversion vers l''unité de base.'
     )
 }}
 
