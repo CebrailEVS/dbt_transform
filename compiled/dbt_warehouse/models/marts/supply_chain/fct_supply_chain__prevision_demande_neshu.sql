@@ -17,6 +17,8 @@ with classification as (
     select
         company_id,
         product_id,
+        company_code,
+        company_name,
         product_code,
         product_name,
         statut_vie,
@@ -74,6 +76,8 @@ prevision as (
     select
         c.company_id,
         c.product_id,
+        c.company_code,
+        c.company_name,
         c.product_code,
         c.product_name,
         c.statut_vie,
@@ -100,6 +104,8 @@ select
     current_date() as date_calcul,
     company_id,
     product_id,
+    company_code,
+    company_name,
     product_code,
     product_name,
     statut_vie,

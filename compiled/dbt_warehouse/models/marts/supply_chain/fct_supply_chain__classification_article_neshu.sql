@@ -73,8 +73,11 @@ depots as (
 
     -- Les 5 dépôts de distribution produits uniquement. Exclut ateliers, périmés, rebus, stock
     -- Nunshen, et les entités non-dépôt (fournisseur, client, logistique) qui polluent l'historique
-    -- source. Aligné avec le périmètre du mart de couverture.
-    select company_id
+    -- source. Aligné avec le périmètre du mart de couverture. code/nom aplatis (pattern hybride).
+    select
+        company_id,
+        company_code,
+        company_name
     from `evs-datastack-prod`.`prod_marts`.`dim_neshu__company`
     where company_code in (
         'DEPOTRUNGIS', 'DEPOTLYON', 'DEPOTBORDEAUX', 'DEPOTSTRASBOURG', 'DEPOTMARSEILLE'
@@ -87,6 +90,8 @@ produit as (
     -- Périmètre (dépôts + articles) + enrichissement produit (label exploit, prix pour l'ABC valeur).
     select
         s.*,
+        d.company_code,
+        d.company_name,
         p.product_name,
         p.product_exploit,
         p.product_planoete,
@@ -210,6 +215,8 @@ select
     current_date() as date_calcul,
     company_id,
     product_id,
+    company_code,
+    company_name,
     product_code,
     product_name,
     statut_vie,
