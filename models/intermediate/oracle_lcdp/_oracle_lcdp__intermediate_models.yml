@@ -1105,6 +1105,267 @@ models:
         tests:
           - not_null
 
+  - name: int_oracle_lcdp__entree_fabrication_tasks
+    description: >
+      [QUOI MÉTIER]
+      Entrées en fabrication LCDP (type 296) : une ligne par produit de café vert consommé par la
+      torréfaction. C'est l'intrant du process — le café vert sort du dépôt de stockage (source,
+      typiquement VERT) pour entrer dans le dépôt FABRICATION (destination).
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_lcdp__task (idtask_type = 296, code_status_record = '1', real_start_date non nul,
+      tous statuts conservés) croisé avec task_has_product (grain ligne produit), enrichi product et
+      task_status. Source et destination résolues sur company (COMPANY dans 100 % des cas). Seules
+      les lignes dont source ET destination se résolvent sont conservées. Quantité ramenée en unités
+      de base (real_quantity × coeff_multi / coeff_div).
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'une entrée en fabrication). ~1 380 lignes
+      (~208 tâches, 39 cafés verts), depuis janvier 2025.
+
+      [NOTES]
+      Maillon amont de la chaîne de torréfaction : VERT (café vert, codes 11xxx « CV … ») →
+      [ENTREE_FABRICATION] → FABRICATION → [SORTIE_FABRICATION] → TORREFIEVRAC. Symétrique de
+      int_oracle_lcdp__sortie_fabrication_tasks (type 297, produits torréfiés 12xxx). Les deux flux
+      NE partagent PAS de document parent (task_idtask nul) : impossible de rattacher nativement un
+      lot de sortie à ses intrants (pas de nomenclature/BOM dans l'ERP). Aucun filtre statut ici
+      (tri en marts). Explique le stock de café vert du dépôt VERT reçu sans commande fournisseur.
+    columns:
+      # --- IDENTIFIANTS ---
+      - name: task_product_id
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
+        data_type: int64
+        tests:
+          - unique
+          - not_null
+      - name: task_id
+        description: "Tâche d'entrée en fabrication Oracle LCDP (EVS.TASK)."
+        data_type: int64
+        tests:
+          - not_null
+      - name: company_id
+        description: "Client (peer company) de la tâche. FK → dim_lcdp__company."
+        data_type: int64
+      - name: product_id
+        description: "Café vert consommé. FK → dim_lcdp__product."
+        data_type: int64
+        tests:
+          - not_null
+      - name: product_source_id
+        description: >
+          Identifiant de l'entité **source** (dépôt d'où sort le café vert). Référence polymorphe :
+          COMPANY → stg_oracle_lcdp__company. Pas une FK produit.
+        data_type: int64
+      - name: product_source_type
+        description: "Type de l'entité source. Toujours COMPANY (dépôt café vert) sur ce type de tâche."
+        data_type: string
+      - name: product_destination_id
+        description: >
+          Identifiant de l'entité **destination** (dépôt FABRICATION). Référence polymorphe :
+          COMPANY → stg_oracle_lcdp__company.
+        data_type: int64
+      - name: product_destination_type
+        description: "Type de l'entité destination. Toujours COMPANY (dépôt FABRICATION) sur ce type de tâche."
+        data_type: string
+
+      # --- CODES ---
+      - name: source_code
+        description: "Code du dépôt source du café vert (company.code). Typiquement VERT."
+        data_type: string
+        tests:
+          - not_null
+      - name: destination_code
+        description: "Code du dépôt destination (company.code). Typiquement FABRICATION."
+        data_type: string
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code métier du café vert (famille 11xxx)."
+        data_type: string
+      - name: task_status_code
+        description: "Code du statut de la tâche. Quasi exclusivement VALIDE. Aucun filtre ici (tri en marts)."
+        data_type: string
+        tests:
+          - accepted_values:
+              arguments:
+                values: [FAIT, VALIDE, ANNULE, ANOMALIE]
+              config:
+                severity: warn
+
+      # --- DATE ---
+      - name: task_start_date
+        description: "Date et heure réelle de l'entrée en fabrication."
+        data_type: timestamp
+        tests:
+          - not_null
+
+      # --- CONDITIONNEMENT & PRIX ---
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
+      - name: unit_coeff_div
+        description: "Coefficient diviseur de conditionnement."
+      - name: base_unit_quantity
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
+      - name: product_unit_price_task
+        description: "Prix unitaire du produit au moment de la tâche (net_price)."
+      - name: product_unit_price_latest
+        description: "Dernier prix d'achat unitaire du café vert (référentiel produit)."
+
+      # --- MESURES ---
+      - name: quantity
+        description: "Quantité de café vert consommée en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
+      - name: valuation
+        description: "Valorisation de l'intrant en euros = quantity × prix d'achat unitaire. Mesure additive."
+
+      # --- MÉTADONNÉES ---
+      - name: updated_at
+        description: "Timestamp de dernière modification en source."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: created_at
+        description: "Timestamp de création en source."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis Oracle."
+        data_type: timestamp
+        tests:
+          - not_null
+
+  - name: int_oracle_lcdp__sortie_fabrication_tasks
+    description: >
+      [QUOI MÉTIER]
+      Sorties de fabrication LCDP (type 297) : une ligne par produit de café torréfié / mélange
+      produit par la torréfaction. C'est l'extrant du process — le café torréfié sort du dépôt
+      FABRICATION (source) vers le dépôt de café torréfié (destination, typiquement TORREFIEVRAC).
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_lcdp__task (idtask_type = 297, code_status_record = '1', real_start_date non nul,
+      tous statuts conservés) croisé avec task_has_product (grain ligne produit), enrichi product et
+      task_status. Source et destination résolues sur company (COMPANY dans 100 % des cas). Seules
+      les lignes dont source ET destination se résolvent sont conservées. Quantité ramenée en unités
+      de base (real_quantity × coeff_multi / coeff_div).
+
+      [GRAIN]
+      1 ligne par task_product_id (ligne produit d'une sortie de fabrication). ~2 300 lignes
+      (~347 tâches, 47 produits), depuis janvier 2025.
+
+      [NOTES]
+      Maillon aval de la chaîne de torréfaction : VERT (café vert) → [ENTREE_FABRICATION] →
+      FABRICATION → [SORTIE_FABRICATION] → TORREFIEVRAC (café torréfié, codes 12xxx « MELANGE … »,
+      vrac + conditionnés 250g). Symétrique de int_oracle_lcdp__entree_fabrication_tasks (type 296,
+      café vert). Les deux flux NE partagent PAS de document parent (task_idtask nul) : pas de
+      nomenclature/BOM ERP, donc pas de rattachement direct sortie↔intrants. Le rapprochement
+      entrée/sortie ne peut se faire qu'en agrégé (par période), et les quantités mélangent des
+      unités hétérogènes (vrac en kg vs conditionnés 250g) → un rendement de torréfaction n'est pas
+      calculable en l'état sans normalisation. valuation basée sur purchase_unit_price, souvent
+      absent pour les produits fabriqués (non achetés) → peut être nul. Aucun filtre statut ici.
+    columns:
+      # --- IDENTIFIANTS ---
+      - name: task_product_id
+        description: "Clé primaire : ligne task_has_product (relation tâche↔produit). PK."
+        data_type: int64
+        tests:
+          - unique
+          - not_null
+      - name: task_id
+        description: "Tâche de sortie de fabrication Oracle LCDP (EVS.TASK)."
+        data_type: int64
+        tests:
+          - not_null
+      - name: company_id
+        description: "Client (peer company) de la tâche. FK → dim_lcdp__company."
+        data_type: int64
+      - name: product_id
+        description: "Café torréfié / mélange produit. FK → dim_lcdp__product."
+        data_type: int64
+        tests:
+          - not_null
+      - name: product_source_id
+        description: >
+          Identifiant de l'entité **source** (dépôt FABRICATION). Référence polymorphe :
+          COMPANY → stg_oracle_lcdp__company. Pas une FK produit.
+        data_type: int64
+      - name: product_source_type
+        description: "Type de l'entité source. Toujours COMPANY (dépôt FABRICATION) sur ce type de tâche."
+        data_type: string
+      - name: product_destination_id
+        description: >
+          Identifiant de l'entité **destination** (dépôt du café torréfié). Référence polymorphe :
+          COMPANY → stg_oracle_lcdp__company.
+        data_type: int64
+      - name: product_destination_type
+        description: "Type de l'entité destination. Toujours COMPANY (dépôt torréfié) sur ce type de tâche."
+        data_type: string
+
+      # --- CODES ---
+      - name: source_code
+        description: "Code du dépôt source (company.code). Typiquement FABRICATION."
+        data_type: string
+        tests:
+          - not_null
+      - name: destination_code
+        description: "Code du dépôt destination du café torréfié (company.code). Typiquement TORREFIEVRAC."
+        data_type: string
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code métier du café torréfié / mélange (famille 12xxx)."
+        data_type: string
+      - name: task_status_code
+        description: "Code du statut de la tâche. Quasi exclusivement VALIDE (1 ANNULE observé). Aucun filtre ici (tri en marts)."
+        data_type: string
+        tests:
+          - accepted_values:
+              arguments:
+                values: [FAIT, VALIDE, ANNULE, ANOMALIE]
+              config:
+                severity: warn
+
+      # --- DATE ---
+      - name: task_start_date
+        description: "Date et heure réelle de la sortie de fabrication."
+        data_type: timestamp
+        tests:
+          - not_null
+
+      # --- CONDITIONNEMENT & PRIX ---
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
+      - name: unit_coeff_div
+        description: "Coefficient diviseur de conditionnement."
+      - name: base_unit_quantity
+        description: "Quantité brute saisie (real_quantity), avant application des coefficients."
+      - name: product_unit_price_task
+        description: "Prix unitaire du produit au moment de la tâche (net_price)."
+      - name: product_unit_price_latest
+        description: "Dernier prix d'achat unitaire (référentiel produit). Souvent nul pour un produit fabriqué (non acheté)."
+
+      # --- MESURES ---
+      - name: quantity
+        description: "Quantité de café torréfié produite en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive. Unités hétérogènes (vrac kg / conditionné 250g)."
+      - name: valuation
+        description: "Valorisation en euros = quantity × prix d'achat unitaire. Souvent nul (produit fabriqué sans prix d'achat au référentiel)."
+
+      # --- MÉTADONNÉES ---
+      - name: updated_at
+        description: "Timestamp de dernière modification en source."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: created_at
+        description: "Timestamp de création en source."
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: extracted_at
+        description: "Timestamp d'extraction depuis Oracle."
+        data_type: timestamp
+        tests:
+          - not_null
+
   - name: int_oracle_lcdp__livraison_interne_tasks
     description: >
       [QUOI MÉTIER]
