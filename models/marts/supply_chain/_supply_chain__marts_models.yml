@@ -846,3 +846,58 @@ models:
       - dbt_utils.expression_is_true:
           arguments:
             expression: "stock_securite >= 0"
+
+  - name: fct_supply_chain__disponibilite_article_lcdp_depot_mensuel
+    description: |
+      [QUOI MÉTIER] Taux de disponibilité mensuel des articles dans les dépôts LCDP : part des jours du mois où l'article était en stock (> 0).
+      [COMMENT CONSTRUITE] Agrégation mensuelle de fct_supply_chain__stock_lcdp filtré sur les dépôts (entity_type='company'). jours_observes = nb de jours où le couple dépôt/article est référencé dans les données ; jours_disponibles = nb de jours référencés où is_out_of_stock=false. taux = jours_disponibles / jours_observes. mois = date_trunc à month.
+      [GRAIN] 1 ligne par (mois, dépôt, article).
+      [NOTES] Iso fct_supply_chain__disponibilite_article_neshu_depot_mensuel (source stock LCDP). Le taux est calculé depuis le 1er référencement de l'article dans le dépôt (dénominateur = jours référencés), pas sur le mois calendaire : un article arrivé en cours de mois et jamais en rupture affiche 100 %, sans pénalité pour les jours antérieurs à son arrivée. Le mois en cours est partiel (taux à interpréter avec jours_observes). Clé métier = product_code ; entity_name/entity_code/product_name reflètent le libellé du snapshot le plus récent du mois (un article peut être renommé en cours de mois sans changer de code).
+    columns:
+      - name: mois
+        description: "Premier jour du mois (DATE)"
+        tests:
+          - not_null
+      - name: company_id
+        description: "Identifiant du dépôt (FK vers dim_lcdp__company)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_lcdp__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: entity_code
+        description: "Code du dépôt"
+      - name: entity_name
+        description: "Nom du dépôt (en lowercase)"
+      - name: product_code
+        description: "Code du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit"
+      - name: jours_observes
+        description: "Nombre de jours du mois où le couple dépôt/article est référencé dans les données"
+      - name: jours_disponibles
+        description: "Nombre de jours référencés du mois où l'article était en stock (is_out_of_stock=false)"
+      - name: taux_disponibilite_pct
+        description: "Taux de disponibilité mensuel en % : jours_disponibles / jours_observes * 100"
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - mois
+              - company_id
+              - product_code
+      # cohérence : on ne peut pas être disponible plus de jours que de jours observés
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "jours_disponibles <= jours_observes"
+      # cohérence : un taux est un pourcentage
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "taux_disponibilite_pct between 0 and 100"
