@@ -33,6 +33,8 @@ with prevision as (
     select
         company_id,
         product_id,
+        company_code,
+        company_name,
         product_code,
         product_name,
         statut_vie,
@@ -123,6 +125,8 @@ assemble as (
     select
         p.company_id,
         p.product_id,
+        p.company_code,
+        p.company_name,
         p.product_code,
         p.product_name,
         p.statut_vie,
@@ -202,6 +206,8 @@ select
     current_date() as date_calcul,
     company_id,
     product_id,
+    company_code,
+    company_name,
     product_code,
     product_name,
     statut_vie,
