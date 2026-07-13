@@ -5,12 +5,33 @@
     )
 }}
 
-with reception_base as (
+with commande_header as (
+
+    -- Date de la commande fournisseur (type 120) rattachée à la réception.
+    -- Le lien passe par le document parent partagé (task_idtask) : commande et réception
+    -- pointent vers le même parent GESCOM. 1 commande par parent -> au plus 1 date par réception,
+    -- donc pas de fan-out. min() = collapse défensif des lignes produit de la commande.
+    -- NB LCDP : ~37 % seulement des réceptions ont une commande rapprochable (vs ~98 % NESHU) :
+    -- le processus commande fournisseur y est moins systématique -> délai souvent NULL (attendu).
+    select
+        task_idtask as parent_id,
+        min(real_start_date) as commande_start_date
+
+    from {{ ref('stg_oracle_lcdp__task') }}
+    where
+        idtask_type = 120  -- COMMANDE FOURNISSEUR
+        and code_status_record = '1'
+        and task_idtask is not null
+    group by task_idtask
+),
+
+reception_base as (
 
     select
         -- Identifiants
         thp.idtask_has_product as task_product_id,
         t.idtask as task_id,
+        t.task_idtask as parent_id,  -- interne : clé de jointure vers la commande (non exposé)
         t.idcompany_peer as company_id,
         thp.idproduct as product_id,
         t.idproduct_destination as product_destination_id,
@@ -62,7 +83,7 @@ with reception_base as (
         and t.real_start_date is not null
 
     group by
-        thp.idtask_has_product, t.idtask, t.idcompany_peer,
+        thp.idtask_has_product, t.idtask, t.task_idtask, t.idcompany_peer,
         t.idproduct_destination, t.type_product_destination,
         thp.idproduct,
         thp.unit_coeff_multi,
@@ -78,35 +99,43 @@ with reception_base as (
 
 select
     -- Identifiants
-    task_product_id,
-    task_id,
-    company_id,
-    product_id,
-    product_destination_id,
-    product_destination_type,
+    rb.task_product_id,
+    rb.task_id,
+    rb.company_id,
+    rb.product_id,
+    rb.product_destination_id,
+    rb.product_destination_type,
 
     -- Codes
-    destination_code,
-    product_code,
-    task_status_code,
+    rb.destination_code,
+    rb.product_code,
+    rb.task_status_code,
 
     -- Infos métier
-    task_start_date,
+    rb.task_start_date,
+    ch.commande_start_date,
+
+    -- Délai de livraison fournisseur (commande -> réception)
+    date_diff(date(rb.task_start_date), date(ch.commande_start_date), day) as delivery_lead_time_days,
+    ch.commande_start_date is not null
+    and rb.task_start_date >= ch.commande_start_date as is_lead_time_valid,
 
     -- Infos de conditionnement
-    unit_coeff_multi,
-    unit_coeff_div,
-    base_unit_quantity,
-    product_unit_price_task,
-    product_unit_price_latest,
+    rb.unit_coeff_multi,
+    rb.unit_coeff_div,
+    rb.base_unit_quantity,
+    rb.product_unit_price_task,
+    rb.product_unit_price_latest,
 
     -- Métriques
-    quantity,
-    valuation,
+    rb.quantity,
+    rb.valuation,
 
     -- Timestamps techniques
-    updated_at,
-    created_at,
-    extracted_at
+    rb.updated_at,
+    rb.created_at,
+    rb.extracted_at
 
-from reception_base
+from reception_base as rb
+left join commande_header as ch
+    on rb.parent_id = ch.parent_id
