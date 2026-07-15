@@ -847,6 +847,110 @@ models:
           arguments:
             expression: "stock_securite >= 0"
 
+  - name: fct_supply_chain__erreur_prevision_neshu
+    description: |
+      [QUOI MÉTIER] Backtest de la prévision de demande Neshu : pour chaque mois passé, la prévision telle qu'elle aurait été calculée pendant ce mois (avec uniquement les données antérieures — walk-forward, pas de fuite du futur) face à la demande réelle. Fondation V2 : mesure l'erreur et le biais du forecast article par article, et arbitre les évolutions de méthode (champion-challenger). En V2.1, l'écart-type de l'erreur remplacera l'écart-type de la demande brute dans le stock de sécurité du point de commande.
+      [COMMENT CONSTRUITE] Rejeu déterministe des formules de fct_supply_chain__prevision_demande_neshu sur le socle int_oracle_neshu__demande_mensuelle, en remplaçant current_date() par chaque mois de coupure : prevision_moyenne_mobile = somme des N mois complets précédant le mois cible / N (var prevision_nb_mois_moyenne, défaut 3) ; prevision_saisonniere = demande N-1 sur la fenêtre [M-12, M-10] / 3 (fidèle à ③, fenêtre telle que vue pendant le mois cible) ; prevision_naive = demande de la fenêtre / nb de mois avec demande. prevision_retenue = la candidate routée par methode_prevision de fct_supply_chain__classification_article_neshu (classification ACTUELLE, non rejouée à date — limite assumée, cf. NOTES). erreur = demande_reelle − prevision_retenue (positive = sous-prévision). Mois cibles : janv. 2024 → dernier mois clos (généré à chaque build : le mois qui vient de se clore entre automatiquement). Un couple n'entre qu'à partir de son premier mois de demande.
+      [GRAIN] 1 ligne par (mois_cible, company_id, product_id) — full rebuild quotidien, ~10 000 lignes.
+      [NOTES] Les 3 méthodes candidates sont exposées côte à côte (champion-challenger) : comparer les colonnes suffit à arbitrer V2.1-V2.4 sans re-backtester. Le routage utilise la classification d'aujourd'hui, pas celle qu'on aurait eue à chaque date (rejouer Syntetos-Boylan/ABC à date = coût élevé, gain faible ; la vraie classif à date s'accumulera via le snapshot mensuel de la classification, volet séparé). Pas de MAPE au grain ligne (demande sparse → division par zéro) : erreurs en unités, WMAPE à calculer en agrégé. Filtrer nb_mois_anciennete >= 3 pour écarter les premiers mois de vie (fenêtre incomplète). date_calcul en fuseau Europe/Paris (contrairement aux marts V1, encore en UTC).
+    columns:
+      - name: mois_cible
+        description: "Mois prédit (1er du mois) : la prévision est rejouée comme calculée pendant ce mois, le réel est celui de ce mois"
+        tests:
+          - not_null
+      - name: company_id
+        description: "Identifiant du dépôt (FK vers dim_neshu__company)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: product_id
+        description: "Identifiant du produit (FK vers dim_neshu__product)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__product')
+                field: product_id
+              config:
+                severity: warn
+      - name: company_code
+        description: "Code du dépôt (ex. DEPOTRUNGIS), aplati depuis dim_neshu__company (pattern hybride, attribut d'affichage)"
+        tests:
+          - not_null
+      - name: company_name
+        description: "Nom du dépôt, aplati depuis dim_neshu__company (pattern hybride, attribut d'affichage)"
+      - name: product_code
+        description: "Code métier du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit"
+      - name: statut_vie
+        description: "Statut cycle de vie hérité de la classification ACTUELLE (actif/inactif/arrete)"
+      - name: classe_abc
+        description: "Classe ABC en valeur héritée de la classification ACTUELLE (A/B/C, NULL si pas de demande récente)"
+      - name: methode_prevision
+        description: "Méthode routée par la classification ACTUELLE (moyenne_mobile, moyenne_mobile_surveille, reference_saisonniere, naif, exclu) — détermine prevision_retenue"
+        tests:
+          - not_null
+      - name: nb_mois_anciennete
+        description: "Ancienneté du couple au mois cible (mois écoulés depuis son premier mois de demande ; 0 = premier mois de vie). Filtrer >= 3 pour des fenêtres de prévision complètes"
+      - name: nb_mois_avec_demande
+        description: "Nombre de mois avec demande dans la fenêtre rejouée (dénominateur de la méthode naive)"
+      - name: demande_reelle
+        description: "Demande réelle du mois cible (unités, socle demande mensuelle ; 0 si aucune demande)"
+        tests:
+          - not_null
+      - name: prevision_moyenne_mobile
+        description: "Candidate : moyenne mobile des N mois complets précédant le mois cible (rejouée)"
+      - name: prevision_saisonniere
+        description: "Candidate : référence saisonnière N-1, fenêtre [M-12, M-10] / 3 (rejouée)"
+      - name: prevision_naive
+        description: "Candidate : moyenne des mois avec demande dans la fenêtre (rejouée)"
+      - name: prevision_retenue
+        description: "Prévision de la méthode routée par la classification (0 pour exclu) — celle que le système aurait servie au point de commande"
+        tests:
+          - not_null
+      - name: erreur
+        description: "Erreur signée = demande_reelle − prevision_retenue. Positive = sous-prévision (le réel a dépassé la prévision). Sa moyenne par couple = le biais ; son écart-type = le sigma d'erreur (V2.1)"
+        tests:
+          - not_null
+      - name: erreur_absolue
+        description: "Valeur absolue de l'erreur (unités) — base du MAE par article"
+      - name: date_calcul
+        description: "Date d'exécution du calcul (fuseau Europe/Paris)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - mois_cible
+              - company_id
+              - product_id
+      # cohérence : une prévision n'est jamais négative
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "prevision_retenue >= 0 and prevision_moyenne_mobile >= 0 and prevision_saisonniere >= 0"
+      # invariant : un article exclu a une prévision retenue nulle
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "methode_prevision != 'exclu' or prevision_retenue = 0"
+      # cohérence : l'erreur absolue est bien la valeur absolue de l'erreur signée
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "erreur_absolue = abs(erreur)"
+      # garde-fou volumétrie : ~342 couples x ~30 mois, moins l'entrée en vie des jeunes articles
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 4000
+            max_value: 30000
+          config:
+            severity: warn
+
   - name: fct_supply_chain__disponibilite_article_lcdp_depot_mensuel
     description: |
       [QUOI MÉTIER] Taux de disponibilité mensuel des articles dans les dépôts LCDP : part des jours du mois où l'article était en stock (> 0).
