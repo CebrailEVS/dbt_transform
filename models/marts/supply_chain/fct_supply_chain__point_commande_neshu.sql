@@ -19,7 +19,7 @@
 -- Formules :
 --   position_stock  = stock_actuel + encours_fournisseur
 --   delai_jours     = délai fournisseur moyen PAR ARTICLE (réceptions 12 mois), fallback médiane globale
---   horizon_jours   = delai_jours + revue_jours (période entre 2 passations de commande, var, défaut 0)
+--   horizon_jours   = delai_jours + revue_jours (période entre 2 passations, var, défaut 7 = hebdo)
 --   source_sigma    = 'erreur' si >= sigma_erreur_min_mois (var, défaut 6) mois d'erreur backtestés,
 --                     sinon 'demande_fallback' (jamais dé-protégé faute de données)
 --   sigma_retenu    = σ(erreur) si source='erreur', sinon σ(demande)
@@ -33,9 +33,9 @@
 --
 -- Grain : 1 ligne par (dépôt, article), aligné sur la classification ② et la prévision ③.
 -- Périmètre encours : commande fournisseur FAIT/VALIDE + livraison EN_ATTENTE, < 60 j (règle métier, var).
--- NOTE : chaque dépôt principal (Rungis, Lyon, Marseille) gère son propre stock et passe ses propres
--- commandes fournisseur, rattachées par product_destination_id. Bordeaux/Strasbourg : peu ou pas de
--- commandes directes (à confirmer avec le métier).
+-- NOTE : périmètre = 3 dépôts qui commandent au fournisseur (Rungis, Lyon, Marseille). Strasbourg est
+-- réapprovisionné DEPUIS Lyon → sa demande, son stock et son (rare) encours remontent sur Lyon via la
+-- macro neshu_depot_reappro. Bordeaux commande indépendamment (Distrilog) → exclu du pilotage.
 -- Paramètres métier en var() dbt : z_service_a/b/c, encours_max_jours, revue_jours, sigma_erreur_min_mois.
 
 with prevision as (
@@ -114,20 +114,33 @@ delai_global as (
 
 ),
 
-stock_actuel as (
+stock_dernier as (
 
-    -- Dernier stock théorique connu par dépôt × article (5 dépôts de distribution uniquement :
-    -- exclut périmés 251, rebus 244 et véhicules de tournée). Le mart stock est un historique
-    -- quotidien -> on garde le snapshot le plus récent par couple.
+    -- Dernier stock théorique connu par dépôt × article (dépôts de distribution : exclut périmés
+    -- 251, rebus 244, véhicules ; exclut Bordeaux 120 = indépendant). On garde le snapshot le plus
+    -- récent par couple avant de rattacher Strasbourg à Lyon.
     select
-        id_entity as company_id,
+        id_entity,
         product_code,
-        stock_at_date as stock_actuel
+        stock_at_date
     from {{ ref('fct_supply_chain__stock_neshu') }}
     where
         entity_type = 'company'
-        and id_entity in (114, 116, 120, 118, 364)
+        and id_entity in (114, 116, 118, 364)
     qualify row_number() over (partition by id_entity, product_code order by date_system desc) = 1
+
+),
+
+stock_actuel as (
+
+    -- Rattachement territoire : le stock de Strasbourg (118) remonte sur Lyon (116) et s'additionne
+    -- au sien, cohérent avec la demande (macro neshu_depot_reappro).
+    select
+        {{ neshu_depot_reappro('id_entity') }} as company_id,
+        product_code,
+        sum(stock_at_date) as stock_actuel
+    from stock_dernier
+    group by company_id, product_code
 
 ),
 
@@ -135,9 +148,11 @@ encours as (
 
     -- Commandes fournisseur en cours (émises, pas encore reçues) à destination du dépôt.
     -- Rattachement par product_destination_id (= dépôt destinataire, type COMPANY), pas company_id
-    -- (qui porte le fournisseur). Filtre : commande faite/validée + livraison EN_ATTENTE, < N jours.
+    -- (qui porte le fournisseur), avec le même rattachement territoire que la demande/le stock :
+    -- une commande livrée Strasbourg (118, cas rare) compte pour Lyon (macro neshu_depot_reappro).
+    -- Filtre : commande faite/validée + livraison EN_ATTENTE, < N jours.
     select
-        product_destination_id as company_id,
+        {{ neshu_depot_reappro('product_destination_id') }} as company_id,
         product_id,
         sum(quantity) as encours_fournisseur
     from {{ ref('int_oracle_neshu__commande_fournisseur_tasks') }}
@@ -145,7 +160,7 @@ encours as (
         task_status_code in ('FAIT', 'VALIDE')
         and delivery_status_code = 'EN_ATTENTE'
         and date(task_start_date) >= date_sub(current_date(), interval {{ var('encours_max_jours', 60) }} day)
-    group by product_destination_id, product_id
+    group by company_id, product_id
 
 ),
 
@@ -196,8 +211,9 @@ calcul as (
         *,
         stock_actuel + encours_fournisseur as position_stock,
         -- Horizon à couvrir = délai fournisseur + période de revue (intervalle entre 2 passations,
-        -- var revue_jours, défaut 0 = commande possible tous les jours — cf. question 6 mail Vincent).
-        delai_jours + {{ var('revue_jours', 0) }} as horizon_jours,
+        -- var revue_jours). Défaut 7 = commande hebdomadaire (cadence validée par Vincent : une
+        -- commande par semaine ; 7 jours calendaires, cohérent avec la demande journalière /30,4).
+        delai_jours + {{ var('revue_jours', 7) }} as horizon_jours,
         -- σ fiable si assez de mois d'erreur observés au backtest, sinon fallback σ(demande).
         coalesce(
             nb_mois_erreur >= {{ var('sigma_erreur_min_mois', 6) }}

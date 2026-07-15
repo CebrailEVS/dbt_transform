@@ -1803,6 +1803,9 @@ models:
       validée avec la logistique sur le mart de couverture. Les lignes à quantité nulle
       (mouvements fantômes) sont exclues ; aucune quantité négative n'existe en source, donc la
       demande agrégée est toujours strictement positive.
+      Rattachement territoire réappro (macro neshu_depot_reappro) : la demande de Strasbourg (118)
+      est attribuée à Lyon (116) — Strasbourg est réapprovisionné depuis Lyon, sa demande remonte
+      donc sur Lyon qui commande pour les deux. Les autres dépôts sont inchangés.
 
       [GRAIN]
       1 ligne par (company_id, product_id, product_code, demande_mois). Représentation *sparse* :
@@ -1810,9 +1813,10 @@ models:
       (pour l'ADI) est faite en aval, dans la classification.
 
       [NOTES]
-      company_id = dépôt source (product_source_id). Le périmètre (Neshu, hors accessoires
-      non-consommables, articles arrêtés) est appliqué en aval, pas ici : le socle reste la
-      demande brute observée.
+      company_id = dépôt source (product_source_id), sauf Strasbourg (118) rattaché à Lyon (116).
+      Le périmètre (Neshu, hors accessoires non-consommables, articles arrêtés) est appliqué en
+      aval, pas ici : hormis le rattachement Strasbourg→Lyon, le socle reste la demande brute
+      observée. Ce socle n'est consommé que par la chaîne forecast/réappro.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

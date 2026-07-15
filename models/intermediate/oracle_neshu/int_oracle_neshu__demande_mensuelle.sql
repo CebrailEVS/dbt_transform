@@ -59,6 +59,22 @@ demande_unifiee as (
     union all
     select * from sorties_vehicules
 
+),
+
+demande_rattachee as (
+
+    -- Rattachement territoire réappro : Strasbourg (118) → Lyon (116), qui le réapprovisionne.
+    -- La demande de Strasbourg est ainsi additionnée à celle de Lyon (macro partagée avec le
+    -- stock/encours du point de commande). Les autres dépôts sont inchangés ; Bordeaux (120)
+    -- reste distinct et sera exclu en aval. Cf. macro neshu_depot_reappro.
+    select
+        {{ neshu_depot_reappro('company_id') }} as company_id,
+        product_id,
+        product_code,
+        demande_mois,
+        quantity
+    from demande_unifiee
+
 )
 
 select
@@ -68,5 +84,5 @@ select
     demande_mois,
     sum(quantity) as quantite_demandee,
     count(*) as nb_mouvements
-from demande_unifiee
+from demande_rattachee
 group by company_id, product_id, product_code, demande_mois
