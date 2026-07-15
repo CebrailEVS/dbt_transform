@@ -42,6 +42,268 @@ models:
         tests:
           - not_null
 
+  - name: stg_apptech__suivi_tech_aguila
+    description: >
+      Overrides Aguila (conversion du code 5) par intervention. Dedup snapshot :
+      seules les lignes du dernier fichier NDJSON de chaque mois sont conservées.
+      Pas de test de freshness (soumissions humaines).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - periode
+              - intervention_id
+    columns:
+      - name: intervention_id
+        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        tests:
+          - not_null
+      - name: convertir_code_5
+        description: "Décision de conversion du code 5 (normalisé en majuscules)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OUI', 'NON']
+      - name: commentaire
+        description: "Commentaire libre du manager (NULL si vide)"
+      - name: periode
+        description: "Mois concerné au format YYYY-MM, dérivé du dossier GCS"
+        tests:
+          - not_null
+      - name: periode_date
+        description: "Premier jour du mois concerné (DATE)"
+      - name: source_file
+        description: "Nom du fichier NDJSON snapshot retenu pour ce mois"
+      - name: extracted_at
+        description: "Timestamp du fichier snapshot (parsé depuis son nom, UTC)"
+        tests:
+          - not_null
+
+  - name: stg_apptech__suivi_tech_astreinte
+    description: >
+      Réaffectations d'astreinte : technicien réel ayant effectué l'intervention.
+      Dedup snapshot : seules les lignes du dernier fichier NDJSON de chaque mois
+      sont conservées. Pas de test de freshness (soumissions humaines).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - periode
+              - intervention_id
+    columns:
+      - name: intervention_id
+        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        tests:
+          - not_null
+      - name: tech_id_reel
+        description: "Identifiant interne du technicien réel (normalisé en minuscules, ex. 'tec-00056')"
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: tech_yuman_id_reel
+        description: "Identifiant Yuman du technicien réel"
+      - name: commentaire
+        description: "Commentaire libre du manager (NULL si vide)"
+      - name: periode
+        description: "Mois concerné au format YYYY-MM, dérivé du dossier GCS"
+        tests:
+          - not_null
+      - name: periode_date
+        description: "Premier jour du mois concerné (DATE)"
+      - name: source_file
+        description: "Nom du fichier NDJSON snapshot retenu pour ce mois"
+      - name: extracted_at
+        description: "Timestamp du fichier snapshot (parsé depuis son nom, UTC)"
+        tests:
+          - not_null
+
+  - name: stg_apptech__suivi_tech_curative
+    description: >
+      Délais forcés (technicien/partenaire) sur interventions curatives. Domaine
+      des délais non contraint (valeurs observées J+0/J+1/J+2 — liste complète à
+      confirmer avec l'analyste avant un accepted_values). Dedup snapshot : seules
+      les lignes du dernier fichier NDJSON de chaque mois sont conservées.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - periode
+              - intervention_id
+    columns:
+      - name: intervention_id
+        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        tests:
+          - not_null
+      - name: delai_tech_force
+        description: "Délai technicien forcé (normalisé en majuscules, ex. 'J+0')"
+      - name: delai_partenaire_force
+        description: "Délai partenaire forcé (normalisé en majuscules, ex. 'J+2')"
+      - name: commentaire
+        description: "Commentaire libre du manager (NULL si vide)"
+      - name: periode
+        description: "Mois concerné au format YYYY-MM, dérivé du dossier GCS"
+        tests:
+          - not_null
+      - name: periode_date
+        description: "Premier jour du mois concerné (DATE)"
+      - name: source_file
+        description: "Nom du fichier NDJSON snapshot retenu pour ce mois"
+      - name: extracted_at
+        description: "Timestamp du fichier snapshot (parsé depuis son nom, UTC)"
+        tests:
+          - not_null
+
+  - name: stg_apptech__suivi_tech_events
+    description: >
+      Événements techniciens (congés, maladie, astreinte…) — référentiel distinct
+      des interventions (clé evt_id). Dedup snapshot : seules les lignes du
+      dernier fichier NDJSON de chaque mois sont conservées. Pas de test de
+      freshness (soumissions humaines).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - periode
+              - evt_id
+      # Cohérence saisie : le mois porté par les enregistrements doit matcher
+      # le dossier GCS dans lequel le fichier a été déposé.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "periode = format('%04d-%02d', annee, mois)"
+          config:
+            severity: warn
+    columns:
+      - name: evt_id
+        description: "Identifiant de l'événement (attribué par l'app)"
+        tests:
+          - not_null
+      - name: evt_tech_yuman_id
+        description: "Identifiant Yuman du technicien concerné"
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: evt_tech_name
+        description: "Nom du technicien (tel que saisi)"
+      - name: evt_tech_secteur
+        description: "Secteur du technicien (normalisé en minuscules, ex. 'evs aura')"
+      - name: evt_event_type
+        description: "Type d'événement (ex. Conges, Maladie, Astreinte — domaine ouvert)"
+        tests:
+          - not_null
+      - name: evt_event_unit
+        description: "Unité de la valeur (Journee / Heure observés)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Journee', 'Heure']
+              config:
+                severity: warn
+      - name: evt_event_valeur
+        description: "Valeur de l'événement dans l'unité donnée (FLOAT, ex. 5.0 jours)"
+      - name: evt_event_date
+        description: "Date de l'événement (DATE, parsée depuis YYYY-MM-DD)"
+      - name: evt_event_manager_comment
+        description: "Commentaire libre du manager (NULL si vide)"
+      - name: annee
+        description: "Année portée par l'enregistrement source"
+      - name: mois
+        description: "Mois (1-12) porté par l'enregistrement source"
+      - name: periode
+        description: "Mois concerné au format YYYY-MM, dérivé du dossier GCS"
+        tests:
+          - not_null
+      - name: periode_date
+        description: "Premier jour du mois concerné (DATE)"
+      - name: source_file
+        description: "Nom du fichier NDJSON snapshot retenu pour ce mois"
+      - name: extracted_at
+        description: "Timestamp du fichier snapshot (parsé depuis son nom, UTC)"
+        tests:
+          - not_null
+
+  - name: stg_apptech__suivi_tech_mee
+    description: >
+      Décisions de facturation des mises en exploitation (MEE) par intervention.
+      Dedup snapshot : seules les lignes du dernier fichier NDJSON de chaque mois
+      sont conservées. Pas de test de freshness (soumissions humaines).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - periode
+              - intervention_id
+    columns:
+      - name: intervention_id
+        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        tests:
+          - not_null
+      - name: a_facturer
+        description: "Décision de facturation de la MEE (normalisé en majuscules)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OUI', 'NON']
+      - name: commentaire
+        description: "Commentaire libre du manager (NULL si vide)"
+      - name: periode
+        description: "Mois concerné au format YYYY-MM, dérivé du dossier GCS"
+        tests:
+          - not_null
+      - name: periode_date
+        description: "Premier jour du mois concerné (DATE)"
+      - name: source_file
+        description: "Nom du fichier NDJSON snapshot retenu pour ce mois"
+      - name: extracted_at
+        description: "Timestamp du fichier snapshot (parsé depuis son nom, UTC)"
+        tests:
+          - not_null
+
+  - name: stg_apptech__suivi_tech_modif_intervention
+    description: >
+      Modifications d'intervention (décision de facturation éventuelle et/ou
+      technicien réel). a_facturer peut être NULL (modif sans décision de
+      facturation). Dedup snapshot : seules les lignes du dernier fichier NDJSON
+      de chaque mois sont conservées. Pas de test de freshness (soumissions humaines).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - periode
+              - intervention_id
+    columns:
+      - name: intervention_id
+        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        tests:
+          - not_null
+      - name: a_facturer
+        description: "Décision de facturation (normalisé en majuscules, NULL si non renseignée)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['OUI', 'NON']
+      - name: tech_id_reel
+        description: "Identifiant interne du technicien réel (normalisé en minuscules, ex. 'tec-01003')"
+      - name: tech_yuman_id_reel
+        description: "Identifiant Yuman du technicien réel"
+      - name: commentaire
+        description: "Commentaire libre du manager (NULL si vide)"
+      - name: periode
+        description: "Mois concerné au format YYYY-MM, dérivé du dossier GCS"
+        tests:
+          - not_null
+      - name: periode_date
+        description: "Premier jour du mois concerné (DATE)"
+      - name: source_file
+        description: "Nom du fichier NDJSON snapshot retenu pour ce mois"
+      - name: extracted_at
+        description: "Timestamp du fichier snapshot (parsé depuis son nom, UTC)"
+        tests:
+          - not_null
+
   - name: stg_apptech__suivi_tech_rw
     description: >
       Re-mappings d'interventions (rework) saisis dans l'app suivi technique :
