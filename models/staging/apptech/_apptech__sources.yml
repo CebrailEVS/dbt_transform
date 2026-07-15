@@ -25,3 +25,30 @@ sources:
           erroné (bad_intervention_id) réaffecté vers le bon id
           (new_intervention_id), avec le technicien concerné et le fichier Excel
           d'origine de la correction.
+      - name: ext_gcs_apptech__suivi_tech_aguila
+        description: >
+          Overrides Aguila : une ligne = une intervention dont le code 5 doit
+          être converti (ou non), avec commentaire du manager.
+      - name: ext_gcs_apptech__suivi_tech_astreinte
+        description: >
+          Réaffectations d'astreinte : une ligne = une intervention dont le
+          technicien réel diffère de celui planifié (tech_id_reel +
+          tech_yuman_id_reel).
+      - name: ext_gcs_apptech__suivi_tech_curative
+        description: >
+          Délais forcés sur interventions curatives : une ligne = une
+          intervention dont les délais technicien/partenaire sont surchargés
+          manuellement (ex. J+0, J+2).
+      - name: ext_gcs_apptech__suivi_tech_events
+        description: >
+          Événements techniciens (congés, maladie, astreinte…) — référentiel
+          distinct des interventions : clé evt_id, avec type/unité/valeur et
+          date de l'événement.
+      - name: ext_gcs_apptech__suivi_tech_mee
+        description: >
+          Mises en exploitation (MEE) : une ligne = une intervention avec la
+          décision de facturation (a_facturer OUI/NON).
+      - name: ext_gcs_apptech__suivi_tech_modif_intervention
+        description: >
+          Modifications d'intervention : une ligne = une intervention corrigée
+          (décision de facturation éventuelle et/ou technicien réel).
