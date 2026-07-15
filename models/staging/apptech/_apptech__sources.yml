@@ -1,0 +1,27 @@
+version: 2
+
+sources:
+  - name: apptech
+    description: >
+      Retraitements d'interventions techniques saisis via l'app interne de suivi
+      technique (SA evs-app-tech), déposés en NDJSON dans
+      gs://evs-datastack-apptech/suivi_tech/ingestion/<type>/<YYYY-MM>/<timestampZ>.ndjson
+      et exposés en tables externes BigQuery (cf. infra/bigquery_external_tables.tf).
+      Contrat avec l'app : fichiers immuables (toute modification = nouveau fichier
+      horodaté), chaque fichier = snapshot COMPLET du (type, mois). Le dossier
+      drafts/ du bucket est de l'état applicatif et n'est jamais lu ici.
+      Pas de freshness déclarée : soumissions humaines événementielles, sans
+      cadence garantie (un test de récence flapperait).
+    database: "{{ var('raw_project') }}"
+    schema: "prod_raw"
+    tables:
+      - name: ext_gcs_apptech__suivi_tech_pause
+        description: >
+          Overrides de prime "pause" : une ligne = une intervention dont la prime
+          doit être doublée (ou non), avec commentaire libre du manager.
+      - name: ext_gcs_apptech__suivi_tech_rw
+        description: >
+          Re-mappings d'interventions (rework) : une ligne = un id d'intervention
+          erroné (bad_intervention_id) réaffecté vers le bon id
+          (new_intervention_id), avec le technicien concerné et le fichier Excel
+          d'origine de la correction.
