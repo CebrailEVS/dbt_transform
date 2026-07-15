@@ -11,9 +11,11 @@
 --   - comportement de demande : Syntetos-Boylan (ADI / CV²) sur la vie active ;
 --   - cycle de vie : label product_exploit (autorité) + comportement (filet de sécurité) ;
 --   - importance : ABC en VALEUR (€), Pareto par dépôt.
--- Périmètre : 5 dépôts de distribution produits (hors ateliers / périmés / rebus / stock Nunshen
--- et entités non-dépôt), articles Neshu, hors familles non-consommables (PRESENTOIR, PRESTATION
--- SERVICE) et hors BADGENESHU. Représentation : 1 ligne par (dépôt, article) — état courant.
+-- Périmètre : 3 dépôts qui commandent au fournisseur (Rungis, Lyon, Marseille). Strasbourg est
+-- réapprovisionné depuis Lyon → sa demande est rattachée à Lyon en amont (socle) ; Bordeaux est
+-- indépendant (Distrilog), exclu. Hors ateliers / périmés / rebus / stock Nunshen et entités
+-- non-dépôt, articles Neshu, hors familles non-consommables (PRESENTOIR, PRESTATION SERVICE) et
+-- hors BADGENESHU. Représentation : 1 ligne par (dépôt, article) — état courant.
 -- Saisonnalité : plano été/hiver (dim produit) × calendrier ISO (seed ref_general__calendrier_saison)
 -- → statut 'hors_saison' (silence hors-saison ≠ mort) + route les saisonniers AVEC historique vers
 -- la méthode 'reference_saisonniere' (anticipation via N-1, cf. maillon prévision).
@@ -76,17 +78,18 @@ part_ete as (
 
 depots as (
 
-    -- Les 5 dépôts de distribution produits uniquement. Exclut ateliers, périmés, rebus, stock
-    -- Nunshen, et les entités non-dépôt (fournisseur, client, logistique) qui polluent l'historique
-    -- source. Aligné avec le périmètre du mart de couverture. code/nom aplatis (pattern hybride).
+    -- Périmètre de pilotage = les 3 dépôts qui commandent au fournisseur : Rungis, Lyon, Marseille.
+    -- Strasbourg (118) est réapprovisionné DEPUIS Lyon : sa demande est déjà rattachée à Lyon en
+    -- amont (socle int_oracle_neshu__demande_mensuelle, macro neshu_depot_reappro), donc il ne
+    -- figure plus comme dépôt distinct. Bordeaux (120) commande de façon indépendante (Distrilog),
+    -- exclu du pilotage. Exclut aussi ateliers, périmés, rebus, stock Nunshen et entités non-dépôt.
+    -- code/nom aplatis (pattern hybride).
     select
         company_id,
         company_code,
         company_name
     from {{ ref('dim_neshu__company') }}
-    where company_code in (
-        'DEPOTRUNGIS', 'DEPOTLYON', 'DEPOTBORDEAUX', 'DEPOTSTRASBOURG', 'DEPOTMARSEILLE'
-    )
+    where company_code in ('DEPOTRUNGIS', 'DEPOTLYON', 'DEPOTMARSEILLE')
 
 ),
 
