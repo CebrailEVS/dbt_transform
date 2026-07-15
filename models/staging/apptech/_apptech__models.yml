@@ -1,0 +1,103 @@
+version: 2
+
+models:
+  - name: stg_apptech__suivi_tech_pause
+    description: >
+      Overrides de prime "pause" saisis dans l'app suivi technique : une ligne =
+      une intervention dont la prime doit être doublée (ou non). Dedup snapshot :
+      seules les lignes du dernier fichier NDJSON de chaque mois sont conservées
+      (une ligne absente du dernier snapshot = override révoqué). Pas de test de
+      freshness : soumissions humaines sans cadence garantie. La jointure vers le
+      référentiel d'interventions est gérée en aval (intermediate).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - periode
+              - intervention_id
+    columns:
+      - name: intervention_id
+        description: "Identifiant de l'intervention concernée (saisie humaine — STRING, non vérifié contre un référentiel à ce stade)"
+        tests:
+          - not_null
+      - name: doubler_prime
+        description: "Décision de doublement de la prime (normalisé en majuscules)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OUI', 'NON']
+      - name: commentaire
+        description: "Commentaire libre du manager (NULL si vide)"
+      - name: periode
+        description: "Mois concerné au format YYYY-MM, dérivé du dossier GCS"
+        tests:
+          - not_null
+      - name: periode_date
+        description: "Premier jour du mois concerné (DATE)"
+      - name: source_file
+        description: "Nom du fichier NDJSON snapshot retenu pour ce mois"
+      - name: extracted_at
+        description: "Timestamp du fichier snapshot (parsé depuis son nom, UTC)"
+        tests:
+          - not_null
+
+  - name: stg_apptech__suivi_tech_rw
+    description: >
+      Re-mappings d'interventions (rework) saisis dans l'app suivi technique :
+      une ligne = un id d'intervention erroné réaffecté vers le bon id, avec le
+      technicien concerné. Dedup snapshot : seules les lignes du dernier fichier
+      NDJSON de chaque mois sont conservées. Pas de test de freshness :
+      soumissions humaines sans cadence garantie.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - periode
+              - bad_intervention_id
+      # Cohérence saisie : le mois porté par les enregistrements doit matcher
+      # le dossier GCS dans lequel le fichier a été déposé.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "periode = format('%04d-%02d', annee, mois)"
+          config:
+            severity: warn
+      # Un re-mapping d'un id vers lui-même est presque sûrement une erreur de saisie.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "bad_intervention_id != new_intervention_id"
+          config:
+            severity: warn
+    columns:
+      - name: bad_intervention_id
+        description: "Id d'intervention erroné (saisie humaine — STRING)"
+        tests:
+          - not_null
+      - name: new_intervention_id
+        description: "Id d'intervention corrigé (saisie humaine — STRING)"
+        tests:
+          - not_null
+      - name: tech_id
+        description: "Identifiant du technicien concerné"
+      - name: tech_nom
+        description: "Nom du technicien (tel que saisi)"
+      - name: tech_secteur
+        description: "Secteur du technicien (normalisé en minuscules, ex. 'evs idf')"
+      - name: annee
+        description: "Année portée par l'enregistrement source"
+      - name: mois
+        description: "Mois (1-12) porté par l'enregistrement source"
+      - name: source
+        description: "Fichier Excel d'origine de la correction (traçabilité amont, ex. 'RW EVS IDF 2026-02.xlsx')"
+      - name: periode
+        description: "Mois concerné au format YYYY-MM, dérivé du dossier GCS"
+        tests:
+          - not_null
+      - name: periode_date
+        description: "Premier jour du mois concerné (DATE)"
+      - name: source_file
+        description: "Nom du fichier NDJSON snapshot retenu pour ce mois"
+      - name: extracted_at
+        description: "Timestamp du fichier snapshot (parsé depuis son nom, UTC)"
+        tests:
+          - not_null

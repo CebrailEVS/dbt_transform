@@ -37,6 +37,9 @@ models:
       +schema: staging
       +tags: ['staging']
 
+      apptech:
+        +tags: ['staging', 'apptech']
+
       yuman:
         +tags: ['staging', 'yuman']
 
