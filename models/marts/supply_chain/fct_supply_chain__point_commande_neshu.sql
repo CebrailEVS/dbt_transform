@@ -27,6 +27,14 @@
 -- commandes fournisseur, rattachées par product_destination_id. Bordeaux/Strasbourg : peu ou pas de
 -- commandes directes (à confirmer avec le métier).
 -- Paramètres métier en var() dbt : z_service_a/b/c, encours_max_jours (défauts = proposition Vincent).
+--
+-- V2.1 (colonnes parallèles *_v2, les colonnes V1 ne bougent pas — bascule décidée chiffres en main) :
+--   la sécurité couvre « la demande bouge PLUS QUE PRÉVU » : σ(erreur de prévision) issu du backtest
+--   (fct_supply_chain__erreur_prevision_neshu, 12 derniers mois, vie >= 3 mois) remplace σ(demande) ;
+--   fallback σ(demande) si < sigma_erreur_min_mois (var, défaut 6) mois d'erreur observés.
+--   Biais corrigé côté demande, sens POSITIF uniquement (sous-prévision -> risque rupture) :
+--   demande_v2 = prévision + greatest(biais, 0). Sur les stables σ_err ≈ 1,15 × σ_dem (théorie MA3) ->
+--   la sécurité MONTE légèrement ; elle baisse sur les articles en tendance/saison (signal capté par ③).
 
 with prevision as (
 
@@ -56,6 +64,25 @@ variabilite as (
         product_id,
         coalesce(stddev_samp(quantite_demandee), 0) as sigma_demande_mensuelle
     from {{ ref('int_oracle_neshu__demande_mensuelle') }}
+    group by company_id, product_id
+
+),
+
+erreur_prevision as (
+
+    -- V2.1 : σ et biais de l'ERREUR de prévision par couple, mesurés par le backtest walk-forward
+    -- (fait agrégé à un grain plus grossier, autorisé). Fenêtre : 12 derniers mois cibles,
+    -- vie >= 3 mois (fenêtres de prévision complètes). erreur = réel − prévision (positif = sous-prévision).
+    select
+        company_id,
+        product_id,
+        count(*) as nb_mois_erreur,
+        stddev_samp(erreur) as sigma_erreur_mensuelle,
+        avg(erreur) as biais_mensuel
+    from {{ ref('fct_supply_chain__erreur_prevision_neshu') }}
+    where
+        nb_mois_anciennete >= 3
+        and mois_cible >= date_sub(date_trunc(current_date('Europe/Paris'), month), interval 12 month)
     group by company_id, product_id
 
 ),
@@ -135,6 +162,9 @@ assemble as (
         p.demande_prevue_mensuelle,
         p.demande_prevue_journaliere,
         coalesce(v.sigma_demande_mensuelle, 0) as sigma_demande_mensuelle,
+        coalesce(ep.nb_mois_erreur, 0) as nb_mois_erreur,
+        ep.sigma_erreur_mensuelle,
+        ep.biais_mensuel,
         coalesce(da.delai_jours_article, dg.delai_jours_global) as delai_jours,
         coalesce(s.stock_actuel, 0) as stock_actuel,
         coalesce(e.encours_fournisseur, 0) as encours_fournisseur,
@@ -149,6 +179,7 @@ assemble as (
         prod.purchase_unit_code
     from prevision as p
     left join variabilite as v on p.company_id = v.company_id and p.product_id = v.product_id
+    left join erreur_prevision as ep on p.company_id = ep.company_id and p.product_id = ep.product_id
     left join delai_article as da on p.product_id = da.product_id
     cross join delai_global as dg
     left join stock_actuel as s on p.company_id = s.company_id and p.product_code = s.product_code
@@ -167,8 +198,35 @@ calcul as (
         delai_jours + {{ var('revue_jours', 0) }} as horizon_jours,
         -- σ ramené à l'horizon (variabilité indépendante jour à jour) : σ_mois × √(horizon/30.4).
         sigma_demande_mensuelle
-        * sqrt((delai_jours + {{ var('revue_jours', 0) }}) / 30.4) as sigma_lead_time
+        * sqrt((delai_jours + {{ var('revue_jours', 0) }}) / 30.4) as sigma_lead_time,
+        -- V2.1 : σ fiable si assez de mois d'erreur observés au backtest, sinon fallback σ(demande).
+        coalesce(
+            nb_mois_erreur >= {{ var('sigma_erreur_min_mois', 6) }}
+            and sigma_erreur_mensuelle is not null,
+            false
+        ) as is_sigma_erreur_fiable
     from assemble
+
+),
+
+calcul_v2 as (
+
+    select
+        *,
+        case when is_sigma_erreur_fiable then 'erreur' else 'demande_fallback' end as source_sigma,
+        -- σ V2.1 ramené à l'horizon : σ(erreur) si fiable, sinon σ(demande) (jamais dé-protégé
+        -- faute de données).
+        case
+            when is_sigma_erreur_fiable then sigma_erreur_mensuelle
+            else sigma_demande_mensuelle
+        end * sqrt(horizon_jours / 30.4) as sigma_lead_time_v2,
+        -- Correction de biais côté demande, sens positif uniquement (sous-prévision -> rupture) :
+        -- le biais négatif (sur-prévision) n'est PAS retranché en V2.1 (prudence, cf. note design).
+        (
+            demande_prevue_mensuelle
+            + case when is_sigma_erreur_fiable then greatest(biais_mensuel, 0) else 0 end
+        ) / 30.4 as demande_prevue_journaliere_v2
+    from calcul
 
 ),
 
@@ -177,8 +235,12 @@ final as (
     select
         *,
         round(z_service * sigma_lead_time, 2) as stock_securite,
-        round(demande_prevue_journaliere * horizon_jours + z_service * sigma_lead_time, 2) as point_commande
-    from calcul
+        round(demande_prevue_journaliere * horizon_jours + z_service * sigma_lead_time, 2) as point_commande,
+        round(z_service * sigma_lead_time_v2, 2) as stock_securite_v2,
+        round(
+            demande_prevue_journaliere_v2 * horizon_jours + z_service * sigma_lead_time_v2, 2
+        ) as point_commande_v2
+    from calcul_v2
 
 ),
 
@@ -197,7 +259,18 @@ suggestion as (
         case
             when methode_prevision = 'exclu' then 0
             else greatest(0, round(point_commande - position_stock, 2))
-        end as quantite_a_commander
+        end as quantite_a_commander,
+        -- V2.1 : même feu tricolore et même quantité, aux seuils V2.1 (comparaison avant bascule).
+        case
+            when methode_prevision = 'exclu' then 'exclu'
+            when position_stock <= stock_securite_v2 then 'rupture'
+            when position_stock <= point_commande_v2 then 'a_commander'
+            else 'ok'
+        end as statut_reappro_v2,
+        case
+            when methode_prevision = 'exclu' then 0
+            else greatest(0, round(point_commande_v2 - position_stock, 2))
+        end as quantite_a_commander_v2
     from final
 
 )
@@ -232,5 +305,14 @@ select
     case
         when methode_prevision = 'exclu' then 0
         else cast(ceil(quantite_a_commander / coalesce(purchase_unit_coeff, 1)) as int64)
-    end as quantite_a_commander_conditionnee
+    end as quantite_a_commander_conditionnee,
+    -- Bloc V2.1 (colonnes parallèles, comparaison avant bascule — cf. en-tête du modèle).
+    source_sigma,
+    nb_mois_erreur,
+    round(sigma_erreur_mensuelle, 2) as sigma_erreur_mensuelle,
+    round(biais_mensuel, 2) as biais_mensuel,
+    stock_securite_v2,
+    point_commande_v2,
+    statut_reappro_v2,
+    quantite_a_commander_v2
 from suggestion
