@@ -739,9 +739,9 @@ models:
   - name: fct_supply_chain__point_commande_neshu
     description: |
       [QUOI MÉTIER] Suggestion de réapprovisionnement par dépôt et article Neshu — le maillon final du forecast : à partir de la prévision de demande, du stock actuel, du délai fournisseur, des commandes en cours et d'un stock de sécurité calibré par classe ABC, calcule un point de commande, un feu tricolore (rupture / a_commander / ok / exclu) et une quantité à commander. Construite EN PARALLÈLE de fct_supply_chain__couverture_stock_neshu (méthode point de commande vs couverture en jours), pour comparaison avant bascule Power BI.
-      [COMMENT CONSTRUITE] Base = fct_supply_chain__prevision_demande_neshu (demande_prevue_journaliere/mensuelle, classe_abc, methode_prevision). sigma_demande_mensuelle = écart-type de la demande mensuelle par couple (socle int_oracle_neshu__demande_mensuelle, vie active sparse). delai_jours = délai fournisseur moyen PAR ARTICLE (int_oracle_neshu__reception_tasks, is_lead_time_valid, 12 mois), fallback médiane globale si l'article n'a pas de réception récente. stock_actuel = dernier snapshot de fct_supply_chain__stock_neshu (entity_type='company', 5 dépôts de distribution : 114/116/118/120/364 ; hors périmés 251, rebus 244, véhicules). encours_fournisseur = somme des commandes fournisseur émises non reçues (int_oracle_neshu__commande_fournisseur_tasks, task_status_code IN ('FAIT','VALIDE') + delivery_status_code='EN_ATTENTE', < 60 j), rattachées au dépôt par product_destination_id. Formules : position_stock = stock_actuel + encours ; horizon_jours = delai_jours + revue_jours (période de revue = intervalle entre 2 passations de commande, var, défaut 0 = commande possible tous les jours) ; sigma_lead_time = sigma_demande_mensuelle × √(horizon_jours / 30,4) ; stock_securite = z(service ABC) × sigma_lead_time ; point_commande = demande_prevue_journaliere × horizon_jours + stock_securite ; quantite_a_commander = max(0, point_commande − position_stock). Reconditionnement : quantite_a_commander_conditionnee = plafond(quantite_a_commander / coeff_conditionnement), où coeff_conditionnement = purchase_unit_coeff de dim_neshu__product (unité d'achat, idunit_type=1 ; fallback 1 = commande à l'unité). Vars dbt métier : z_service_a/b/c (2,05/1,645/1,28 = service 98/95/90 %), encours_max_jours (60), revue_jours (0 — à caler sur la cadence réelle de commande, question posée au métier).
+      [COMMENT CONSTRUITE] Base = fct_supply_chain__prevision_demande_neshu (demande_prevue_journaliere/mensuelle, classe_abc, methode_prevision). delai_jours = délai fournisseur moyen PAR ARTICLE (int_oracle_neshu__reception_tasks, is_lead_time_valid, 12 mois), fallback médiane globale si l'article n'a pas de réception récente. stock_actuel = dernier snapshot de fct_supply_chain__stock_neshu (entity_type='company', 5 dépôts de distribution : 114/116/118/120/364 ; hors périmés 251, rebus 244, véhicules). encours_fournisseur = somme des commandes fournisseur émises non reçues (int_oracle_neshu__commande_fournisseur_tasks, task_status_code IN ('FAIT','VALIDE') + delivery_status_code='EN_ATTENTE', < 60 j), rattachées au dépôt par product_destination_id. SÉCURITÉ SUR L'ERREUR (méthode V2, validée par backtest) : sigma_erreur_mensuelle et biais_mensuel = écart-type et moyenne de l'erreur de prévision mesurée par le backtest fct_supply_chain__erreur_prevision_neshu (12 derniers mois cibles, vie >= 3 mois). Si nb_mois_erreur >= sigma_erreur_min_mois (var, défaut 6) → source_sigma='erreur', sinon fallback source_sigma='demande_fallback' sur sigma_demande_mensuelle (écart-type de la demande, socle int_oracle_neshu__demande_mensuelle) — jamais dé-protégé faute de données. Formules : position_stock = stock_actuel + encours ; horizon_jours = delai_jours + revue_jours (période de revue = intervalle entre 2 passations de commande, var, défaut 0) ; sigma_lead_time = sigma_retenu × √(horizon_jours / 30,4) ; stock_securite = z(service ABC) × sigma_lead_time ; demande_retenue = prévision ③ + correction de biais POSITIF (max(biais,0), sous-prévision uniquement) si source='erreur' ; point_commande = demande_retenue_journaliere × horizon_jours + stock_securite ; quantite_a_commander = max(0, point_commande − position_stock). Reconditionnement : quantite_a_commander_conditionnee = plafond(quantite_a_commander / coeff_conditionnement), où coeff_conditionnement = purchase_unit_coeff de dim_neshu__product (unité d'achat, idunit_type=1 ; fallback 1 = commande à l'unité). Vars dbt métier : z_service_a/b/c (2,05/1,645/1,28 = service 98/95/90 %), encours_max_jours (60), revue_jours (0 — à caler sur la cadence réelle de commande, question posée au métier), sigma_erreur_min_mois (6).
       [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build, aligné sur la classification ② et la prévision ③.
-      [NOTES] V1. Le stock de sécurité ramène la variabilité mensuelle à la durée du délai (√(delai/30,4)) : sans ce facteur il serait surdimensionné (~×3 pour un délai de 4 j). L'ABC pilote UNIQUEMENT le niveau de service (z), jamais l'exclusion (exclu = cycle de vie via ③). Chaque dépôt principal (Rungis, Lyon, Marseille) gère son propre stock et ses propres commandes fournisseur (rattachées par product_destination_id) ; Bordeaux/Strasbourg passent peu ou pas de commandes directes (à confirmer métier). LIMITES : (1) un stock théorique négatif (ghost stock) déclenche rupture et gonfle la quantité suggérée — comportement défendable (à corriger à la source) ; (2) ~22 % des couples n'ont pas de ligne d'inventaire au dernier snapshot (stock_actuel=0 par défaut) ; (3) sigma calculé sur mois observés (sparse) et sur toute la vie active — non désaisonnalisé, donc sur-estimé pour les saisonniers et sous-estimé pour les articles récents (raffinement V2 = sigma même-saison ou sigma de l'erreur de prévision backtestée) ; (4) reconditionnement basé sur le master evs_product_unit (Option A) : ~8 produits actifs sans unité d'achat au master tombent sur le fallback « à l'unité » (coeff 1) — à compléter côté ERP. date_calcul = date d'exécution (photo du jour, non historisée).
+      [NOTES] La sécurité couvre « la demande bouge PLUS QUE PRÉVU » (σ de l'erreur de prévision), pas « la demande bouge » (σ brut) : c'est le bon risque à assurer. Backtest de calibration : cette méthode TIENT les cibles de service (A 99,1 % pour 98 % visé, B 94,2/95, C 90,3/90) là où σ(demande) sous-servait de 3-4 pts — le gros σ brut tamponnait la mauvaise chose en ignorant le biais systématique. Le σ d'erreur recalibre par article : sur les stables σ_erreur ≈ 1,15 × σ_demande (théorie MA3) donc la sécurité monte un peu ; sur les articles en tendance/saison elle baisse (le σ brut comptait leur croissance comme du risque). CAS À CONNAÎTRE : l'article-croissance emblématique LCDP529 Rungis a un point de commande PLUS BAS qu'avec σ(demande) — non pas sous-protégé, mais correctement calibré (σ brut = sur-protection née de la confusion tendance/bruit), et le backtest prouve que le service cible est tenu. Le stock de sécurité ramène la variabilité mensuelle à la durée du délai (√(horizon/30,4)) : sans ce facteur il serait surdimensionné (~×3 pour un délai de 4 j). L'ABC pilote UNIQUEMENT le niveau de service (z), jamais l'exclusion (exclu = cycle de vie via ③). Chaque dépôt principal (Rungis, Lyon, Marseille) gère son propre stock et ses propres commandes fournisseur (rattachées par product_destination_id) ; Bordeaux/Strasbourg passent peu ou pas de commandes directes (à confirmer métier). LIMITES : (1) un stock théorique négatif (ghost stock) déclenche rupture et gonfle la quantité suggérée — comportement défendable (à corriger à la source) ; (2) ~22 % des couples n'ont pas de ligne d'inventaire au dernier snapshot (stock_actuel=0 par défaut) ; (3) ~38 couples sans historique d'erreur suffisant restent sur le fallback σ(demande) (source_sigma='demande_fallback') ; (4) reconditionnement basé sur le master evs_product_unit (Option A) : ~8 produits actifs sans unité d'achat au master tombent sur le fallback « à l'unité » (coeff 1) — à compléter côté ERP. date_calcul = date d'exécution (photo du jour, non historisée, fuseau système).
     columns:
       - name: date_calcul
         description: "Date d'exécution du calcul (photo du jour, non historisée)"
@@ -792,11 +792,26 @@ models:
       - name: z_service
         description: "Coefficient de sécurité lié au niveau de service, piloté par la classe ABC (A=2,05 / B=1,645 / C=1,28 ; C par défaut si non classé)"
       - name: demande_prevue_mensuelle
-        description: "Prévision de demande mensuelle (unités), héritée de ③"
+        description: "Prévision de demande mensuelle brute (unités), héritée de ③ (avant correction de biais)"
       - name: demande_prevue_journaliere
-        description: "Prévision de demande journalière = mensuelle / 30,4. Multipliée par le délai pour la demande pendant le réappro"
+        description: "Prévision de demande journalière brute = mensuelle / 30,4 (héritée de ③, avant correction de biais)"
+      - name: demande_retenue_journaliere
+        description: "Demande journalière RETENUE pour le point de commande = (prévision ③ + biais positif si source_sigma='erreur') / 30,4. Corrige la sous-prévision systématique ; = demande_prevue_journaliere si fallback"
+      - name: source_sigma
+        description: "Origine du σ utilisé pour le stock de sécurité : erreur (backtest, >= sigma_erreur_min_mois mois d'historique) ou demande_fallback (σ de demande, historique d'erreur insuffisant)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['erreur', 'demande_fallback']
+      - name: nb_mois_erreur
+        description: "Nombre de mois d'erreur observés au backtest (12 derniers mois cibles, vie >= 3 mois). 0 si le couple n'y figure pas"
+      - name: sigma_erreur_mensuelle
+        description: "Écart-type de l'erreur de prévision mensuelle (backtest) — le bon risque à assurer. NULL si < 2 mois d'erreur observés (→ fallback σ demande)"
       - name: sigma_demande_mensuelle
-        description: "Écart-type de la demande mensuelle sur la vie active (mesure la variabilité, base du stock de sécurité)"
+        description: "Écart-type de la demande mensuelle sur la vie active (socle). Sert de FALLBACK au stock de sécurité quand l'historique d'erreur est insuffisant"
+      - name: biais_mensuel
+        description: "Erreur moyenne signée (réel − prévision) mesurée au backtest. Positif = sous-prévision ; seule la part positive corrige demande_retenue_journaliere"
       - name: stock_actuel
         description: "Stock théorique de l'article au dernier snapshot du dépôt (déconditionné). 0 si absent de l'inventaire ; peut être négatif (ghost stock)"
       - name: encours_fournisseur
@@ -804,9 +819,9 @@ models:
       - name: position_stock
         description: "Position de stock = stock_actuel + encours_fournisseur. Comparée au point de commande pour décider du réappro"
       - name: stock_securite
-        description: "Stock de sécurité = z × sigma × √(delai/30,4). Marge absorbant la variabilité de la demande pendant le délai fournisseur"
+        description: "Stock de sécurité = z × σ(erreur si fiable, sinon demande) × √(horizon/30,4). Absorbe l'erreur de prévision pendant le délai — calibré pour tenir le niveau de service ABC (backtest)"
       - name: point_commande
-        description: "Seuil de déclenchement = demande pendant le délai + stock de sécurité. On commande quand la position passe sous ce seuil"
+        description: "Seuil de déclenchement = demande retenue pendant l'horizon + stock de sécurité. On commande quand la position passe sous ce seuil"
       - name: statut_reappro
         description: "Feu tricolore d'action : rupture (position ≤ stock de sécurité), a_commander (position ≤ point de commande), ok (couvert), exclu (article arrêté/inactif)"
         tests:
@@ -846,6 +861,10 @@ models:
       - dbt_utils.expression_is_true:
           arguments:
             expression: "stock_securite >= 0"
+      # correction de biais à sens unique : la demande retenue ne descend jamais sous la prévision brute
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "demande_retenue_journaliere >= demande_prevue_journaliere - 0.001"
 
   - name: fct_supply_chain__erreur_prevision_neshu
     description: |
