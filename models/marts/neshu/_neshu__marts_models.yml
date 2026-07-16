@@ -1281,7 +1281,7 @@ models:
       `int_yuman__demands_workorders_enriched` sur partenaire NESHU et
       catégorie CURATIVE*, puis dispatch en 3 buckets selon le statut
       (logique statut-d'abord, buckets mutuellement exclusifs) :
-        - past    : workorder_status='Closed'      + demand Accepted + date_done dans [J-15 ; aujourd'hui]
+        - past    : workorder_status='Closed'      + demand Closed   + date_done dans [J-15 ; aujourd'hui]
         - current : workorder_status='In progress'  + demand Accepted (toute date)
         - future  : workorder_status='Scheduled'    + demand Accepted (toute date, planifié à venir OU en retard)
       Chaque workorder a un statut unique → au plus un bucket, pas de doublon
