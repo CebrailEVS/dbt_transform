@@ -1285,3 +1285,204 @@ models:
 
       - name: dbt_invocation_id
         description: Identifiant unique d’exécution dbt (traçabilité pipeline)
+
+  - name: fct_technique__repair
+    description: |
+      [QUOI MÉTIER]
+      Suivi des "repairs" NESHU : interventions curatives réalisées sur une
+      machine ayant déjà eu une curative dans les 30 jours précédents
+      (récidive de panne / échec de réparation). Contient TOUTES les curatives
+      réalisées (flag `is_repair`), pas seulement les repairs, pour permettre
+      le calcul d'un taux de repair en BI. Remplace l'export Excel mensuel
+      produit par un notebook Python.
+
+      [COMMENT CONSTRUITE]
+      Lecture de `int_yuman__interventions` filtré sur `partner_name = 'NESHU'`,
+      `intervention_state = 'REALISEE'`, `workorder_type_clean = 'curative'` et
+      `material_id` non NULL. Articles consommés agrégés (STRING_AGG) depuis
+      `stg_yuman__workorder_products`. Contexte de la curative précédente via
+      LAG(partition machine, ordre date_done). Chaînage en épisodes : nouvel
+      épisode si première curative de la machine ou gap > 30 jours ; une chaîne
+      A→B→C rapprochées = 1 épisode de 3 visites (pas de double comptage,
+      contrairement à une fenêtre glissante).
+
+      [GRAIN]
+      1 ligne par `workorder_id` (intervention curative réalisée NESHU avec
+      machine identifiée). ~5 600 lignes depuis déc. 2023.
+
+      [NOTES]
+      - Les curatives sans `material_id` (~38 lignes) sont exclues : aucun
+        suivi repair possible sans machine.
+      - Les curatives clôturées avec pause historique sont INCLUSES
+        (contrairement à l'ancien script Python qui les excluait à tort).
+      - Rafraîchissement : via `source:yuman+` (pipeline EL yuman, 01:00 en
+        semaine), comme les autres marts technique.
+
+    columns:
+      - name: intervention_date
+        description: >
+          Date de réalisation de l'intervention (date de `date_done`).
+          Colonne de partitionnement.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: "date('2023-01-01')"
+                max_value: "current_date()"
+              config:
+                severity: warn
+
+      - name: workorder_id
+        description: PK — identifiant Yuman du bon de travail (workorder).
+        tests:
+          - unique
+          - not_null
+
+      - name: material_id
+        description: >
+          FK vers `dim_technique__parc_machine` — machine concernée. Jamais
+          NULL (les curatives sans machine sont exclues du périmètre).
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_technique__parc_machine')
+                field: material_id
+              config:
+                severity: warn
+
+      - name: client_id
+        description: FK vers `dim_technique__client`.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__client')
+                field: client_id
+              config:
+                severity: warn
+
+      - name: site_id
+        description: FK vers `dim_technique__site`.
+
+      - name: technician_id
+        description: FK vers `dim_technique__technician` (user_id Yuman).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__technician')
+                field: user_id
+              config:
+                severity: warn
+
+      - name: demand_id
+        description: Identifiant Yuman de la demande rattachée au workorder.
+
+      - name: episode_id
+        description: >
+          Clé surrogate de l'épisode de pannes (machine × séquence). Toutes les
+          curatives d'une même machine espacées de <= 30 jours partagent le
+          même episode_id.
+
+      - name: client_name
+        description: Raison sociale du client (attribut à plat pour affichage).
+
+      - name: site_name
+        description: Nom du site d'intervention (attribut à plat).
+
+      - name: material_serial_number
+        description: Numéro de série de la machine.
+
+      - name: machine_clean
+        description: Modèle machine normalisé (référentiel Yuman nettoyé).
+
+      - name: famille_neshu
+        description: Famille machine NESHU (référentiel `ref_yuman__machine_clean`).
+
+      - name: workorder_technician_name
+        description: Nom du technicien ayant réalisé l'intervention.
+
+      - name: demand_description
+        description: Description de la demande (panne déclarée).
+
+      - name: workorder_report
+        description: Rapport d'intervention saisi par le technicien.
+
+      - name: articles
+        description: >
+          Références des articles consommés pendant l'intervention, agrégées
+          en liste triée séparée par des virgules. NULL si aucun article.
+
+      - name: previous_workorder_id
+        description: >
+          Workorder de la curative précédente sur la même machine. NULL si
+          première curative connue de la machine.
+
+      - name: previous_intervention_date
+        description: Date de la curative précédente sur la même machine.
+
+      - name: previous_technician_name
+        description: Technicien de la curative précédente.
+
+      - name: previous_demand_description
+        description: Panne déclarée lors de la curative précédente.
+
+      - name: previous_report
+        description: Rapport d'intervention de la curative précédente.
+
+      - name: previous_articles
+        description: Articles consommés lors de la curative précédente.
+
+      - name: is_repair
+        description: >
+          TRUE si une curative a déjà eu lieu sur la même machine dans les
+          30 jours précédents (delai_jours_depuis_precedente <= 30). C'est la
+          définition métier du repair.
+        tests:
+          - not_null
+
+      - name: is_same_day
+        description: >
+          TRUE si la curative précédente sur la même machine date du même jour
+          (delai_jours_depuis_precedente = 0). Mélange de doublons
+          administratifs, de transferts entre techniciens et de vrais retours
+          same-day — non triables automatiquement (la distinction est dans le
+          texte libre des rapports). Permet d'exclure ces cas du taux de
+          repair en BI.
+        tests:
+          - not_null
+
+      - name: delai_jours_depuis_precedente
+        description: >
+          Nombre de jours calendaires depuis la curative précédente sur la
+          même machine. NULL si première curative connue. Non additif.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+
+      - name: episode_rank
+        description: >
+          Rang de l'intervention dans son épisode (1 = visite initiale,
+          2 = premier repair, etc.). Non additif.
+
+      - name: nb_visites_episode
+        description: >
+          Nombre total de visites de l'épisode (équivalent "multi visite N"
+          de l'ancien script, sans double comptage). Non additif — répété sur
+          chaque ligne de l'épisode.
+
+      - name: done_at
+        description: Timestamp de réalisation de l'intervention (métadonnée).
+
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_repair = (episode_rank > 1)"
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 4000
+            max_value: 100000
+          config:
+            severity: warn
