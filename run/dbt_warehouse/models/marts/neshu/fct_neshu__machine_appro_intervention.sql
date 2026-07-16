@@ -1,0 +1,446 @@
+
+  
+    
+
+    create or replace table `evs-datastack-prod`.`prod_marts`.`fct_neshu__machine_appro_intervention`
+      
+    
+    
+
+    
+    OPTIONS(
+      description="""[QUOI M\u00c9TIER]\nVue cross-source Neshu \u00d7 Yuman par machine en appro : pour chaque\ndevice Neshu ayant au moins un passage appro, expose son contexte appro\n(dernier FAIT, prochain PR\u00c9VU, compteurs) et ses interventions curatives\nYuman dans 3 buckets (cl\u00f4tur\u00e9e \u226415j, en cours, planifi\u00e9e \u2014 \u00e0 venir ou en retard).\n\n[COMMENT CONSTRUITE]\nJoint `int_oracle_neshu__appro_machine_context` (intermediate\nfactoris\u00e9, grain device) avec `dim_neshu__device`. La company\n(company_id / company_code) = propri\u00e9taire COURANT issu de\n`dim_neshu__device` (ERP idcompany_customer), et NON le client\nhistorique d\u00e9riv\u00e9 des t\u00e2ches d'appro (qui reste fig\u00e9 sur l'ancien\nemplacement apr\u00e8s un d\u00e9m\u00e9nagement de machine). C\u00f4t\u00e9 Yuman, filtre\n`int_yuman__demands_workorders_enriched` sur partenaire NESHU et\ncat\u00e9gorie CURATIVE*, puis dispatch en 3 buckets selon le statut\n(logique statut-d'abord, buckets mutuellement exclusifs) :\n  - past    : workorder_status='Closed'      + demand Closed   + date_done dans [J-15 ; aujourd'hui]\n  - current : workorder_status='In progress'  + demand Accepted (toute date)\n  - future  : workorder_status='Scheduled'    + demand Accepted (toute date, planifi\u00e9 \u00e0 venir OU en retard)\nChaque workorder a un statut unique \u2192 au plus un bucket, pas de doublon\n(ex. une In progress avec date_done renseign\u00e9e reste en 'current', pas en 'past').\nCross-source join sur `UPPER(TRIM(device_code))` = `serial_clean`\n(normalisation Yuman : strip 'NESH_' prefix) ET sur le client\nCOURANT `UPPER(TRIM(company_code))` = `yuman_company_code`\n(client_code Yuman 'NESH_' strip\u00e9). Le double crit\u00e8re garantit\nqu'on ne rattache que les interventions de l'emplacement actuel de\nla machine, jamais celles d'un ancien client.\n\n[GRAIN]\n1 ligne par device_id Neshu (ayant \u2265 1 passage appro).\n\n[NOTES]\nBucket \"en cours\" : inclut les interventions In progress en pause\n(is_workorder_paused). Une In progress en pause est toujours en cours\n(suspendue), expos\u00e9e via current_is_workorder_paused + les motifs ;\nfiltrer current_is_workorder_paused = false pour ne garder que les\nactives. Les workorders Closed conservent leurs champs de pause\n(pause historique, d\u00e9j\u00e0 reprise) mais ne sont pas \"en cours\".\nLes d\u00e9placements sans r\u00e9paration (is_workorder_not_done) sont exclus.\n\n\u26a0\ufe0f Jointure cross-source par string match device_code \u2194 serial,\nd\u00e9sambigu\u00efs\u00e9e par le client courant. Un m\u00eame serial peut porter\nplusieurs materials Yuman (historique des d\u00e9placements de la machine\nchez diff\u00e9rents clients) ; le double crit\u00e8re serial + client courant\nisole le bon material. Cons\u00e9quence voulue : une machine pass\u00e9e en\natelier / remise en \u00e9tat / d\u00e9p\u00f4t rebut (dont le client Yuman interne\n'NESH_EVS' ne mappe pas aux codes internes Neshu) n'affiche plus\nd'intervention curative client \u2014 c'est coh\u00e9rent avec l'objectif\n\"suivi appro + curatif du client courant\". Une table de mapping\ndevice Yuman \u2194 device Oracle Neshu reste envisageable si le string\nmatch sur le serial devient insuffisant.\n\nReplace l'ancienne PR #77 (Rim) qui pla\u00e7ait ce mart \u00e0 tort dans\n`marts/technique/` avec un nom au pluriel et une logique appro\nenfouie en 7 CTEs (factoris\u00e9e via l'intermediate).\n\nOBT controlled : seuls les IDs (device_id, company_id, material_id par\nbucket) + 1-3 attributs d'affichage par dim sont expos\u00e9s. Les autres\nattributs dim (brand, technician_equipe, client_category) sont\naccessibles via jointure depuis le BI (dim_technique__material,\ndim_technique__technician).\n"""
+    )
+    as (
+      
+
+-- ============================================================
+-- fct_neshu__machine_appro_intervention
+--
+-- Grain : 1 ligne par device Neshu en appro (ayant ≥ 1 passage).
+--
+-- Objectif métier : cross-source Neshu × Yuman, pour chaque machine
+-- Neshu en appro, expose son contexte appro (dernier FAIT, prochain
+-- PRÉVU) + ses interventions curatives Yuman (passé 15j, en cours,
+-- futur).
+--
+-- Sources :
+--   - int_oracle_neshu__appro_machine_context (grain device, factorisé)
+--   - dim_neshu__device (device_code + company du propriétaire COURANT)
+--   - int_yuman__demands_workorders_enriched (interventions Yuman)
+--
+-- ⚠️ Jointure cross-source device_code Neshu = serial Yuman
+-- (UPPER + TRIM + strip 'NESH_'), DÉSAMBIGUÏSÉE par le client courant :
+-- un même serial peut porter plusieurs materials Yuman (historique des
+-- déplacements de la machine chez différents clients). On ne rattache
+-- que les interventions du client COURANT de la machine, via
+-- client_code Yuman ('NESH_' + code client) = company_code Neshu.
+-- Conséquence : company_code affiché et interventions montrées désignent
+-- toujours le même emplacement (cohérence par construction). Les
+-- interventions faites en atelier / remise en état (client Yuman interne
+-- 'NESH_EVS', non mappable aux codes atelier Neshu) ne remontent pas.
+-- ============================================================
+
+-- ============================================================
+-- CTE 1 : Contexte appro machine + attributs display Neshu
+-- company_id / company_code = propriétaire COURANT (dim_neshu__device,
+-- issu de l'ERP idcompany_customer), et NON le client historique dérivé
+-- des tâches d'appro (qui reste figé sur l'ancien emplacement après un
+-- déménagement de machine).
+-- ============================================================
+with appro_context as (
+
+    select
+        ctx.device_id,
+
+        -- Company du propriétaire courant (dim device, pas l'historique appro)
+        d.company_id,
+        d.device_code,
+        d.company_code,
+
+        -- Appro context (depuis l'intermediate)
+        ctx.last_appro_task_id,
+        ctx.last_appro_date,
+        ctx.last_appro_roadman_id,
+        ctx.last_appro_roadman_code,
+        ctx.last_appro_gea_code,
+        ctx.days_since_last_appro,
+
+        ctx.next_appro_task_id,
+        ctx.next_appro_date,
+        ctx.next_appro_roadman_id,
+        ctx.next_appro_roadman_code,
+        ctx.next_appro_gea_code,
+        ctx.days_until_next_appro,
+
+        ctx.nb_appros_realises_total,
+        ctx.nb_appros_planifies_a_venir,
+        ctx.nb_appros_realises_30d,
+        ctx.nb_appros_realises_90d
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_machine_context` as ctx
+    left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__device` as d
+        on ctx.device_id = d.device_id
+
+),
+
+-- ============================================================
+-- CTE 2 : Interventions Yuman NESHU curatives, normalisées
+-- Grain : 1 ligne par (material, workorder).
+-- ⚠️ serial_clean = jointure fragile vers Neshu device_code.
+-- yuman_company_code = client Yuman normalisé ('NESH_' stripé) ; sert à
+-- ne rattacher que les interventions du client COURANT de la machine.
+--
+-- Périmètre métier : uniquement les "vraies" interventions.
+--   - is_workorder_not_done = true (motif/detail de non-intervention
+--     renseigné) = déplacement sans réparation → exclus du fait.
+--   - Les interventions en pause (is_workorder_paused = true) restent
+--     incluses : une In progress en pause est toujours en cours, juste
+--     suspendue. Le bucket current les expose avec is_workorder_paused
+--     + les motifs de pause pour que le métier les repère (cf. Closed
+--     en pause = pause historique, déjà reprise et clôturée).
+--
+-- Logique des buckets (statut-d'abord, mutuellement exclusifs) :
+--   - past    : workorder_status = 'Closed'      + demand Closed   + date_done dans [J-15 ; aujourd'hui]
+--   - current : workorder_status = 'In progress' + demand Accepted (toute date)
+--   - future  : workorder_status = 'Scheduled'   + demand Accepted (toute date, y compris planifié en retard)
+-- Chaque WO réel a un statut unique → tombe dans au plus un bucket
+-- (pas de doublon, ex. In progress avec date_done reste en 'current').
+-- ============================================================
+yuman_workorders as (
+
+    select
+        material_id,
+        material_serial_number,
+        upper(trim(replace(material_serial_number, 'NESH_', '')))
+            as serial_clean,
+        replace(upper(trim(any_value(client_code))), 'NESH_', '')
+            as yuman_company_code,
+        workorder_id as intervention_id,
+
+        -- Champs métier essentiels
+        any_value(workorder_number) as intervention_number,
+        any_value(demand_description) as demand_description,
+        any_value(demand_created_at) as demand_created_at,
+        any_value(demand_category_name) as demand_category_name,
+        any_value(workorder_title) as intervention_title,
+        any_value(workorder_report) as intervention_report,
+
+        -- Technicien Yuman (FK vers dim_technique__technician.user_id)
+        any_value(technician_id) as technician_id,
+
+        -- Mise en pause active (flag métier amont) + motifs
+        any_value(is_workorder_currently_paused) as is_workorder_currently_paused,
+        any_value(workorder_raison_mise_en_pause) as workorder_raison_mise_en_pause,
+        any_value(workorder_explication_mise_en_pause)
+            as workorder_explication_mise_en_pause,
+
+        -- Statuts (pour les flags)
+        any_value(demand_status) as demand_status,
+        any_value(workorder_status) as intervention_status,
+        max(date_started) as date_started,
+        max(date_done) as date_done,
+        min(date_planned) as date_planned,
+
+        -- Flags bucket (logique statut-d'abord, buckets mutuellement exclusifs)
+        case
+            when
+                any_value(workorder_status) = 'Closed'
+                -- une demande dont le WO est clôturé bascule en 'Closed'
+                -- (et non 'Accepted', contrairement aux buckets current/future)
+                and any_value(demand_status) = 'Closed'
+                and max(date_done) is not null
+                and date(max(date_done))
+                between date_sub(current_date(), interval 15 day)
+                and current_date()
+                then 1
+            else 0
+        end as is_past_intervention_15d,
+        case
+            when
+                any_value(workorder_status) = 'In progress'
+                and any_value(demand_status) = 'Accepted'
+                then 1
+            else 0
+        end as is_current_intervention,
+        case
+            when
+                any_value(workorder_status) = 'Scheduled'
+                and any_value(demand_status) = 'Accepted'
+                then 1
+            else 0
+        end as is_future_intervention
+    from `evs-datastack-prod`.`prod_intermediate`.`int_yuman__demands_workorders_enriched`
+    where
+        material_serial_number is not null
+        and upper(trim(partner_name)) = 'NESHU'
+        and upper(trim(demand_category_name)) like 'CURATIVE%'
+        -- Exclure les "non faites" (déplacement sans réparation) via le flag amont
+        and not is_workorder_not_done
+    group by
+        material_id, material_serial_number, serial_clean, workorder_id
+
+),
+
+-- ============================================================
+-- CTE 3 : Compteur 15j par machine + client courant
+-- ============================================================
+past_count_15d as (
+
+    select
+        serial_clean,
+        yuman_company_code,
+        count(distinct intervention_id) as nb_interventions_15j
+    from yuman_workorders
+    where is_past_intervention_15d = 1
+    group by serial_clean, yuman_company_code
+
+),
+
+-- ============================================================
+-- CTE 4 : Dernière intervention 15j par (machine, client) (row_number)
+-- ============================================================
+past_15d_ranked as (
+
+    select
+        serial_clean,
+        yuman_company_code,
+        material_id,
+        technician_id,
+        intervention_id,
+        intervention_number,
+        date_started,
+        date_planned,
+        date_done,
+        demand_description,
+        demand_created_at,
+        demand_category_name,
+        intervention_title,
+        intervention_report,
+        row_number() over (
+            partition by serial_clean, yuman_company_code
+            order by date_done desc
+        ) as rn
+    from yuman_workorders
+    where is_past_intervention_15d = 1
+
+),
+
+past_15d as (
+    select
+        serial_clean,
+        yuman_company_code,
+        material_id as past_material_id,
+        technician_id as past_technician_id,
+        intervention_id as past_intervention_id,
+        intervention_number as past_intervention_number,
+        date_started as past_date_started,
+        date_planned as past_date_planned,
+        date_done as past_date_done,
+        demand_description as past_demand_description,
+        demand_created_at as past_demand_created_at,
+        demand_category_name as past_demand_category_name,
+        intervention_title as past_intervention_title,
+        intervention_report as past_intervention_report
+    from past_15d_ranked
+    where rn = 1
+),
+
+-- ============================================================
+-- CTE 5 : Intervention en cours par (machine, client)
+-- ============================================================
+current_ranked as (
+
+    select
+        serial_clean,
+        yuman_company_code,
+        material_id,
+        technician_id,
+        intervention_id,
+        intervention_number,
+        demand_description,
+        demand_created_at,
+        demand_category_name,
+        intervention_title,
+        intervention_report,
+        date_started,
+        date_planned,
+        date_done,
+        is_workorder_currently_paused,
+        workorder_raison_mise_en_pause,
+        workorder_explication_mise_en_pause,
+        row_number() over (
+            partition by serial_clean, yuman_company_code
+            order by demand_created_at desc
+        ) as rn
+    from yuman_workorders
+    where is_current_intervention = 1
+
+),
+
+current_inter as (
+    select
+        serial_clean,
+        yuman_company_code,
+        material_id as current_material_id,
+        technician_id as current_technician_id,
+        intervention_id as current_intervention_id,
+        intervention_number as current_intervention_number,
+        demand_description as current_demand_description,
+        demand_created_at as current_demand_created_at,
+        demand_category_name as current_demand_category_name,
+        intervention_title as current_intervention_title,
+        intervention_report as current_intervention_report,
+        date_started as current_date_started,
+        date_planned as current_date_planned,
+        date_done as current_date_done,
+        is_workorder_currently_paused as current_is_workorder_paused,
+        workorder_raison_mise_en_pause as current_workorder_raison_mise_en_pause,
+        workorder_explication_mise_en_pause
+            as current_workorder_explication_mise_en_pause
+    from current_ranked
+    where rn = 1
+),
+
+-- ============================================================
+-- CTE 6 : Prochaine intervention planifiée par (machine, client)
+-- ============================================================
+future_ranked as (
+
+    select
+        serial_clean,
+        yuman_company_code,
+        material_id,
+        technician_id,
+        intervention_id,
+        intervention_number,
+        date_started,
+        date_planned,
+        date_done,
+        demand_description,
+        demand_created_at,
+        demand_category_name,
+        intervention_title,
+        intervention_report,
+        row_number() over (
+            partition by serial_clean, yuman_company_code
+            order by date_planned asc
+        ) as rn
+    from yuman_workorders
+    where is_future_intervention = 1
+
+),
+
+future_inter as (
+    select
+        serial_clean,
+        yuman_company_code,
+        material_id as future_material_id,
+        technician_id as future_technician_id,
+        intervention_id as future_intervention_id,
+        intervention_number as future_intervention_number,
+        date_started as future_date_started,
+        date_planned as future_date_planned,
+        date_done as future_date_done,
+        demand_description as future_demand_description,
+        demand_created_at as future_demand_created_at,
+        demand_category_name as future_demand_category_name,
+        intervention_title as future_intervention_title,
+        intervention_report as future_intervention_report
+    from future_ranked
+    where rn = 1
+)
+
+-- ============================================================
+-- Assemblage final
+-- Jointure Yuman = serial (device_code) ET client courant (company_code).
+-- Le double critère garantit qu'on ne rattache que les interventions
+-- de l'emplacement actuel de la machine (pas les clients historiques).
+-- ============================================================
+select
+    -- IDs (FKs vers dim_neshu__device, dim_neshu__company)
+    ac.device_id,
+    ac.company_id,
+
+    -- Display attributes (1-3 par dim parente)
+    ac.device_code,
+    ac.company_code,
+
+    -- Contexte appro
+    ac.last_appro_date,
+    ac.last_appro_roadman_code,
+    ac.last_appro_gea_code,
+    ac.days_since_last_appro,
+    ac.next_appro_date,
+    ac.next_appro_roadman_code,
+    ac.next_appro_gea_code,
+    ac.days_until_next_appro,
+    ac.nb_appros_realises_total,
+    ac.nb_appros_planifies_a_venir,
+    ac.nb_appros_realises_30d,
+    ac.nb_appros_realises_90d,
+
+    -- Bucket : intervention curative récente (15j)
+    p15.past_material_id,
+    p15.past_technician_id,
+    p15.past_intervention_id,
+    p15.past_intervention_number,
+    p15.past_date_started,
+    p15.past_date_planned,
+    p15.past_date_done,
+    p15.past_demand_description,
+    p15.past_demand_created_at,
+    p15.past_demand_category_name,
+    p15.past_intervention_title,
+    p15.past_intervention_report,
+    coalesce(pc15.nb_interventions_15j, 0) as nb_interventions_15j,
+
+    -- Bucket : intervention en cours
+    ci.current_material_id,
+    ci.current_technician_id,
+    ci.current_intervention_id,
+    ci.current_intervention_number,
+    ci.current_demand_description,
+    ci.current_demand_created_at,
+    ci.current_demand_category_name,
+    ci.current_intervention_title,
+    ci.current_intervention_report,
+    ci.current_date_started,
+    ci.current_date_planned,
+    ci.current_date_done,
+    coalesce(ci.current_is_workorder_paused, false) as current_is_workorder_paused,
+    ci.current_workorder_raison_mise_en_pause,
+    ci.current_workorder_explication_mise_en_pause,
+
+    -- Bucket : prochaine intervention planifiée
+    fi.future_material_id,
+    fi.future_technician_id,
+    fi.future_intervention_id,
+    fi.future_intervention_number,
+    fi.future_date_started,
+    fi.future_date_planned,
+    fi.future_date_done,
+    fi.future_demand_description,
+    fi.future_demand_created_at,
+    fi.future_demand_category_name,
+    fi.future_intervention_title,
+    fi.future_intervention_report
+from appro_context as ac
+-- Jointure cross-source sur serial normalisé ET client courant
+left join past_15d as p15
+    on
+        upper(trim(ac.device_code)) = p15.serial_clean
+        and upper(trim(ac.company_code)) = p15.yuman_company_code
+left join past_count_15d as pc15
+    on
+        upper(trim(ac.device_code)) = pc15.serial_clean
+        and upper(trim(ac.company_code)) = pc15.yuman_company_code
+left join current_inter as ci
+    on
+        upper(trim(ac.device_code)) = ci.serial_clean
+        and upper(trim(ac.company_code)) = ci.yuman_company_code
+left join future_inter as fi
+    on
+        upper(trim(ac.device_code)) = fi.serial_clean
+        and upper(trim(ac.company_code)) = fi.yuman_company_code
+    );
+  

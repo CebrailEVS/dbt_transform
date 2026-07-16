@@ -12,26 +12,37 @@
 --
 -- Sources :
 --   - int_oracle_neshu__appro_machine_context (grain device, factorisé)
---   - dim_neshu__device, dim_neshu__company (attributs display)
+--   - dim_neshu__device (device_code + company du propriétaire COURANT)
 --   - int_yuman__demands_workorders_enriched (interventions Yuman)
 --
--- ⚠️ Jointure cross-source fragile : device_code Neshu = serial Yuman
--- (UPPER + TRIM + strip 'NESH_'). À remplacer par une table de mapping
--- device Yuman ↔ device Oracle Neshu dans un suivant PR.
+-- ⚠️ Jointure cross-source device_code Neshu = serial Yuman
+-- (UPPER + TRIM + strip 'NESH_'), DÉSAMBIGUÏSÉE par le client courant :
+-- un même serial peut porter plusieurs materials Yuman (historique des
+-- déplacements de la machine chez différents clients). On ne rattache
+-- que les interventions du client COURANT de la machine, via
+-- client_code Yuman ('NESH_' + code client) = company_code Neshu.
+-- Conséquence : company_code affiché et interventions montrées désignent
+-- toujours le même emplacement (cohérence par construction). Les
+-- interventions faites en atelier / remise en état (client Yuman interne
+-- 'NESH_EVS', non mappable aux codes atelier Neshu) ne remontent pas.
 -- ============================================================
 
 -- ============================================================
 -- CTE 1 : Contexte appro machine + attributs display Neshu
+-- company_id / company_code = propriétaire COURANT (dim_neshu__device,
+-- issu de l'ERP idcompany_customer), et NON le client historique dérivé
+-- des tâches d'appro (qui reste figé sur l'ancien emplacement après un
+-- déménagement de machine).
 -- ============================================================
 with appro_context as (
 
     select
         ctx.device_id,
-        ctx.company_id,
 
-        -- Display attributes via conformed dims
+        -- Company du propriétaire courant (dim device, pas l'historique appro)
+        d.company_id,
         d.device_code,
-        c.company_code,
+        d.company_code,
 
         -- Appro context (depuis l'intermediate)
         ctx.last_appro_task_id,
@@ -55,8 +66,6 @@ with appro_context as (
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__appro_machine_context` as ctx
     left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__device` as d
         on ctx.device_id = d.device_id
-    left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__company` as c
-        on ctx.company_id = c.company_id
 
 ),
 
@@ -64,6 +73,8 @@ with appro_context as (
 -- CTE 2 : Interventions Yuman NESHU curatives, normalisées
 -- Grain : 1 ligne par (material, workorder).
 -- ⚠️ serial_clean = jointure fragile vers Neshu device_code.
+-- yuman_company_code = client Yuman normalisé ('NESH_' stripé) ; sert à
+-- ne rattacher que les interventions du client COURANT de la machine.
 --
 -- Périmètre métier : uniquement les "vraies" interventions.
 --   - is_workorder_not_done = true (motif/detail de non-intervention
@@ -88,6 +99,8 @@ yuman_workorders as (
         material_serial_number,
         upper(trim(replace(material_serial_number, 'NESH_', '')))
             as serial_clean,
+        replace(upper(trim(any_value(client_code))), 'NESH_', '')
+            as yuman_company_code,
         workorder_id as intervention_id,
 
         -- Champs métier essentiels
@@ -155,26 +168,28 @@ yuman_workorders as (
 ),
 
 -- ============================================================
--- CTE 3 : Compteur 15j par machine
+-- CTE 3 : Compteur 15j par machine + client courant
 -- ============================================================
 past_count_15d as (
 
     select
         serial_clean,
+        yuman_company_code,
         count(distinct intervention_id) as nb_interventions_15j
     from yuman_workorders
     where is_past_intervention_15d = 1
-    group by serial_clean
+    group by serial_clean, yuman_company_code
 
 ),
 
 -- ============================================================
--- CTE 4 : Dernière intervention 15j par machine (row_number)
+-- CTE 4 : Dernière intervention 15j par (machine, client) (row_number)
 -- ============================================================
 past_15d_ranked as (
 
     select
         serial_clean,
+        yuman_company_code,
         material_id,
         technician_id,
         intervention_id,
@@ -188,7 +203,7 @@ past_15d_ranked as (
         intervention_title,
         intervention_report,
         row_number() over (
-            partition by serial_clean
+            partition by serial_clean, yuman_company_code
             order by date_done desc
         ) as rn
     from yuman_workorders
@@ -199,6 +214,7 @@ past_15d_ranked as (
 past_15d as (
     select
         serial_clean,
+        yuman_company_code,
         material_id as past_material_id,
         technician_id as past_technician_id,
         intervention_id as past_intervention_id,
@@ -216,12 +232,13 @@ past_15d as (
 ),
 
 -- ============================================================
--- CTE 5 : Intervention en cours par machine
+-- CTE 5 : Intervention en cours par (machine, client)
 -- ============================================================
 current_ranked as (
 
     select
         serial_clean,
+        yuman_company_code,
         material_id,
         technician_id,
         intervention_id,
@@ -238,7 +255,7 @@ current_ranked as (
         workorder_raison_mise_en_pause,
         workorder_explication_mise_en_pause,
         row_number() over (
-            partition by serial_clean
+            partition by serial_clean, yuman_company_code
             order by demand_created_at desc
         ) as rn
     from yuman_workorders
@@ -249,6 +266,7 @@ current_ranked as (
 current_inter as (
     select
         serial_clean,
+        yuman_company_code,
         material_id as current_material_id,
         technician_id as current_technician_id,
         intervention_id as current_intervention_id,
@@ -270,12 +288,13 @@ current_inter as (
 ),
 
 -- ============================================================
--- CTE 6 : Prochaine intervention planifiée par machine
+-- CTE 6 : Prochaine intervention planifiée par (machine, client)
 -- ============================================================
 future_ranked as (
 
     select
         serial_clean,
+        yuman_company_code,
         material_id,
         technician_id,
         intervention_id,
@@ -289,7 +308,7 @@ future_ranked as (
         intervention_title,
         intervention_report,
         row_number() over (
-            partition by serial_clean
+            partition by serial_clean, yuman_company_code
             order by date_planned asc
         ) as rn
     from yuman_workorders
@@ -300,6 +319,7 @@ future_ranked as (
 future_inter as (
     select
         serial_clean,
+        yuman_company_code,
         material_id as future_material_id,
         technician_id as future_technician_id,
         intervention_id as future_intervention_id,
@@ -318,6 +338,9 @@ future_inter as (
 
 -- ============================================================
 -- Assemblage final
+-- Jointure Yuman = serial (device_code) ET client courant (company_code).
+-- Le double critère garantit qu'on ne rattache que les interventions
+-- de l'emplacement actuel de la machine (pas les clients historiques).
 -- ============================================================
 select
     -- IDs (FKs vers dim_neshu__device, dim_neshu__company)
@@ -388,13 +411,20 @@ select
     fi.future_intervention_title,
     fi.future_intervention_report
 from appro_context as ac
--- ⚠️ Jointure cross-source fragile sur string normalisée
--- À remplacer par une table de mapping device dans un suivant PR
+-- Jointure cross-source sur serial normalisé ET client courant
 left join past_15d as p15
-    on upper(trim(ac.device_code)) = p15.serial_clean
+    on
+        upper(trim(ac.device_code)) = p15.serial_clean
+        and upper(trim(ac.company_code)) = p15.yuman_company_code
 left join past_count_15d as pc15
-    on upper(trim(ac.device_code)) = pc15.serial_clean
+    on
+        upper(trim(ac.device_code)) = pc15.serial_clean
+        and upper(trim(ac.company_code)) = pc15.yuman_company_code
 left join current_inter as ci
-    on upper(trim(ac.device_code)) = ci.serial_clean
+    on
+        upper(trim(ac.device_code)) = ci.serial_clean
+        and upper(trim(ac.company_code)) = ci.yuman_company_code
 left join future_inter as fi
-    on upper(trim(ac.device_code)) = fi.serial_clean
+    on
+        upper(trim(ac.device_code)) = fi.serial_clean
+        and upper(trim(ac.company_code)) = fi.yuman_company_code
