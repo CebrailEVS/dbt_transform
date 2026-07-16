@@ -1440,6 +1440,17 @@ models:
         tests:
           - not_null
 
+      - name: is_same_day
+        description: >
+          TRUE si la curative précédente sur la même machine date du même jour
+          (delai_jours_depuis_precedente = 0). Mélange de doublons
+          administratifs, de transferts entre techniciens et de vrais retours
+          same-day — non triables automatiquement (la distinction est dans le
+          texte libre des rapports). Permet d'exclure ces cas du taux de
+          repair en BI.
+        tests:
+          - not_null
+
       - name: delai_jours_depuis_precedente
         description: >
           Nombre de jours calendaires depuis la curative précédente sur la

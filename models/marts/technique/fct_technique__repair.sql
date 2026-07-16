@@ -142,6 +142,9 @@ select
 
     -- Flags
     is_repair,
+    -- Deux curatives clôturées le même jour sur la même machine : mélange de
+    -- doublons administratifs et de vrais retours — à arbitrer à l'œil en BI
+    coalesce(delai_jours_depuis_precedente = 0, false) as is_same_day,
 
     -- Mesures / rangs
     delai_jours_depuis_precedente,
