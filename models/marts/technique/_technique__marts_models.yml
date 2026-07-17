@@ -383,6 +383,11 @@ models:
       - name: material_in_service_date
         description: "Date de mise en service de la machine"
 
+      - name: material_is_active
+        description: "Indique si la machine est active dans Yuman (champ source `active`). false = machine désactivée/retirée du parc."
+        tests:
+          - not_null
+
       - name: created_at
         description: "Date de création de l'enregistrement"
 

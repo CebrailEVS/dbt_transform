@@ -23,6 +23,7 @@ cleaned_materials as (
         brand as material_brand,
         description as material_description,
         in_service_date as material_in_service_date,
+        active as is_active,
 
         (
             select json_value(elem, '$.value')
