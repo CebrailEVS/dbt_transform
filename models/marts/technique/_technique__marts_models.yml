@@ -439,6 +439,11 @@ models:
       - name: material_in_service_date
         description: "Date de mise en service de la machine"
 
+      - name: material_is_active
+        description: "Indique si la machine est active dans Yuman (champ source `active`). false = machine désactivée/sortie du parc. Attribut de filtre : le parc total inclut les inactives, filtrer sur true pour le parc actif."
+        tests:
+          - not_null
+
       # Informations Client
       - name: client_id
         description: "Id du client associé à la machine"
