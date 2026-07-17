@@ -11,6 +11,7 @@ select
     ym.material_serial_number,
     ycat.category_name,
     ym.material_in_service_date,
+    ym.is_active as material_is_active,
     ym.created_at,
     ym.updated_at
 

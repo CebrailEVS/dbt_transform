@@ -96,6 +96,10 @@ models:
               arguments:
                 to: ref('stg_yuman__materials_categories')
                 field: category_id
+      - name: is_active
+        description: "Indique si la machine est active dans Yuman (champ source `active`). false = machine désactivée/retirée du parc."
+        tests:
+          - not_null
 
   - name: stg_yuman__products
     description: "Produits transformés et nettoyés depuis l'API Yuman"
