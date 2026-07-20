@@ -42,6 +42,11 @@ models:
         différente selon la source — voir les descriptions de `statut_facturation`,
         `categorie_machine` / `machine_clean`, `delai_heures_*`, `bonus_bool`,
         `delai_tech` / `delai_partenaire`, `alias_obj_*`, `client_id`.
+      - `type_intervention` : libellé en clair aligné entre sources — les 4
+        grandes catégories (Curative / Preventive / Installation / Desinstallation)
+        sont comparables NESP↔YUMAN. Le regroupement YUMAN est porté en amont par
+        `int_yuman__interventions.workorder_type_grouped` ; côté NESP le libellé
+        vient de la facturation (NULL sur les états 'terminée non signée').
       - Rafraîchissement : aucun scheduler dédié à la BU technique. Le mart se
         reconstruit automatiquement via `source:<source>+` quand une source
         upstream charge (refacto Option C) — pipeline EL `nesp_tech` (lundi 07:30,
@@ -123,6 +128,25 @@ models:
           Type machine normalisé (coalesce 'UNDEFINED'). Source : `machine_clean`
           de la facturation côté NESP ; `machine_raw` Yuman côté YUMAN (le
           `machine_clean` Yuman alimente lui `categorie_machine`).
+
+      - name: type_intervention
+        description: >
+          Type d'intervention en clair, harmonisé entre sources. NESP :
+          `type_inter_libelle` résolu dans `int_nesp_tech__facturation_interventions`
+          (Curative, Preventive, Installation, Mini preventive, Desinstallation,
+          Enlevement, Mise a jour) — NULL sur les rares interventions
+          'terminée non signée' (hors périmètre facturation). YUMAN :
+          `workorder_type_grouped` (regroupement des sous-types Yuman vers le même
+          vocabulaire : curative* → Curative, preventive* → Preventive,
+          installation* → Installation, desinstallation* → Desinstallation ;
+          autres valeurs conservées, ex. Prepa atelier, Remise en etat). Les 4
+          grandes catégories sont donc comparables entre NESP et YUMAN.
+
+      - name: num_serie_machine
+        description: >
+          Numéro de série de la machine intervenue. NESP = `num_serie_machine`
+          (~100 % renseigné) ; YUMAN = `material_serial_number` (renseigné en
+          majorité, plus lacunaire chez certains partenaires).
 
       - name: tech_yuman_id
         description: Identifiant Yuman (`user_id`) du technicien, issu du mapping `stg_yuman__users`.
