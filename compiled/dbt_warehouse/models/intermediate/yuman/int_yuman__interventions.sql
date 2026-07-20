@@ -383,6 +383,13 @@ select
     workorder_category,
     workorder_type_raw,
     workorder_type_clean,
+    case
+        when starts_with(workorder_type_clean, 'curative') then 'Curative'
+        when starts_with(workorder_type_clean, 'preventive') then 'Preventive'
+        when starts_with(workorder_type_clean, 'installation') then 'Installation'
+        when starts_with(workorder_type_clean, 'desinstallation') then 'Desinstallation'
+        else initcap(replace(workorder_type_clean, '_', ' '))
+    end as workorder_type_grouped,
     machine_raw,
     machine_clean,
     famille_neshu,
