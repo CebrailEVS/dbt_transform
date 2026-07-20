@@ -352,6 +352,14 @@ models:
         description: Type d'intervention brut, avant normalisation (curatif/préventif/installation).
       - name: workorder_type_clean
         description: Type d'intervention normalisé via ref_yuman__type_inter_clean.
+      - name: workorder_type_grouped
+        description: >
+          Type d'intervention regroupé en grandes catégories, aligné sur le
+          vocabulaire NESP pour permettre une analyse transverse aux sources :
+          'curative*' → Curative, 'preventive*' → Preventive, 'installation*' →
+          Installation, 'desinstallation*' → Desinstallation. Les autres valeurs
+          (prepa atelier, remise en etat…) sont conservées telles quelles
+          (initcap). Alimente `type_intervention` dans fct_technique__intervention.
       - name: machine_raw
         description: Catégorie de machine brute (matériel ou règle de repli par partenaire).
       - name: machine_clean
