@@ -16,6 +16,7 @@ with nesp_interventions as (
         'NESP' as src_inter,
         'NESPRESSO' as partenaire,
         cast(dedup.n_planning as string) as intervention_id,
+        cast(dedup.n_planning as string) as numero_pu,
         dedup.n_tech as tech_id,
         cast(dedup.n_client as string) as client_id,
         initcap(dedup.raison_sociale_client) as client_nom,
@@ -64,7 +65,8 @@ yuman_interventions as (
     select
         'YUMAN' as src_inter,
         inter_yuman.partner_name as partenaire,
-        inter_yuman.workorder_number as intervention_id,
+        cast(inter_yuman.workorder_id as string) as intervention_id,
+        inter_yuman.workorder_number as numero_pu,
         cast(inter_yuman.technician_id as string) as tech_id,
         inter_yuman.client_code as client_id,
         initcap(inter_yuman.client_name) as client_nom,
@@ -106,10 +108,11 @@ interventions as (
 -- CTE 4 : Enrichissement métier (durée + flags + mapping techniciens)
 interventions_enrichies as (
     select
-        concat(i.intervention_id, '_', i.partenaire) as key_inter,
+        concat(i.src_inter, '_', i.intervention_id) as key_inter,
         i.src_inter,
         i.partenaire,
         i.intervention_id,
+        i.numero_pu,
         i.intervention_statut,
         i.statut_facturation,
         i.categorie_machine,
@@ -188,6 +191,7 @@ select
     src_inter,
     partenaire,
     intervention_id,
+    numero_pu,
     intervention_statut,
     statut_facturation,
     coalesce(categorie_machine, 'UNDEFINED') as categorie_machine,
