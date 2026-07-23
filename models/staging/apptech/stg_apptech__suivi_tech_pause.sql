@@ -9,6 +9,8 @@ with source_data as (
 
     select
         intervention_id,
+        src_inter,
+        numero_pu,
         doubler_prime,
         commentaire,
         _file_name as gcs_uri
@@ -20,6 +22,8 @@ cleaned_data as (
 
     select
         intervention_id,
+        upper(trim(src_inter)) as src_inter,
+        nullif(trim(numero_pu), '') as numero_pu,
         upper(trim(doubler_prime)) as doubler_prime,
         nullif(trim(commentaire), '') as commentaire,
 
@@ -39,6 +43,8 @@ cleaned_data as (
 -- dernier snapshot = override révoqué). L'historique complet reste dans GCS.
 select
     intervention_id,
+    src_inter,
+    numero_pu,
     doubler_prime,
     commentaire,
     periode,

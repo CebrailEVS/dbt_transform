@@ -14,12 +14,14 @@ models:
       UNION ALL des 6 modèles staging apptech (astreinte, mee, curative, aguila,
       pause, modif_intervention), chacun apportant une colonne littérale
       type_retraitement et ses colonnes manager propres (NULL pour les autres).
-      Dédoublonnage GLOBAL sur (intervention_id, type_retraitement) — au-delà de
-      la periode, car modif_intervention n'a pas de restriction de mois — en
-      gardant la ligne la plus récente (periode_date desc, extracted_at desc).
+      Dédoublonnage GLOBAL sur (src_inter, intervention_id, type_retraitement) —
+      au-delà de la periode, car modif_intervention n'a pas de restriction de mois
+      — en gardant la ligne la plus récente (periode_date desc, extracted_at desc).
+      key_inter = concat(src_inter, '_', intervention_id) reconstruit la PK de
+      fct_technique__intervention pour la jointure aval.
 
       [GRAIN]
-      1 ligne par (intervention_id, type_retraitement). PK composite.
+      1 ligne par (key_inter, type_retraitement). PK composite.
 
       [NOTES]
       RW (Repair Warranty) et events sont exclus : RW = clawback de prime imputé
@@ -27,19 +29,30 @@ models:
       référentiel technicien distinct. Le cas rare d'une intervention touchée par
       2 types (ex. curative + modif_intervention) reste ici en 2 lignes :
       l'arbitrage inter-types est fait en aval (mart Facturation retraitée).
-      Colonne type_modif (Annulation/Réattribution/…) attendue côté app mais pas
-      encore émise dans le staging — à intégrer quand disponible.
+      src_inter/numero_pu proviennent du NDJSON (contrat identité 2026-07) : NULL
+      tant que l'app ne les émet pas → key_inter NULL, jointure aval vide, sans
+      casser le build. type_modif n'est renseigné que par modif_intervention.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
+              - src_inter
               - intervention_id
               - type_retraitement
     columns:
+      - name: key_inter
+        description: >
+          Clé de jointure vers fct_technique__intervention =
+          concat(src_inter, '_', intervention_id). NULL tant que src_inter n'est
+          pas émis par l'app (phase de bascule).
       - name: intervention_id
-        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)."
+        description: "PK source de l'intervention (workorder_id YUMAN / n_planning NESP). Opaque — le n° visible est numero_pu."
         tests:
           - not_null
+      - name: src_inter
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL en phase de bascule."
+      - name: numero_pu
+        description: "Numéro d'intervention visible (n° PU), pour audit/relecture. NULL en phase de bascule."
       - name: type_retraitement
         description: "Type de retraitement à l'origine de la ligne."
         tests:
@@ -61,6 +74,8 @@ models:
         description: "Décision de doublement de la prime pause (OUI/NON). Alimenté par pause uniquement (NULL sinon)."
       - name: convertir_code_5
         description: "Décision de conversion du code 5 Aguila (OUI/NON). Alimenté par aguila uniquement (NULL sinon)."
+      - name: type_modif
+        description: "Nature de la modification (Annulation / Réattribution / Annulation + Réattribution / Autre). Alimenté par modif_intervention uniquement (NULL sinon)."
       - name: commentaire
         description: "Commentaire libre du manager (NULL si vide)."
       - name: periode

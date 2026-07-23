@@ -9,9 +9,12 @@ with source_data as (
 
     select
         intervention_id,
+        src_inter,
+        numero_pu,
         a_facturer,
         tech_id_reel,
         tech_yuman_id_reel,
+        type_modif,
         commentaire,
         _file_name as gcs_uri
     from {{ source('apptech', 'ext_gcs_apptech__suivi_tech_modif_intervention') }}
@@ -22,10 +25,13 @@ cleaned_data as (
 
     select
         intervention_id,
+        upper(trim(src_inter)) as src_inter,
+        nullif(trim(numero_pu), '') as numero_pu,
         -- a_facturer peut être vide dans la source (modif sans décision de facturation)
         upper(nullif(trim(a_facturer), '')) as a_facturer,
         lower(trim(tech_id_reel)) as tech_id_reel,
         tech_yuman_id_reel,
+        nullif(trim(type_modif), '') as type_modif,
         nullif(trim(commentaire), '') as commentaire,
 
         -- Métadonnées dérivées du chemin GCS ingestion/modif_intervention/<YYYY-MM>/<timestampZ>.ndjson
@@ -43,9 +49,12 @@ cleaned_data as (
 -- (cf. stg_apptech__suivi_tech_pause pour le détail du contrat).
 select
     intervention_id,
+    src_inter,
+    numero_pu,
     a_facturer,
     tech_id_reel,
     tech_yuman_id_reel,
+    type_modif,
     commentaire,
     periode,
     parse_date('%Y-%m', periode) as periode_date,
