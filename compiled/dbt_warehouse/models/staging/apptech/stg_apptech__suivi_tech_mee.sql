@@ -4,6 +4,8 @@ with source_data as (
 
     select
         intervention_id,
+        src_inter,
+        numero_pu,
         a_facturer,
         commentaire,
         _file_name as gcs_uri
@@ -15,6 +17,8 @@ cleaned_data as (
 
     select
         intervention_id,
+        upper(trim(src_inter)) as src_inter,
+        nullif(trim(numero_pu), '') as numero_pu,
         upper(trim(a_facturer)) as a_facturer,
         nullif(trim(commentaire), '') as commentaire,
 
@@ -33,6 +37,8 @@ cleaned_data as (
 -- (cf. stg_apptech__suivi_tech_pause pour le détail du contrat).
 select
     intervention_id,
+    src_inter,
+    numero_pu,
     a_facturer,
     commentaire,
     periode,

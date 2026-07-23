@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER]\nFait consolid\u00e9 des interventions techniques EVS, tous partenaires\nconfondus. 1 ligne = 1 intervention r\u00e9alis\u00e9e. Couvre Nespresso (via Nomad\nRepair, source `nesp_tech`) et les partenaires Yuman (NESHU, BRITA, AUUM,\nTWYD, NU, EXPRESSO, FONTAINCO, DAAN). Base des indicateurs op\u00e9rationnels,\nde la facturation partenaire et du calcul des primes techniciens (bonus\nd\u00e9lai, prime montagne, Paris intramuros).\n\n[COMMENT CONSTRUITE]\nUNION ALL de 2 cha\u00eenes homog\u00e9n\u00e9is\u00e9es au m\u00eame format, s\u00e9par\u00e9es par la\ncolonne `src_inter` (NESP / YUMAN) :\n- branche NESP : `int_nesp_tech__interventions_dedup` (1 ligne par\n  n_planning) + LEFT JOIN `int_nesp_tech__facturation_interventions`\n  (key_factu, montant, prod) + LEFT JOIN `int_nesp_tech__delais_interventions`\n  (SLA jours/heures, bonus) + LEFT JOIN seed `ref_nesp_tech__key_facturation`\n  (libell\u00e9s objets). Filtre de population : `etat_intervention != 'annul\u00e9e'`.\n- branche YUMAN : `int_yuman__interventions` \u2014 mod\u00e8le intermediate unique\n  portant tarification + d\u00e9lai + \u00e9tat m\u00e9tier (depuis la refacto PR #135 ;\n  remplace l'ancienne cha\u00eene fait\u2192fait `fct_technique__workorder_pricing` +\n  `fct_neshu__workorder_delai`). Filtre de population :\n  `intervention_state = 'REALISEE'` (workorder Closed et r\u00e9ellement effectu\u00e9).\nEnrichissement commun (CTE `interventions_enrichies`) : dur\u00e9e, flags primes\n(montagne / Paris / hors-d\u00e9lai), mapping technicien via `stg_yuman__users`\n(jointure conditionnelle : `nomad_id` c\u00f4t\u00e9 NESP, `user_id` c\u00f4t\u00e9 YUMAN) et\nseed `ref_nesp_tech__cps_montagne_primes`.\n\n[GRAIN]\n1 ligne par intervention. PK = `key_inter` = `intervention_id` + '_' + `partenaire`.\n\n[NOTES]\n- Filtres r\u00e9partis sur 3 niveaux (intermediate \u2192 CTE du fait \u2192 jointures\n  LEFT). C\u00f4t\u00e9 NESP, `montant` / `key_factu` / `prod` sont NULL hors \u00e9tats\n  termin\u00e9e sign\u00e9e / signature diff\u00e9r\u00e9e / mise en \u00e9chec ; `delai_*` et\n  `bonus_*` ne sont calcul\u00e9s que pour les agences IDF/Paris (filtre interne\n  \u00e0 `int_nesp_tech__delais_interventions`).\n- Plusieurs colonnes sont harmonis\u00e9es mais portent une s\u00e9mantique\n  diff\u00e9rente selon la source \u2014 voir les descriptions de `statut_facturation`,\n  `categorie_machine` / `machine_clean`, `delai_heures_*`, `bonus_bool`,\n  `delai_tech` / `delai_partenaire`, `alias_obj_*`, `client_id`.\n- `type_intervention` : libell\u00e9 en clair align\u00e9 entre sources \u2014 les 4\n  grandes cat\u00e9gories (Curative / Preventive / Installation / Desinstallation)\n  sont comparables NESP\u2194YUMAN. Le regroupement YUMAN est port\u00e9 en amont par\n  `int_yuman__interventions.workorder_type_grouped` ; c\u00f4t\u00e9 NESP le libell\u00e9\n  vient de la facturation (NULL sur les \u00e9tats 'termin\u00e9e non sign\u00e9e').\n- Rafra\u00eechissement : aucun scheduler d\u00e9di\u00e9 \u00e0 la BU technique. Le mart se\n  reconstruit automatiquement via `source:<source>+` quand une source\n  upstream charge (refacto Option C) \u2014 pipeline EL `nesp_tech` (lundi 07:30,\n  cron `30 7 * * 1`) et `yuman` (01:00 en semaine, cron `0 1 * * 1-5`).\n"""
+      description="""[QUOI M\u00c9TIER]\nFait consolid\u00e9 des interventions techniques EVS, tous partenaires\nconfondus. 1 ligne = 1 intervention r\u00e9alis\u00e9e. Couvre Nespresso (via Nomad\nRepair, source `nesp_tech`) et les partenaires Yuman (NESHU, BRITA, AUUM,\nTWYD, NU, EXPRESSO, FONTAINCO, DAAN). Base des indicateurs op\u00e9rationnels,\nde la facturation partenaire et du calcul des primes techniciens (bonus\nd\u00e9lai, prime montagne, Paris intramuros).\n\n[COMMENT CONSTRUITE]\nUNION ALL de 2 cha\u00eenes homog\u00e9n\u00e9is\u00e9es au m\u00eame format, s\u00e9par\u00e9es par la\ncolonne `src_inter` (NESP / YUMAN) :\n- branche NESP : `int_nesp_tech__interventions_dedup` (1 ligne par\n  n_planning) + LEFT JOIN `int_nesp_tech__facturation_interventions`\n  (key_factu, montant, prod) + LEFT JOIN `int_nesp_tech__delais_interventions`\n  (SLA jours/heures, bonus) + LEFT JOIN seed `ref_nesp_tech__key_facturation`\n  (libell\u00e9s objets). Filtre de population : `etat_intervention != 'annul\u00e9e'`.\n- branche YUMAN : `int_yuman__interventions` \u2014 mod\u00e8le intermediate unique\n  portant tarification + d\u00e9lai + \u00e9tat m\u00e9tier (depuis la refacto PR #135 ;\n  remplace l'ancienne cha\u00eene fait\u2192fait `fct_technique__workorder_pricing` +\n  `fct_neshu__workorder_delai`). Filtre de population :\n  `intervention_state = 'REALISEE'` (workorder Closed et r\u00e9ellement effectu\u00e9).\nEnrichissement commun (CTE `interventions_enrichies`) : dur\u00e9e, flags primes\n(montagne / Paris / hors-d\u00e9lai), mapping technicien via `stg_yuman__users`\n(jointure conditionnelle : `nomad_id` c\u00f4t\u00e9 NESP, `user_id` c\u00f4t\u00e9 YUMAN) et\nseed `ref_nesp_tech__cps_montagne_primes`.\n\n[GRAIN]\n1 ligne par intervention. PK = `key_inter` = `src_inter` + '_' + `intervention_id`.\n\n[NOTES]\n- Filtres r\u00e9partis sur 3 niveaux (intermediate \u2192 CTE du fait \u2192 jointures\n  LEFT). C\u00f4t\u00e9 NESP, `montant` / `key_factu` / `prod` sont NULL hors \u00e9tats\n  termin\u00e9e sign\u00e9e / signature diff\u00e9r\u00e9e / mise en \u00e9chec ; `delai_*` et\n  `bonus_*` ne sont calcul\u00e9s que pour les agences IDF/Paris (filtre interne\n  \u00e0 `int_nesp_tech__delais_interventions`).\n- Plusieurs colonnes sont harmonis\u00e9es mais portent une s\u00e9mantique\n  diff\u00e9rente selon la source \u2014 voir les descriptions de `statut_facturation`,\n  `categorie_machine` / `machine_clean`, `delai_heures_*`, `bonus_bool`,\n  `delai_tech` / `delai_partenaire`, `alias_obj_*`, `client_id`.\n- `type_intervention` : libell\u00e9 en clair align\u00e9 entre sources \u2014 les 4\n  grandes cat\u00e9gories (Curative / Preventive / Installation / Desinstallation)\n  sont comparables NESP\u2194YUMAN. Le regroupement YUMAN est port\u00e9 en amont par\n  `int_yuman__interventions.workorder_type_grouped` ; c\u00f4t\u00e9 NESP le libell\u00e9\n  vient de la facturation (NULL sur les \u00e9tats 'termin\u00e9e non sign\u00e9e').\n- Rafra\u00eechissement : aucun scheduler d\u00e9di\u00e9 \u00e0 la BU technique. Le mart se\n  reconstruit automatiquement via `source:<source>+` quand une source\n  upstream charge (refacto Option C) \u2014 pipeline EL `nesp_tech` (lundi 07:30,\n  cron `30 7 * * 1`) et `yuman` (01:00 en semaine, cron `0 1 * * 1-5`).\n"""
     )
     as (
       
@@ -20,6 +20,7 @@ with nesp_interventions as (
         'NESP' as src_inter,
         'NESPRESSO' as partenaire,
         cast(dedup.n_planning as string) as intervention_id,
+        cast(dedup.n_planning as string) as numero_pu,
         dedup.n_tech as tech_id,
         cast(dedup.n_client as string) as client_id,
         initcap(dedup.raison_sociale_client) as client_nom,
@@ -68,7 +69,8 @@ yuman_interventions as (
     select
         'YUMAN' as src_inter,
         inter_yuman.partner_name as partenaire,
-        inter_yuman.workorder_number as intervention_id,
+        cast(inter_yuman.workorder_id as string) as intervention_id,
+        inter_yuman.workorder_number as numero_pu,
         cast(inter_yuman.technician_id as string) as tech_id,
         inter_yuman.client_code as client_id,
         initcap(inter_yuman.client_name) as client_nom,
@@ -110,10 +112,11 @@ interventions as (
 -- CTE 4 : Enrichissement métier (durée + flags + mapping techniciens)
 interventions_enrichies as (
     select
-        concat(i.intervention_id, '_', i.partenaire) as key_inter,
+        concat(i.src_inter, '_', i.intervention_id) as key_inter,
         i.src_inter,
         i.partenaire,
         i.intervention_id,
+        i.numero_pu,
         i.intervention_statut,
         i.statut_facturation,
         i.categorie_machine,
@@ -192,6 +195,7 @@ select
     src_inter,
     partenaire,
     intervention_id,
+    numero_pu,
     intervention_statut,
     statut_facturation,
     coalesce(categorie_machine, 'UNDEFINED') as categorie_machine,

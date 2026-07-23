@@ -4,6 +4,8 @@ with source_data as (
 
     select
         intervention_id,
+        src_inter,
+        numero_pu,
         delai_tech_force,
         delai_partenaire_force,
         commentaire,
@@ -16,6 +18,8 @@ cleaned_data as (
 
     select
         intervention_id,
+        upper(trim(src_inter)) as src_inter,
+        nullif(trim(numero_pu), '') as numero_pu,
         upper(trim(delai_tech_force)) as delai_tech_force,
         upper(trim(delai_partenaire_force)) as delai_partenaire_force,
         nullif(trim(commentaire), '') as commentaire,
@@ -35,6 +39,8 @@ cleaned_data as (
 -- (cf. stg_apptech__suivi_tech_pause pour le détail du contrat).
 select
     intervention_id,
+    src_inter,
+    numero_pu,
     delai_tech_force,
     delai_partenaire_force,
     commentaire,
