@@ -9,6 +9,8 @@ with source_data as (
 
     select
         intervention_id,
+        src_inter,
+        numero_pu,
         tech_id_reel,
         tech_yuman_id_reel,
         commentaire,
@@ -21,6 +23,8 @@ cleaned_data as (
 
     select
         intervention_id,
+        upper(trim(src_inter)) as src_inter,
+        nullif(trim(numero_pu), '') as numero_pu,
         lower(trim(tech_id_reel)) as tech_id_reel,
         tech_yuman_id_reel,
         nullif(trim(commentaire), '') as commentaire,
@@ -40,6 +44,8 @@ cleaned_data as (
 -- (cf. stg_apptech__suivi_tech_pause pour le détail du contrat).
 select
     intervention_id,
+    src_inter,
+    numero_pu,
     tech_id_reel,
     tech_yuman_id_reel,
     commentaire,

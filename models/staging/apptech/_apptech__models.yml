@@ -17,9 +17,13 @@ models:
               - intervention_id
     columns:
       - name: intervention_id
-        description: "Identifiant de l'intervention concernée (saisie humaine — STRING, non vérifié contre un référentiel à ce stade)"
+        description: "PK source de l'intervention (workorder_id YUMAN / n_planning NESP, telle qu'exposée par fct_technique__intervention). Le n° visible est numero_pu."
         tests:
           - not_null
+      - name: src_inter
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+      - name: numero_pu
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
       - name: doubler_prime
         description: "Décision de doublement de la prime (normalisé en majuscules)"
         tests:
@@ -55,9 +59,13 @@ models:
               - intervention_id
     columns:
       - name: intervention_id
-        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        description: "PK source de l'intervention (workorder_id YUMAN / n_planning NESP, telle qu'exposée par fct_technique__intervention). Le n° visible est numero_pu."
         tests:
           - not_null
+      - name: src_inter
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+      - name: numero_pu
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
       - name: convertir_code_5
         description: "Décision de conversion du code 5 (normalisé en majuscules)"
         tests:
@@ -93,9 +101,13 @@ models:
               - intervention_id
     columns:
       - name: intervention_id
-        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        description: "PK source de l'intervention (workorder_id YUMAN / n_planning NESP, telle qu'exposée par fct_technique__intervention). Le n° visible est numero_pu."
         tests:
           - not_null
+      - name: src_inter
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+      - name: numero_pu
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
       - name: tech_id_reel
         description: "Identifiant interne du technicien réel (normalisé en minuscules, ex. 'tec-00056')"
         tests:
@@ -133,9 +145,13 @@ models:
               - intervention_id
     columns:
       - name: intervention_id
-        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        description: "PK source de l'intervention (workorder_id YUMAN / n_planning NESP, telle qu'exposée par fct_technique__intervention). Le n° visible est numero_pu."
         tests:
           - not_null
+      - name: src_inter
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+      - name: numero_pu
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
       - name: delai_tech_force
         description: "Délai technicien forcé (normalisé en majuscules, ex. 'J+0')"
       - name: delai_partenaire_force
@@ -237,9 +253,13 @@ models:
               - intervention_id
     columns:
       - name: intervention_id
-        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        description: "PK source de l'intervention (workorder_id YUMAN / n_planning NESP, telle qu'exposée par fct_technique__intervention). Le n° visible est numero_pu."
         tests:
           - not_null
+      - name: src_inter
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+      - name: numero_pu
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
       - name: a_facturer
         description: "Décision de facturation de la MEE (normalisé en majuscules)"
         tests:
@@ -276,9 +296,13 @@ models:
               - intervention_id
     columns:
       - name: intervention_id
-        description: "Identifiant de l'intervention concernée (saisie humaine — STRING)"
+        description: "PK source de l'intervention (workorder_id YUMAN / n_planning NESP, telle qu'exposée par fct_technique__intervention). Le n° visible est numero_pu."
         tests:
           - not_null
+      - name: src_inter
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+      - name: numero_pu
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
       - name: a_facturer
         description: "Décision de facturation (normalisé en majuscules, NULL si non renseignée)"
         tests:
@@ -289,6 +313,8 @@ models:
         description: "Identifiant interne du technicien réel (normalisé en minuscules, ex. 'tec-01003')"
       - name: tech_yuman_id_reel
         description: "Identifiant Yuman du technicien réel"
+      - name: type_modif
+        description: "Nature de la modification, calculée côté app (Annulation / Réattribution / Annulation + Réattribution / Autre). NULL tant que l'app ne l'émet pas."
       - name: commentaire
         description: "Commentaire libre du manager (NULL si vide)"
       - name: periode

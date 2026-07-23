@@ -30,7 +30,7 @@ models:
       seed `ref_nesp_tech__cps_montagne_primes`.
 
       [GRAIN]
-      1 ligne par intervention. PK = `key_inter` = `intervention_id` + '_' + `partenaire`.
+      1 ligne par intervention. PK = `key_inter` = `src_inter` + '_' + `intervention_id`.
 
       [NOTES]
       - Filtres répartis sur 3 niveaux (intermediate → CTE du fait → jointures
@@ -56,15 +56,29 @@ models:
       - name: key_inter
         description: >
           PK — identifiant unique de l'intervention =
-          `intervention_id` + '_' + `partenaire`.
+          `src_inter` + '_' + `intervention_id`. Discriminant `src_inter` requis :
+          `workorder_id` (YUMAN) et `n_planning` (NESP) se chevauchent sur ~785
+          valeurs (mêmes plages numériques), donc `intervention_id` seul n'est pas
+          unique au global.
         tests:
           - not_null
           - unique
 
       - name: intervention_id
         description: >
-          Identifiant de l'intervention dans le système source : `n_planning`
-          côté NESP, `workorder_number` côté YUMAN.
+          PK de l'intervention dans son système source : `n_planning` côté NESP,
+          `workorder_id` (identifiant interne Yuman, PK réelle) côté YUMAN. Unique
+          par source, PAS au global (cf. `key_inter`). Le numéro visible (n° PU)
+          est porté par `numero_pu`.
+        tests:
+          - not_null
+
+      - name: numero_pu
+        description: >
+          Numéro d'intervention visible (« n° PU »), tel que recherché par les
+          managers : `workorder_number` côté YUMAN, `n_planning` côté NESP. Peut
+          être ré-employé entre partenaires côté YUMAN (non unique) — ne pas
+          l'utiliser comme clé de jointure, réservé à l'affichage/recherche.
         tests:
           - not_null
 
