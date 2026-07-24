@@ -304,13 +304,13 @@ models:
       - name: numero_pu
         description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
       - name: a_facturer
-        description: "Décision de facturation (normalisé en majuscules, NULL si non renseignée)"
+        description: "Décision de facturation de la modif : 'NOT VALIDATED' (= annulation, seule valeur émise par l'app) ou NULL si non renseignée. À ne pas confondre avec le OUI/NON de la MEE."
         tests:
           - accepted_values:
               arguments:
-                values: ['OUI', 'NON']
+                values: ['NOT VALIDATED']
       - name: tech_id_reel
-        description: "Identifiant interne du technicien réel (normalisé en minuscules, ex. 'tec-01003')"
+        description: "Identifiant du technicien réel : nomad ('tec-xxxx') pour un technicien qui en a un, ou id Yuman brut sinon (23/66 techniciens n'ont pas de nomad — cf. app evs-suivi-tech). Normalisé en minuscules."
       - name: tech_yuman_id_reel
         description: "Identifiant Yuman du technicien réel"
       - name: type_modif
