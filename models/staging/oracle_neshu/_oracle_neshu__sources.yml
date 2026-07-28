@@ -160,6 +160,23 @@ sources:
           - name: modification_date
             description: "Date de modification de la ligne"
 
+      # CONTACT_HAS_DEVICE
+      - name: evs_contact_has_device
+        description: >
+          Table de jonction contact <-> device : rattachement d'une machine au
+          personnel interne (approvisionneur / technicien) qui en a la charge.
+          Aucune colonne temporelle métier ni code_status_record : seuls les _sdc_*
+          sont disponibles.
+        columns:
+          - name: idcontact
+            tests:
+              - not_null
+            description: "Identifiant du contact (personnel interne — code aligné sur resources.code)"
+          - name: iddevice
+            tests:
+              - not_null
+            description: "Identifiant du device"
+
       # CONTRACT
       - name: evs_contract
         description: "Table des contrats"

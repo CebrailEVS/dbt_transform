@@ -82,6 +82,42 @@ models:
                 to: ref('stg_oracle_lcdp__company')
                 field: idcompany
 
+  # CONTACT_HAS_DEVICE
+  - name: stg_oracle_lcdp__contact_has_device
+    description: >
+      Rattachement d'une machine au membre du personnel interne qui en a la charge
+      (approvisionneur / technicien). Grain : 1 ligne par couple contact × device.
+      Le contact se raccroche à une ressource via son `code` (aucune FK idresources
+      dans la source). Couvre ~27 % du parc actif LCDP, mais la quasi-totalité du
+      périmètre DA FROID Nayax.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idcontact
+              - iddevice
+    columns:
+      - name: idcontact
+        description: "Identifiant du contact (personnel interne — code aligné sur resources.code)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
+      - name: iddevice
+        description: "Identifiant du device rattaché"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__device')
+                field: iddevice
+      - name: extracted_at
+        description: "Date d'extraction de la ligne"
+      - name: deleted_at
+        description: "Date de suppression logique de la ligne"
+
   # CONTRACT
   - name: stg_oracle_lcdp__contract
     description: "Contrats transformés et nettoyés depuis la base Oracle LCDP"
