@@ -13,9 +13,9 @@
 
 
 
-select iddevice
-from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__contact_has_device`
-where iddevice is null
+select device_id
+from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__chargement_sortie`
+where device_id is null
 
 
 

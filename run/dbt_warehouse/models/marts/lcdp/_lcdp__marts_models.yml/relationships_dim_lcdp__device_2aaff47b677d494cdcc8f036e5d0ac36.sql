@@ -12,14 +12,14 @@
     
 
 with child as (
-    select iddevice as from_field
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__contact_has_device`
-    where iddevice is not null
+    select assigned_roadman_id as from_field
+    from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__device`
+    where assigned_roadman_id is not null
 ),
 
 parent as (
-    select iddevice as to_field
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__device`
+    select resources_id as to_field
+    from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__resource`
 )
 
 select

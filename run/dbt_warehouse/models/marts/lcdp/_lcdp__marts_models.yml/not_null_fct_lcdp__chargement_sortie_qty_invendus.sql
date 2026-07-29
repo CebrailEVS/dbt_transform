@@ -13,9 +13,9 @@
 
 
 
-select iddevice
-from `evs-datastack-prod`.`prod_raw`.`lcdp_contact_has_device`
-where iddevice is null
+select qty_invendus
+from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__chargement_sortie`
+where qty_invendus is null
 
 
 

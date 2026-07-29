@@ -1,4 +1,18 @@
 
+  
+    
+
+    create or replace table `evs-datastack-prod`.`prod_marts`.`dim_lcdp__device`
+      
+    
+    
+
+    
+    OPTIONS(
+      description="""[QUOI M\u00c9TIER] Dimension machine LCDP enrichie des labels m\u00e9tier (cat\u00e9gorie, \u00e9tat, types fontaine/broyeur/percolateur/SP).\n[COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__device joint \u00e0 stg_oracle_lcdp__company (company_code, company_name) et stg_oracle_lcdp__location (access_info \u2192 device_location). Pivot des labels via stg_oracle_lcdp__label_device (vue aplatie lcdp_v_label_device) sur les familles : CATMACH, MARQUE, ETAT_MACHINE, STATUT_MATERIEL, TYPEAUDIT, TYDA, LCDPMON, TYPFONT, TYPBROY, TYPPERCO, TYPSP, TYPDASA, MODSP, MARQSP, BADGE, ISACTIVE. ROADMAN AFFECT\u00c9 (assigned_roadman_id / _code / _name) : r\u00e9solu depuis stg_oracle_lcdp__contact_has_device \u2192 stg_oracle_lcdp__contact \u2192 dim_lcdp__resource, la jointure se faisant sur le CODE (contact.code = resources_code, resources_type='PERSON') car la source ne porte aucune FK idresources ; jointure sur la dim (et non le staging) pour garantir que la FK expos\u00e9e r\u00e9sout dans la dimension \u00e0 laquelle la BI se relie.\n[GRAIN] 1 ligne par device_id.\n[NOTES] device_iddevice = parent device (hi\u00e9rarchie). Les attributs label exposent d\u00e9sormais le libell\u00e9 FR (label_text_fr, ex. \"DA CHAUD\") au lieu du code (ex. \"CATMACH01\"). Exception : is_active reste bas\u00e9 sur le code (YES/NO) pour la conversion bool\u00e9enne. is_active converti en bool\u00e9en. ROADMAN AFFECT\u00c9 \u2014 \u00e9tat COURANT, non historisable : contact_has_device ne porte ni date de cr\u00e9ation ni date de modification, on ne conna\u00eet donc que l'affectation d'aujourd'hui (une historisation n\u00e9cessiterait un snapshot). \u00c0 NE PAS CONFONDRE avec le roadman OBSERV\u00c9 de fct_lcdp__chargement_sortie (celui qui a r\u00e9ellement charg\u00e9 la machine dans la semaine) : les deux co\u00efncident sur 82,6 % des lignes comparables sur 90 jours, les \u00e9carts sont un signal m\u00e9tier (r\u00e9affectation de secteur, remplacement cong\u00e9s non r\u00e9percut\u00e9 dans l'ERP). COUVERTURE : renseign\u00e9 sur 730 machines / 2 758 (26,5 % du parc) mais 99,4 % du p\u00e9rim\u00e8tre DA FROID Nayax \u2014 la colonne est donc majoritairement NULL sur le parc complet, c'est attendu. D\u00c9PARTAGE : 2 machines portent 2 affectations dans l'ERP (M7077, M5114, machines \u00e0 caf\u00e9 hors p\u00e9rim\u00e8tre DA FROID) ; on retient le code le plus petit pour garantir 1 ligne par machine et une valeur stable d'un rebuild \u00e0 l'autre (contact.ismain vaut 0 partout, inexploitable comme crit\u00e8re). Le test assert_lcdp__device_single_assigned_roadman (warn) rend ce nombre visible : s'il grimpe, la r\u00e8gle ne suffit plus et il faudra arbitrer avec l'exploitation.\n"""
+    )
+    as (
+      
 
 with device_labels as (
     select
@@ -163,3 +177,5 @@ select
 from aggregated_labels as al
 left join assigned_roadman as ar
     on al.device_id = ar.device_id
+    );
+  

@@ -13,9 +13,9 @@
 
 
 
-select iddevice
-from `evs-datastack-prod`.`prod_raw`.`evs_contact_has_device`
-where iddevice is null
+select device_id
+from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__device`
+where device_id is null
 
 
 

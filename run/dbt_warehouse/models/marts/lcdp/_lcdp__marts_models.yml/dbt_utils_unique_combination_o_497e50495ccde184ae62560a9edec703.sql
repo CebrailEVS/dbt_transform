@@ -16,9 +16,9 @@
 with validation_errors as (
 
     select
-        idcontact, iddevice
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__contact_has_device`
-    group by idcontact, iddevice
+        device_id, month_start_date
+    from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__ca_mensuel`
+    group by device_id, month_start_date
     having count(*) > 1
 
 )

@@ -8,15 +8,14 @@
       
     
   
-    
-    
 
 
 
-select idcontact
-from `evs-datastack-prod`.`prod_raw`.`lcdp_contact_has_device`
-where idcontact is null
+select
+    1
+from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__chargement_sortie`
 
+where not(nb_ventes >= 0)
 
 
   

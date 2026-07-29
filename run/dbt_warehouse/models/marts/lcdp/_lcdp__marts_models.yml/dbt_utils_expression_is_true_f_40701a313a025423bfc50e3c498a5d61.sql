@@ -8,15 +8,14 @@
       
     
   
-    
-    
 
 
 
-select idcontact
-from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__contact_has_device`
-where idcontact is null
+select
+    1
+from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__chargement_sortie`
 
+where not(qty_retiree >= 0)
 
 
   

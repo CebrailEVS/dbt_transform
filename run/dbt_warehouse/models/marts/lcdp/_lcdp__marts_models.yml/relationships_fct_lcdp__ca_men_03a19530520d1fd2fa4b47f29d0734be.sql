@@ -12,14 +12,14 @@
     
 
 with child as (
-    select iddevice as from_field
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__contact_has_device`
-    where iddevice is not null
+    select device_id as from_field
+    from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__ca_mensuel`
+    where device_id is not null
 ),
 
 parent as (
-    select iddevice as to_field
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__device`
+    select device_id as to_field
+    from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__device`
 )
 
 select

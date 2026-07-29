@@ -215,6 +215,6 @@ select
 
     -- Métadonnées dbt (audit & lineage)
     CURRENT_TIMESTAMP() as dbt_updated_at,
-    'ac8f37ca-266f-43fd-b177-438b2288526b' as dbt_invocation_id  -- noqa: TMP
+    'c35db9b6-8082-4063-8e59-a0d3742c61e6' as dbt_invocation_id  -- noqa: TMP
 
 from final

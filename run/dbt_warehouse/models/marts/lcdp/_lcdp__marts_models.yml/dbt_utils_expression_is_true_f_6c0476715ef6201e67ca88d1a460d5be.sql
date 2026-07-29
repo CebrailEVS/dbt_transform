@@ -8,15 +8,14 @@
       
     
   
-    
-    
 
 
 
-select idcontact
-from `evs-datastack-prod`.`prod_raw`.`evs_contact_has_device`
-where idcontact is null
+select
+    1
+from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__ca_mensuel`
 
+where not(ca_total_ht_eur >= 0)
 
 
   

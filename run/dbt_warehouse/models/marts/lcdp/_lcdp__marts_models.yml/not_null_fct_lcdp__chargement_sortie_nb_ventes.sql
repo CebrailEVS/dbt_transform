@@ -13,9 +13,9 @@
 
 
 
-select iddevice
-from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__contact_has_device`
-where iddevice is null
+select nb_ventes
+from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__chargement_sortie`
+where nb_ventes is null
 
 
 
