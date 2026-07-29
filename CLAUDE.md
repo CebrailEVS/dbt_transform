@@ -283,6 +283,17 @@ After any model creation, deletion, or convention change, update the relevant do
 - **Never delete or drop tables** unless explicitly asked
 - **Never run against prod target** unless explicitly asked
 - **Never `git push` or create a PR without explicit user confirmation, every time** — local commits on a feature branch are fine, but anything that leaves the machine (push, `gh pr create`, direct push to master) waits for an explicit GO in the current exchange. A confirmation given earlier in the session does NOT carry over to the next push/PR.
+- **Toujours créer une branche de feature depuis `master` à jour**, jamais depuis la branche courante :
+  `git fetch origin master && git checkout -b feature/<nom> origin/master`.
+  Ne jamais faire un `git checkout -b` sans avoir vérifié où pointe `HEAD` : partir d'une
+  autre branche de feature embarque ses commits non poussés dans la PR. **Incident 2026-07-29** :
+  la branche roadman LCDP a été créée depuis `feature/apptech-interventions-retraitees` → la PR
+  aurait inclus le mart `fct_technique__intervention_retraitee` d'un autre chantier (5 fichiers,
+  ~400 lignes), et vidé sa propre PR de son contenu.
+  **Contrôle avant tout push** : `git log --oneline origin/master..HEAD` ne doit contenir que les
+  commits du chantier en cours, et `git diff --stat origin/master...HEAD` que ses fichiers.
+  Correction si la branche est déjà polluée : nouvelle branche depuis `origin/master` +
+  `git cherry-pick` des seuls commits du chantier (non destructif, l'autre branche reste intacte).
 - **Never skip SQLFluff lint** before considering a model done
 - **Marts must follow a star schema** — facts (`fct_`) reference dimensions (`dim_`) via `<entity>_id` foreign keys only. No fact-to-fact joins (un fait peut toutefois en **agréger** un autre à un grain plus grossier via `GROUP BY`, ou l'**étendre** à grain strictement identique 1:1 — cf. [`docs/conventions/marts.md`](docs/conventions/marts.md)), no snowflaked dimensions, no wide one-big-table marts. **Aplatir uniquement les attributs d'affichage du parent direct (1-3 colonnes max)**, jamais une dim parente entière. Voir [`docs/conventions/marts.md`](docs/conventions/marts.md) § Marts — pattern complet.
 - **Description placement** : staging **doit** avoir `description='...'` dans `{{ config() }}` (cf. feedback memory, convention historique). Intermediate et **marts** : description en YAML uniquement, pas dans le config block (persist_docs gère BQ).
