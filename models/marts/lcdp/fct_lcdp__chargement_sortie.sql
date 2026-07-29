@@ -2,7 +2,7 @@
     config(
         materialized='table',
         partition_by={'field': 'week_start_date', 'data_type': 'date'},
-        cluster_by=['device_id']
+        cluster_by=['device_id', 'resources_roadman_id']
     )
 }}
 
@@ -21,6 +21,17 @@
 -- parce que 1 event télémétrie Nayax = 1 unité vendue (telemetry_quantity toujours = 1
 -- en amont). nb_ventes est un count(*) d'events (entier), comparé à une quantité
 -- déclarée chargée (somme en unités de base) : deux systèmes de mesure distincts.
+--
+-- ROADMAN DE LA SEMAINE : la ligne porte le roadman qui a réalisé le plus de
+-- tâches de chargement sur la machine dans la semaine (demande BI 2026-07-28 :
+-- monitorer les flux de marchandises au niveau roadman). Calculé sur le MÊME
+-- périmètre de tâches que qty_chargee / qty_retiree (produits vendables), donc
+-- la colonne qualifie exactement l'activité de chargement mesurée sur la ligne.
+-- NULL sur les semaines sans chargement (~17 % des lignes : machine qui a vendu
+-- sans être rechargée) — c'est attendu, il n'y a personne à nommer.
+-- Il s'agit du roadman OBSERVÉ, à ne pas confondre avec le roadman AFFECTÉ à la
+-- machine dans l'ERP (contact_has_device, exposé sur dim_lcdp__device) : sur les
+-- 90 derniers jours, les deux coïncident sur 82,6 % des lignes comparables.
 --
 -- Mouvements de stock classés par movement_type (signe de la quantité, cf.
 -- int_oracle_lcdp__chargement_tasks) : LOADING = chargé, REMOVING = retiré
@@ -50,14 +61,18 @@ vendable_groups as (
     where is_vendable
 ),
 
-chargement_weekly as (
+-- Tâches de chargement du périmètre (machines full Nayax × produits vendables).
+-- Isolées dans leur propre CTE pour que les quantités hebdo ET le roadman de la
+-- semaine soient calculés sur exactement le même jeu de tâches.
+chargement_tasks_scoped as (
     select
         c.device_id,
         date_trunc(date(c.task_start_date), week (monday)) as week_start_date,
-        sum(case when c.movement_type = 'LOADING' then c.load_quantity else 0 end)
-            as qty_chargee,
-        sum(case when c.movement_type = 'REMOVING' then -c.load_quantity else 0 end)
-            as qty_retiree
+        c.task_id,
+        c.roadman_id,
+        c.roadman_code,
+        c.movement_type,
+        c.load_quantity
     from {{ ref('int_oracle_lcdp__chargement_tasks') }} as c
     inner join {{ ref('dim_lcdp__product') }} as p
         on c.product_id = p.product_id
@@ -66,7 +81,50 @@ chargement_weekly as (
     where
         c.device_id in (select dp.device_id from devices_perimeter as dp)
         and date(c.task_start_date) >= date('2025-01-01')
+),
+
+chargement_weekly as (
+    select
+        device_id,
+        week_start_date,
+        sum(case when movement_type = 'LOADING' then load_quantity else 0 end)
+            as qty_chargee,
+        sum(case when movement_type = 'REMOVING' then -load_quantity else 0 end)
+            as qty_retiree
+    from chargement_tasks_scoped
     group by 1, 2
+),
+
+-- Roadman principal de la semaine, par machine.
+-- Départage déterministe (5,6 % des device×semaine sont à égalité sur le nombre
+-- de tâches) : nb de chargements, puis volume chargé, puis identifiant le plus
+-- petit. Sans règle stable, la valeur changerait d'un rebuild à l'autre.
+chargement_roadman_counts as (
+    select
+        device_id,
+        week_start_date,
+        roadman_id,
+        roadman_code,
+        count(distinct task_id) as nb_chargements,
+        sum(case when movement_type = 'LOADING' then load_quantity else 0 end)
+            as qty_chargee_roadman
+    from chargement_tasks_scoped
+    where roadman_id is not null
+    group by 1, 2, 3, 4
+),
+
+chargement_roadman_weekly as (
+    select
+        device_id,
+        week_start_date,
+        roadman_id,
+        roadman_code
+    from chargement_roadman_counts
+    qualify
+        row_number() over (
+            partition by device_id, week_start_date
+            order by nb_chargements desc, qty_chargee_roadman desc, roadman_id asc
+        ) = 1
 ),
 
 telemetry_weekly as (
@@ -161,6 +219,12 @@ select
     wr.device_id,
     wr.week_start_date,
 
+    -- Roadman OBSERVÉ : celui qui a réalisé le plus de chargements sur la machine
+    -- dans la semaine. NULL si aucun chargement (semaine vendue sans réassort).
+    rm.roadman_id as resources_roadman_id,
+    rm.roadman_code,
+    r.resources_name as roadman_name,
+
     -- Briques additives (entrées)
     wr.qty_chargee,
     wr.qty_retiree,
@@ -197,6 +261,12 @@ select
     ) as taux_ecoulement_volume_net_4wk
 
 from with_rolling as wr
+left join chargement_roadman_weekly as rm
+    on
+        wr.device_id = rm.device_id
+        and wr.week_start_date = rm.week_start_date
+left join {{ ref('dim_lcdp__resource') }} as r
+    on rm.roadman_id = r.resources_id
 left join appro_weekly as a
     on
         wr.device_id = a.device_id
