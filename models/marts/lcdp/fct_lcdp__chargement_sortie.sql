@@ -30,7 +30,8 @@
 -- NULL sur les semaines sans chargement (~17 % des lignes : machine qui a vendu
 -- sans être rechargée) — c'est attendu, il n'y a personne à nommer.
 -- Il s'agit du roadman OBSERVÉ, à ne pas confondre avec le roadman AFFECTÉ à la
--- machine dans l'ERP (contact_has_device) : 90,9 % de concordance seulement.
+-- machine dans l'ERP (contact_has_device, exposé sur dim_lcdp__device) : sur les
+-- 90 derniers jours, les deux coïncident sur 82,6 % des lignes comparables.
 --
 -- Mouvements de stock classés par movement_type (signe de la quantité, cf.
 -- int_oracle_lcdp__chargement_tasks) : LOADING = chargé, REMOVING = retiré

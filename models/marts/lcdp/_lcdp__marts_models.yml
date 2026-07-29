@@ -143,9 +143,9 @@ models:
   - name: dim_lcdp__device
     description: |
       [QUOI MÉTIER] Dimension machine LCDP enrichie des labels métier (catégorie, état, types fontaine/broyeur/percolateur/SP).
-      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__device joint à stg_oracle_lcdp__company (company_code, company_name) et stg_oracle_lcdp__location (access_info → device_location). Pivot des labels via stg_oracle_lcdp__label_device (vue aplatie lcdp_v_label_device) sur les familles : CATMACH, MARQUE, ETAT_MACHINE, STATUT_MATERIEL, TYPEAUDIT, TYDA, LCDPMON, TYPFONT, TYPBROY, TYPPERCO, TYPSP, TYPDASA, MODSP, MARQSP, BADGE, ISACTIVE.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__device joint à stg_oracle_lcdp__company (company_code, company_name) et stg_oracle_lcdp__location (access_info → device_location). Pivot des labels via stg_oracle_lcdp__label_device (vue aplatie lcdp_v_label_device) sur les familles : CATMACH, MARQUE, ETAT_MACHINE, STATUT_MATERIEL, TYPEAUDIT, TYDA, LCDPMON, TYPFONT, TYPBROY, TYPPERCO, TYPSP, TYPDASA, MODSP, MARQSP, BADGE, ISACTIVE. ROADMAN AFFECTÉ (assigned_roadman_id / _code / _name) : résolu depuis stg_oracle_lcdp__contact_has_device → stg_oracle_lcdp__contact → dim_lcdp__resource, la jointure se faisant sur le CODE (contact.code = resources_code, resources_type='PERSON') car la source ne porte aucune FK idresources ; jointure sur la dim (et non le staging) pour garantir que la FK exposée résout dans la dimension à laquelle la BI se relie.
       [GRAIN] 1 ligne par device_id.
-      [NOTES] device_iddevice = parent device (hiérarchie). Les attributs label exposent désormais le libellé FR (label_text_fr, ex. "DA CHAUD") au lieu du code (ex. "CATMACH01"). Exception : is_active reste basé sur le code (YES/NO) pour la conversion booléenne. is_active converti en booléen.
+      [NOTES] device_iddevice = parent device (hiérarchie). Les attributs label exposent désormais le libellé FR (label_text_fr, ex. "DA CHAUD") au lieu du code (ex. "CATMACH01"). Exception : is_active reste basé sur le code (YES/NO) pour la conversion booléenne. is_active converti en booléen. ROADMAN AFFECTÉ — état COURANT, non historisable : contact_has_device ne porte ni date de création ni date de modification, on ne connaît donc que l'affectation d'aujourd'hui (une historisation nécessiterait un snapshot). À NE PAS CONFONDRE avec le roadman OBSERVÉ de fct_lcdp__chargement_sortie (celui qui a réellement chargé la machine dans la semaine) : les deux coïncident sur 82,6 % des lignes comparables sur 90 jours, les écarts sont un signal métier (réaffectation de secteur, remplacement congés non répercuté dans l'ERP). COUVERTURE : renseigné sur 730 machines / 2 758 (26,5 % du parc) mais 99,4 % du périmètre DA FROID Nayax — la colonne est donc majoritairement NULL sur le parc complet, c'est attendu. DÉPARTAGE : 2 machines portent 2 affectations dans l'ERP (M7077, M5114, machines à café hors périmètre DA FROID) ; on retient le code le plus petit pour garantir 1 ligne par machine et une valeur stable d'un rebuild à l'autre (contact.ismain vaut 0 partout, inexploitable comme critère). Le test assert_lcdp__device_single_assigned_roadman (warn) rend ce nombre visible : s'il grimpe, la règle ne suffit plus et il faudra arbitrer avec l'exploitation.
     columns:
       - name: device_id
         description: "Identifiant unique du device"
@@ -230,6 +230,37 @@ models:
 
       - name: device_location
         description: "Informations d'accès de la localisation"
+
+      - name: assigned_roadman_id
+        description: >
+          Roadman AFFECTÉ à la machine (FK vers dim_lcdp__resource) — état COURANT
+          déclaré dans l'ERP (contact_has_device), c'est-à-dire qui a la charge de la
+          machine aujourd'hui. Répond au besoin BI « vision secteur / tournée ».
+          NON HISTORISÉ : la source ne porte aucune date, on ne sait donc rien de
+          l'affectation passée. À NE PAS CONFONDRE avec le roadman OBSERVÉ de
+          fct_lcdp__chargement_sortie (celui qui a réellement chargé sur la semaine) :
+          les deux coïncident sur 82,6 % des lignes comparables de
+          fct_lcdp__chargement_sortie sur 90 jours (846 / 1 024). Au grain machine le
+          taux monte à 92,4 % (97 / 105) : un roadman de remplacement sur une semaine
+          isolée casse la concordance de cette ligne sans changer qui tient la machine
+          sur la période. NULL sur ~73 % du parc (affectation
+          renseignée sur 730 machines / 2 758) mais sur 0,6 % seulement du périmètre
+          DA FROID Nayax. Départage sur le code le plus petit quand une machine porte
+          2 affectations (2 cas au 2026-07-29, cf. test
+          assert_lcdp__device_single_assigned_roadman).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_lcdp__resource')
+                field: resources_id
+              config:
+                severity: warn
+
+      - name: assigned_roadman_code
+        description: "Code du roadman affecté (ex. APPRO01) — valeur d'affichage/slicer, alignée sur dim_lcdp__resource.resources_code. NULL si aucune affectation."
+
+      - name: assigned_roadman_name
+        description: "Nom du roadman affecté — valeur d'affichage aplatie depuis dim_lcdp__resource (évite une jointure côté BI). NULL si aucune affectation."
 
       - name: is_active
         description: >
@@ -368,7 +399,8 @@ models:
           plus petit. NULL sur les semaines sans chargement (~17 % des lignes : machine
           qui a vendu sans être rechargée) — attendu, il n'y a personne à nommer.
           À NE PAS CONFONDRE avec le roadman AFFECTÉ à la machine dans l'ERP
-          (contact_has_device) : 90,9 % de concordance seulement, une réaffectation de
+          (contact_has_device, exposé sur dim_lcdp__device) : les deux coïncident sur
+          82,6 % des lignes comparables sur 90 jours, une réaffectation de
           secteur ou un remplacement ne remonte pas toujours côté affectation.
         tests:
           - relationships:
