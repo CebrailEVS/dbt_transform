@@ -1,0 +1,36 @@
+
+  
+    
+
+    create or replace table `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_company`
+      
+    
+    
+
+    
+    OPTIONS(
+      description="""Association entre les labels et les entreprises"""
+    )
+    as (
+      
+
+with source_data as (
+    select *
+    from `evs-datastack-prod`.`prod_raw`.`lcdp_label_has_company`
+),
+
+cleaned_data as (
+    select
+        -- IDs convertis en BIGINT
+        cast(idlabel as int64) as idlabel,
+        cast(idcompany as int64) as idcompany,
+
+        -- Timestamps harmonisés
+        timestamp(_extracted_at) as extracted_at
+
+    from source_data
+)
+
+select * from cleaned_data
+    );
+  
