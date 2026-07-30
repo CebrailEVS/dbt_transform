@@ -17,15 +17,13 @@ with source_data as (
         code,
         name,
         code_status_record,
-        xml,
         original_start_date,
         original_end_date,
         current_end_date,
         termination_date,
         creation_date,
         modification_date,
-        _sdc_extracted_at,
-        _sdc_deleted_at
+        _extracted_at
     from {{ source('oracle_lcdp', 'lcdp_contract') }}
 ),
 
@@ -50,8 +48,7 @@ cleaned_data as (
 
         timestamp(creation_date) as created_at,
         timestamp(coalesce(modification_date, creation_date)) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        timestamp(_extracted_at) as extracted_at
 
     from source_data
 )

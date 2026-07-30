@@ -27,20 +27,19 @@ cleaned_data as (
         l_text_fr as label_text_fr,
 
         -- Booléens label
-        cast(l_system as boolean) as is_system,
-        cast(l_enabled as boolean) as is_enabled,
-        cast(l_isdefault as boolean) as is_default,
+        cast(cast(l_system as int64) as boolean) as is_system,
+        cast(cast(l_enabled as int64) as boolean) as is_enabled,
+        cast(cast(l_isdefault as int64) as boolean) as is_default,
 
         -- Booléens famille de label
-        cast(lf_exclus as boolean) as is_family_exclusive,
-        cast(lf_system as boolean) as is_family_system,
-        cast(lf_required as boolean) as is_family_required,
-        cast(lf_export_mobile as boolean) as is_family_export_mobile,
+        cast(cast(lf_exclus as int64) as boolean) as is_family_exclusive,
+        cast(cast(lf_system as int64) as boolean) as is_family_system,
+        cast(cast(lf_required as int64) as boolean) as is_family_required,
+        cast(cast(lf_export_mobile as int64) as boolean) as is_family_export_mobile,
 
         -- Timestamps harmonisés
         -- La vue ne porte aucune date métier (création/modification) : seuls les timestamps techniques sont disponibles
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        timestamp(_extracted_at) as extracted_at
 
     from source_data
 )

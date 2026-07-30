@@ -26,8 +26,10 @@ cleaned_data as (
         country,
         code,
         code_status_record,
-        longitude,
-        latitude,
+        -- coordonnées castées : la source les livre en texte, et le zéro de
+        -- tête varie selon le format d'extraction (« -.66 » vs « -0.66 »)
+        cast(longitude as float64) as longitude,
+        cast(latitude as float64) as latitude,
         altitude,
 
         -- Dates et timestamps
@@ -35,8 +37,7 @@ cleaned_data as (
 
         -- Timestamps harmonisés
         timestamp(modification_date) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        timestamp(_extracted_at) as extracted_at
 
     from source_data
 )

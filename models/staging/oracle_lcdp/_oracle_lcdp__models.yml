@@ -26,8 +26,6 @@ models:
         description: "Date de modification de la ligne"
       - name: extracted_at
         description: "Date d'extraction depuis la source"
-      - name: deleted_at
-        description: "Date de suppression (soft delete)"
 
   # COMPANY_HAS_LOCATION
   - name: stg_oracle_lcdp__company_has_location
@@ -115,8 +113,6 @@ models:
                 field: iddevice
       - name: extracted_at
         description: "Date d'extraction de la ligne"
-      - name: deleted_at
-        description: "Date de suppression logique de la ligne"
 
   # CONTRACT
   - name: stg_oracle_lcdp__contract
@@ -312,27 +308,6 @@ models:
               arguments:
                 to: ref('stg_oracle_lcdp__company')
                 field: idcompany
-
-  - name: stg_oracle_lcdp__label_has_contract
-    description: "Association entre les labels et les contrats"
-    columns:
-      - name: idlabel
-        description: "Identifiant du label"
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('stg_oracle_lcdp__label')
-                field: idlabel
-      - name: idcontract
-        description: "Identifiant du contract"
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('stg_oracle_lcdp__contract')
-                field: idcontract
-
   - name: stg_oracle_lcdp__label_has_device
     description: "Association entre les labels et les devices"
     columns:
@@ -669,8 +644,6 @@ models:
         description: "Timestamp dextraction depuis Oracle"
         tests:
           - not_null
-      - name: deleted_at
-        description: "Timestamp de suppression (NULL si actif)"
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

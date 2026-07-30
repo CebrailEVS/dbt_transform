@@ -4,14 +4,14 @@ version: 2
 sources:
   - name: oracle_lcdp
     database: "{{ var('raw_project') }}"
-    schema: "prod_raw"
+    schema: "{{ var('raw_schema', 'prod_raw') }}"
     description: "Données brutes extraites de l'ERP Oracle LCDP (mix full/incremental)"
 
     config:
       tags: ['oracle_lcdp', 'source']
 
       # Freshness: column containing extraction timestamp
-      loaded_at_field: _sdc_extracted_at
+      loaded_at_field: _extracted_at
 
       # Default freshness thresholds for all tables
       freshness:
@@ -291,21 +291,6 @@ sources:
             tests:
               - not_null
             description: "Identifiant de l'entreprise"
-
-      - name: lcdp_label_has_contract
-        description: "Labels par contrat"
-        config:
-          freshness: null
-        columns:
-          - name: idlabel
-            tests:
-              - not_null
-            description: "Identifiant du label"
-          - name: idcontract
-            tests:
-              - not_null
-            description: "Identifiant du contract"
-
       - name: lcdp_label_has_device
         description: "Labels par device"
         columns:
