@@ -19,8 +19,7 @@ cleaned_data as (
         -- Timestamps harmonisés
         -- La source ne porte ni creation_date ni modification_date : pas de
         -- created_at / updated_at exposables (cf. autres tables de jonction).
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        timestamp(_extracted_at) as extracted_at
 
     from source_data
 )

@@ -17,8 +17,7 @@ cleaned_data as (
         cast(idcontract as int64) as idcontract,
 
         -- Timestamps harmonisés
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        timestamp(_extracted_at) as extracted_at
 
     from source_data
 )
