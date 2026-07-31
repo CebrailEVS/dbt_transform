@@ -33,8 +33,6 @@ models:
         description: "Date de modification de la ligne"
       - name: extracted_at
         description: "Date d'extraction depuis la source"
-      - name: deleted_at
-        description: "Date de suppression (soft delete)"
 
   # COMPANY_HAS_LOCATION
   - name: stg_oracle_neshu__company_has_location
@@ -121,8 +119,6 @@ models:
                 field: iddevice
       - name: extracted_at
         description: "Date d'extraction de la ligne"
-      - name: deleted_at
-        description: "Date de suppression logique de la ligne"
 
   # CONTRACT
   - name: stg_oracle_neshu__contract

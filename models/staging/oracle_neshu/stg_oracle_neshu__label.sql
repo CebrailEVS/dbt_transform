@@ -20,13 +20,14 @@ cleaned_data as (
         code,
 
         -- Bolean
-        cast(system as boolean) as is_system,
-        cast(enabled as boolean) as is_enabled,
+        -- NUMERIC(1) depuis le passage de prod_raw a dlt : le NUMBER(1) Oracle
+        -- n'arrive plus en BOOL. Double cast, BigQuery refusant NUMERIC -> BOOL.
+        cast(cast(system as int64) as boolean) as is_system,
+        cast(cast(enabled as int64) as boolean) as is_enabled,
 
         -- Timestamps harmonisés
         timestamp(modification_date) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        timestamp(_extracted_at) as extracted_at
 
     from source_data
 )
