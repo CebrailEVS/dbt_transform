@@ -9,7 +9,9 @@ selectors:
   # Production : chaque workflow EL appelle SON selector par BU (isolé),
   # pour ne rebuild que sa propre BU :
   #   pipeline-passages-appro-neshu  → passage_appro_fastlane_neshu
-  #   pipeline-passages-appro-lcdp   → passage_appro_fastlane_lcdp
+  #
+  # LCDP n'a plus de voie rapide : son pipeline dlt rafraîchit tout le périmètre
+  # à 01h puis 08h/15h/18h, donc `source:oracle_lcdp+` suffit.
   #
   # Le build rapide tourne avec `--indirect-selection cautious` (cf. entrypoint.sh) :
   # les tests relationships de bord (réfs hors sous-graphe) sont différés au nocturne.
@@ -26,15 +28,6 @@ selectors:
     definition:
       method: fqn
       value: fct_neshu__passage_appro
-      parents: true
-
-  - name: passage_appro_fastlane_lcdp
-    description: >
-      Sous-graphe ancêtre de fct_lcdp__passage_appro (refresh intra-day lcdp).
-    default: false
-    definition:
-      method: fqn
-      value: fct_lcdp__passage_appro
       parents: true
 
   - name: passage_appro_fastlane

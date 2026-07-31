@@ -27,14 +27,14 @@ marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de 
 
 ```
 00h ─────────────────────────────────────────────────────────────────────────────
-01:00  EL+T  oracle_neshu, oracle_lcdp, mssql_sage(1-5), yuman(1-5)   → raw+stg+int + marts neshu/lcdp/finance/technique/supply_chain
+01:00  EL+T  oracle_neshu, oracle_lcdp(1-6), mssql_sage(1-5), yuman(1-5) → raw+stg+int + marts neshu/lcdp/finance/technique/supply_chain
 03:00  EL+T  zoho_desk (1-5)                                          → raw+stg+int (pas de marts à ce jour)
 06:00  EL+T  yuman_gcs (1-6)                                          → + marts supply_chain
 07:30  EL+T  nesp_tech (lundi seulement)                              → + marts technique, commerce
 08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce
 09:00  SN    transform-snapshots-daily (tous snapshots)
 08,11,15h  EL+T  passages-appro-neshu (fast-lane: tap appro + selector passage_appro_fastlane_neshu) → fct_neshu__passage_appro
-08,11,15,18h  EL+T  passages-appro-lcdp (fast-lane: tap appro + selector passage_appro_fastlane_lcdp) → fct_lcdp__passage_appro
+08,15,18h  EL+T  oracle_lcdp (périmètre complet + refresh PBI)             → marts lcdp, supply_chain
 23:00  EL+T  oracle_stock_theorique                                  → + marts supply_chain
 23:15  EL+T  oracle_lcdp_stock_theorique                             → + marts supply_chain (lcdp)
 ─────────────────────────────────────────────────────────────────────────────────
@@ -58,8 +58,9 @@ homonyme dans `workflows/*.yaml`.
 | pipeline-oracle-neshu | `0 1 * * *` | tous | pipeline-oracle-neshu.yaml | oracle_neshu |
 | pipeline-oracle-neshu-full-refresh | `0 4 * * 0` | dim | pipeline-oracle-neshu-full-refresh.yaml | oracle_neshu (full) |
 | pipeline-passages-appro-neshu | `0 8,11,15 * * 1-5` | lun-ven | pipeline-passages-appro-neshu.yaml | oracle_neshu (fast-lane appro: EL `tap-oracle-appro-fastlane` + dbt selector `passage_appro_fastlane_neshu` + refresh PBI) |
-| pipeline-oracle-lcdp | `0 1 * * *` | tous | pipeline-oracle-lcdp.yaml | oracle_lcdp |
-| pipeline-passages-appro-lcdp | `0 8,11,15,18 * * 1-5` | lun-ven | pipeline-passages-appro-lcdp.yaml | oracle_lcdp (fast-lane appro: EL `tap-oracle-lcdp-appro-fastlane` + dbt selector `passage_appro_fastlane_lcdp` + refresh PBI) |
+| pipeline-oracle-lcdp-dlt | `0 1 * * 1-6` | lun-sam | pipeline-oracle-lcdp-dlt.yaml | oracle_lcdp (EL dlt + dbt + refresh PBI) |
+| pipeline-oracle-lcdp-dlt-intraday | `0 8,15,18 * * 1-5` | lun-ven | *(même workflow)* | oracle_lcdp — second déclencheur du workflow ci-dessus |
+| pipeline-oracle-lcdp-dlt-purge | `0 4 * * 0` | dim | pipeline-oracle-lcdp-dlt-purge.yaml | oracle_lcdp (`--purge-deletes` : supprime les lignes effacées à la source) |
 | pipeline-mssql-sage | `0 1 * * 1-5` | lun-ven | pipeline-mssql-sage.yaml | mssql_sage |
 | pipeline-yuman | `0 1 * * 1-5` | lun-ven | pipeline-yuman.yaml | yuman |
 | pipeline-zoho-desk | `0 3 * * 1-5` | lun-ven | pipeline-zoho-desk.yaml | zoho_desk |
@@ -69,7 +70,7 @@ homonyme dans `workflows/*.yaml`.
 | pipeline-nesp-co | `0 8 * * *` | tous | pipeline-nesp-co.yaml | nesp_co |
 | pipeline-oracle-stock-theorique | `0 23 * * *` | tous | pipeline-oracle-stock-theorique.yaml | oracle_neshu_gcs |
 
-> Les pipelines `pipeline-passages-appro-{neshu,lcdp}` sont une **voie rapide** (EL partiel +
+> Le pipeline `pipeline-passages-appro-neshu` est une **voie rapide** (EL partiel +
 > dbt par selector + refresh PBI), pas un EL standard. Détail du design et dépannage :
 > [`docs/architecture/passages-appro-fast-lane.md`](architecture/passages-appro-fast-lane.md).
 
@@ -82,7 +83,7 @@ après son extract/load, un `dbt build --select source:<source>+` (étape `run_d
 | Pipeline EL | Sélecteur build | Marts reconstruits (BU aval via lignage) |
 |---|---|---|
 | pipeline-oracle-neshu | `source:oracle_neshu+` | neshu, supply_chain |
-| pipeline-oracle-lcdp | `source:oracle_lcdp+` | lcdp, supply_chain |
+| pipeline-oracle-lcdp-dlt | `source:oracle_lcdp+` | lcdp, supply_chain |
 | pipeline-yuman | `source:yuman_api+` | neshu, technique |
 | pipeline-sftp-gcs-yuman | `source:yuman_gcs+` | supply_chain |
 | pipeline-nesp-tech | `source:nesp_tech+` | technique, commerce |
