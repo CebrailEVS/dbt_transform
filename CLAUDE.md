@@ -277,6 +277,33 @@ After any model creation, deletion, or convention change, update the relevant do
 
 ---
 
+## Frontières avec `ingestion/` et `infra/`
+
+Les sources de ce repo sont produites par les pipelines dlt d'`ingestion/`, et
+orchestrées par `infra/`. Deux points ont déjà coûté un incident.
+
+**Un changement de type dans `prod_raw` peut casser un modèle INCRÉMENTAL, et
+`--full-refresh` ne le révèle pas.** Il reconstruit la table, donc il n'exerce pas le
+chemin que le job `cd` emprunte chaque nuit. Une colonne qui traverse un modèle
+incrémental **sans cast** hérite du type du raw : si celui-ci change, le `MERGE`
+échoue avec `Value of type X cannot be assigned to <col>, which has type Y`.
+**Incident 2026-07-30** : le passage des `NUMBER` Oracle de `STRING` à `FLOAT64` a
+cassé `stg_oracle_lcdp__task` sur la seule colonne `spantime`, passée sans cast. Le
+build en `--full-refresh` était vert, l'incrémental non.
+
+Parade : après toute évolution de type au raw, faire un build **sans**
+`--full-refresh`, et caster explicitement toute colonne passée telle quelle — le
+modèle devient indépendant du type de la source.
+
+**Le raw est délibérément fidèle à la source.** `ingestion/` ne fait aucun typage
+métier : les `NUMBER` Oracle sans précision atterrissent en `FLOAT64`, les colonnes de
+clé en `NUMERIC`, les types inconnus en `STRING`. **Tous les casts se font ici.** Ne
+pas demander de changement de type côté extraction pour éviter un cast dbt.
+
+**Retirer un workflow dans `infra/` peut rendre un selector mort.** Les selectors de
+`selectors.yml` sont appelés par les workflows Cloud Workflows. Quand un workflow
+disparaît, vérifier si son selector a encore un appelant.
+
 ## Hard rules
 
 - **Snapshots strategy/columns inchangés** — gérés par GCP Cloud Workflows. **Exception** : mettre à jour les `ref()` à l'intérieur d'un snapshot est OK quand une dim référencée est renommée (cf. PR neshu : `snap_oracle_neshu__company` ref → `dim_neshu__company`). Ne jamais renommer le fichier snapshot ni sa table BQ (historique SCD2 perdu).
