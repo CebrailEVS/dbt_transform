@@ -219,5 +219,5 @@ select
     livraison_prepa,
     livraison_interne_autre,
     current_timestamp() as dbt_updated_at,
-    '4143f0e8-6154-4283-850a-4379610012e3' as dbt_invocation_id
+    '43cc4074-f2c3-4378-8d6f-9aeec7d0f97e' as dbt_invocation_id
 from agg
