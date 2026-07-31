@@ -13,6 +13,11 @@ models:
           - not_null
       - name: company_idcompany
         description: "Link to IDCOMPANY"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__company')
+                field: idcompany
       - name: idcompany_type
         description: "Link to COMPANY_TYPE"
         tests:
@@ -26,6 +31,20 @@ models:
         description: "Date de modification de la ligne"
       - name: extracted_at
         description: "Date d'extraction depuis la source"
+      - name: idcontact_modification
+        description: "link to CONTACT for modification"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
+      - name: idcontact_creation
+        description: "link to CONTACT for creation"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
 
   # COMPANY_HAS_LOCATION
   - name: stg_oracle_lcdp__company_has_location
@@ -142,6 +161,34 @@ models:
         description: "Date de fin original du contrat"
       - name: CURRENT_END_DATE
         description: "Date de fin courant du contrat"
+      - name: idcontact_modification
+        description: "link to contact for modification"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
+      - name: idcontact_creation
+        description: "link to contact for creation"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
+      - name: idcompany_self
+        description: "link to company for self"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__company')
+                field: idcompany
+      - name: idcompany_financial
+        description: "link to COMPANY for financial"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__company')
+                field: idcompany
 
   # DEVICE
   - name: stg_oracle_lcdp__device
@@ -154,6 +201,11 @@ models:
         description: "Identifiant unique du device"
       - name: device_iddevice
         description: "Lien vers la machine parents/enfant => si pas d'id alors pas de machine parent"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__device')
+                field: iddevice
       - name: idlocation
         description: "Link to LOCATION"
         tests:
@@ -186,6 +238,27 @@ models:
         description: "Code device (Numéro de serie AS/MA)"
       - name: name
         description: "Nom device"
+      - name: idmodel
+        description: "ATTENTION : link to PRODUCT (type Model)"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__product')
+                field: idproduct
+      - name: idcontact_modification
+        description: "link to CONTACT for modification"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
+      - name: idcontact_creation
+        description: "link to CONTACT for creation"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
 
   # LABEL
   - name: stg_oracle_lcdp__label
@@ -198,6 +271,11 @@ models:
           - not_null
       - name: idlabel_family
         description: "Link to LABEL_FAMILY"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__label_family')
+                field: idlabel_family
 
   - name: stg_oracle_lcdp__label_family
     description: "Familles de labels transformés et nettoyés depuis la base Oracle LCDP"
@@ -216,10 +294,10 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
-              - device_id
+              - iddevice
               - idlabel
     columns:
-      - name: device_id
+      - name: iddevice
         description: "Identifiant de la machine (FK vers stg_oracle_lcdp__device.iddevice)"
         tests:
           - not_null
@@ -242,10 +320,10 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
-              - company_id
+              - idcompany
               - idlabel
     columns:
-      - name: company_id
+      - name: idcompany
         description: "Identifiant de l'entreprise (FK vers stg_oracle_lcdp__company.idcompany)"
         tests:
           - not_null
@@ -268,10 +346,10 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
-              - product_id
+              - idproduct
               - idlabel
     columns:
-      - name: product_id
+      - name: idproduct
         description: "Identifiant du produit (FK vers stg_oracle_lcdp__product.idproduct)"
         tests:
           - not_null
@@ -423,6 +501,20 @@ models:
         description: "Nom produit"
       - name: purchase_unit_price
         description: "Prix d'achat unitaire"
+      - name: idcontact_modification
+        description: "link to CONTACT for modification"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
+      - name: idcontact_creation
+        description: "link to CONTACT for creation"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
 
   - name: stg_oracle_lcdp__product_type
     description: "Types de produits transformés et nettoyés depuis la base Oracle LCDP"
@@ -471,6 +563,41 @@ models:
         description: "Code resource"
       - name: name
         description: "Nom resource"
+      - name: resources_idresources
+        description: "link to RESOURCES peer"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__resources')
+                field: idresources
+      - name: idcontact_modification
+        description: "link to CONTACT for modification"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
+      - name: idcontact_creation
+        description: "link to CONTACT for creation"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
+      - name: idcontact
+        description: "link to CONTACT"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__contact')
+                field: idcontact
+      - name: idcompany_storehouse
+        description: "link to storehouse COMPANY which on depends the resource"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__company')
+                field: idcompany
 
   - name: stg_oracle_lcdp__resources_type
     description: "Types de ressources transformés et nettoyés depuis la base Oracle LCDP"
@@ -548,6 +675,13 @@ models:
         description: "date demarrage de la tache"
       - name: real_end_date
         description: "date de fin de la tache"
+      - name: task_idtask
+        description: "link to TASK peer"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__task')
+                field: idtask
 
   - name: stg_oracle_lcdp__task_has_product
     description: "Task_has_product transformés et nettoyés depuis la base Oracle LCDP"
@@ -594,6 +728,20 @@ models:
         description: "sale unit price brut without tax"
       - name: PURCHASE_UNIT_PRICE
         description: "product purchase unit price net without tax"
+      - name: idlocation
+        description: "Lien vers la localisation de la ligne de produit"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__location')
+                field: idlocation
+      - name: iddevice
+        description: "Lien vers la machine concernée par la ligne de produit"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__device')
+                field: iddevice
 
   - name: stg_oracle_lcdp__task_has_resources
     description: "Association entre les tâches et les ressources"
