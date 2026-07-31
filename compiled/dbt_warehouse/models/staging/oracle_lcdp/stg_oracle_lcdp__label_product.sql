@@ -8,7 +8,7 @@ with source_data as (
 cleaned_data as (
     select
         -- IDs convertis en BIGINT
-        cast(idproduct as int64) as product_id,
+        cast(idproduct as int64) as idproduct,
         cast(idlabel as int64) as idlabel,
         cast(idlabel_family as int64) as idlabel_family,
 
