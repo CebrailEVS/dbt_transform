@@ -13,7 +13,7 @@ with source_data as (
 cleaned_data as (
     select
         -- IDs convertis en BIGINT
-        cast(idcompany as int64) as company_id,
+        cast(idcompany as int64) as idcompany,
         cast(idlabel as int64) as idlabel,
         cast(idlabel_family as int64) as idlabel_family,
 

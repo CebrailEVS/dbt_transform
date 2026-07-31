@@ -19,7 +19,7 @@ with company_labels as (
         loc.country
     from {{ ref('stg_oracle_lcdp__company') }} as c
     left join {{ ref('stg_oracle_lcdp__label_company') }} as lc
-        on c.idcompany = lc.company_id
+        on c.idcompany = lc.idcompany
     left join {{ ref('stg_oracle_lcdp__company_has_location') }} as chl
         on c.idcompany = chl.idcompany and chl.idlocation_type = 1
     left join {{ ref('stg_oracle_lcdp__location') }} as loc

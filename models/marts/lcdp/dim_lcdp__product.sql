@@ -18,7 +18,7 @@ with product_labels as (
         end as created_at
     from {{ ref('stg_oracle_lcdp__product') }} as p
     left join {{ ref('stg_oracle_lcdp__label_product') }} as lp
-        on p.idproduct = lp.product_id
+        on p.idproduct = lp.idproduct
     where
         p.idproduct_type in (1, 5)
         and (

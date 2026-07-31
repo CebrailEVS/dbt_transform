@@ -20,7 +20,7 @@ with device_labels as (
         ld.label_family_code
     from {{ ref('stg_oracle_lcdp__device') }} as d
     left join {{ ref('stg_oracle_lcdp__label_device') }} as ld
-        on d.iddevice = ld.device_id
+        on d.iddevice = ld.iddevice
     left join {{ ref('stg_oracle_lcdp__company') }} as c
         on d.idcompany_customer = c.idcompany
     left join {{ ref('stg_oracle_lcdp__location') }} as lo
