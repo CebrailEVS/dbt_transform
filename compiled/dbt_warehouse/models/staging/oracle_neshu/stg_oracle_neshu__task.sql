@@ -24,7 +24,9 @@ cleaned_data as (
         type_product_destination,
 
         -- Colonne numérique
-        spantime, -- durée de la tâche en minute
+        -- FLOAT64 depuis le passage de prod_raw a dlt (etait STRING sous Meltano).
+        -- Cast explicite : le modèle ne dépend plus du type du raw.
+        cast(spantime as float64) as spantime, -- durée de la tâche en minute
         -- status record (1 = validé, 0 ou -1 possiblement inactif/desactivé : à confirmer)
         cast(code_status_record as string) as code_status_record,
 
@@ -38,8 +40,7 @@ cleaned_data as (
         timestamp(creation_date) as created_at,
         -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
         timestamp(coalesce(modification_date, creation_date)) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        timestamp(_extracted_at) as extracted_at
 
     from source_data
 )

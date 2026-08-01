@@ -30,7 +30,7 @@ with device_labels as (
         on d.idlocation = lo.idlocation
     where
         d.idcompany_customer is not null
-        and d.code_status_record <> '-1'  -- exclude ERP ghost-deletes
+        and d.code_status_record <> -1  -- exclude ERP ghost-deletes
 ),
 
 aggregated_labels as (

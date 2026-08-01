@@ -1,0 +1,96 @@
+
+  
+    
+
+    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__inter_techinique_tasks`
+      
+    
+    
+
+    
+    OPTIONS(
+      description="""[QUOI M\u00c9TIER] Interventions de petite maintenance technique NESHU (pr\u00e9ventif) : une ligne par intervention sur un distributeur, avec son statut et sa classification (labels). Orient\u00e9es petites op\u00e9rations ; les cas non r\u00e9solus sur place sont escalad\u00e9s \u00e0 l'\u00e9quipe technique (statut_inter = TOTECH).\n[COMMENT CONSTRUITE] stg_oracle_neshu__task (idtask_type = 131 INTERVENTION TECHNIQUE, statuts FAIT/VALIDE/ANNULE/ ANOMALIE, code_status_record = '1') enrichi company/device/product, puis pivot des labels EAV (label_has_task \u00d7 label \u00d7 label_family) en colonnes : statut_inter, dc04, mission_type, objet_intervent. Filtr\u00e9 sur objet_intervent = 'OC04' (intervention pr\u00e9ventive).\n[GRAIN] 1 ligne par task_id (intervention). ~731 lignes, depuis mai 2025 (mod\u00e8le r\u00e9cent).\n[NOTES] Pas de notion de flux produit (ni source/destination, ni quantit\u00e9/valorisation) : c'est un mod\u00e8le d'\u00e9v\u00e8nement/statut d'intervention. Les codes de labels (statut_inter, dc04\u2026) sont des r\u00e9f\u00e9rentiels m\u00e9tier Oracle.\n"""
+    )
+    as (
+      
+
+with inter_base as (
+
+    select
+        -- Identifiants
+        t.idtask as task_id,
+        t.iddevice as device_id,
+        t.idcompany_peer as company_id,
+        thp.idproduct as product_id,
+
+        -- Codes
+        c.code as company_code,
+        d.code as device_code,
+        p.code as product_code,
+        ts.code as task_status_code,
+        la.code as label_code,
+        lf.code as label_family_code,
+
+        -- Informations métier
+        t.real_start_date as task_start_date,
+        t.real_end_date as task_end_date,
+
+        -- Timestamps techniques
+        t.updated_at,
+        t.created_at,
+        t.extracted_at
+
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` as t
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_product` as thp on t.idtask = thp.idtask
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company` as c on t.idcompany_peer = c.idcompany
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__device` as d on t.iddevice = d.iddevice
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__product` as p on thp.idproduct = p.idproduct
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_task` as lht on t.idtask = lht.idtask
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label` as la on lht.idlabel = la.idlabel
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_family` as lf on la.idlabel_family = lf.idlabel_family
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_status` as ts on t.idtask_status = ts.idtask_status
+
+    where
+        1 = 1
+        and t.idtask_status in (1, 4, 3, 5)  -- FAIT, VALIDE, ANNULE, ANOMALIE
+        and t.code_status_record = '1'
+        and t.idtask_type = 131 -- INTERVENTION TECHNIQUE
+        and t.real_start_date is not null
+)
+
+select
+    -- Identifiants
+    task_id,
+    device_id,
+    company_id,
+    product_id,
+
+    -- Codes
+    company_code,
+    device_code,
+    product_code,
+    task_status_code,
+
+    -- Pivot des labels
+    max(case when label_family_code = 'Statut inter' then label_code end) as statut_inter,
+    max(case when label_family_code = 'DC04' then label_code end) as dc04,
+    max(case when label_family_code = 'MISSION_TYPE' then label_code end) as mission_type,
+    max(case when label_family_code = 'Objet intervent' then label_code end) as objet_intervent,
+
+    -- Infos métier
+    task_start_date,
+    task_end_date,
+
+    -- Timestamps techniques
+    updated_at,
+    created_at,
+    extracted_at
+
+from inter_base
+group by
+    task_id, device_id, company_id, product_id,
+    company_code, device_code, product_code, task_status_code,
+    task_start_date, task_end_date, updated_at, created_at, extracted_at
+having max(case when label_family_code = 'Objet intervent' then label_code end) = 'OC04'
+    );
+  

@@ -19,8 +19,7 @@ with source_data as (
         termination_date,
         creation_date,
         modification_date,
-        _sdc_extracted_at,
-        _sdc_deleted_at
+        _extracted_at
     from `evs-datastack-prod`.`prod_raw`.`evs_contract`
 ),
 
@@ -75,8 +74,7 @@ cleaned_data as (
         timestamp(p.parsed_extracted_at) as parsed_extracted_at,
         timestamp(c.creation_date) as created_at,
         timestamp(coalesce(c.modification_date, c.creation_date)) as updated_at,
-        timestamp(c._sdc_extracted_at) as extracted_at,
-        timestamp(c._sdc_deleted_at) as deleted_at
+        timestamp(c._extracted_at) as extracted_at
 
     from source_data as c
     left join parsed_data as p on c.idcontract = p.idcontract
