@@ -308,3 +308,102 @@ sources:
             description: "Horodatage du run dlt qui a chargé la ligne"
           - name: _dlt_load_id
             description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+
+      # ---------------------------------------------------------------------
+      # DIMENSIONS COMPTABLES ET ARTICLES (overwrite)
+      #
+      # Ajoutées le 2026-08-01. Les trois SEULES tables hors périmètre vers
+      # lesquelles une clé étrangère de Sage part d'une colonne réellement
+      # exposée en staging — les neuf autres cibles ne sont référencées que par
+      # des colonnes techniques `cb*` que dbt ne sélectionne pas.
+      # ---------------------------------------------------------------------
+      - name: dbo_f_compteg
+        description: "Plan comptable général (f_compteg) — un compte général par ligne avec son intitulé. 544 lignes."
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne)"
+            tests:
+              - unique
+              - not_null
+          - name: cg_num
+            description: "Numéro de compte général. Clé métier, unique (contrainte UKA_F_COMPTEG_CG_Num)."
+            tests:
+              - unique
+              - not_null
+          - name: cg_intitule
+            description: "Libellé du compte général"
+          - name: cg_type
+            description: "Type de compte (détail, total, centralisateur…)"
+          - name: cg_sommeil
+            description: "Compte mis en sommeil (inactif)"
+          - name: ta_code
+            description: "Code taxe rattaché au compte"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+
+      - name: dbo_f_comptea
+        description: "Sections analytiques (f_comptea) — une affaire / section par ligne avec son intitulé. 309 lignes."
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne)"
+            tests:
+              - unique
+              - not_null
+          - name: n_analytique
+            description: "Numéro de plan analytique. Sage déclare l'unicité sur (n_analytique, ca_num), mais cette colonne ne porte qu'UNE valeur : il n'y a qu'un seul plan."
+          - name: ca_num
+            description: "Code de la section analytique. Unique à lui seul ici — 309 valeurs pour 309 lignes."
+            tests:
+              - unique
+              - not_null
+          - name: ca_intitule
+            description: "Libellé de la section analytique"
+          - name: ca_statut
+            description: "Statut de l'affaire"
+          - name: ca_sommeil
+            description: "Section mise en sommeil (inactive)"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+
+      - name: dbo_f_article
+        description: "Référentiel articles (f_article) — une référence par ligne avec sa désignation. 3 589 lignes, 134 colonnes à la source dont seul un socle est exposé en staging."
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne)"
+            tests:
+              - unique
+              - not_null
+          - name: ar_ref
+            description: "Référence article. Clé métier, unique (contrainte UKA_F_ARTICLE_AR_Ref)."
+            tests:
+              - unique
+              - not_null
+          - name: ar_design
+            description: "Désignation de l'article"
+          - name: fa_code_famille
+            description: "Code de la famille d'articles"
+          - name: ar_sommeil
+            description: "Article mis en sommeil (inactif)"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"

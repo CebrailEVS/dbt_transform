@@ -160,8 +160,14 @@ def main() -> int:
     manifest, contrat = _charger(args.source, relations_path)
 
     modele_de = _modeles_par_table(manifest, args.source)
+    # Le contrat décrit la SOURCE ENTIÈRE et ne sait RIEN de ce qu'on réplique : c'est
+    # voulu, le périmètre bouge à chaque décision de scope et n'a pas à faire churner un
+    # artefact de contrat. La table d'atterrissage se déduit du préfixe, et c'est le
+    # manifest dbt qui tranche ce qui est réellement modélisé — une table de la source
+    # sans modèle staging sort simplement de l'univers auditable.
+    prefixe = contrat["prefixe_bigquery"]
     # Le contrat nomme les tables de la SOURCE ; le manifest, les tables BigQuery.
-    raw_de_table = {t: d["table_raw"] for t, d in contrat["tables"].items()}
+    raw_de_table = {t: f"{prefixe}_{t}" for t in contrat["tables"]}
     table_de_raw = {v: k for k, v in raw_de_table.items()}
     modele_par_table = {
         table_de_raw[raw]: modele for raw, modele in modele_de.items() if raw in table_de_raw
@@ -176,18 +182,30 @@ def main() -> int:
         print(f"\n{'=' * 78}")
         print(f"AUDIT DES RELATIONSHIPS — source {args.source}")
         print(f"{'=' * 78}")
-        print(f"  {len(contrat['tables'])} tables répliquées, {len(modelisees)} modélisées.")
+        print(
+            f"  {len(contrat['tables'])} tables à la source, dont {len(modelisees)} "
+            f"modélisées en staging."
+        )
         print(f"  {len(contrat['relations'])} clés étrangères déclarées par la source.")
 
-    # Univers : les deux extrémités modélisées.
-    univers, hors = [], []
+    # Univers : les deux extrémités modélisées. Les FK COMPOSITES en sortent — le test
+    # `relationships` de dbt ne porte QUE sur une colonne. Les laisser dans l'univers
+    # produisait deux erreurs : un « manquant » fantôme sur leur première colonne, et un
+    # SQL invalide (`on s.a = c.a,b`). Elles ont leur propre famille, pour être décidées
+    # à la main. Mesuré sur Sage : 23 des 499 FK sont composites.
+    univers, composites, hors = [], [], []
     for r in contrat["relations"]:
-        if r["source"] in modelisees and r["cible"] in modelisees:
-            univers.append(r)
-        else:
+        if r["source"] not in modelisees or r["cible"] not in modelisees:
             hors.append(r)
+        elif len(r["colonnes"]) > 1:
+            composites.append(r)
+        else:
+            univers.append(r)
     if entete:
-        print(f"  {len(univers)} auditables (deux tables modélisées), {len(hors)} hors univers.\n")
+        print(
+            f"  {len(univers)} auditables (deux tables modélisées, clé simple), "
+            f"{len(composites)} composites, {len(hors)} hors univers.\n"
+        )
 
     # Rapprochement à la COLONNE, pas seulement à la paire de tables. `column_name` est
     # toujours présent dans le manifest, documenté ou non : c'est une clé fiable. Cela
@@ -197,8 +215,15 @@ def main() -> int:
         (modele_par_table[r["source"]], r["colonnes"][0], modele_par_table[r["cible"]]): r
         for r in univers
     }
+    # Un test posé sur UNE colonne d'une FK composite n'est ni conforme ni aberrant :
+    # c'est une simplification, légitime quand les autres colonnes ne discriminent pas.
+    colonnes_composites = {
+        (modele_par_table[r["source"]], c, modele_par_table[r["cible"]]): r
+        for r in composites
+        for c in r["colonnes"]
+    }
 
-    conformes, colonne_inattendue, a_confirmer = [], [], []
+    conformes, colonne_inattendue, a_confirmer, partiels = [], [], [], []
     couverts = set()
     for porteur, liste in sorted(tests.items()):
         if porteur not in modele_vers_table:
@@ -208,6 +233,8 @@ def main() -> int:
             if cle in attendus:
                 conformes.append((cle, attendus[cle], t))
                 couverts.add(cle)
+            elif cle in colonnes_composites:
+                partiels.append((cle, colonnes_composites[cle]))
             elif any(k[0] == porteur and k[2] == t["modele_cible"] for k in attendus):
                 colonne_inattendue.append((porteur, t))
             else:
@@ -251,6 +278,20 @@ def main() -> int:
     print("  À documenter comme connaissance métier, ou à corriger.\n")
     for porteur, t in a_confirmer:
         print(f"  {porteur}.{t['colonne']} -> {t['modele_cible']}.{t['champ_cible']} [{t['severity']}]")
+
+    if composites:
+        print(f"\n{'-' * 78}\n1b. CLÉS COMPOSITES — {len(composites)} FK")
+        print(f"{'-' * 78}")
+        print("  Le test `relationships` de dbt ne porte que sur UNE colonne : ces FK ne")
+        print("  sont pas couvrables telles quelles. Tester une seule de leurs colonnes")
+        print("  est une simplification légitime QUAND les autres ne discriminent pas —")
+        print("  à vérifier au cas par cas, pas à supposer.\n")
+        for r in sorted(composites, key=lambda x: (x["source"], x["colonnes"])):
+            porteur = modele_par_table[r["source"]]
+            cible = modele_par_table[r["cible"]]
+            couvert = [c for c in r["colonnes"] if (porteur, c, cible) in {k for k, _ in partiels}]
+            marque = f"   [testée sur {','.join(couvert)}]" if couvert else "   [non testée]"
+            print(f"  {porteur}.({','.join(r['colonnes'])}) -> {cible}.({','.join(r['colonnes_cible'])}){marque}")
 
     if colonne_inattendue:
         print(f"\n{'-' * 78}\n2b. COLONNE INATTENDUE — {len(colonne_inattendue)} tests")
