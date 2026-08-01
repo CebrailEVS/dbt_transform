@@ -35,6 +35,17 @@ $P/.venv/bin/python .claude/skills/discover-sql-source/discover.py $P \
 Ce fichier ne bouge qu'à une montée de version de l'ERP. Le rafraîchir de temps en
 temps, pas à chaque build.
 
+**Il ne décrit QUE la source** — toutes ses tables et vues, leurs clés primaires, toutes
+ses clés étrangères. Il ne sait rien du périmètre répliqué : c'est cette compétence qui
+croise, en lisant les `source()` du manifest. Une table de la source sans modèle staging
+sort simplement de l'univers auditable.
+
+**Les clés composites ont leur propre famille (1b).** Le test `relationships` de dbt ne
+porte que sur UNE colonne : elles ne sont pas couvrables telles quelles. Tester une seule
+de leurs colonnes est une simplification légitime quand les autres ne discriminent pas —
+le rapport le signale par `[testée sur …]`, sans trancher à ta place. Les traiter comme
+des clés simples produisait un « manquant » fantôme et un SQL invalide (`on s.a = c.a,b`).
+
 ## Arguments
 
 `$ARGUMENTS` — le nom de la source dbt, plus les options.

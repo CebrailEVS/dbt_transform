@@ -33,7 +33,12 @@ models:
         tests:
           - not_null
       - name: ca_num
-        description: "Code analytique"
+        description: "Code de la section analytique. FK déclarée par Sage vers F_COMPTEA."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_comptea')
+                field: ca_num
       - name: ea_montant
         description: "Montant de l'écriture analytique"
       - name: ea_quantite
@@ -67,7 +72,12 @@ models:
       - name: jo_num
         description: "Code du journal"
       - name: cg_num
-        description: "Compte général"
+        description: "Numéro de compte général. FK déclarée par Sage vers F_COMPTEG."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_compteg')
+                field: cg_num
       - name: ct_num
         description: "Compte tiers (nullable pour les écritures sans tiers)"
         tests:
@@ -247,7 +257,12 @@ models:
       - name: dl_design
         description: "Désignation produit de la ventes"
       - name: ar_ref
-        description: "Référence article de la ventes"
+        description: "Référence article de la vente. FK déclarée par Sage vers F_ARTICLE. Nullable : 39 695 lignes sur 337 572 n'en portent pas (de vrais NULL, que le test relationships ignore)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_article')
+                field: ar_ref
       - name: do_date
         description: "Date de la vente"
       - name: dl_qte
@@ -264,3 +279,92 @@ models:
         description: "Date de dernière modification de la ligne document (cb_modification)"
       - name: extracted_at
         description: "Timestamp du run dlt qui a chargé la ligne (_extracted_at)"
+
+  # ---------------------------------------------------------------------------
+  # DIMENSIONS COMPTABLES ET ARTICLES
+  #
+  # Ajoutées le 2026-08-01 pour porter les trois relationships que Sage déclare
+  # depuis une colonne exposée. Orphelins mesurés à la source avant ajout : ZÉRO
+  # sur les trois liens.
+  # ---------------------------------------------------------------------------
+  - name: stg_mssql_sage__f_compteg
+    description: "Plan comptable général — dimension des écritures comptables."
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK ligne)"
+        tests:
+          - unique
+          - not_null
+      - name: cg_num
+        description: "Numéro de compte général — clé métier"
+        tests:
+          - unique
+          - not_null
+      - name: cg_intitule
+        description: "Libellé du compte général. C'est la source de vérité du champ designation_compte, aujourd'hui saisi à la main dans le seed ref_mssql_sage__code_comptable_bu."
+      - name: cg_type
+        description: "Type de compte (détail, total, centralisateur…)"
+      - name: cg_sommeil
+        description: "Compte mis en sommeil (inactif)"
+      - name: ta_code
+        description: "Code taxe rattaché au compte"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne"
+
+  - name: stg_mssql_sage__f_comptea
+    description: "Sections analytiques — dimension des écritures analytiques."
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK ligne)"
+        tests:
+          - unique
+          - not_null
+      - name: ca_num
+        description: "Code de la section analytique — clé métier"
+        tests:
+          - unique
+          - not_null
+      - name: n_analytique
+        description: "Numéro de plan analytique. Ne porte qu'UNE valeur : il n'existe qu'un plan, d'où l'unicité de ca_num seul."
+      - name: ca_intitule
+        description: "Libellé de la section analytique"
+      - name: ca_statut
+        description: "Statut de l'affaire"
+      - name: ca_sommeil
+        description: "Section mise en sommeil (inactive)"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne"
+
+  - name: stg_mssql_sage__f_article
+    description: "Référentiel articles — dimension des lignes de documents commerciaux."
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK ligne)"
+        tests:
+          - unique
+          - not_null
+      - name: ar_ref
+        description: "Référence article — clé métier"
+        tests:
+          - unique
+          - not_null
+      - name: ar_design
+        description: "Désignation de l'article"
+      - name: fa_code_famille
+        description: "Code de la famille d'articles"
+      - name: ar_sommeil
+        description: "Article mis en sommeil (inactif)"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne"
