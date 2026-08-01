@@ -44,8 +44,16 @@ extraction_xml as (
     select
         idcontract,
         regexp_extract(xml, r'<NOMBRE_COLLAB>([^<]*)</NOMBRE_COLLAB>') as nombre_collab_brut,
-        regexp_extract(xml, r'<ENGAGEMENT>([^<]*)</ENGAGEMENT>')       as engagement_brut
+        regexp_extract(xml, r'<ENGAGEMENT>([^<]*)</ENGAGEMENT>') as engagement_brut
     from source_data
+),
+
+decode_xml as (
+    select
+        idcontract,
+        {{ decoder_entites_xml('nombre_collab_brut') }} as nombre_collab,
+        {{ decoder_entites_xml('engagement_brut') }} as engagement
+    from extraction_xml
 ),
 
 parsed_data as (
@@ -53,25 +61,22 @@ parsed_data as (
         idcontract,
 
         -- nombre_collab → conversion en entier
-        cast(nullif(trim({{ decoder_entites_xml('nombre_collab_brut') }}), '') as int64) as nombre_collab,
+        cast(nullif(trim(nombre_collab), '') as int64) as nombre_collab,
 
         -- garder la valeur brute telle quelle
-        trim({{ decoder_entites_xml('engagement_brut') }}) as engagement_raw,
+        trim(engagement) as engagement_raw,
 
         -- version nettoyée numérique
         -- nullif protège le cast quand l'extraction ne contient aucun chiffre
         -- (ex. saisie texte libre « PAS D'ENGAGEMENT ») → NULL au lieu de Bad int64
         case
-            when upper(trim({{ decoder_entites_xml('engagement_brut') }})) = 'AUCUN' then 0
+            when upper(trim(engagement)) = 'AUCUN' then 0
             else cast(
-                nullif(
-                    regexp_replace(regexp_extract({{ decoder_entites_xml('engagement_brut') }}, r'[\d\s]+'), r'\s+', ''),
-                    ''
-                ) as int64
+                nullif(regexp_replace(regexp_extract(engagement, r'[\d\s]+'), r'\s+', ''), '') as int64
             )
         end as engagement_clean
 
-    from extraction_xml
+    from decode_xml
 ),
 
 cleaned_data as (
