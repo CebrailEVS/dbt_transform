@@ -160,8 +160,13 @@ def main() -> int:
     manifest, contrat = _charger(args.source, relations_path)
 
     modele_de = _modeles_par_table(manifest, args.source)
+    # Le contrat peut décrire le SCHÉMA ENTIER (discover.py --tout) et pas seulement le
+    # périmètre répliqué : les tables hors périmètre y portent `table_raw: null`. On les
+    # écarte ici — une table absente de BigQuery n'a pas de modèle staging, et sans ce
+    # filtre le rapport annoncerait « 404 tables répliquées » pour cinq.
+    tables_repliquees = {t: d for t, d in contrat["tables"].items() if d.get("table_raw")}
     # Le contrat nomme les tables de la SOURCE ; le manifest, les tables BigQuery.
-    raw_de_table = {t: d["table_raw"] for t, d in contrat["tables"].items()}
+    raw_de_table = {t: d["table_raw"] for t, d in tables_repliquees.items()}
     table_de_raw = {v: k for k, v in raw_de_table.items()}
     modele_par_table = {
         table_de_raw[raw]: modele for raw, modele in modele_de.items() if raw in table_de_raw
@@ -176,8 +181,14 @@ def main() -> int:
         print(f"\n{'=' * 78}")
         print(f"AUDIT DES RELATIONSHIPS — source {args.source}")
         print(f"{'=' * 78}")
-        print(f"  {len(contrat['tables'])} tables répliquées, {len(modelisees)} modélisées.")
-        print(f"  {len(contrat['relations'])} clés étrangères déclarées par la source.")
+        print(f"  {len(tables_repliquees)} tables répliquées, {len(modelisees)} modélisées.")
+        if len(tables_repliquees) < len(contrat["tables"]):
+            print(
+                f"  (contrat du schéma ENTIER : {len(contrat['tables'])} tables, "
+                f"{len(contrat['relations'])} clés étrangères)"
+            )
+        else:
+            print(f"  {len(contrat['relations'])} clés étrangères déclarées par la source.")
 
     # Univers : les deux extrémités modélisées.
     univers, hors = [], []
