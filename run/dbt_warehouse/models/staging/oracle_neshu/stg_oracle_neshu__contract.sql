@@ -37,9 +37,45 @@ with source_data as (
     from `evs-datastack-prod`.`prod_raw`.`evs_contract`
 ),
 
+-- Le XML de CONTRACT etait parse par un script Python separe
+-- (ingest_oracle_evs_contract -> prod_raw.evs_contract_parsed), parce que le tap
+-- Meltano ne savait pas lire une colonne XMLTYPE et la laissait NULL. dlt la charge
+-- en texte, donc le parsing revient ici : un job, une table et une image en moins.
+--
+-- Les entites XML doivent etre decodees : ElementTree le faisait, une regex non.
+-- Sur les 306 contrats, un seul contient `&apos;` — sans ce decodage la valeur
+-- differait de celle du script. `&amp;` est traite EN DERNIER, sinon `&amp;apos;`
+-- deviendrait `'` au lieu de `&apos;`.
+--
+-- Equivalence verifiee le 2026-08-01 contre evs_contract_parsed : 306/306 lignes
+-- identiques sur nombre_collab ET engagement.
+extraction_xml as (
+    select
+        idcontract,
+        regexp_extract(xml, r'<NOMBRE_COLLAB>([^<]*)</NOMBRE_COLLAB>') as nombre_collab_brut,
+        regexp_extract(xml, r'<ENGAGEMENT>([^<]*)</ENGAGEMENT>') as engagement_brut
+    from source_data
+),
+
+decode_xml as (
+    select
+        idcontract,
+        
+    replace(replace(replace(replace(replace(
+        nombre_collab_brut,
+        '&apos;', "'"), '&quot;', '"'), '&lt;', '<'), '&gt;', '>'), '&amp;', '&')
+ as nombre_collab,
+        
+    replace(replace(replace(replace(replace(
+        engagement_brut,
+        '&apos;', "'"), '&quot;', '"'), '&lt;', '<'), '&gt;', '>'), '&amp;', '&')
+ as engagement
+    from extraction_xml
+),
+
 parsed_data as (
     select
-        cast(idcontract as int64) as idcontract,
+        idcontract,
 
         -- nombre_collab → conversion en entier
         cast(nullif(trim(nombre_collab), '') as int64) as nombre_collab,
@@ -55,10 +91,9 @@ parsed_data as (
             else cast(
                 nullif(regexp_replace(regexp_extract(engagement, r'[\d\s]+'), r'\s+', ''), '') as int64
             )
-        end as engagement_clean,
+        end as engagement_clean
 
-        timestamp(extracted_at) as parsed_extracted_at
-    from `evs-datastack-prod`.`prod_raw`.`evs_contract_parsed`
+    from decode_xml
 ),
 
 cleaned_data as (
@@ -75,7 +110,7 @@ cleaned_data as (
         c.code,
         c.name,
         c.code_status_record,
-        -- Colonnes enrichies depuis evs_contract_parsed
+        -- Colonnes extraites du XML (cf. CTE extraction_xml)
         p.nombre_collab,
         p.engagement_raw,
         p.engagement_clean,
@@ -85,7 +120,6 @@ cleaned_data as (
         timestamp(c.current_end_date) as current_end_date,
         timestamp(c.termination_date) as termination_date,
 
-        timestamp(p.parsed_extracted_at) as parsed_extracted_at,
         timestamp(c.creation_date) as created_at,
         timestamp(coalesce(c.modification_date, c.creation_date)) as updated_at,
         timestamp(c._extracted_at) as extracted_at

@@ -16,7 +16,7 @@ with filtered_stocks as (
 
         -- Metadonnees dbt
         current_timestamp() as dbt_updated_at,
-        'b5d95835-5774-4fda-ba69-ff78fe6eb8f6' as dbt_invocation_id
+        '77bae763-7c93-4bfe-b6d2-c0357c911272' as dbt_invocation_id
 
     from `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique`
     where
