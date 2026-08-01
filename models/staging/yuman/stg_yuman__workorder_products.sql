@@ -8,7 +8,7 @@
 with source_data as (
 
     select *
-    from {{ source('yuman_api', 'yuman_workorders') }}
+    from {{ source('yuman_api', 'yuman_evs_workorders') }}
 
 ),
 
@@ -24,7 +24,7 @@ workorder_products_unnested as (
         timestamp(json_extract_scalar(product, '$.created_at')) as product_created_at,
         timestamp(json_extract_scalar(product, '$.updated_at')) as product_updated_at
     from source_data as wo
-    cross join unnest(json_extract_array(wo._embed_products)) as product
+    cross join unnest(json_query_array(wo._embed, '$.products')) as product
 
 ),
 
