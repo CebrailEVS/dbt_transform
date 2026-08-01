@@ -48,8 +48,6 @@ models:
         description: "Timestamp de dernière modification"
       - name: extracted_at
         description: "Timestamp d'extraction"
-      - name: deleted_at
-        description: "Timestamp de suppression logique"
 
   - name: stg_mssql_sage__f_ecriturec
     description: "Écritures comptables nettoyées issues du système MSSQL Sage. Déduplication staging sur ec_no — clé unique métier Sage — en gardant le cb_marq le plus récent (Sage crée parfois un nouveau cb_marq sur update au lieu de modifier la ligne existante, l'ancien étant supprimé)."
@@ -111,8 +109,6 @@ models:
         description: "Timestamp de dernière modification"
       - name: extracted_at
         description: "Timestamp d'extraction"
-      - name: deleted_at
-        description: "Timestamp de suppression logique"
 
   # TABLE COMPTE NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_comptet
@@ -175,9 +171,7 @@ models:
       - name: updated_at
         description: "Date de dernière modification du compte client (cb_modification)"
       - name: extracted_at
-        description: "Timestamp d'extraction depuis la source (_sdc_extracted_at)"
-      - name: deleted_at
-        description: "Timestamp de suppression logique source (_sdc_deleted_at)"
+        description: "Timestamp du run dlt qui a chargé la ligne (_extracted_at)"
 
   # TABLE COLLABORATEUR NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_collaborateur
@@ -204,9 +198,7 @@ models:
       - name: updated_at
         description: "Date de dernière modification du collaborateur (cb_modification)"
       - name: extracted_at
-        description: "Timestamp d'extraction depuis la source (_sdc_extracted_at)"
-      - name: deleted_at
-        description: "Timestamp de suppression logique source (_sdc_deleted_at)"
+        description: "Timestamp du run dlt qui a chargé la ligne (_extracted_at)"
 
 
   # TABLE DOCLIGNE NUNSHEN COMMERCE
@@ -271,6 +263,4 @@ models:
       - name: updated_at
         description: "Date de dernière modification de la ligne document (cb_modification)"
       - name: extracted_at
-        description: "Timestamp d'extraction depuis la source (_sdc_extracted_at)"
-      - name: deleted_at
-        description: "Timestamp de suppression logique source (_sdc_deleted_at)"
+        description: "Timestamp du run dlt qui a chargé la ligne (_extracted_at)"

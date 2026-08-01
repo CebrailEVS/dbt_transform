@@ -38,8 +38,7 @@ cleaned_data as (
         cb_creation as created_at,
         -- Fallback to cb_creation when cb_modification is null
         coalesce(cb_modification, cb_creation) as updated_at,
-        _sdc_extracted_at as extracted_at,
-        _sdc_deleted_at as deleted_at
+        _extracted_at as extracted_at
 
     from source_data
 )
