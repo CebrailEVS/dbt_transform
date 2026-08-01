@@ -46,8 +46,7 @@ cleaned_data as (
         -- Metadata
         cb_creation as created_at,
         coalesce(cb_modification, cb_creation) as updated_at,
-        _sdc_extracted_at as extracted_at,
-        _sdc_deleted_at as deleted_at
+        _extracted_at as extracted_at
     from source_data
 )
 

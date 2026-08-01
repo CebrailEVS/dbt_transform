@@ -11,7 +11,7 @@ sources:
 
       # Freshness: tier Standard — 26h warn / 48h error
       # Cf. docs/freshness.md
-      loaded_at_field: _sdc_extracted_at
+      loaded_at_field: _extracted_at
       freshness:
         warn_after: {count: 26, period: hour}
         error_after: {count: 48, period: hour}
@@ -54,18 +54,10 @@ sources:
             description: "Horodatage de création de la ligne"
           - name: cb_creation_user
             description: "Utilisateur ayant créé la ligne (UUID)"
-          - name: _sdc_received_at
-            description: "Timestamp de réception du flux par Singer/ETL"
-          - name: _sdc_extracted_at
-            description: "Timestamp d’extraction initiale"
-          - name: _sdc_batched_at
-            description: "Timestamp de regroupement du lot"
-          - name: _sdc_deleted_at
-            description: "Timestamp de suppression logique (si applicable)"
-          - name: _sdc_table_version
-            description: "Version de la table dans le flux d’ingestion"
-          - name: _sdc_sequence
-            description: "Numéro de séquence du flux pour suivi d’ordre"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
 
         # PK testée sur cb_marq (cf. colonne). L'unicité de la clé métier
         # (ec_no, n_analytique, ea_ligne) reste testée au staging après dédup.
@@ -223,18 +215,10 @@ sources:
             description: "Identifiant SAC (non documenté Sage)"
           - name: cb_sac_id
             description: "Identifiant SAC encodé (non documenté Sage)"
-          - name: _sdc_received_at
-            description: "Timestamp d’ingestion du flux par Singer/ETL"
-          - name: _sdc_extracted_at
-            description: "Timestamp d’extraction"
-          - name: _sdc_batched_at
-            description: "Timestamp de batch"
-          - name: _sdc_deleted_at
-            description: "Timestamp de suppression logique"
-          - name: _sdc_table_version
-            description: "Version de la table dans le flux d’ingestion"
-          - name: _sdc_sequence
-            description: "Numéro de séquence du flux"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
 
 
       # NUNSHEN COMMERCE : TABLE COMPTE (overwrite)
@@ -260,18 +244,10 @@ sources:
             description: "Horodatage de création (TIMESTAMP)"
           - name: cb_modification
             description: "Horodatage de dernière modification (TIMESTAMP)"
-          - name: _sdc_extracted_at
-            description: "Timestamp d'extraction depuis la source"
-          - name: _sdc_received_at
-            description: "Timestamp de réception"
-          - name: _sdc_batched_at
-            description: "Timestamp de traitement du batch"
-          - name: _sdc_deleted_at
-            description: "Timestamp de suppression logique source"
-          - name: _sdc_sequence
-            description: "Identifiant de séquence pour la réplication"
-          - name: _sdc_table_version
-            description: "Version de la table source pour la réplication"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
 
       # NUNSHEN COMMERCE : TABLE COLLABORATEUR (overwrite)
       - name: dbo_f_collaborateur
@@ -294,18 +270,10 @@ sources:
             description: "Horodatage de création (TIMESTAMP)"
           - name: cb_modification
             description: "Horodatage de dernière modification (TIMESTAMP)"
-          - name: _sdc_extracted_at
-            description: "Timestamp d'extraction depuis la source"
-          - name: _sdc_received_at
-            description: "Timestamp de réception"
-          - name: _sdc_batched_at
-            description: "Timestamp de traitement du batch"
-          - name: _sdc_deleted_at
-            description: "Timestamp de suppression logique source"
-          - name: _sdc_sequence
-            description: "Identifiant de séquence pour la réplication"
-          - name: _sdc_table_version
-            description: "Version de la table source pour la réplication"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
 
       # NUNSHEN COMMERCE : TABLE DOCLIGNE (incrémental)
       - name: dbo_f_docligne
@@ -336,15 +304,7 @@ sources:
             description: "Horodatage de création (TIMESTAMP)"
           - name: cb_modification
             description: "Horodatage de dernière modification (TIMESTAMP)"
-          - name: _sdc_extracted_at
-            description: "Timestamp d'extraction depuis la source"
-          - name: _sdc_received_at
-            description: "Timestamp de réception"
-          - name: _sdc_batched_at
-            description: "Timestamp de traitement du batch"
-          - name: _sdc_deleted_at
-            description: "Timestamp de suppression logique source"
-          - name: _sdc_sequence
-            description: "Identifiant de séquence pour la réplication"
-          - name: _sdc_table_version
-            description: "Version de la table source pour la réplication"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
