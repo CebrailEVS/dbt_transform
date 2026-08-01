@@ -3,7 +3,7 @@
 with source_data as (
 
     select *
-    from `evs-datastack-prod`.`prod_raw`.`yuman_storehouses`
+    from `evs-datastack-prod`.`prod_raw`.`yuman_evs_products_storehouses`
 
 ),
 
@@ -13,7 +13,7 @@ cleaned_storehouses as (
         id as storehouses_id,
         name as storehouses_name,
         address as storehouses_address,
-        timestamp(_sdc_extracted_at) as extracted_at
+        _extracted_at as extracted_at
     from source_data
 
 )

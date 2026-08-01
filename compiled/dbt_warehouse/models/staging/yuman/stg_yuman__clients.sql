@@ -3,7 +3,7 @@
 with source_data as (
 
     select *
-    from `evs-datastack-prod`.`prod_raw`.`yuman_clients`
+    from `evs-datastack-prod`.`prod_raw`.`yuman_evs_clients`
 
 ),
 
@@ -16,11 +16,10 @@ base_clients as (
         name as client_name,
         address as client_address,
         active as is_active,
-        safe.parse_json(_embed_fields) as embed_fields,
+        json_query(_embed, '$.fields') as embed_fields,
         timestamp(created_at) as created_at,
         timestamp(updated_at) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        _extracted_at as extracted_at
     from source_data
     where id is not null
 
@@ -72,8 +71,7 @@ pivoted as (
         bc.is_active,
         bc.created_at,
         bc.updated_at,
-        bc.extracted_at,
-        bc.deleted_at
+        bc.extracted_at
     from base_clients as bc
     left join extracted_fields as ef
         on bc.client_id = ef.client_id
@@ -86,8 +84,7 @@ pivoted as (
         bc.is_active,
         bc.created_at,
         bc.updated_at,
-        bc.extracted_at,
-        bc.deleted_at
+        bc.extracted_at
 
 ),
 
@@ -122,6 +119,5 @@ select
     is_active,
     created_at,
     updated_at,
-    extracted_at,
-    deleted_at
+    extracted_at
 from final

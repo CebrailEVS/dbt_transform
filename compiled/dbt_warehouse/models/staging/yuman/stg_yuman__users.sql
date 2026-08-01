@@ -3,7 +3,7 @@
 with source_data as (
 
     select *
-    from `evs-datastack-prod`.`prod_raw`.`yuman_users`
+    from `evs-datastack-prod`.`prod_raw`.`yuman_evs_users`
 
 ),
 
@@ -14,17 +14,17 @@ cleaned_users as (
         manager_id,
         nullif((
             select json_value(field, '$.value')
-            from unnest(json_query_array(_embed_fields)) as field
+            from unnest(json_query_array(_embed, '$.fields')) as field
             where json_value(field, '$.name') = 'ID NOMAD'
         ), '') as nomad_id,
         nullif((
             select json_value(field, '$.value')
-            from unnest(json_query_array(_embed_fields)) as field
+            from unnest(json_query_array(_embed, '$.fields')) as field
             where json_value(field, '$.name') = 'SECTEUR'
         ), '') as user_secteur,
         nullif((
             select json_value(field, '$.value')
-            from unnest(json_query_array(_embed_fields)) as field
+            from unnest(json_query_array(_embed, '$.fields')) as field
             where json_value(field, '$.name') = 'ENTREPOT RATTACHEMENT'
         ), '') as entrepot_rattachement,
         name as user_name,
@@ -34,13 +34,12 @@ cleaned_users as (
         manager_as_technician as is_manager_as_technician,
         (
             select json_value(field, '$.value')
-            from unnest(json_query_array(_embed_fields)) as field
+            from unnest(json_query_array(_embed, '$.fields')) as field
             where json_value(field, '$.name') = 'INACTIF'
         ) as user_inactif,
         timestamp(created_at) as created_at,
         timestamp(updated_at) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        _extracted_at as extracted_at
 
     from source_data
 
@@ -62,8 +61,7 @@ final as (
         lower(user_inactif) not in ('oui', 'sì', 'si', 'yes', 'true') as is_active,
         created_at,
         updated_at,
-        extracted_at,
-        deleted_at
+        extracted_at
 
     from cleaned_users
 

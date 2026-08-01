@@ -3,7 +3,7 @@
 with source_data as (
 
     select *
-    from `evs-datastack-prod`.`prod_raw`.`yuman_materials`
+    from `evs-datastack-prod`.`prod_raw`.`yuman_evs_materials`
 
 ),
 
@@ -22,14 +22,13 @@ cleaned_materials as (
 
         (
             select json_value(elem, '$.value')
-            from unnest(json_query_array(_embed_fields)) as elem
+            from unnest(json_query_array(_embed, '$.fields')) as elem
             where json_value(elem, '$.name') = 'LOCALISATION'
         ) as material_localisation,
 
         timestamp(created_at) as created_at,
         timestamp(updated_at) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        _extracted_at as extracted_at
     from source_data
     where id is not null
 
