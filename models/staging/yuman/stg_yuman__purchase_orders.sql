@@ -8,7 +8,7 @@
 with src as (
 
     select *
-    from {{ source('yuman_api', 'yuman_purchase_orders') }}
+    from {{ source('yuman_api', 'yuman_evs_purchase_orders') }}
 
 ),
 
@@ -33,8 +33,7 @@ po_base as (
         safe_cast(quote_id as int64) as quote_id,
         safe_cast(supplier_id as int64) as supplier_id,
         delivery_address,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        safe_cast(_sdc_sequence as int64) as sdc_sequence,
+        _extracted_at as extracted_at,
         lines
     from src
     where id is not null
@@ -49,8 +48,9 @@ lines_exploded as (
         item
     from po_base as pb
     cross join unnest(
-        -- json_extract_array ne supporte pas les nulls ; safe.parse_json évite les erreurs
-        coalesce(json_extract_array(safe.parse_json(lines)), [])
+        -- `lines` est une colonne JSON NATIVE depuis dlt (Meltano rendait une
+        -- chaîne, d'où le parse_json d'avant). json_query_array gère le NULL.
+        coalesce(json_query_array(lines), [])
     ) as item
 
 ),
@@ -77,7 +77,6 @@ line_parsed as (
         supplier_id,
         delivery_address,
         extracted_at,
-        sdc_sequence,
 
         -- champs ligne
         safe_cast(json_extract_scalar(item, '$.id') as int64) as purchase_order_line_id,
@@ -138,7 +137,6 @@ select
     line_updated_at,
 
     -- métadonnées
-    extracted_at,
-    sdc_sequence
+    extracted_at
 from line_parsed
 where purchase_order_line_id is not null

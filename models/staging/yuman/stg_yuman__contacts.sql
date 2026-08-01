@@ -8,7 +8,7 @@
 with source_data as (
 
     select *
-    from {{ source('yuman_api', 'yuman_contacts') }}
+    from {{ source('yuman_api', 'yuman_evs_contacts') }}
 
 ),
 
@@ -27,8 +27,7 @@ cleaned as (
         external_reference_vendor,
         timestamp(created_at) as created_at,
         timestamp(updated_at) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        _extracted_at as extracted_at
     from source_data
     where id is not null
 

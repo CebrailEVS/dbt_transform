@@ -8,7 +8,7 @@
 with source_data as (
 
     select *
-    from {{ source('yuman_api', 'yuman_material_categories') }}
+    from {{ source('yuman_api', 'yuman_evs_materials_categories') }}
 
 ),
 
@@ -19,8 +19,7 @@ cleaned_material_categories as (
         name as category_name,
         timestamp(created_at) as created_at,
         timestamp(updated_at) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        _extracted_at as extracted_at
     from source_data
     where id is not null
 

@@ -8,7 +8,7 @@
 with source_data as (
 
     select *
-    from {{ source('yuman_api', 'yuman_sites') }}
+    from {{ source('yuman_api', 'yuman_evs_sites') }}
 
 ),
 
@@ -18,7 +18,7 @@ extracted_postal_code as (
         sd.*,
         (
             select json_extract_scalar(elem, '$.value')
-            from unnest(json_extract_array(sd._embed_fields)) as elem
+            from unnest(json_query_array(sd._embed, '$.fields')) as elem
             where json_extract_scalar(elem, '$.name') = 'CODE POSTAL'
         ) as raw_code_postal
     from source_data as sd
@@ -38,8 +38,7 @@ cleaned as (
         regexp_replace(raw_code_postal, r'\.0$', '') as site_postal_code,
         timestamp(created_at) as created_at,
         timestamp(updated_at) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        _extracted_at as extracted_at
     from extracted_postal_code
 
 )

@@ -12,7 +12,7 @@ sources:
 
       # Freshness: tier Standard — 26h warn / 48h error
       # Cf. docs/freshness.md
-      loaded_at_field: _sdc_extracted_at
+      loaded_at_field: _extracted_at
       freshness:
         warn_after: {count: 26, period: hour}
         error_after: {count: 48, period: hour}
@@ -21,7 +21,7 @@ sources:
       # ═══════════════════════════════════════════════════════════════════
       # FACT-LIKE TABLES (transactions, events) - Use source default
       # ═══════════════════════════════════════════════════════════════════
-      - name: yuman_workorders
+      - name: yuman_evs_workorders
         description: "Table des interventions Yuman - CRITIQUE pour facturation"
         columns:
           - name: id
@@ -42,7 +42,7 @@ sources:
           - name: category_id
             description: "Identifiant de la catégorie de l'intervention"
 
-      - name: yuman_workorder_demands
+      - name: yuman_evs_workorder_demands
         description: "Table des demandes d'intervention Yuman"
         columns:
           - name: id
@@ -67,7 +67,7 @@ sources:
           - name: status
             description: "Statut de la demande"
 
-      - name: yuman_purchase_orders
+      - name: yuman_evs_purchase_orders
         description: "Table des commandes d'achat Yuman"
         columns:
           - name: id
@@ -79,7 +79,7 @@ sources:
       # ═══════════════════════════════════════════════════════════════════
       # DIMENSION TABLES (entities) - Use source default
       # ═══════════════════════════════════════════════════════════════════
-      - name: yuman_clients
+      - name: yuman_evs_clients
         description: "Table des clients Yuman"
         columns:
           - name: id
@@ -88,7 +88,7 @@ sources:
               - not_null
             description: "Identifiant unique du client"
 
-      - name: yuman_contacts
+      - name: yuman_evs_contacts
         description: "Table des contacts Yuman"
         columns:
           - name: id
@@ -119,7 +119,7 @@ sources:
           - name: updated_at
             description: "Date de dernière mise à jour"
 
-      - name: yuman_sites
+      - name: yuman_evs_sites
         description: "Table des sites Yuman"
         columns:
           - name: id
@@ -132,7 +132,7 @@ sources:
               - not_null
             description: "Référence vers le client propriétaire"
 
-      - name: yuman_materials
+      - name: yuman_evs_materials
         description: "Table des machines Yuman"
         columns:
           - name: id
@@ -145,7 +145,7 @@ sources:
               - not_null
             description: "Référence vers le site propriétaire"
 
-      - name: yuman_users
+      - name: yuman_evs_users
         description: "Table des users Yuman"
         columns:
           - name: id
@@ -157,7 +157,7 @@ sources:
       # ═══════════════════════════════════════════════════════════════════
       # REFERENCE TABLES (rarely change) - Freshness disabled
       # ═══════════════════════════════════════════════════════════════════
-      - name: yuman_products
+      - name: yuman_evs_products
         description: "Table des produits Yuman - référentiel, rarement modifié"
         config:
           freshness: null
@@ -168,7 +168,7 @@ sources:
               - not_null
             description: "Identifiant unique du produit/articles"
 
-      - name: yuman_material_categories
+      - name: yuman_evs_materials_categories
         description: "Table des catégories de machines Yuman - référentiel stable"
         config:
           freshness: null
@@ -179,7 +179,7 @@ sources:
               - not_null
             description: "Identifiant unique de la catégorie machine"
 
-      - name: yuman_workorder_categories
+      - name: yuman_evs_workorders_categories
         description: "Table des catégories d'intervention Yuman - référentiel stable"
         config:
           freshness: null
@@ -190,7 +190,7 @@ sources:
               - not_null
             description: "Identifiant unique de la catégorie de demande"
 
-      - name: yuman_workorder_demands_categories
+      - name: yuman_evs_workorder_demands_categories
         description: "Table des catégories de demandes d'intervention Yuman - référentiel stable"
         config:
           freshness: null
@@ -201,7 +201,7 @@ sources:
               - not_null
             description: "Identifiant unique de la catégorie de demande"
 
-      - name: yuman_storehouses
+      - name: yuman_evs_products_storehouses
         description: "Table des storehouses Yuman - référentiel stable"
         config:
           freshness: null

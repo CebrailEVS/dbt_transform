@@ -8,7 +8,7 @@
 with source_data as (
 
     select *
-    from {{ source('yuman_api', 'yuman_workorders') }}
+    from {{ source('yuman_api', 'yuman_evs_workorders') }}
 
 ),
 
@@ -26,23 +26,22 @@ base_workorders as (
         -- Workorder details
         number as workorder_number,
         workorder_type,
-        _embed_category_name as workorder_category,
+        json_value(_embed, '$.category.name') as workorder_category,
         status as workorder_status,
         title as workorder_title,
         description as workorder_description,
         report as workorder_report,
-        _embed_technician_name as workorder_technician_name,
+        json_value(_embed, '$.technician.name') as workorder_technician_name,
         time_taken as workorder_time_taken,
         -- JSON
-        safe.parse_json(_embed_fields) as embed_fields,
+        json_query(_embed, '$.fields') as embed_fields,
         -- Dates
         timestamp(date_planned) as date_planned,
         timestamp(date_started) as date_started,
         timestamp(date_done) as date_done,
         timestamp(created_at) as created_at,
         timestamp(updated_at) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        _extracted_at as extracted_at
     from source_data
 
 ),
@@ -128,8 +127,7 @@ final as (
         date_done,
         created_at,
         updated_at,
-        extracted_at,
-        deleted_at
+        extracted_at
     from json_parsed
 
 )
