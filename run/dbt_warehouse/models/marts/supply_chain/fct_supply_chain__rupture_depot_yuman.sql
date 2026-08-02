@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] Suivi quotidien des ruptures de stock par d\u00e9p\u00f4t Yuman, sur l'assortiment attendu de chaque d\u00e9p\u00f4t. R\u00e9pond \u00e0 \u00ab quel d\u00e9p\u00f4t doit r\u00e9approvisionner quelles r\u00e9f\u00e9rences \u00bb et permet un taux de disponibilit\u00e9 par d\u00e9p\u00f4t dans le temps. R\u00e8gle m\u00e9tier valid\u00e9e avec la logistique (V. \u2014 juillet 2026).\n\n[COMMENT CONSTRUITE] La rupture par d\u00e9p\u00f4t n'existe pas en source (une rupture Yuman arrive sans emplacement) : elle est reconstruite. Assortiment attendu d'un d\u00e9p\u00f4t = r\u00e9f\u00e9rences consomm\u00e9es \u2265 2 fois sur les 180 jours glissants pr\u00e9c\u00e9dant chaque date d'export, par les techniciens rattach\u00e9s au d\u00e9p\u00f4t (dim_technique__technician.entrepot_rattachement). La consommation unit deux flux disjoints : les bons Yuman (fct_technique__consommation_article_yuman, filtr\u00e9 intervention_state REALISEE/EN_COURS \u2014 une conso saisie sur un workorder non r\u00e9alis\u00e9 ou en pause n'est pas une sortie s\u00fbre) et les interventions Nespresso (fct_technique__consommation_article_nespresso, sans filtre d'\u00e9tat \u2014 une ligne article = une pose r\u00e9elle ; date de conso = date_heure_fin ; agences EVS). Pour chaque (date, d\u00e9p\u00f4t, r\u00e9f\u00e9rence) de l'assortiment, le stock du jour (stg_yuman_gcs__stock_theorique) est ventil\u00e9 : d\u00e9p\u00f4t lui-m\u00eame, autres d\u00e9p\u00f4ts, vans des techniciens du d\u00e9p\u00f4t (mapping van\u2192technicien via storehouses_name), tous vans. Absence de ligne de stock = quantit\u00e9 0. Pseudo-r\u00e9f\u00e9rences de saisie d'intervention exclues via le seed ref_yuman__pseudo_article.\n\n[GRAIN] 1 ligne par (stock_date, depot, reference) \u2014 tout l'assortiment, en stock ou non.\n\n[NOTES] Pas de transfert inter-d\u00e9p\u00f4t en pratique : toute rupture renvoie vers une commande fournisseur, rupture_statut sert \u00e0 prioriser (RUPTURE_TOTALE = plus rien nulle part ; STOCK_RESTANT_VANS = les vans du d\u00e9p\u00f4t portent l'autonomie terrain restante ; STOCK_AILLEURS = informatif). Le rattachement technicien\u2192d\u00e9p\u00f4t est l'\u00e9tat courant (dim Type 1), appliqu\u00e9 \u00e0 tout l'historique ; ~4 % des consommations (techniciens d\u00e9sactiv\u00e9s, comptes ASTREINTE, sans rattachement) sont hors p\u00e9rim\u00e8tre. Le d\u00e9p\u00f4t de Strasbourg n'a pas de technicien rattach\u00e9 (secteur Est rattach\u00e9 \u00e0 Lyon/Dardilly) : il est structurellement absent. Les exports stock sont quotidiens sauf dimanche : les taux de disponibilit\u00e9 se calculent en jours observ\u00e9s. Le flux de conso Nespresso est extrait chaque lundi (fen\u00eatre 7 jours glissants) : la fen\u00eatre d'assortiment de 180 j absorbe ce d\u00e9calage hebdomadaire sans biais.\n"""
+      description="""[QUOI M\u00c9TIER] Suivi quotidien des ruptures de stock par d\u00e9p\u00f4t Yuman, sur l'assortiment attendu de chaque d\u00e9p\u00f4t. R\u00e9pond \u00e0 \u00ab quel d\u00e9p\u00f4t doit r\u00e9approvisionner quelles r\u00e9f\u00e9rences \u00bb et permet un taux de disponibilit\u00e9 par d\u00e9p\u00f4t dans le temps. R\u00e8gle m\u00e9tier valid\u00e9e avec la logistique (V. \u2014 juillet 2026).\n\n[COMMENT CONSTRUITE] La rupture par d\u00e9p\u00f4t n'existe pas en source (une rupture Yuman arrive sans emplacement) : elle est reconstruite. Assortiment attendu d'un d\u00e9p\u00f4t = r\u00e9f\u00e9rences consomm\u00e9es \u2265 2 fois sur les 180 jours glissants pr\u00e9c\u00e9dant chaque date d'export, par les techniciens rattach\u00e9s au d\u00e9p\u00f4t (dim_technique__technician.entrepot_rattachement). La consommation unit deux flux disjoints : les bons Yuman (fct_technique__consommation_article_yuman, filtr\u00e9 intervention_state REALISEE/EN_COURS \u2014 une conso saisie sur un workorder non r\u00e9alis\u00e9 ou en pause n'est pas une sortie s\u00fbre) et les interventions Nespresso (fct_technique__consommation_article_nespresso, sans filtre d'\u00e9tat \u2014 une ligne article = une pose r\u00e9elle ; date de conso = date_heure_fin ; agences EVS). Pour chaque (date, d\u00e9p\u00f4t, r\u00e9f\u00e9rence) de l'assortiment, le stock du jour (stg_yuman_evs_sftp__stock_theorique) est ventil\u00e9 : d\u00e9p\u00f4t lui-m\u00eame, autres d\u00e9p\u00f4ts, vans des techniciens du d\u00e9p\u00f4t (mapping van\u2192technicien via storehouses_name), tous vans. Absence de ligne de stock = quantit\u00e9 0. Pseudo-r\u00e9f\u00e9rences de saisie d'intervention exclues via le seed ref_yuman__pseudo_article.\n\n[GRAIN] 1 ligne par (stock_date, depot, reference) \u2014 tout l'assortiment, en stock ou non.\n\n[NOTES] Pas de transfert inter-d\u00e9p\u00f4t en pratique : toute rupture renvoie vers une commande fournisseur, rupture_statut sert \u00e0 prioriser (RUPTURE_TOTALE = plus rien nulle part ; STOCK_RESTANT_VANS = les vans du d\u00e9p\u00f4t portent l'autonomie terrain restante ; STOCK_AILLEURS = informatif). Le rattachement technicien\u2192d\u00e9p\u00f4t est l'\u00e9tat courant (dim Type 1), appliqu\u00e9 \u00e0 tout l'historique ; ~4 % des consommations (techniciens d\u00e9sactiv\u00e9s, comptes ASTREINTE, sans rattachement) sont hors p\u00e9rim\u00e8tre. Le d\u00e9p\u00f4t de Strasbourg n'a pas de technicien rattach\u00e9 (secteur Est rattach\u00e9 \u00e0 Lyon/Dardilly) : il est structurellement absent. Les exports stock sont quotidiens sauf dimanche : les taux de disponibilit\u00e9 se calculent en jours observ\u00e9s. Le flux de conso Nespresso est extrait chaque lundi (fen\u00eatre 7 jours glissants) : la fen\u00eatre d'assortiment de 180 j absorbe ce d\u00e9calage hebdomadaire sans biais.\n"""
     )
     as (
       
@@ -23,7 +23,7 @@
 
 with stock_dates as (
     select distinct date(export_date) as stock_date
-    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique`
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_evs_sftp__stock_theorique`
 ),
 
 pseudo_articles as (
@@ -111,7 +111,7 @@ stock_ventile as (
         s.quantite,
         (s.nom_du_stock like '%DEPOT%') as is_depot,
         v.depot as van_depot
-    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique` as s
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_evs_sftp__stock_theorique` as s
     left join vans_technicien as v
         on s.nom_du_stock = v.storehouses_name
     where s.reference is not null and s.nom_du_stock is not null
@@ -126,7 +126,7 @@ reference_designation as (
             min(case when not regexp_contains(upper(designation), r'NE PAS UTILISER|^OLD |REMPLAC.{0,4}PAR') then designation end),
             min(designation)
         ) as designation
-    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique`
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_evs_sftp__stock_theorique`
     where reference is not null
     group by reference
 ),
@@ -183,7 +183,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '6eaf258c-dde7-4543-94f7-ece59e924969' as dbt_invocation_id
+    'ea20b31e-36e0-4d10-912f-a431613c5967' as dbt_invocation_id
 from assortiment_stock as ast
 left join reference_designation as rd
     on ast.reference = rd.reference

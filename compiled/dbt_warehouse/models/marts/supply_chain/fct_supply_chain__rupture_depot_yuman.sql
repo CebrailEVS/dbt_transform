@@ -9,7 +9,7 @@
 
 with stock_dates as (
     select distinct date(export_date) as stock_date
-    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique`
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_evs_sftp__stock_theorique`
 ),
 
 pseudo_articles as (
@@ -97,7 +97,7 @@ stock_ventile as (
         s.quantite,
         (s.nom_du_stock like '%DEPOT%') as is_depot,
         v.depot as van_depot
-    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique` as s
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_evs_sftp__stock_theorique` as s
     left join vans_technicien as v
         on s.nom_du_stock = v.storehouses_name
     where s.reference is not null and s.nom_du_stock is not null
@@ -112,7 +112,7 @@ reference_designation as (
             min(case when not regexp_contains(upper(designation), r'NE PAS UTILISER|^OLD |REMPLAC.{0,4}PAR') then designation end),
             min(designation)
         ) as designation
-    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_gcs__stock_theorique`
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman_evs_sftp__stock_theorique`
     where reference is not null
     group by reference
 ),
@@ -169,7 +169,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    'f8cedb38-c0b7-4ebd-bf4f-bbbce3c22627' as dbt_invocation_id
+    'ccab358a-e9a4-4b0f-add3-445d0f9a63d4' as dbt_invocation_id
 from assortiment_stock as ast
 left join reference_designation as rd
     on ast.reference = rd.reference
