@@ -75,7 +75,7 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
 | `models/intermediate/` | `prod_intermediate` / `dev_intermediate` | table |
 | `models/marts/` | `prod_marts` / `dev_marts` | table |
 
-**10 sources** in `prod_raw`: `oracle_neshu`, `oracle_lcdp`, `yuman`, `nesp_tech`, `nesp_co`, `mssql_sage`, `gac`, `yuman_gcs`, `oracle_neshu_gcs`, `oracle_lcdp_gcs`
+**10 sources** in `prod_raw`: `oracle_neshu`, `oracle_lcdp`, `yuman`, `nesp_tech`, `nesp_co`, `mssql_sage`, `gac`, `yuman_evs_sftp`, `oracle_neshu_gcs`, `oracle_lcdp_gcs`
 
 Seeds are in `data/reference_data/<source>/` and land in `prod_reference` / `dev_reference`.
 

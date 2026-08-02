@@ -1,0 +1,42 @@
+version: 2
+
+sources:
+  # Stock théorique Yuman, déposé chaque nuit par le fournisseur sur son SFTP et
+  # chargé par le pipeline dlt `yuman_evs_stock` (dépôt `ingestion`).
+  #
+  # REMPLACE la source `yuman_gcs`, qui lisait une table externe posée sur les
+  # fichiers JSONL de Meltano. L'interface a changé — GCS -> SFTP direct — d'où
+  # le suffixe. Le job Meltano `elt-yuman` continue en parallèle d'alimenter
+  # l'archive GCS : elle reste la seule trace fichier d'une source NON
+  # RÉTROACTIVE, mais plus rien dans dbt ne la lit.
+  - name: yuman_evs_sftp
+    database: "{{ var('raw_project') }}"
+    schema: "prod_raw"
+    config:
+      tags: ['yuman_evs_sftp', 'source']
+      # Freshness: tier Quotidien 7j/7 — 36h warn / 48h error
+      # Pipeline `pipeline-yuman-evs-stock` à 06:30 Paris, cron `30 6 * * *`.
+      # PLUS DE DIMANCHE SKIPPÉ, contrairement à l'ancienne source yuman_gcs :
+      # le fournisseur rafraîchit le fichier tous les jours et le pipeline dlt
+      # tourne 7j/7. Les seuils se resserrent donc de 36h/80h à 36h/48h.
+      #
+      # export_date est la date du snapshot (DATE = minuit) et vaut désormais la
+      # date de MODIFICATION du fichier, non celle du run. Pire cas normal :
+      # juste avant le run du lendemain, max(export_date) = la veille = ~30h30.
+      # 36h laisse donc ~5h de marge après l'heure attendue, 48h ne se déclenche
+      # que si une journée entière manque.
+      #
+      # C'est ce test qui détecte un jour perdu : 5 jours ouvrés ont disparu de
+      # l'archive entre novembre 2025 et février 2026 sans que rien ne le
+      # signale. Cf. docs/freshness.md
+      loaded_at_field: export_date
+      freshness:
+        warn_after: {count: 36, period: hour}
+        error_after: {count: 48, period: hour}
+    tables:
+      - name: sftp_yuman_evs_stock_theorique
+        description: >
+          Snapshot quotidien du stock théorique, une ligne par (référence,
+          emplacement) présente dans le fichier du jour. Partitionnée sur
+          export_date. Chargée en merge/delete-insert sur export_date : rejouer
+          une journée la réécrit au lieu de l'empiler.
