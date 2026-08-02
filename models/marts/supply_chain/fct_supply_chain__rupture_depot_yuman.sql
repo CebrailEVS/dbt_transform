@@ -16,7 +16,7 @@
 
 with stock_dates as (
     select distinct date(export_date) as stock_date
-    from {{ ref('stg_yuman_gcs__stock_theorique') }}
+    from {{ ref('stg_yuman_evs_sftp__stock_theorique') }}
 ),
 
 pseudo_articles as (
@@ -104,7 +104,7 @@ stock_ventile as (
         s.quantite,
         {{ yuman_is_depot('s.nom_du_stock') }} as is_depot,
         v.depot as van_depot
-    from {{ ref('stg_yuman_gcs__stock_theorique') }} as s
+    from {{ ref('stg_yuman_evs_sftp__stock_theorique') }} as s
     left join vans_technicien as v
         on s.nom_du_stock = v.storehouses_name
     where s.reference is not null and s.nom_du_stock is not null
@@ -119,7 +119,7 @@ reference_designation as (
             min(case when not {{ yuman_is_marqueur_designation('designation') }} then designation end),
             min(designation)
         ) as designation
-    from {{ ref('stg_yuman_gcs__stock_theorique') }}
+    from {{ ref('stg_yuman_evs_sftp__stock_theorique') }}
     where reference is not null
     group by reference
 ),

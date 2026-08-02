@@ -29,7 +29,8 @@ marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de 
 00h ─────────────────────────────────────────────────────────────────────────────
 01:00  EL+T  oracle_neshu(1-5), oracle_lcdp(1-5), oracle_nayka(1-5), mssql_sage(1-5), yuman(1-5) → raw+stg+int + marts neshu/lcdp/finance/technique/supply_chain
 03:00  EL+T  zoho_desk (1-5)                                          → raw+stg+int (pas de marts à ce jour)
-06:00  EL+T  yuman_gcs (1-6)                                          → + marts supply_chain
+06:00  EL    yuman_gcs (1-6, Meltano → archive GCS, plus lu par dbt)
+06:30  EL+T  yuman_evs_sftp (7j/7, dlt)                              → + marts supply_chain
 07:30  EL+T  nesp_tech (lundi seulement)                              → + marts technique, commerce
 08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce
 09:00  SN    transform-snapshots-daily (tous snapshots)
@@ -63,7 +64,8 @@ homonyme dans `workflows/*.yaml`.
 | pipeline-mssql-sage | `0 1 * * 1-5` | lun-ven | pipeline-mssql-sage.yaml | mssql_sage |
 | pipeline-yuman | `0 1 * * 1-5` | lun-ven | pipeline-yuman.yaml | yuman |
 | pipeline-zoho-desk | `0 3 * * 1-5` | lun-ven | pipeline-zoho-desk.yaml | zoho_desk |
-| pipeline-sftp-gcs-yuman | `0 6 * * 1-6` | lun-sam | pipeline-sftp-gcs-yuman.yaml | yuman_gcs |
+| pipeline-sftp-gcs-yuman | `0 6 * * 1-6` | lun-sam | pipeline-sftp-gcs-yuman.yaml | — (archive GCS seule) |
+| pipeline-yuman-evs-stock | `30 6 * * *` | tous les jours | pipeline-yuman-evs-stock.yaml | yuman_evs_sftp |
 | pipeline-nesp-tech | `30 7 * * 1` | lun | pipeline-nesp-tech.yaml | nesp_tech |
 | pipeline-sftp-evs | `0 8 * * *` | tous | pipeline-sftp-evs.yaml | gac |
 | pipeline-nesp-co | `0 8 * * *` | tous | pipeline-nesp-co.yaml | nesp_co |
@@ -80,7 +82,7 @@ après son extract/load, un `dbt build --select source:<source>+` (étape `run_d
 | pipeline-oracle-neshu | `source:oracle_neshu+` | neshu, supply_chain |
 | pipeline-oracle-lcdp | `source:oracle_lcdp+` | lcdp, supply_chain |
 | pipeline-yuman | `source:yuman_api+` | neshu, technique |
-| pipeline-sftp-gcs-yuman | `source:yuman_gcs+` | supply_chain |
+| pipeline-yuman-evs-stock | `source:yuman_evs_sftp+` | supply_chain |
 | pipeline-nesp-tech | `source:nesp_tech+` | technique, commerce |
 | pipeline-nesp-co | `source:nesp_co+` | commerce |
 | pipeline-sftp-evs | `source:gac+` | services_generaux |
@@ -116,7 +118,7 @@ sources soient fraîches en même temps (fraîcheur *eventual*). Matrice de déc
 | oracle_neshu | neshu, supply_chain |
 | oracle_lcdp | lcdp, supply_chain |
 | yuman_api | neshu, technique |
-| yuman_gcs | supply_chain |
+| yuman_evs_sftp | supply_chain |
 | oracle_neshu_gcs | supply_chain |
 | oracle_lcdp_gcs | supply_chain (lcdp) |
 | nesp_tech | technique, commerce |
@@ -151,7 +153,7 @@ Permet de répondre à : *"Quelles sources doivent être fraîches pour que la B
 | commerce | `nesp_co`, `nesp_tech` | — | 1 (0 dim + 1 fct) |
 | finance | `mssql_sage` (+ source statique `historic`) | — | 1 (0 dim + 1 fct) |
 | services_generaux | `gac` | — | 1 (0 dim + 1 fct) |
-| supply_chain | `oracle_neshu`, `oracle_neshu_gcs`, `yuman_gcs` | — | 3 (0 dim + 3 fct) |
+| supply_chain | `oracle_neshu`, `oracle_neshu_gcs`, `yuman_evs_sftp` | — | 3 (0 dim + 3 fct) |
 
 **Notes :**
 - `technique` consomme du parc machine Neshu via `yuman` (les machines y sont synchronisées), pas
@@ -169,7 +171,7 @@ Les sources critiques exposent un `freshness` dans `models/staging/*/_*_sources.
 | Source | warn_after | error_after |
 |---|---|---|
 | oracle_neshu, oracle_lcdp, yuman, mssql_sage, zoho_desk | 26h | 36h |
-| yuman_gcs, oracle_neshu_gcs, gac | 26h | 48h (relaxe) |
+| yuman_evs_sftp, oracle_neshu_gcs, gac | 26h | 48h (relaxe) |
 | Référentiels (seeds-like sources) | — | — |
 
 `dbt source freshness` peut être lancé manuellement ; pas encore intégré comme gate automatique

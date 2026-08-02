@@ -53,7 +53,7 @@ Le projet integre **9 sources** couvrant l'ensemble des operations EVS :
 | **nesp_co** | Excel / Nespresso | Donnees commerciales Nespresso (WIP) |
 | **mssql_sage** | MSSQL Sage | Comptabilite : ecritures, comptes tiers, collaborateurs |
 | **gac** | SFTP CSV | Assurance flotte, sinistres vehicules |
-| **yuman_gcs** | GCS JSON | Stock theorique Yuman |
+| **yuman_evs_sftp** | Fichier SFTP (dlt) | Stock theorique Yuman |
 | **oracle_neshu_gcs** | GCS CSV | Stock theorique Oracle NESHU |
 | **oracle_lcdp_gcs** | GCS CSV | Stock theorique Oracle LCDP |
 
@@ -72,7 +72,7 @@ models/
 └── marts/            Dimensions + facts pour Power BI
 ```
 
-**6 domaines metier :** Operations (oracle_neshu), Service Technique (yuman, nesp_tech), Finance (mssql_sage), Flotte (gac), Stock (yuman_gcs, oracle_neshu_gcs, oracle_lcdp_gcs), Commercial Nespresso (nesp_co - WIP).
+**6 domaines metier :** Operations (oracle_neshu), Service Technique (yuman, nesp_tech), Finance (mssql_sage), Flotte (gac), Stock (yuman_evs_sftp, oracle_neshu_gcs, oracle_lcdp_gcs), Commercial Nespresso (nesp_co - WIP).
 
 Voir la [documentation dbt generee](https://cebrailevs.github.io/dbt_transform/) pour le detail de chaque modele, colonne et test.
 

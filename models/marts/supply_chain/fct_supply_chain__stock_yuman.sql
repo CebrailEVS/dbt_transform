@@ -24,7 +24,7 @@ with filtered_stocks as (
         current_timestamp() as dbt_updated_at,
         '{{ invocation_id }}' as dbt_invocation_id
 
-    from {{ ref('stg_yuman_gcs__stock_theorique') }}
+    from {{ ref('stg_yuman_evs_sftp__stock_theorique') }}
     where
         reference is not null
         and nom_du_stock is not null

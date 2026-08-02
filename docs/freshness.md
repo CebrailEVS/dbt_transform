@@ -18,7 +18,7 @@ pour les sources à timestamp STRING.
 |---|---|---|---|---|
 | **Critique** | quotidien, business-day SLA | 26h | 36h | `oracle_neshu`, `oracle_lcdp` |
 | **Standard** | quotidien tolérant (tous les jours) | 26h | 48h | `yuman`, `mssql_sage`, `nesp_co` (activite/opportunite), `oracle_neshu_gcs`, `oracle_lcdp_gcs` |
-| **Quotidien Mon-Sat** | extraction Mon-Sat, dimanche skippé + lag snapshot DATE | 36h | 80h | `yuman_gcs` |
+| **Quotidien 7j/7** | extraction tous les jours + lag snapshot DATE | 36h | 48h | `yuman_evs_sftp` |
 | **Hebdomadaire** | extraction 1×/semaine | 8 jours | 14 jours | `nesp_tech` |
 | **Relaxe** | batch journalier non critique | 7 jours | 14 jours | `gac`, `zoho_desk` |
 | **Manuel** | livraison ponctuelle uniquement | 60 jours | 90 jours | `nesp_co.nespresso_base_client` |
@@ -112,13 +112,22 @@ Symétrique de `oracle_neshu`. Même action : nettoyer les overrides redondants.
 - `loaded_at_field: _sdc_batched_at`
 - Défaut source : **7j / 14j** (à activer, actuellement `null`)
 
-### `yuman_gcs` — tier *Quotidien Mon-Sat*, méthode A
+### `yuman_evs_sftp` — tier *Quotidien 7j/7*, méthode A
 - `loaded_at_field: export_date` (DATE — dbt accepte)
-- Défaut source : **36h warn / 80h error**
-- Pipeline Mon-Sat 06:00 Paris (cron `0 6 * * 1-6`). `export_date` est le
-  snapshot (DATE = minuit), structurellement en retard d'~1 jour. Pire cas
-  observable : lundi matin avant 06:00, max = samedi soir = ~78h d'âge — le
-  seuil 80h absorbe cette fenêtre.
+- Défaut source : **36h warn / 48h error**
+- Pipeline `pipeline-yuman-evs-stock`, 7j/7 à 06:30 Paris (cron `30 6 * * *`).
+  `export_date` est le snapshot (DATE = minuit) et vaut la date de MODIFICATION
+  du fichier sur le SFTP, non celle du run. Pire cas normal : juste avant le run
+  du lendemain, max = la veille = ~30h30. 36h laisse ~5h de marge après l'heure
+  attendue ; 48h ne se déclenche que si une journée entière manque.
+- **Le resserrement vient de la migration dlt** (2026-08-02). L'ancienne source
+  `yuman_gcs` tolérait 80h parce que le cron Meltano sautait le dimanche. Le
+  pipeline dlt tourne 7j/7, et le fournisseur dépose bien le fichier tous les
+  jours — la fenêtre du week-end n'a plus lieu d'être.
+- **Ce test est la seule détection d'un jour perdu.** Cinq jours ouvrés ont
+  disparu de l'archive entre novembre 2025 et février 2026, dont quatre
+  consécutifs, sans que rien ne le signale. La source n'est pas rétroactive :
+  ce qui n'est pas capté un jour l'est définitivement.
 
 ### `nesp_co.nespresso_base_client` — tier *Manuel*, méthode A
 - `loaded_at_field: _sdc_extracted_at`
@@ -162,7 +171,7 @@ staging zoho_desk qui exposent un timestamp cast.
 | `yuman` | Standard | A | source | 26h / 48h |
 | `mssql_sage` | Standard | A | source | 26h / 48h |
 | `gac` | Relaxe | A | source | 7j / 14j |
-| `yuman_gcs` | Quotidien Mon-Sat | A | source | 36h / 80h |
+| `yuman_evs_sftp` | Quotidien 7j/7 | A | source | 36h / 48h |
 | `nesp_co.base_client` | Manuel | A | table | 60j / 90j |
 | `nesp_co.activite/opp` | Standard | B | staging | 2j |
 | `nesp_tech` | Hebdomadaire | B | staging | 8j / 14j |

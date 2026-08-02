@@ -43,8 +43,8 @@ models:
       yuman:
         +tags: ['staging', 'yuman']
 
-      yuman_gcs:
-        +tags: ['staging', 'yuman_gcs']
+      yuman_evs_sftp:
+        +tags: ['staging', 'yuman_evs_sftp']
 
       nesp_co:
         +tags: ['staging', 'nesp_co']
