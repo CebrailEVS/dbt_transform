@@ -29,7 +29,6 @@ marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de 
 00h ─────────────────────────────────────────────────────────────────────────────
 01:00  EL+T  oracle_neshu(1-5), oracle_lcdp(1-5), oracle_nayka(1-5), mssql_sage(1-5), yuman(1-5) → raw+stg+int + marts neshu/lcdp/finance/technique/supply_chain
 03:00  EL+T  zoho_desk (1-5)                                          → raw+stg+int (pas de marts à ce jour)
-06:00  EL    yuman_gcs (1-6, Meltano → archive GCS, plus lu par dbt)
 06:30  EL+T  yuman_evs_sftp (7j/7, dlt)                              → + marts supply_chain
 07:30  EL+T  nesp_tech (lundi seulement)                              → + marts technique, commerce
 08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce
@@ -64,7 +63,6 @@ homonyme dans `workflows/*.yaml`.
 | pipeline-mssql-sage | `0 1 * * 1-5` | lun-ven | pipeline-mssql-sage.yaml | mssql_sage |
 | pipeline-yuman | `0 1 * * 1-5` | lun-ven | pipeline-yuman.yaml | yuman |
 | pipeline-zoho-desk | `0 3 * * 1-5` | lun-ven | pipeline-zoho-desk.yaml | zoho_desk |
-| pipeline-sftp-gcs-yuman | `0 6 * * 1-6` | lun-sam | pipeline-sftp-gcs-yuman.yaml | — (archive GCS seule) |
 | pipeline-yuman-evs-stock | `30 6 * * *` | tous les jours | pipeline-yuman-evs-stock.yaml | yuman_evs_sftp |
 | pipeline-nesp-tech | `30 7 * * 1` | lun | pipeline-nesp-tech.yaml | nesp_tech |
 | pipeline-sftp-evs | `0 8 * * *` | tous | pipeline-sftp-evs.yaml | gac |
