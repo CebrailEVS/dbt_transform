@@ -50,6 +50,4 @@ models:
       - name: date_de_saisie
         description: "Date de saisie du contrat (horodatée)"
       - name: extracted_at
-        description: "Timestamp d'extraction Meltano (_sdc_extracted_at)"
-      - name: deleted_at
-        description: "Timestamp de suppression Meltano (_sdc_deleted_at), NULL si actif"
+        description: "Horodatage du run dlt (_extracted_at)"

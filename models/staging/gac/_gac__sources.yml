@@ -9,7 +9,10 @@ sources:
       tags: ['gac', 'source']
       # Freshness: tier Relaxe — 7j warn / 14j error
       # Cf. docs/freshness.md
-      loaded_at_field: _sdc_batched_at
+      # `_sdc_batched_at` n'existe plus : le pipeline dlt pose `_extracted_at`,
+      # qui remplace le `_sdc_extracted_at` de Singer — lequel était NULL sur
+      # 100 % des lignes des trois tables.
+      loaded_at_field: _extracted_at
       freshness:
         warn_after: {count: 7, period: day}
         error_after: {count: 14, period: day}
@@ -42,11 +45,11 @@ sources:
           - name: date_de_saisie
             description: "Date de saisie du contrat (horodatée)"
       - name: gac_sinistre
-        description: "Snapshots quotidiens cumulatifs des sinistres véhicules (GAC → SFTP SG). Chargé en append immuable : 1 ligne = 1 sinistre dans 1 snapshot daté. L'état courant est dérivé par dédup dans stg_gac__sinistres."
+        description: "Snapshots quotidiens cumulatifs des sinistres véhicules (GAC → SFTP EVS). 1 ligne = 1 sinistre dans 1 snapshot daté. Chargé en merge/delete-insert sur snapshot_date : une journée relue écrase la sienne. L'état courant est dérivé par dédup dans stg_gac__sinistres."
         columns:
           - name: date
             description: "Date du sinistre"
-          - name: immat_
+          - name: immatx
             description: "Immatriculation du véhicule"
           - name: statut_actuel
             description: "Statut actuel du sinistre"
@@ -58,7 +61,7 @@ sources:
             description: "Circonstances du sinistre"
           - name: tiers
             description: "Présence d'un tiers impliqué"
-          - name: resp_
+          - name: respx
             description: "Responsabilité (0-100)"
           - name: matricule
             description: "Matricule du collaborateur"
@@ -76,7 +79,7 @@ sources:
             description: "Montant de la franchise"
           - name: co_t_global
             description: "Coût global du sinistre"
-          - name: cl_tur_
+          - name: cl_turx
             description: "Indicateur de clôture du sinistre"
           - name: description
             description: "Description du sinistre"
@@ -140,7 +143,12 @@ sources:
             description: "Entité 3"
           - name: entit_entit_4
             description: "Entité 4"
-          - name: _sdc_source_file
-            description: "Nom du fichier source (Singer/Airbyte)"
-          - name: _sdc_source_lineno
-            description: "Numéro de ligne dans le fichier source"
+          - name: snapshot_date
+            description: >
+              Date du snapshot, dérivée du nom du fichier
+              (suivi_sinistres_EB_YYYYMMDD_*.csv) par le pipeline dlt, qui s'en
+              sert comme CLÉ DE MERGE. Un fichier relu réécrit sa journée au
+              lieu de s'empiler — sous Meltano, en append sans protection, 95
+              des 133 fichiers avaient été rechargés.
+          - name: _extracted_at
+            description: "Horodatage du run dlt"
