@@ -1,4 +1,3 @@
--- TEST SELECTIVE RUN, test de fdp
 
 
 
@@ -12,12 +11,12 @@ cleaned as (
         nullif(trim(n_de_sinistre), '') as n_de_sinistre,
         nullif(trim(type), '') as type_sinistre,
         nullif(trim(r_f_rence_gac), '') as reference_gac,
-        nullif(trim(immat_), '') as immat,
+        nullif(trim(immatx), '') as immat,
         nullif(trim(circonstance), '') as circonstance,
-        nullif(trim(cl_tur_), '') as cloture,
+        nullif(trim(cl_turx), '') as cloture,
         nullif(trim(description), '') as description,
         nullif(trim(tiers), '') as tiers,
-        nullif(trim(resp_), '') as resp,
+        nullif(trim(respx), '') as resp,
         nullif(trim(matricule), '') as matricule,
         nullif(trim(nom), '') as nom,
         nullif(trim(pr_nom), '') as prenom,
@@ -66,18 +65,15 @@ cleaned as (
             '%d/%m/%Y', nullif(trim(date_de_cl_ture_du_sinistre), '')
         ) as date_cloture_sinistre,
 
-        -- Date métier du snapshot, dérivée du nom de fichier daté
-        -- (suivi_sinistres_EB_YYYYMMDD_*.csv). ≠ heure de chargement : c'est
-        -- elle qui doit arbitrer la dédup (un ré-append d'un vieux fichier ne
-        -- doit pas pouvoir se faire passer pour l'état courant).
-        parse_date('%Y%m%d', regexp_extract(_sdc_source_file, r'_(\d{8})_')) as snapshot_date,
+        -- Date métier du snapshot. Le pipeline dlt la FOURNIT désormais : elle
+        -- est sa clé de merge, dérivée du nom du fichier daté
+        -- (suivi_sinistres_EB_YYYYMMDD_*.csv). Le `regexp_extract` qui vivait
+        -- ici a simplement descendu d'un étage, là où il sert de clé.
+        snapshot_date,
 
-        -- Métadonnées Meltano
-        _sdc_source_file,
-        _sdc_source_lineno,
-        _sdc_received_at,
-        _sdc_batched_at,
-        _sdc_sequence
+        -- Horodatage du run dlt. Remplace `_sdc_received_at` : la colonne
+        -- Singer `_sdc_extracted_at` était NULL à 100 %, celle-ci est remplie.
+        _extracted_at
 
     from source
 ),
@@ -99,9 +95,11 @@ deduplicated as (
                     end
 
                 -- Tri par date métier du snapshot (et non l'heure de chargement) :
-                -- garantit qu'on garde la version la plus récente du sinistre,
-                -- robuste aux ré-appends de fichiers antérieurs.
-                order by snapshot_date desc, _sdc_received_at desc
+                -- garantit qu'on garde la version la plus récente du sinistre.
+                -- Le pipeline dlt merge désormais sur `snapshot_date`, donc un
+                -- fichier relu écrase sa journée au lieu de s'empiler : ce tri
+                -- arbitre entre snapshots DIFFÉRENTS, plus entre ré-appends.
+                order by snapshot_date desc, _extracted_at desc
 
             ) as rn
 
