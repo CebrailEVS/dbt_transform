@@ -146,7 +146,10 @@ sources:
         # Freshness: tier Manuel — 60j warn / 90j error
         # Livraison manuelle uniquement (pipeline-sftp-nesp-client). Cf. docs/freshness.md
         config:
-          loaded_at_field: _sdc_extracted_at
+          # ÉTAIT NULL À 100 % sous Meltano : le tap-spreadsheets-anywhere ne
+          # l'émettait pas, donc ce test n'a JAMAIS pu se déclencher — et quatre
+          # mois de retard sont passés inaperçus. `_extracted_at` est rempli.
+          loaded_at_field: _extracted_at
           freshness:
             warn_after: {count: 60, period: day}
             error_after: {count: 90, period: day}
