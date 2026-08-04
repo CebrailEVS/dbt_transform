@@ -61,11 +61,11 @@ homonyme dans `workflows/*.yaml`.
 | pipeline-oracle-lcdp-intraday | `0 8,15,18 * * 1-5` | lun-ven | *(même workflow)* | oracle_lcdp — second déclencheur du workflow ci-dessus |
 | pipeline-oracle-lcdp-purge | `0 4 * * 0` | dim | pipeline-oracle-lcdp-purge.yaml | oracle_lcdp (`--purge-deletes` : supprime les lignes effacées à la source) |
 | pipeline-mssql-sage | `0 1 * * 1-5` | lun-ven | pipeline-mssql-sage.yaml | mssql_sage |
-| pipeline-yuman | `0 1 * * 1-5` | lun-ven | pipeline-yuman.yaml | yuman |
+| pipeline-yuman-evs | `0 1 * * 1-5` | lun-ven | pipeline-yuman-evs.yaml | yuman_api |
 | pipeline-zoho-desk | `0 3 * * 1-5` | lun-ven | pipeline-zoho-desk.yaml | zoho_desk |
 | pipeline-yuman-evs-stock | `30 6 * * *` | tous les jours | pipeline-yuman-evs-stock.yaml | yuman_evs_sftp |
 | pipeline-nesp-tech | `30 7 * * 1` | lun | pipeline-nesp-tech.yaml | nesp_tech |
-| pipeline-sftp-evs | `0 8 * * *` | tous | pipeline-sftp-evs.yaml | gac |
+| pipeline-sftp-evs-gac | `0 8 * * *` | tous | pipeline-sftp-evs-gac.yaml | gac |
 | pipeline-nesp-co | `0 8 * * *` | tous | pipeline-nesp-co.yaml | nesp_co |
 | pipeline-oracle-stock-theorique | `0 23 * * *` | tous | pipeline-oracle-stock-theorique.yaml | oracle_neshu_gcs |
 
@@ -79,11 +79,12 @@ après son extract/load, un `dbt build --select source:<source>+` (étape `run_d
 |---|---|---|
 | pipeline-oracle-neshu | `source:oracle_neshu+` | neshu, supply_chain |
 | pipeline-oracle-lcdp | `source:oracle_lcdp+` | lcdp, supply_chain |
-| pipeline-yuman | `source:yuman_api+` | neshu, technique |
+| pipeline-yuman-evs | `source:yuman_api+` | neshu, technique |
 | pipeline-yuman-evs-stock | `source:yuman_evs_sftp+` | supply_chain |
 | pipeline-nesp-tech | `source:nesp_tech+` | technique, commerce |
 | pipeline-nesp-co | `source:nesp_co+` | commerce |
-| pipeline-sftp-evs | `source:gac+` | services_generaux |
+| pipeline-sftp-evs-gac | `source:gac+` | services_generaux |
+| pipeline-sftp-evs-nesp-client | `source:nesp_co+` | commerce — **sans scheduler**, declenchement manuel |
 | pipeline-mssql-sage | `source:mssql_sage+` | finance |
 | pipeline-oracle-stock-theorique | `source:oracle_neshu_gcs+` | supply_chain |
 | pipeline-oracle-lcdp-stock-theorique | `source:oracle_lcdp_gcs+` | supply_chain (lcdp) |

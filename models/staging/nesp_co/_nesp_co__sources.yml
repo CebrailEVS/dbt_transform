@@ -144,7 +144,7 @@ sources:
       - name: nespresso_base_client
         description: "Table des bases clients Nespresso EVS importé depuis le SFTP EVS du fichier Base - Clients"
         # Freshness: tier Manuel — 60j warn / 90j error
-        # Livraison manuelle uniquement (pipeline-sftp-nesp-client). Cf. docs/freshness.md
+        # Livraison manuelle uniquement (pipeline-sftp-evs-nesp-client). Cf. docs/freshness.md
         config:
           # ÉTAIT NULL À 100 % sous Meltano : le tap-spreadsheets-anywhere ne
           # l'émettait pas, donc ce test n'a JAMAIS pu se déclencher — et quatre
