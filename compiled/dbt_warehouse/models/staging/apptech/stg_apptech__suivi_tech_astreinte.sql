@@ -20,7 +20,7 @@ cleaned_data as (
         intervention_id,
         upper(trim(src_inter)) as src_inter,
         nullif(trim(numero_pu), '') as numero_pu,
-        lower(trim(tech_id_reel)) as tech_id_reel,
+        nullif(lower(trim(tech_id_reel)), '') as tech_id_reel,
         tech_yuman_id_reel,
         nullif(trim(commentaire), '') as commentaire,
 

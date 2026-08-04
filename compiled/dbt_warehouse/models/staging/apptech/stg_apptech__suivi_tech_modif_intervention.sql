@@ -24,7 +24,7 @@ cleaned_data as (
         nullif(trim(numero_pu), '') as numero_pu,
         -- a_facturer peut être vide dans la source (modif sans décision de facturation)
         upper(nullif(trim(a_facturer), '')) as a_facturer,
-        lower(trim(tech_id_reel)) as tech_id_reel,
+        nullif(lower(trim(tech_id_reel)), '') as tech_id_reel,
         tech_yuman_id_reel,
         nullif(trim(type_modif), '') as type_modif,
         nullif(trim(commentaire), '') as commentaire,

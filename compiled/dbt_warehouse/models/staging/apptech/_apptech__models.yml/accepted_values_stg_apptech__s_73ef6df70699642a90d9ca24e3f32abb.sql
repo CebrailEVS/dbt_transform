@@ -16,7 +16,7 @@ with all_values as (
 select *
 from all_values
 where value_field not in (
-    'OUI','NON'
+    'NOT VALIDATED'
 )
 
 
