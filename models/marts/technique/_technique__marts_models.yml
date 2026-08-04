@@ -1534,3 +1534,201 @@ models:
             max_value: 100000
           config:
             severity: warn
+
+  - name: fct_technique__intervention_retraitee
+    description: |
+      [QUOI MÉTIER]
+      Facturation retraitée (modèle « live ») : chaque intervention de
+      `fct_technique__intervention` enrichie des décisions de retraitement
+      saisies par les managers dans l'app Suivi Tech (facturation forcée,
+      technicien réel, délais forcés, doublement de prime, conversion code 5).
+      Base des marts Primes (prod nette et délais retenus post-retraitement) et
+      de la facturation partenaire corrigée.
+
+      [COMMENT CONSTRUITE]
+      `fct_technique__intervention` LEFT JOIN une version pivotée de
+      `int_apptech__retraitements` (les 6 flux de retraitement compilés) sur
+      `key_inter`. Le pivot produit 1 ligne par `key_inter` avec une colonne par
+      (type_retraitement, champ). Fusion colonne par colonne : `a_facturer_retraite`
+      ← mee OU modif_intervention (domaines normalisés en OUI/NON avant fusion) ;
+      `tech_id_reel_retraite` ← astreinte OU modif_intervention. Les colonnes
+      « effectives » (`statut_facturation_effectif`, `tech_id_effectif`,
+      `tech_yuman_id_effectif`, `delai_tech_effectif`, `delai_partenaire_effectif`)
+      appliquent le retraitement sur la valeur du fait (COALESCE retraité → base).
+
+      [GRAIN]
+      1 ligne par intervention. PK = `key_inter` (extension 1:1 du fait, pas de
+      fan-out).
+
+      [NOTES]
+      - Les interventions sans retraitement (majorité) ont `has_retraitement` =
+        false et toutes les colonnes retraitées à NULL ; leurs colonnes
+        effectives valent la valeur du fait.
+      - Lignes de `int_apptech__retraitements` à `key_inter` NULL (src_inter non
+        émis par l'app) exclues : non joignables.
+      - Deux colonnes ont plusieurs types contributeurs ; un test de collision
+        (`error`) échoue si les contributeurs divergent pour une même
+        intervention (cf. contrat identité DA, collision réputée très rare).
+      - Décision de facturation : `mee` émet OUI/NON, `modif_intervention` émet
+        'NOT VALIDATED' ou rien — normalisés en OUI/NON. ⚠️ Mapping à confirmer
+        avec le DA sur données réelles (période bêta, échantillon test réduit).
+      - Colonnes brutes par type (`*_mee`, `*_modif`, `*_astreinte`) conservées
+        pour audit.
+      - Rafraîchissement : hérite de `fct_technique__intervention` (pas de
+        scheduler dédié, refacto Option C via `source:<source>+`).
+
+    columns:
+      - name: key_inter
+        description: PK — identifiant unique de l'intervention (cf. `fct_technique__intervention`).
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('fct_technique__intervention')
+                field: key_inter
+
+      - name: has_retraitement
+        description: >
+          Booléen — l'intervention a fait l'objet d'au moins un retraitement
+          (au moins une ligne dans `int_apptech__retraitements`).
+        tests:
+          - not_null
+
+      - name: types_retraitement
+        description: >
+          Liste (string, séparée par ', ') des types de retraitement ayant touché
+          l'intervention (astreinte, mee, curative, aguila, pause,
+          modif_intervention). NULL si aucun.
+
+      - name: statut_facturation_effectif
+        description: >
+          Statut de facturation après application du retraitement : VALIDATED si
+          `a_facturer_retraite` = OUI, NOT VALIDATED si NON, sinon le
+          `statut_facturation` du fait.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['VALIDATED', 'NOT VALIDATED', 'NOT DEFINED']
+
+      - name: tech_id_effectif
+        description: >
+          Technicien retenu après retraitement, dans l'espace d'ID NATIF de la
+          source : nomad (`tec-xxxx`) côté NESP, id Yuman numérique côté YUMAN.
+          = technicien réel saisi si présent, sinon `tech_id` du fait.
+
+      - name: tech_yuman_id_effectif
+        description: Id Yuman du technicien effectif (pendant de `tech_id_effectif`).
+
+      - name: delai_tech_effectif
+        description: >
+          Délai côté technicien après retraitement : `delai_tech_force` (curative)
+          si saisi, sinon `delai_tech` du fait.
+
+      - name: delai_partenaire_effectif
+        description: >
+          Délai côté partenaire après retraitement : `delai_partenaire_force`
+          (curative) si saisi, sinon `delai_partenaire` du fait.
+
+      - name: tech_nom_effectif
+        description: >
+          Nom du technicien effectif (re-mappé sur `tech_id_effectif` via
+          `stg_yuman__users`). Cohérent avec `tech_id_effectif` — à utiliser pour
+          l'attribution des primes, contrairement à `tech_nom` (planifié).
+
+      - name: tech_secteur_effectif
+        description: >
+          Secteur du technicien effectif (pendant de `tech_nom_effectif`). À
+          utiliser pour les agrégats primes par secteur.
+
+      - name: tech_nomad_id_effectif
+        description: Identifiant Nomad du technicien effectif.
+
+      - name: flag_hors_delai_tech_effectif
+        description: >
+          Flag hors-délai technicien recalculé sur `delai_tech_effectif` (même
+          règle que `flag_hors_delai_tech` du fait : délai J++/J+3 sur une
+          curative). 1 = hors délai, 0 sinon.
+        tests:
+          - not_null
+
+      - name: key_factu_effectif
+        description: >
+          Clé de facturation effective : si `convertir_code_5` = OUI, le code de
+          tête passe de `1 -` à `5 -` (conversion code 5 Aguila), sinon =
+          `key_factu` du fait. Détermine `prod_effectif` / `montant_effectif`.
+
+      - name: prod_effectif
+        description: >
+          Production facturable effective : re-lookée sur `key_factu_effectif`
+          si conversion code 5, sinon = `prod` du fait.
+
+      - name: montant_effectif
+        description: >
+          Montant facturé effectif : re-looké sur `key_factu_effectif` si
+          conversion code 5 (tarif du code 5, différent du code 1), sinon =
+          `montant` du fait.
+
+      - name: a_facturer_retraite
+        description: >
+          Décision de facturation retraitée normalisée (OUI / NON / NULL),
+          fusionnée depuis `mee` et `modif_intervention`.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['OUI', 'NON']
+
+      - name: tech_id_reel_retraite
+        description: Technicien réel saisi (astreinte ou modif), avant COALESCE avec le fait. NULL si aucun.
+
+      - name: tech_yuman_id_reel_retraite
+        description: Id Yuman du technicien réel saisi. NULL si aucun.
+
+      - name: delai_tech_force
+        description: Délai technicien forcé (retraitement curative). NULL si aucun.
+
+      - name: delai_partenaire_force
+        description: Délai partenaire forcé (retraitement curative). NULL si aucun.
+
+      - name: doubler_prime
+        description: >
+          Décision « doubler la prime » (OUI/NON) du retraitement pause.
+          Consommé par les marts Primes. NULL si aucun.
+
+      - name: convertir_code_5
+        description: >
+          Décision « convertir le code 5 » (OUI/NON) du retraitement aguila.
+          NULL si aucun.
+
+      - name: type_modif
+        description: >
+          Type de modification d'intervention (Annulation / Réattribution /
+          Annulation + Réattribution / Autre). NULL hors modif_intervention.
+
+      - name: commentaire_retraitement
+        description: >
+          Commentaires managers agrégés, préfixés par type
+          (`<type>: <commentaire>`, séparés par ' | '). NULL si aucun.
+
+      - name: retraite_extracted_at
+        description: Timestamp d'extraction le plus récent parmi les retraitements de l'intervention.
+
+    tests:
+      # Collision a_facturer : mee dit OUI (facturer) ET modif dit NOT VALIDATED (ne pas facturer)
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "not (a_facturer_mee = 'OUI' and a_facturer_modif = 'NOT VALIDATED')"
+          config:
+            severity: error
+      # Collision technicien réel : astreinte et modif divergent
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >
+              not (
+                tech_id_reel_astreinte is not null
+                and tech_id_reel_modif is not null
+                and tech_id_reel_astreinte != tech_id_reel_modif
+              )
+          config:
+            severity: error
