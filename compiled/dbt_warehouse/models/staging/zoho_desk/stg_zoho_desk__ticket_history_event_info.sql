@@ -17,8 +17,15 @@ renamed as (
         property_type,
         system_property,
 
+        -- Les TROIS valeurs scalaires ci-dessous sont POLYMORPHES : l'API rend
+        -- tantôt du texte ('Closed'), tantôt un horodatage (property_name
+        -- 'Due Date'), tantôt un booléen. Le cast explicite en string rend ce
+        -- modèle indépendant du type inféré au raw — sans lui, une inférence à
+        -- `timestamp` casse les modèles d'intermediate qui les coalescent
+        -- (COALESCE(TIMESTAMP, STRING)), comme mesuré le 2026-08-05.
+
         -- scalar value (quand la valeur n'est pas un before/after — ex : première assignation)
-        property_value,
+        cast(property_value as string) as property_value,
         property_value__id,
         property_value__name,
         property_value__type,
@@ -26,7 +33,7 @@ renamed as (
         -- valeur AVANT modification
         -- scalaire : property_value__previous_value (ex : 'Open')
         -- objet    : property_value__previous_value__id / __name / __type (ex : agent précédent)
-        property_value__previous_value,
+        cast(property_value__previous_value as string) as property_value__previous_value,
         property_value__previous_value__id,
         property_value__previous_value__name,
         property_value__previous_value__type,
@@ -34,7 +41,7 @@ renamed as (
         -- valeur APRÈS modification
         -- scalaire : property_value__updated_value (ex : 'Closed')
         -- objet    : property_value__updated_value__id / __name / __type (ex : nouvel agent)
-        property_value__updated_value,
+        cast(property_value__updated_value as string) as property_value__updated_value,
         property_value__updated_value__id,
         property_value__updated_value__name,
         property_value__updated_value__type,
