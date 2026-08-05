@@ -19,7 +19,10 @@ sources:
       Données brutes extraites de l'API Zoho Desk (EU region) via dlt (data load tool).
       Dataset BigQuery : evs-datastack-prod.prod_raw.
     database: "{{ var('raw_project') }}"
-    schema: prod_raw
+    # Paramétré comme sur oracle_lcdp : permet de pointer dbt sur le raw dlt
+    # en dev (--vars raw_schema: dev_raw) AVANT la bascule de production.
+    # Le défaut prod_raw laisse la prod inchangée.
+    schema: "{{ var('raw_schema', 'prod_raw') }}"
     config:
       tags: ['zoho_desk', 'source']
 
@@ -343,16 +346,24 @@ sources:
 
       - name: zoho_desk_ticket_details
         description: >
-          Enrichissement 1:1 par ticket (20 678 lignes) : flags SLA, champs custom (cf_*),
-          texte de résolution, layout utilisé.
-          Jointure : _zoho_desk_tickets_id = zoho_desk_associated_tickets.id
-          NOTE : la colonne FK est nommée _zoho_desk_tickets_id et non
-          _zoho_desk_associated_tickets_id car le transformer dlt était défini
-          avec data_from=tickets (nom de la ressource dlt, pas du endpoint).
+          La réponse COMPLÈTE de /tickets/{id}, un appel par ticket : flags SLA,
+          61 champs personnalisés (cf__*), résolution, description, layout,
+          compteurs. Superset de zoho_desk_associated_tickets, qui n'est que la
+          vue de liste.
+          Jointure : _zoho_desk_associated_tickets_id = zoho_desk_associated_tickets.id
+          (`id` porte la même valeur — dlt réplique la clé du parent sous les deux noms).
+          NOTE : la FK s'appelait _zoho_desk_tickets_id jusqu'au passage du
+          pipeline sur dlt.sources.rest_api. dlt dérive désormais ce nom de la
+          ressource PARENTE, ce qui supprime l'incohérence.
+          Les champs personnalisés sont préfixés cf__ : l'API rend un objet `cf`
+          que dlt aplatit. L'objet jumeau `customFields`, indexé par LIBELLÉ
+          d'affichage, est écarté à l'ingestion — ses noms de colonne
+          dépendraient d'un texte modifiable dans l'interface Zoho.
         columns:
-          - name: _zoho_desk_tickets_id
+          - name: _zoho_desk_associated_tickets_id
             description: >
-              PK et FK — identifiant du ticket associé.
+              PK et FK — identifiant du ticket associé, injecté par dlt depuis la
+              ressource parente.
               Jointure : = zoho_desk_associated_tickets.id
               Renommé ticket_id dans le staging.
             tests: [unique, not_null]
@@ -368,7 +379,7 @@ sources:
             description: "Texte de résolution saisi par l'agent à la fermeture du ticket"
           - name: layout_id
             description: "ID du layout de formulaire Zoho"
-          - name: layout_name
+          - name: layout_details__layout_name
             description: "Nom lisible du layout (ex : Default Layout, Formulaire Facturation)"
           - name: contract_id
             description: "ID du contrat de service associé au ticket"
@@ -392,97 +403,97 @@ sources:
           # Tous les champs custom Zoho sont de type STRING quelle que soit leur
           # nature réelle (date, booléen, liste) — cast à faire dans le staging
           # si nécessaire.
-          - name: cf_statut_client
+          - name: cf__cf_statut_client
             description: "Custom field : statut du client (ex : VIP, Standard)"
-          - name: cf_nature_des_demandes
+          - name: cf__cf_nature_des_demandes
             description: "Custom field : nature de la demande (classification interne)"
-          - name: cf_previous_status
+          - name: cf__cf_previous_status
             description: "Custom field : statut Zoho précédent (avant l'état courant)"
-          - name: cf_demande_intervention
+          - name: cf__cf_demande_intervention
             description: "Custom field : demande d'intervention terrain"
-          - name: cf_technique
+          - name: cf__cf_technique
             description: "Custom field : indicateur de demande technique"
-          - name: cf_type
+          - name: cf__cf_type
             description: "Custom field : type de demande"
-          - name: cf_type_de_remboursement
+          - name: cf__cf_type_de_remboursement
             description: "Custom field : type de remboursement demandé"
-          - name: cf_contrat_avenant
+          - name: cf__cf_contrat_avenant
             description: "Custom field : contrat ou avenant concerné"
-          - name: cf_suivi_intervention
+          - name: cf__cf_suivi_intervention
             description: "Custom field : lien ou référence de suivi d'intervention"
-          - name: cf_votre_demande_concerne
+          - name: cf__cf_votre_demande_concerne
             description: "Custom field : objet de la demande (formulaire portail client)"
-          - name: cf_correction
+          - name: cf__cf_correction
             description: "Custom field : correction demandée"
-          - name: cf_close_ticket_notification_sent
+          - name: cf__cf_close_ticket_notification_sent
             description: "Custom field : notification de fermeture envoyée (oui/non)"
-          - name: cf_civilite
+          - name: cf__cf_civilite
             description: "Custom field : civilité du demandeur (M., Mme) — formulaire web"
-          - name: cf_nom
+          - name: cf__cf_nom
             description: "Custom field : nom du demandeur — formulaire web"
-          - name: cf_prenom
+          - name: cf__cf_prenom
             description: "Custom field : prénom du demandeur — formulaire web"
-          - name: cf_numero_de_telephone
+          - name: cf__cf_numero_de_telephone
             description: "Custom field : téléphone — formulaire web"
-          - name: cf_nom_de_l_entreprise
+          - name: cf__cf_nom_de_l_entreprise
             description: "Custom field : nom de l'entreprise — formulaire web"
-          - name: cf_secteur_d_activite
+          - name: cf__cf_secteur_d_activite
             description: "Custom field : secteur d'activité — formulaire web"
-          - name: cf_tranche_effectiv
+          - name: cf__cf_tranche_effectiv
             description: "Custom field : tranche d'effectif de l'entreprise"
-          - name: cf_fiche_de_renseignement
+          - name: cf__cf_fiche_de_renseignement
             description: "Custom field : fiche de renseignement (pièce jointe ou référence)"
-          - name: cf_inscription
+          - name: cf__cf_inscription
             description: "Custom field : inscription"
-          - name: cf_creation_d_un_site
+          - name: cf__cf_creation_d_un_site
             description: "Custom field : demande de création d'un site"
-          - name: cf_modification_d_un_site
+          - name: cf__cf_modification_d_un_site
             description: "Custom field : demande de modification d'un site"
-          - name: cf_badges
+          - name: cf__cf_badges
             description: "Custom field : badges concernés"
-          - name: cf_rupture
+          - name: cf__cf_rupture
             description: "Custom field : rupture de stock signalée"
-          - name: cf_boisson_chaude
+          - name: cf__cf_boisson_chaude
             description: "Custom field : boissons chaudes (ancienne colonne, remplacée par cf_boissons_chaudes)"
-          - name: cf_boissons_chaudes
+          - name: cf__cf_boissons_chaudes
             description: "Custom field : boissons chaudes"
-          - name: cf_snack
+          - name: cf__cf_snack
             description: "Custom field : snacks"
-          - name: cf_consommables
+          - name: cf__cf_consommables
             description: "Custom field : consommables"
-          - name: cf_s_reappro
+          - name: cf__cf_s_reappro
             description: "Custom field : réapprovisionnement"
-          - name: cf_s_facturation
+          - name: cf__cf_s_facturation
             description: "Custom field : facturation"
-          - name: cf_s_remboursement
+          - name: cf__cf_s_remboursement
             description: "Custom field : remboursement"
-          - name: cf_s_commercial
+          - name: cf__cf_s_commercial
             description: "Custom field : commercial"
-          - name: cf_s_commande_directes
+          - name: cf__cf_s_commande_directes
             description: "Custom field : commandes directes"
-          - name: cf_s_gestion_des_cartes_privatives
+          - name: cf__cf_s_gestion_des_cartes_privatives
             description: "Custom field : gestion des cartes privatives"
-          - name: cf_s_gestion_des_planogrammes
+          - name: cf__cf_s_gestion_des_planogrammes
             description: "Custom field : gestion des planogrammes"
-          - name: cf_s_recyclage
+          - name: cf__cf_s_recyclage
             description: "Custom field : recyclage"
-          - name: cf_s_remontees_personnel_neshu
+          - name: cf__cf_s_remontees_personnel_neshu
             description: "Custom field : remontées personnel NESHU"
-          - name: cf_s_systeme_de_paiement
+          - name: cf__cf_s_systeme_de_paiement
             description: "Custom field : système de paiement"
-          - name: cf_collecte
+          - name: cf__cf_collecte
             description: "Custom field : collecte"
-          - name: cf_modification
+          - name: cf__cf_modification
             description: "Custom field : modification demandée"
-          - name: cf_modifications
+          - name: cf__cf_modifications
             description: "Custom field : modifications (variante colonne, coexiste avec cf_modification)"
-          - name: cf_date_de_l_animation
+          - name: cf__cf_date_de_l_animation
             description: "Custom field : date de l'animation"
-          - name: cf_champ_machine_formulaire
+          - name: cf__cf_champ_machine_formulaire
             description: "Custom field : référence machine saisie dans le formulaire web"
-          - name: cf_s_equipements
+          - name: cf__cf_s_equipements
             description: "Custom field : équipements concernés"
-          - name: cf_machines
+          - name: cf__cf_machines
             description: "Custom field : machines concernées"
           - name: _dlt_load_id
             description: "ID interne du run dlt (STRING)"
