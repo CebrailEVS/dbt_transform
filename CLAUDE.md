@@ -304,6 +304,35 @@ pas demander de changement de type côté extraction pour éviter un cast dbt.
 `selectors.yml` sont appelés par les workflows Cloud Workflows. Quand un workflow
 disparaît, vérifier si son selector a encore un appelant.
 
+## Délégation aux subagents
+
+Règle : **ce qui lit beaucoup pour ne conclure qu'un peu part en subagent.** La
+session principale garde la décision, pas les 40 fichiers qui y mènent. Un
+subagent a sa propre fenêtre de contexte et ne rend qu'un rapport.
+
+| Situation | Délégation |
+|---|---|
+| « comprends comment marche X », recherche large, convention à retrouver | agent `Explore` (intégré) |
+| un mart est écrit et semble fini | agent `mart-reviewer` — **avant** de le déclarer terminé |
+| le changement touche un type de colonne, un nom de source, un selector, un tag | agent `boundary-impact` (global) |
+| audit lourd sur BigQuery (`audit-docs`, `audit-sources`, `check-staging-relationships`) | lancer la **skill dans un subagent**, pas dans la session principale |
+| review de diff générique, pré-PR | `/code-review` (intégré) |
+
+**À ne pas déléguer** : l'écriture des modèles de staging (le DE les écrit
+lui-même), les décisions d'architecture, les arbitrages métier.
+
+**Modèle — doctrine** : le palier suit `enjeu irréversible × jugement ÷ fréquence`.
+Les agents-gardes (`mart-reviewer`, `boundary-impact`, `tf-plan-reviewer`,
+`pipeline-reviewer`) sont en **`opus` + `effort: high`** : ils tournent quelques
+fois par semaine sur un diff borné, ils sont le **seul** relecteur, et ce qu'ils
+laissent passer arrive en prod. Le gain d'un palier inférieur y serait
+négligeable, le coût d'un défaut manqué non.
+`sonnet` est réservé au travail de **volume** : audit d'une BU entière,
+scaffolding, migration en fan-out — beaucoup de lignes, peu de jugement.
+
+**Hygiène de contexte** : deux corrections ratées sur le même point → `/clear`
+et reprompt plus précis, plutôt que continuer dans un contexte pollué.
+
 ## Hard rules
 
 - **Snapshots strategy/columns inchangés** — gérés par GCP Cloud Workflows. **Exception** : mettre à jour les `ref()` à l'intérieur d'un snapshot est OK quand une dim référencée est renommée (cf. PR neshu : `snap_oracle_neshu__company` ref → `dim_neshu__company`). Ne jamais renommer le fichier snapshot ni sa table BQ (historique SCD2 perdu).
