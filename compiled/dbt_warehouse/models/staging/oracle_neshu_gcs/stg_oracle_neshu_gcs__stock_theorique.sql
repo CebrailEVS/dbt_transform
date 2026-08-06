@@ -16,6 +16,6 @@ select
     cast(dpa as numeric) as dpa,
     cast(pump as numeric) as pump,
     cast(purchase_price as numeric) as purchase_price,
-    cast(extracted_at as timestamp) as extracted_at,
-    row_count
-from `evs-datastack-prod`.`prod_raw`.`ext_gcs_oracle_neshu__stock_theorique`
+    _extracted_at as extracted_at,
+    snapshot_date
+from `evs-datastack-prod`.`prod_raw`.`oracle_neshu_stock_theorique`
