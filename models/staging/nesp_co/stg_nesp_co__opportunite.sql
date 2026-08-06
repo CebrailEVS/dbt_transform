@@ -1,7 +1,7 @@
 {{
     config(
         materialized='table',
-        partition_by={'field': 'file_date', 'data_type': 'timestamp'},
+        partition_by={'field': 'file_date', 'data_type': 'date'},
         description='Table des opportunites Nespresso Commercial nettoyée et filtrée sur les colonnes utiles.'
     )
 }}
@@ -9,7 +9,7 @@
 with source_data as (
 
     select *
-    from {{ source('nesp_co', 'nespresso_commerce_opportunite') }}
+    from {{ source('nesp_co', 'nesp_co_opportunite') }}
 
 ),
 
@@ -56,9 +56,9 @@ base_opportunite as (
         timestamp(nullif(close_date, '#')) as close_date,
 
         -- metadata
-        timestamp(extracted_at) as extracted_at,
-        timestamp(file_date) as file_date,
-        source_file
+        _extracted_at as extracted_at,
+        snapshot_date as file_date,
+        _fichier as source_file
 
     from source_data
     where opportunity != 'Result' or opportunity is null
