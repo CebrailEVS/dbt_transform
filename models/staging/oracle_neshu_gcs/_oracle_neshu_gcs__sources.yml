@@ -5,5 +5,19 @@ sources:
     database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     tables:
-      - name: ext_gcs_oracle_neshu__stock_theorique
-        description: "External table pointing to nightly CSV extracts from Oracle Neshu"
+      - name: oracle_neshu_stock_theorique
+        description: >
+          Stock théorique NESHU, chargé par le pipeline dlt `oracle_neshu_stock`
+          (dépôt ingestion) directement depuis Oracle. Remplace la table externe
+          `ext_gcs_oracle_neshu__stock_theorique`, adossée à des CSV dans GCS, le
+          2026-08-06. Les colonnes portent désormais leurs VRAIS types : les huit
+          NUMBER Oracle arrivent en NUMERIC(38,9) et non plus en STRING.
+        columns:
+          - name: snapshot_date
+            description: "Date métier du snapshot. Clé de merge du pipeline — à ne pas confondre avec date_system, qui porte l'heure du run."
+          - name: date_system
+            description: "SYSDATE Oracle au moment du calcul, HEURE COMPRISE. Vaut minuit sur une journée rejouée."
+          - name: date_inventaire
+            description: "VARCHAR2 côté Oracle, donc STRING ici : le staging le parse avec safe.parse_timestamp."
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne."
