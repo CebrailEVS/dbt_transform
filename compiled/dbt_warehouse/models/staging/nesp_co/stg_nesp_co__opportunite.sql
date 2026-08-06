@@ -3,7 +3,7 @@
 with source_data as (
 
     select *
-    from `evs-datastack-prod`.`prod_raw`.`nespresso_commerce_opportunite`
+    from `evs-datastack-prod`.`prod_raw`.`nesp_co_opportunite`
 
 ),
 
@@ -50,9 +50,9 @@ base_opportunite as (
         timestamp(nullif(close_date, '#')) as close_date,
 
         -- metadata
-        timestamp(extracted_at) as extracted_at,
-        timestamp(file_date) as file_date,
-        source_file
+        _extracted_at as extracted_at,
+        snapshot_date as file_date,
+        _fichier as source_file
 
     from source_data
     where opportunity != 'Result' or opportunity is null

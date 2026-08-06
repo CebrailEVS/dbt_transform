@@ -3,7 +3,7 @@
 with source_data as (
 
     select *
-    from `evs-datastack-prod`.`prod_raw`.`nespresso_commerce_activite`
+    from `evs-datastack-prod`.`prod_raw`.`nesp_co_activite`
 
 ),
 
@@ -39,9 +39,9 @@ base_activite as (
         nullif(calendar_month, '#') as calendar_month,
 
         -- metadata
-        timestamp(extracted_at) as extracted_at,
-        timestamp(file_date) as file_date,
-        source_file
+        _extracted_at as extracted_at,
+        snapshot_date as file_date,
+        _fichier as source_file
 
     from source_data
 
