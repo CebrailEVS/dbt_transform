@@ -9,8 +9,8 @@ sources:
     config:
       tags: ['nesp_co', 'source']
     tables:
-      - name: nespresso_commerce_activite
-        description: "External table (GCS-backed CSV) — activités commerciales Nespresso, remplace l'ancienne table native"
+      - name: nesp_co_activite
+        description: "Activités commerciales Nespresso. Chargée par le pipeline dlt `nesp_co` (dépôt ingestion) depuis les classeurs du SFTP. Remplace la table externe `nespresso_commerce_activite`, adossée à des CSV dans GCS, le 2026-08-06."
         columns:
           - name: employee_responsible
             description: "Identifiant de l'employé responsable"
@@ -66,15 +66,15 @@ sources:
             description: "Date de la tâche"
           - name: notes
             description: "Notes supplémentaires sur l'activité commerciale"
-          - name: extracted_at
+          - name: _extracted_at
             description: "Date et heure d'extraction des données"
-          - name: source_file
+          - name: _fichier
             description: "Nom du fichier source d'où proviennent les données"
-          - name: file_date
+          - name: snapshot_date
             description: "Date du fichier source"
           
-      - name: nespresso_commerce_opportunite
-        description: "External table (GCS-backed CSV) — opportunités commerciales Nespresso, remplace l'ancienne table native"
+      - name: nesp_co_opportunite
+        description: "Opportunités commerciales Nespresso. Chargée par le pipeline dlt `nesp_co` (dépôt ingestion) depuis les classeurs du SFTP. Remplace la table externe `nespresso_commerce_opportunite` le 2026-08-06."
         columns:
           - name: opportunity
             description: "Identifiant de l'opportunité commerciale"
@@ -116,7 +116,7 @@ sources:
             description: "Identifiant Nessoft du compte"
           - name: sales_unit
             description: "Unité de vente associée à l'opportunité"
-          - name: role_account_
+          - name: role_account
             description: "Rôle du compte (Prospect / Client)"
           - name: lifecycle_status
             description: "Statut du cycle de vie de l'opportunité"
@@ -124,7 +124,7 @@ sources:
             description: "Nombre de capsules de la première commande de café"
           - name: expected_value
             description: "Valeur attendue de l'opportunité"
-          - name: _zeq_zenius_equivalent_
+          - name: zeq_zenius_equivalent
             description: "Équivalent Zenius de l'opportunité"
           - name: chance_of_success
             description: "Chance de succès de l'opportunité en pourcentage"
@@ -134,11 +134,11 @@ sources:
             description: "Nombre d'opp"
           - name: machines
             description: "Nombre de machines associées à l'opportunité"
-          - name: extracted_at
+          - name: _extracted_at
             description: "Date et heure d'extraction des données"
-          - name: source_file
+          - name: _fichier
             description: "Nom du fichier source d'où proviennent les données"
-          - name: file_date
+          - name: snapshot_date
             description: "Date du fichier source"
 
       - name: nespresso_base_client
