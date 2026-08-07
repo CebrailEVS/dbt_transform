@@ -8,7 +8,8 @@ Périmètre couvert : app Suivi Tech (`evs-suivi-tech`) → flux NDJSON GCS →
 staging/intermediate apptech → marts technique (facturation retraitée, primes,
 facturation NESPRESSO).
 
-Dernière mise à jour : 2026-08-07 (DE).
+Dernière mise à jour : 2026-08-07 (DE) — étapes 1 et 2 du chantier facturation
+NESPRESSO livrées, cf. § 3.
 
 ---
 
@@ -44,8 +45,9 @@ Validation prod du 2026-08-04 : 93 897 lignes, 118 retraitées, 0 orphelin,
 |---|---|---|---|
 | Rebuild auto de la chaîne apptech (Cloud Run Job du bouton « Build », ou build planifié `tag:apptech`) | DE | — | à faire — **bloque la fraîcheur prod** |
 | Snapshot daté du mart retraitée (append + `build_ts`) | DE | — | décidé, non codé |
-| Propager `agency` (Nomad) dans `int_nesp_tech__facturation_interventions` → fait → mart, et filtrer `nespresso sud` au dédup | DE | — | **PR #201 ouverte** 2026-08-07 |
-| Seed `ref_nesp_tech__key_facturation` versionné `valid_from`/`valid_to` (patron `ref_yuman__tarification_clean`) + 2 variantes Montagne manquantes (`Enlevement` Zenius/Gemini) | DE | — | à faire |
+| ~~Propager `agency` (Nomad) jusqu'aux marts, et filtrer `nespresso sud` au dédup~~ | DE | — | ✅ **PR #201 mergée** 2026-08-07 (`5d4835ad`), `cd` vert, prod vérifiée (4 agences, sous-traitant absent) |
+| ~~Seed `ref_nesp_tech__key_facturation` versionné `valid_from`/`valid_to` + 2 variantes Montagne manquantes~~ | DE | — | ✅ fait 2026-08-07, branche `feature/tarifs-nesp-versionnes` (`9f58127c`), PR à ouvrir |
+| Récupérer les **générations tarifaires réelles** auprès du manager (bascule 2021 → 2024, date contractuelle du tarif Enlèvement) et les charger dans le seed | DE + métier | réponse métier | à faire — le mécanisme est en place, seules les dates manquent |
 | `int_nesp_tech__facturation_rw_credits` (crédit négatif) | DE | — | **débloqué** (cf. § 4, contrat RW vérifié) |
 | Test dbt sur le contrat RW (le flux ne contient que des décisions confirmées, par convention app et non par colonne — un test garde-fou vaut mieux qu'une hypothèse tacite) | DE | — | à faire avec le crédit RW |
 | Coupe-circuit bonus par agence (modèle intermediate dédié pour le taux RW, sinon cycle dbt) — **filet de sécurité, jamais déclenché à ce jour** (max mesuré 1,11 % vs seuil 2,5 %) | DE | — | priorité basse |
@@ -77,6 +79,8 @@ Ne pas rouvrir sans raison nouvelle. Source = document de décision d'origine.
 | **Le bonus dbt et le bonus « règle Excel » désignent la même population** — pas d'écart à corriger. `delai_jours_fin <= 2` vaut `type_delai_fin IN ('J+0','J+1')` (le libellé est décalé d'un cran : `<= 1` → J+0), et `code_machine not like 'ag%'` ne laisse en pratique que `Transportable` + `Momento`. Mesuré sur tout 2026 : 6 852 interventions, populations identiques cellule par cellule. Seul le coupe-circuit agence manque | 2026-08-07 | mesuré, remplace facturation § 5.1 |
 | **Le flux `/rw` ne contient que des décisions confirmées** : `app/domain/rw.py:80` écarte tout `pole_expertise_RW != 'OUI'`, et `submit_rw` n'écrit que les lignes retrouvées en BigQuery. Volume conforme (12 lignes pour 2026-05 = les 12 confirmées de la facture de juillet). Contrat **par convention, pas par colonne** → à couvrir par un test dbt | 2026-08-07 | code app + données |
 | **Agence de facturation = `agency` (Nomad)**, pas `tech_secteur`. Les 4 valeurs (`evs`, `evs idf`, `evs paris`, `evs paris 2`) correspondent aux 4 libellés Excel — le TCD Excel est bâti sur l'export Nomad, c'est la même donnée. `tech_secteur` (5 valeurs, dont `evs est` absent de la grille) recouvre plusieurs agences et ne peut pas servir de dimension de facturation | 2026-08-07 | mesuré sur juillet 2026, 1 956 interventions |
+| **La grille tarifaire NESP est versionnée dans le temps** (`valid_from`/`valid_to` sur `ref_nesp_tech__key_facturation`, jointure sur `date(date_heure_fin, 'Europe/Paris')`, patron `ref_yuman__tarification_clean`), avec un garde-fou anti-chevauchement. Une seule génération chargée, plancher `2000-01-01` : le mécanisme existe, le comportement ne change pas. **Les dates réelles ne sont pas inventées** — le point DA situe la création du tarif Enlèvement « courant 2026 », or il se résout dans les données depuis **juillet 2025** (1 en Q3 2025, 41 en Q4, puis 45/54/25) : le dater de 2026 aurait retiré son tarif à 42 interventions de 2025 | 2026-08-07 | mesuré, corrige facturation § 5.9 |
+| **Variantes Montagne de la clé Enlèvement (Zenius, Gemini) au même tarif que la ligne non-montagne (40 €)** — seul précédent du seed : pour l'Enlèvement la Montagne est tarifairement neutre (MOMENTO 120 et 200 à 50 € dans les deux variantes). Répare 4 interventions qui n'avaient aucun tarif. Hypothèse tarifaire, à confirmer par le métier | 2026-08-07 | branche `feature/tarifs-nesp-versionnes` |
 | **`nespresso sud` est exclu de toute la chaîne NESP, filtré au dédup** (point unique). C'est un sous-traitant, pas une agence EVS : ses 643 interventions (27/10 → 27/12/2025, flux éteint) sont faites par 7 techniciens dont **aucun** n'existe au référentiel EVS, là où les 4 agences EVS en résolvent 100 %. Avant, la divergence des filtres entre modèles laissait ces lignes à moitié enrichies dans le fait (montant renseigné, délais/bonus/technicien NULL). Impact : le fait perd 643 lignes, l'alerting Aguila 8, le mart commerce 0 | 2026-08-07 | décision user, PR #201 |
 | Mini-prev et Enlèvement : tarifs **déjà corrects**, rien à construire | 2026-08-06 | facturation § 5.3 / 5.8 |
 | Hors périmètre : majoration T3 Dispenser, barème de primes de l'onglet Excel `Paramètres` | 2026-08-05/06 | facturation § 5.4 / 5.10 |
@@ -95,6 +99,8 @@ dans un paragraphe.
 |---|---|---|
 | Le libellé « **EVS AURA** » de la grille Excel correspond-il bien à `agency = 'evs'`, qui contient aussi l'activité du secteur **EST** (juillet 2026 : 297 interventions, 50 234 €) ? Si le métier veut un jour EST en ligne séparée, la donnée le permet (`tech_secteur`), la grille Excel non | métier | ouverte — n'empêche pas de coder |
 | La compta / Sage attend-elle l'imputation du crédit RW au mois d'**origine** ? Et l'écart de méthode est-il acceptable : recalculé au tarif courant, le crédit de mai 2026 vaut **2 429 €** contre **2 158 €** facturés dans l'Excel, soit **+271 € (+12,6 %)** sur 12 lignes | métier | ouverte — chiffrée |
+| **Générations tarifaires** : à quelle date la grille est-elle passée de 2021 à 2024, et depuis quand le tarif Enlèvement est-il contractuel ? Sans ces dates, tout mois passé est recalculé au tarif courant. Ne pas deviner : une date fausse déplacerait des montants facturés sans que personne ne le voie | métier | ouverte |
+| **Tarif Montagne de l'Enlèvement** (Zenius, Gemini) : 40 € comme la variante non-montagne, par analogie avec MOMENTO ? | métier | ouverte |
 | Les 2 techniciens fictifs d'astreinte (`ASTREINTE Aura`/`ASTREINTE IDF`, `is_active = false`) portent bien des interventions VALIDATED (4 en juillet 2026) : le transfert symétrique de prod est donc nécessaire, comme prévu. Reste à confirmer s'ils doivent apparaître comme lignes du mart Primes ou en être exclus | DA / métier | ouverte |
 | Mapping MEE / modif_intervention → OUI/NON : à valider sur un mois réel complet (échantillon bêta jusqu'ici) avant facturation réelle | DA | ouverte |
 | `rw_neshu` : libellés et options de décision à figer avant ingestion | DA | ouverte |
