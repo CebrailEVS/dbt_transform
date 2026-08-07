@@ -1766,3 +1766,211 @@ models:
               )
           config:
             severity: error
+
+  - name: fct_technique__credit_repair_warranty
+    description: |
+      [QUOI MÉTIER]
+      Avoirs Repair Warranty à déduire de la facturation mensuelle NESPRESSO. Une
+      décision RW établit qu'une intervention passée a été mal faite (la panne est
+      réapparue) : EVS crédite alors Nespresso du montant facturé sur cette
+      intervention fautive. Correspond à l'onglet « Repair Warranty » du classeur
+      de facturation du manager technique, compté en négatif dans la grille.
+      ⚠️ À ne pas confondre avec `fct_technique__repair`, qui qualifie les
+      récidives de panne côté NESHU/Yuman. Ici : périmètre NESPRESSO, avoir de
+      facturation.
+
+      [COMMENT CONSTRUITE]
+      `stg_apptech__suivi_tech_rw` (décisions saisies dans l'app Suivi Tech)
+      rejoint l'intervention FAUTIVE via `bad_intervention_id` = `n_planning` sur
+      `int_nesp_tech__facturation_interventions` (montant, agence, machine) et
+      `int_nesp_tech__interventions_dedup` (date de l'intervention fautive), plus
+      `stg_yuman__users` pour le nom du technicien responsable. Le tarif crédité
+      est celui de la grille EN VIGUEUR À LA DATE de l'intervention fautive (seed
+      versionné) : le crédit reproduit donc le montant facturé à l'époque, sans
+      avoir à le retrouver manuellement.
+
+      [GRAIN]
+      1 ligne par décision RW du mois. Clé composite
+      (`periode_credit`, `intervention_fautive_id`).
+
+      [NOTES]
+      - Imputation au mois où la décision est **traitée dans l'app**
+        (`periode_credit`), pas au mois de l'intervention fautive — décision
+        métier du 2026-08-05. L'ancien processus Excel imputait au mois d'origine :
+        l'écart de méthode est assumé, mais reste à confirmer côté comptabilité.
+      - **Fichiers de test d'ingestion exclus** : les dépôts
+        `RW_TEST_DATA_ING_<AAAA-MM>.xlsx` du DA portent de vraies interventions
+        fautives mais des correctives factices (`TESTDATAING-<AAAAMM>`). Sans
+        filtre, 2 avoirs de −90 € entraient dans la facturation. À supprimer du
+        bucket côté DA ; le filtre reste en défense.
+      - Contrat du flux source, **applicatif et non porté par une colonne** :
+        (1) décisions confirmées uniquement — l'app écarte
+        `pole_expertise_RW != 'OUI'` (`app/domain/rw.py`) ; (2) périmètre NESP
+        garanti — l'app résout les n° saisis avec `src_inter='NESP'`
+        (`app/routers/rw.py:120`) et n'émet que les lignes retrouvées. Ce second
+        point est ce qui autorise à reconstruire `key_inter` par concaténation :
+        789 `n_planning` NESP collisionnent avec un `intervention_id` YUMAN, un id
+        YUMAN qui entrerait ici créditerait la mauvaise intervention avec un
+        montant plausible, sans qu'aucun test ne le voie.
+      - Même événement métier, deux consommateurs indépendants : ce mart
+        (facturation) et le clawback de prime technicien (marts Primes, à venir).
+      - Si l'intervention fautive sort du périmètre facturable (état `annulée`,
+        agence `nespresso sud` filtrée au dédup, clé de facturation non résolue),
+        c'est **tout le côté droit** qui devient NULL — `agency`,
+        `categorie_machine`, `machine_clean`, `key_factu_fautive`,
+        `date_fin_fautive` et `montant_credit` : l'avoir perd ses coordonnées dans
+        la grille. Base de risque : 12 277 des 87 113 interventions dédupliquées
+        (14 %) sont hors du filtre d'état amont. `not_null` en `warn` sur
+        `montant_credit` et `agency` pour le signaler sans bloquer la prod.
+      - `montant_credit` est **additif** : sommable par mois, agence, machine ou
+        technicien sans double compte, le grain étant la décision.
+      - Risque résiduel de snapshot : le staging ne garde que le dernier NDJSON de
+        chaque période (`max(extracted_at)`). Le brouillon RW étant global au mois
+        côté app (`rw_draft_key(annee, mois)`), une resoumission réémet tout le
+        mois — mais un dépôt partiel sur un mois déjà livré effacerait les avoirs
+        des autres agences, et le test de volume ne verrait pas une chute de 12 à 4.
+      - Décalage observé : l'intervention fautive date du mois de la décision ou du
+        précédent (avoirs de mai 2026 : fautives du 24/04 au 20/05). Le « M-2 » du
+        cadrage DA est le décalage entre la décision et la **facture** qui la
+        reprend, pas entre l'intervention et la décision — l'onglet RW du classeur
+        de juillet porte les décisions de mai. Conséquence : cet avoir de mai
+        atterrit ici sur `periode_credit` = mai, là où l'Excel le portait sur la
+        facture de juillet. Écart de méthode à chiffrer lors du rapprochement de
+        l'étape 4.
+
+    columns:
+      - name: periode_credit
+        description: >
+          Mois d'imputation de l'avoir = mois de la soumission RW dans l'app,
+          tronqué au 1er du mois. Dimension temporelle de la grille de facturation.
+        tests:
+          - not_null
+
+      - name: key_inter_fautive
+        description: >
+          FK → `fct_technique__intervention.key_inter` de l'intervention fautive
+          (créditée). Reconstruite en `'NESP_' || intervention_fautive_id`, le flux
+          RW étant exclusivement NESPRESSO.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_technique__intervention')
+                field: key_inter
+              config:
+                severity: warn
+
+      - name: technician_id
+        description: >
+          FK → `dim_technique__technician.user_id` — technicien tenu pour
+          responsable de l'intervention fautive, tel que l'app le résout au submit.
+          ⚠️ Dans le flux RW, `tech_id` porte l'**id Yuman** (entier) et non le
+          nomad_id, contrairement aux autres flux de retraitement.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_technique__technician')
+                field: user_id
+              config:
+                severity: warn
+
+      - name: agency
+        description: >
+          Agence EVS de l'intervention fautive : c'est elle qui porte l'avoir dans
+          la grille, pas l'agence de l'intervention corrective. NULL si la fautive
+          sort du périmètre facturable (cf. [NOTES]) — l'avoir n'a alors plus de
+          ligne d'imputation.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+          - accepted_values:
+              arguments:
+                values: ['evs', 'evs idf', 'evs paris', 'evs paris 2']
+
+      - name: intervention_fautive_id
+        description: >
+          Numéro de l'intervention mal faite (`n_planning`), telle que saisie dans
+          l'app. Partie de la clé composite.
+        tests:
+          - not_null
+
+      - name: intervention_corrective_id
+        description: >
+          Numéro de l'intervention corrective qui a suivi. Audit : elle est
+          facturée normalement, et rien n'interdit qu'elle soit **elle-même
+          créditée** plus tard si elle récidive à son tour — 1 cas sur 14
+          aujourd'hui (`1759312`, corrective de `1756791` et créditée −121 € sur la
+          même période).
+
+      - name: key_inter_corrective
+        description: >
+          Équivalent `key_inter` de l'intervention corrective, pour remonter au
+          fait. Testé en `relationships` : une corrective introuvable signale une
+          décision douteuse (c'est ce qui distinguait les fichiers de test
+          d'ingestion), à examiner avant de créditer.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('fct_technique__intervention')
+                field: key_inter
+              config:
+                severity: warn
+
+      - name: technician_name
+        description: >
+          Nom du technicien responsable, re-mappé sur `technician_id` depuis le
+          référentiel Yuman plutôt que reprise du nom capturé au submit.
+
+      - name: categorie_machine
+        description: "Catégorie de machine de l'intervention fautive (Transportable, Momento, AGUILA, UNDEFINED)."
+
+      - name: machine_clean
+        description: "Machine normalisée de l'intervention fautive — famille machine de la grille de facturation."
+
+      - name: key_factu_fautive
+        description: "Clé de facturation de l'intervention fautive : dit quelle ligne de la grille est créditée."
+
+      - name: date_fin_fautive
+        description: "Date de réalisation de l'intervention fautive (fuseau Europe/Paris)."
+
+      - name: montant_credit
+        description: >
+          Montant de l'avoir, **toujours négatif** = −1 × tarif de l'intervention
+          fautive, au tarif en vigueur à sa date. NULL si l'intervention fautive
+          sort du périmètre facturable (cf. [NOTES]).
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: rw_extracted_at
+        description: "Timestamp du NDJSON de soumission RW dont la décision provient."
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['periode_credit', 'intervention_fautive_id']
+      # Un avoir est toujours négatif : un montant positif inverserait le signe
+      # dans la grille de facturation.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "montant_credit < 0"
+          config:
+            severity: warn
+      # Garde-fou double crédit : une même intervention fautive créditée sur deux
+      # mois différents serait remboursée deux fois.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['intervention_fautive_id']
+          config:
+            severity: warn
+      # Garde-fou du contrat applicatif : un volume qui explose signalerait que
+      # l'app a cessé de filtrer sur pole_expertise_RW = OUI.
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 1
+            max_value: 2000
+          config:
+            severity: warn
