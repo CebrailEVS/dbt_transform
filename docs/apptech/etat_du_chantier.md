@@ -8,6 +8,13 @@ Périmètre couvert : app Suivi Tech (`evs-suivi-tech`) → flux NDJSON GCS →
 staging/intermediate apptech → marts technique (facturation retraitée, primes,
 facturation NESPRESSO).
 
+**Phase : test et migration, pas production métier.** La facturation et les primes
+se font toujours sous **Excel** ; dbt et l'app sont en validation. Les retraitements
+saisis sont des essais destinés à éprouver les modèles — des données de retraitement
+imparfaites sont normales à ce stade. « En production » ci-dessous signifie que le
+modèle tourne sur les données réelles, pas que le processus métier a basculé. Les
+questions ouvertes du § 5 sont des **critères de sortie de phase**, pas des bloquants.
+
 Dernière mise à jour : 2026-08-07 (DE) — étapes 1 à 3 du chantier facturation
 NESPRESSO livrées, cf. § 3. Reste la vue mensuelle et son rapprochement.
 
@@ -21,7 +28,7 @@ NESPRESSO livrées, cf. § 3. Reste la vue mensuelle et son rapprochement.
 | **Etienne (Data Analyst)** | app Suivi Tech (pages, flux NDJSON émis), captation des règles métier, restitution |
 | **Métier (manager technique)** | règles de facturation et de prime, arbitrages de périmètre |
 
-Contrat d'identité des flux : `docs/apptech_ingestion.md` § 1.
+Contrat d'identité des flux : `docs/apptech/ingestion.md` § 1.
 
 ---
 
