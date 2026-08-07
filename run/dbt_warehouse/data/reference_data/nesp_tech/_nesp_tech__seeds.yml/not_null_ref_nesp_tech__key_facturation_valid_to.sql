@@ -13,9 +13,9 @@
 
 
 
-select intervention
-from `evs-datastack-prod`.`prod_marts`.`fct_commerce__machine_intervention`
-where intervention is null
+select valid_to
+from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation`
+where valid_to is null
 
 
 

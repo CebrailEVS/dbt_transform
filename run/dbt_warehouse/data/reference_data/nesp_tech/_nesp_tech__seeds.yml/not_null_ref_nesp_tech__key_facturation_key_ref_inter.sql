@@ -13,9 +13,9 @@
 
 
 
-select etat_intervention
-from `evs-datastack-prod`.`prod_marts`.`fct_commerce__machine_intervention`
-where etat_intervention is null
+select key_ref_inter
+from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation`
+where key_ref_inter is null
 
 
 

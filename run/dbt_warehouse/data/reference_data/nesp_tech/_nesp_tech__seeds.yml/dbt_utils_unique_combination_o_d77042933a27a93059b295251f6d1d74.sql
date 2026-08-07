@@ -16,9 +16,9 @@
 with validation_errors as (
 
     select
-        n_planning, code_article
-    from `evs-datastack-prod`.`prod_marts`.`fct_technique__consommation_article_nespresso`
-    group by n_planning, code_article
+        key_ref_inter, valid_from
+    from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation`
+    group by key_ref_inter, valid_from
     having count(*) > 1
 
 )

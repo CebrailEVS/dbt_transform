@@ -8,14 +8,15 @@
       
     
   
+    
+    
 
 
 
-select
-    1
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__rupture_depot_yuman`
+select tarif_factu
+from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation`
+where tarif_factu is null
 
-where not(is_out_of_stock_global = (qty_depot + qty_autres_depots + qty_vans_total = 0))
 
 
   

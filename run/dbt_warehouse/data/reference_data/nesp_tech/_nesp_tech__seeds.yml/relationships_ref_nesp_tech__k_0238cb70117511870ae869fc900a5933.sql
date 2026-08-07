@@ -12,14 +12,14 @@
     
 
 with child as (
-    select technician_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_technique__consommation_article_nespresso`
-    where technician_id is not null
+    select machine_clean as from_field
+    from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation`
+    where machine_clean is not null
 ),
 
 parent as (
-    select user_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_technique__technician`
+    select machine_clean as to_field
+    from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__machines_clean`
 )
 
 select

@@ -13,9 +13,9 @@
 
 
 
-select n_tech
-from `evs-datastack-prod`.`prod_marts`.`fct_technique__piece_detachee_pricing_nespresso`
-where n_tech is null
+select machine_clean
+from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation`
+where machine_clean is null
 
 
 
