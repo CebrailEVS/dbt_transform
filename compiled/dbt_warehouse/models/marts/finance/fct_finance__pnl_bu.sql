@@ -310,7 +310,7 @@ select
     budget_pct_du_ca,
     budget_pct_du_ca_ytd,
     current_timestamp() as dbt_updated_at,
-    'a098be41-01d6-4483-90ba-c471ceb8c282' as dbt_invocation_id
+    'c9986c64-a45a-4efb-96e8-d6bfa0d1b9c2' as dbt_invocation_id
 from kpi_with_budget
 where annee >= 2024
 order by annee, mois, bu, kpi
