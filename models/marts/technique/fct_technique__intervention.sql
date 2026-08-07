@@ -15,12 +15,20 @@ with nesp_interventions as (
     select
         'NESP' as src_inter,
         'NESPRESSO' as partenaire,
-        -- Agence en charge de l'intervention, côté Nomad Repair : dimension de
-        -- facturation NESPRESSO ('evs', 'evs idf', 'evs paris', 'evs paris 2',
-        -- + 'nespresso sud' = sous-traitant, filtré par les modèles aval et non
-        -- ici, le fait restant fidèle à la source. À ne pas confondre avec
-        -- tech_secteur, qui est le secteur du technicien (autre domaine).
-        dedup.agency as agence,
+        -- Agence en charge de l'intervention, côté Nomad Repair : dimension
+        -- d'agrégation de la facturation mensuelle NESPRESSO, dont les 4
+        -- libellés de grille sont exactement les 4 valeurs EVS de cette colonne
+        -- ('evs' = AURA, 'evs idf', 'evs paris', 'evs paris 2') — le TCD Excel
+        -- du manager est bâti sur le même export Nomad.
+        -- Prise ici sur le DÉDUP et non sur `factu` : elle doit être présente
+        -- même quand la clé de facturation n'a pas été résolue.
+        -- 'nespresso sud' (sous-traitant, 643 lignes oct.-déc. 2025) n'est PAS
+        -- filtré : le fait reste fidèle à la source, le périmètre appartient aux
+        -- modèles de facturation aval — qui doivent le filtrer explicitement,
+        -- ce sous-traitant pesant 12,6 % du montant de décembre 2025.
+        -- À ne pas confondre avec tech_secteur, le secteur du technicien : une
+        -- agence recouvre plusieurs secteurs, et 'evs est' n'a pas d'agence.
+        dedup.agency,
         cast(dedup.n_planning as string) as intervention_id,
         cast(dedup.n_planning as string) as numero_pu,
         dedup.n_tech as tech_id,
@@ -71,9 +79,10 @@ yuman_interventions as (
     select
         'YUMAN' as src_inter,
         inter_yuman.partner_name as partenaire,
-        -- Notion inexistante côté Yuman (le découpage par agence est propre au
-        -- contrat NESPRESSO) : NULL explicite pour aligner les deux branches.
-        cast(null as string) as agence,
+        -- Non rapatriée côté Yuman (le découpage par agence de ce fait est propre
+        -- au contrat NESPRESSO ; `dim_technique__site.agency_id` porte une notion
+        -- voisine, non alignée) : NULL explicite pour aligner les deux branches.
+        cast(null as string) as agency,
         cast(inter_yuman.workorder_id as string) as intervention_id,
         inter_yuman.workorder_number as numero_pu,
         cast(inter_yuman.technician_id as string) as tech_id,
@@ -120,7 +129,7 @@ interventions_enrichies as (
         concat(i.src_inter, '_', i.intervention_id) as key_inter,
         i.src_inter,
         i.partenaire,
-        i.agence,
+        i.agency,
         i.intervention_id,
         i.numero_pu,
         i.intervention_statut,
@@ -200,7 +209,7 @@ select
     key_inter,
     src_inter,
     partenaire,
-    agence,
+    agency,
     intervention_id,
     numero_pu,
     intervention_statut,

@@ -269,8 +269,11 @@ models:
         description: >
           Agence en charge de l'intervention, reprise telle quelle du dédup
           ('evs', 'evs idf', 'evs paris', 'evs paris 2', 'nespresso sud').
-          Propagée jusqu'au fait (`fct_technique__intervention.agence`) car c'est
-          la dimension d'agrégation de la facturation mensuelle NESPRESSO.
+          Exposée ici pour les modèles de facturation aval qui partent de cette
+          table (crédits Repair Warranty : ils remontent l'intervention fautive
+          par `n_planning` et ont besoin de son agence). Le fait, lui, prend
+          l'agence directement du dédup — cette colonne n'est PAS son chemin de
+          propagation.
           Aucun filtre ici : contrairement à `int_nesp_tech__delais_interventions`
           qui ne garde que les 4 agences EVS, ce modèle laisse passer
           'nespresso sud' — le filtrage est à la main des modèles de facturation.
