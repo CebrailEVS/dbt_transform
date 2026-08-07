@@ -11,6 +11,10 @@ models:
       [COMMENT CONSTRUITE]
       stg_nesp_tech__interventions dédupliqué par n_planning (on conserve la ligne la plus
       récente : date_heure_fin desc, puis extracted_at desc). Passthrough des colonnes staging.
+      Périmètre restreint aux 4 agences EVS ('evs' = AURA, 'evs idf', 'evs paris',
+      'evs paris 2') : 'nespresso sud' est un sous-traitant, pas une agence EVS (643
+      interventions oct.-déc. 2025, 93 k€, exécutées par 7 techniciens absents du
+      référentiel EVS). Filtre en point unique pour toute la chaîne nesp_tech.
 
       [GRAIN]
       1 ligne par n_planning (PK). ~84k lignes.
@@ -81,9 +85,14 @@ models:
         description: Observations libres saisies par le technicien.
       - name: agency
         description: >
-          Agence en charge de l'intervention. Valeurs : 'evs', 'evs idf', 'evs paris',
-          'evs paris 2' (agences EVS), 'nespresso sud' (sous-traitant). Les modèles
-          délais/facturation filtrent sur les agences EVS.
+          Agence EVS en charge de l'intervention. Valeurs : 'evs' (= AURA), 'evs idf',
+          'evs paris', 'evs paris 2'. Le sous-traitant 'nespresso sud', présent au
+          staging, est écarté par le filtre de périmètre de ce modèle.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['evs', 'evs idf', 'evs paris', 'evs paris 2']
       - name: repair_code_1
         description: Code réparation principal (Nomad Repair) — sert à la résolution de la clé de facturation.
       - name: repair_code_2
@@ -274,9 +283,7 @@ models:
           par `n_planning` et ont besoin de son agence). Le fait, lui, prend
           l'agence directement du dédup — cette colonne n'est PAS son chemin de
           propagation.
-          Aucun filtre ici : contrairement à `int_nesp_tech__delais_interventions`
-          qui ne garde que les 4 agences EVS, ce modèle laisse passer
-          'nespresso sud' — le filtrage est à la main des modèles de facturation.
+          Périmètre hérité du dédup : les 4 agences EVS uniquement.
       - name: categorie_machine
         description: >
           Catégorie de machine. Valeurs : 'Transportable', 'Momento', 'AGUILA', 'UNDEFINED'

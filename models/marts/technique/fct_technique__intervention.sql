@@ -22,10 +22,8 @@ with nesp_interventions as (
         -- du manager est bâti sur le même export Nomad.
         -- Prise ici sur le DÉDUP et non sur `factu` : elle doit être présente
         -- même quand la clé de facturation n'a pas été résolue.
-        -- 'nespresso sud' (sous-traitant, 643 lignes oct.-déc. 2025) n'est PAS
-        -- filtré : le fait reste fidèle à la source, le périmètre appartient aux
-        -- modèles de facturation aval — qui doivent le filtrer explicitement,
-        -- ce sous-traitant pesant 12,6 % du montant de décembre 2025.
+        -- 4 valeurs possibles seulement : le sous-traitant 'nespresso sud' est
+        -- écarté en amont par le filtre de périmètre du dédup.
         -- À ne pas confondre avec tech_secteur, le secteur du technicien : une
         -- agence recouvre plusieurs secteurs, et 'evs est' n'a pas d'agence.
         dedup.agency,
