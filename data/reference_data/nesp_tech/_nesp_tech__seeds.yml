@@ -84,7 +84,22 @@ seeds:
           - not_null
 
   - name: ref_nesp_tech__key_facturation
-    description: "Clé de facturation des interventions techniques"
+    description: >
+      Clé de facturation des interventions techniques Nespresso, avec le tarif et
+      le code produit associés — **versionnée dans le temps** par
+      `valid_from`/`valid_to` (même patron que `ref_yuman__tarification_clean`).
+      Grain : 1 ligne par (`key_ref_inter`, `valid_from`), et non par
+      `key_ref_inter` seule.
+      Pourquoi : la grille Nespresso a déjà changé au moins une fois (générations
+      2021 et 2024, cf. onglet Paramètres du classeur de facturation du manager)
+      et le tarif Enlèvement s'est ajouté plus tard. Un tarif unique par clé
+      interdisait de recalculer une facture d'un mois passé avec le tarif qui
+      était alors en vigueur.
+      État actuel : une seule génération chargée, plancher `2000-01-01` →
+      `9999-12-31`, donc aucun changement de comportement par rapport à la
+      version non versionnée. Les générations réelles (bascule 2021 → 2024, date
+      de création du tarif Enlèvement) restent à récupérer auprès du manager : ne
+      pas les inventer, une date fausse déplacerait des montants facturés.
     config:
       column_types:
         type_code: STRING
@@ -95,6 +110,12 @@ seeds:
         key_factu: STRING
         prod_factu: INT64
         tarif_factu: FLOAT64
+        valid_from: DATE
+        valid_to: DATE
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['key_ref_inter', 'valid_from']
     columns:
       - name: type_code
         description: "Code intervention"
@@ -111,12 +132,15 @@ seeds:
       - name: type_montagne
         description: "Suffixe potentiel selon montagne"
       - name: key_ref_inter
-        description: "Clé de facturation lisible"
+        description: >
+          Clé de facturation lisible, suffixe ' - Montagne' inclus : c'est elle
+          que la clé calculée par `int_nesp_tech__facturation_interventions`
+          rejoint. Plus unique à elle seule depuis le versionnement — unique par
+          (`key_ref_inter`, `valid_from`), cf. test au niveau du seed.
         tests:
           - not_null
-          - unique
       - name: key_factu
-        description: "Clé de facturation lisible"
+        description: "Clé de facturation lisible, sans le suffixe Montagne"
         tests:
           - not_null
       - name: prod_factu
@@ -124,7 +148,21 @@ seeds:
         tests:
           - not_null
       - name: tarif_factu
-        description: "Tarif de l'intervention"
+        description: "Tarif de l'intervention, en vigueur sur la fenêtre valid_from → valid_to"
+        tests:
+          - not_null
+      - name: valid_from
+        description: >
+          Premier jour d'application du tarif (inclus). `2000-01-01` = plancher
+          conventionnel de la génération initiale, aligné sur
+          `ref_yuman__tarification_clean` : signifie « depuis toujours, faute de
+          date de bascule connue », pas une date réelle de contrat.
+        tests:
+          - not_null
+      - name: valid_to
+        description: >
+          Dernier jour d'application du tarif (inclus). `9999-12-31` = tarif
+          courant, sans fin connue.
         tests:
           - not_null
 
