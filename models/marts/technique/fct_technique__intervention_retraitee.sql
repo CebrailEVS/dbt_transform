@@ -114,6 +114,7 @@ effective as (
         f.key_inter,
         f.src_inter,
         f.partenaire,
+        f.agence,
         f.intervention_id,
         f.numero_pu,
 

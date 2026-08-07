@@ -15,6 +15,12 @@ with nesp_interventions as (
     select
         'NESP' as src_inter,
         'NESPRESSO' as partenaire,
+        -- Agence en charge de l'intervention, côté Nomad Repair : dimension de
+        -- facturation NESPRESSO ('evs', 'evs idf', 'evs paris', 'evs paris 2',
+        -- + 'nespresso sud' = sous-traitant, filtré par les modèles aval et non
+        -- ici, le fait restant fidèle à la source. À ne pas confondre avec
+        -- tech_secteur, qui est le secteur du technicien (autre domaine).
+        dedup.agency as agence,
         cast(dedup.n_planning as string) as intervention_id,
         cast(dedup.n_planning as string) as numero_pu,
         dedup.n_tech as tech_id,
@@ -65,6 +71,9 @@ yuman_interventions as (
     select
         'YUMAN' as src_inter,
         inter_yuman.partner_name as partenaire,
+        -- Notion inexistante côté Yuman (le découpage par agence est propre au
+        -- contrat NESPRESSO) : NULL explicite pour aligner les deux branches.
+        cast(null as string) as agence,
         cast(inter_yuman.workorder_id as string) as intervention_id,
         inter_yuman.workorder_number as numero_pu,
         cast(inter_yuman.technician_id as string) as tech_id,
@@ -111,6 +120,7 @@ interventions_enrichies as (
         concat(i.src_inter, '_', i.intervention_id) as key_inter,
         i.src_inter,
         i.partenaire,
+        i.agence,
         i.intervention_id,
         i.numero_pu,
         i.intervention_statut,
@@ -190,6 +200,7 @@ select
     key_inter,
     src_inter,
     partenaire,
+    agence,
     intervention_id,
     numero_pu,
     intervention_statut,

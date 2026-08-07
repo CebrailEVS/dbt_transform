@@ -265,6 +265,15 @@ models:
           'mise en échec', 'signature différée'.
         tests:
           - not_null
+      - name: agency
+        description: >
+          Agence en charge de l'intervention, reprise telle quelle du dédup
+          ('evs', 'evs idf', 'evs paris', 'evs paris 2', 'nespresso sud').
+          Propagée jusqu'au fait (`fct_technique__intervention.agence`) car c'est
+          la dimension d'agrégation de la facturation mensuelle NESPRESSO.
+          Aucun filtre ici : contrairement à `int_nesp_tech__delais_interventions`
+          qui ne garde que les 4 agences EVS, ce modèle laisse passer
+          'nespresso sud' — le filtrage est à la main des modèles de facturation.
       - name: categorie_machine
         description: >
           Catégorie de machine. Valeurs : 'Transportable', 'Momento', 'AGUILA', 'UNDEFINED'

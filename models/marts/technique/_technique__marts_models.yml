@@ -98,6 +98,26 @@ models:
           partenaire Yuman (NESHU, BRITA, AUUM, TWYD, NU, EXPRESSO, FONTAINCO,
           DAAN). Colonne de clustering.
 
+      - name: agence
+        description: >
+          Agence en charge de l'intervention, telle que Nomad Repair la porte
+          (`agency`) : dimension de facturation du contrat NESPRESSO, et seule
+          notion qui corresponde aux 4 libellés d'agence de la facturation
+          mensuelle ('evs' = AURA, 'evs idf', 'evs paris', 'evs paris 2').
+          'nespresso sud' = sous-traitant, inactif depuis fin 2025 (643
+          interventions, oct.-déc. 2025) : conservé ici — le fait reste fidèle à
+          la source — et filtré par les modèles de facturation aval.
+          ⚠️ À NE PAS confondre avec `tech_secteur`, qui est le secteur du
+          technicien : domaines différents et non substituables (une agence
+          recouvre plusieurs secteurs, et `evs est` n'a pas d'agence propre).
+          NULL côté YUMAN, où la notion n'existe pas.
+        tests:
+          - accepted_values:
+              config:
+                severity: warn
+              arguments:
+                values: ['evs', 'evs idf', 'evs paris', 'evs paris 2', 'nespresso sud']
+
       - name: tech_id
         description: >
           Identifiant du technicien dans le système source : `nomad_id`
@@ -1597,7 +1617,7 @@ models:
 
       - name: types_retraitement
         description: >
-          Liste (string, séparée par ', ') des types de retraitement ayant touché
+          Liste (string, séparée par ',' sans espace) des types de retraitement ayant touché
           l'intervention (astreinte, mee, curative, aguila, pause,
           modif_intervention). NULL si aucun.
 

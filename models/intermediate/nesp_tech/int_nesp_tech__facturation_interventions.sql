@@ -65,6 +65,7 @@ joined as (
         ) as key_factu,
         i.n_planning,
         i.etat_intervention,
+        i.agency,
         i.intervention_type,
         i.code_machine,
         i.nom_machine,
@@ -102,6 +103,7 @@ final as (
     select
         j.n_planning,
         j.etat_intervention,
+        j.agency,
         j.categorie_machine,
         j.machine_clean,
         j.type_inter_libelle,
@@ -117,6 +119,7 @@ final as (
 select
     n_planning,
     etat_intervention,
+    agency,
     coalesce(categorie_machine, 'UNDEFINED') as categorie_machine,
     coalesce(machine_clean, 'UNDEFINED') as machine_clean,
     type_inter_libelle,
