@@ -36,8 +36,10 @@ models:
       - Filtres répartis sur 3 niveaux (intermediate → CTE du fait → jointures
         LEFT). Côté NESP, `montant` / `key_factu` / `prod` sont NULL hors états
         terminée signée / signature différée / mise en échec ; `delai_*` et
-        `bonus_*` ne sont calculés que pour les agences IDF/Paris (filtre interne
-        à `int_nesp_tech__delais_interventions`).
+        `bonus_*` sont NULL hors états terminée signée / signature différée
+        (filtre interne à `int_nesp_tech__delais_interventions`). Le périmètre
+        d'agence, lui, est unique pour toute la chaîne NESP : les 4 agences EVS,
+        filtrées au dédup (sous-traitant 'nespresso sud' exclu).
       - Plusieurs colonnes sont harmonisées mais portent une sémantique
         différente selon la source — voir les descriptions de `statut_facturation`,
         `categorie_machine` / `machine_clean`, `delai_heures_*`, `bonus_bool`,
@@ -97,6 +99,26 @@ models:
           Partenaire client. NESPRESSO pour la source NESP ; sinon nom du
           partenaire Yuman (NESHU, BRITA, AUUM, TWYD, NU, EXPRESSO, FONTAINCO,
           DAAN). Colonne de clustering.
+
+      - name: agency
+        description: >
+          Agence EVS en charge de l'intervention (Nomad Repair) : dimension
+          d'agrégation de la facturation mensuelle NESPRESSO, dont les 4 libellés
+          de grille sont exactement ces 4 valeurs ('evs' = AURA, 'evs idf',
+          'evs paris', 'evs paris 2'). Même nom et même colonne source que
+          `fct_technique__consommation_article_nespresso.agency`. NULL côté
+          YUMAN, où elle n'est pas rapatriée.
+          ⚠️ Ne pas confondre avec `tech_secteur` (secteur du technicien) : une
+          agence recouvre plusieurs secteurs et `evs est` n'a pas d'agence
+          propre.
+          Le sous-traitant 'nespresso sud' est écarté en amont, au dédup
+          (périmètre unique pour toute la chaîne nesp_tech) : ce fait perd donc
+          643 interventions oct.-déc. 2025, désormais aligné sur
+          `consommation_article_nespresso` et `piece_detachee_pricing_nespresso`.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['evs', 'evs idf', 'evs paris', 'evs paris 2']
 
       - name: tech_id
         description: >
@@ -275,6 +297,17 @@ models:
         description: >
           Alias groupe machine. NESP : depuis le seed `ref_nesp_tech__key_facturation` ;
           YUMAN : 2e segment de `pricing_key_used` (identique à `alias_obj_type_machine`).
+
+    tests:
+      # `agency` est renseignée sur tout le périmètre NESP et sur lui seul : un
+      # `not_null` nu est impossible (NULL par construction côté YUMAN), mais
+      # l'invariant doit tenir — une agence qui apparaîtrait côté YUMAN, ou une
+      # ligne NESP sans agence, casserait l'agrégat de facturation mensuelle.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >
+              (src_inter = 'NESP' and agency is not null)
+              or (src_inter = 'YUMAN' and agency is null)
 
 
   - name: dim_technique__client
@@ -1597,7 +1630,7 @@ models:
 
       - name: types_retraitement
         description: >
-          Liste (string, séparée par ', ') des types de retraitement ayant touché
+          Liste (string, séparée par ',' sans espace) des types de retraitement ayant touché
           l'intervention (astreinte, mee, curative, aguila, pause,
           modif_intervention). NULL si aucun.
 
@@ -1709,7 +1742,8 @@ models:
       - name: commentaire_retraitement
         description: >
           Commentaires managers agrégés, préfixés par type
-          (`<type>: <commentaire>`, séparés par ' | '). NULL si aucun.
+          (`<type>: <commentaire>`, séparés par ',' sans espace — `string_agg`
+          sans séparateur explicite). NULL si aucun.
 
       - name: retraite_extracted_at
         description: Timestamp d'extraction le plus récent parmi les retraitements de l'intervention.
