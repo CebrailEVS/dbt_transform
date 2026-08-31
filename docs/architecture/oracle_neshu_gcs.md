@@ -85,7 +85,7 @@ pour 24 véhicules devenus inactifs, 6 pour une PERSON). Arbitrage métier en co
 | Colonne | Nature | Usage |
 |---|---|---|
 | `snapshot_date` | `DATE`, sans heure ni fuseau | **La clé de filtre.** Jour métier de la photo, et clé de merge du pipeline |
-| `date_system` | `TIMESTAMP` — `SYSDATE` Oracle, heure comprise (23:00) | Instant du calcul. **Ne pas filtrer dessus** |
+| `date_system` | `TIMESTAMP` — `SYSDATE` Oracle, heure comprise (23:00) | Audit : elle porte l'heure du batch, donc un rejeu s'y voit (il écrit minuit). **Pas une clé de filtre** |
 | `extracted_at` | `TIMESTAMP` du run dlt | Témoin de révision (cf. ci-dessus) |
 | `date_inventaire` | `TIMESTAMP` — `VARCHAR2` côté Oracle | Dernier inventaire physique |
 

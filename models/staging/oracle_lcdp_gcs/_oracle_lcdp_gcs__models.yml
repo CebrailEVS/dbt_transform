@@ -37,9 +37,13 @@ models:
         description: >
           Instant du calcul du stock théorique côté Oracle (SYSDATE, 23:15 heure de
           Paris). L'horloge Oracle est nue, sans fuseau : le staging la déclare en
-          Europe/Paris pour en faire un instant juste. NE PAS s'en servir comme jour
-          métier — une lecture en heure locale la ferait basculer sur le lendemain.
-          Utiliser `snapshot_date`.
+          Europe/Paris pour en faire un instant juste — un `cast` direct la ferait
+          lire en UTC, donc fausse de 1 à 2 h. Utile pour l'AUDIT : elle porte
+          l'heure du batch, donc une journée rejouée s'y voit (`--business-date`
+          écrit minuit). Mais ne pas s'en servir comme jour métier : le jour
+          calendaire d'un timestamp dépend de l'heure du run — un run après minuit
+          à Paris le placerait sur la journée suivante — alors que `snapshot_date`
+          est dérivée de l'horloge murale Oracle et reste juste.
         tests:
           - not_null
       - name: resources_code

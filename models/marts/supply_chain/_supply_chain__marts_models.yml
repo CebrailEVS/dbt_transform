@@ -6,7 +6,7 @@ models:
       [QUOI MÉTIER] Stock théorique journalier des produits Neshu, par véhicule roadman et par dépôt.
       [COMMENT CONSTRUITE] Issu de stg_oracle_neshu_gcs__stock_theorique (pipeline dlt oracle_neshu_stock, batch Oracle de 23:00 Paris), filtré sur les dépôts 01–05, 10, 13 (entity_type='company') et les véhicules actifs (resources_type='VEHICLE' et is_active via dim_neshu__resource). is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
       [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code).
-      [NOTES] Filtrer sur snapshot_date, JAMAIS sur date_system : cette dernière porte l'heure du batch, et une lecture convertie en heure locale la ferait basculer sur le lendemain. date_system n'est conservée que le temps que les rapports PBI migrent, puis sera retirée. entity_type fait partie du grain : idcompany et idresources viennent de deux séquences Oracle distinctes et collisionnent (17 698 lignes concernées au 2026-08-31). plus/moins = cumuls d'entrées/sorties depuis le dernier inventaire physique, d'où l'invariant stock_at_date = stock_inventaire + plus - moins. ATTENTION, le PÉRIMÈTRE VÉHICULES N'EST PAS FIGÉ : le filtre is_active porte sur l'état COURANT de dim_neshu__resource, qui n'est pas historisée, donc un véhicule désactivé côté Oracle disparaît rétroactivement de tout l'historique publié (802 des 2 571 lignes ressource du 2026-07-01 écartées au 2026-08-31). Arbitrage métier en cours.
+      [NOTES] Filtrer sur snapshot_date : c'est une DATE, insensible à l'heure du run comme au fuseau de lecture. date_system est conservée à côté pour l'audit — elle porte l'heure du batch, donc révèle une journée rejouée — mais n'est pas une clé de filtre. entity_type fait partie du grain : idcompany et idresources viennent de deux séquences Oracle distinctes et collisionnent (17 698 lignes concernées au 2026-08-31). plus/moins = cumuls d'entrées/sorties depuis le dernier inventaire physique, d'où l'invariant stock_at_date = stock_inventaire + plus - moins. ATTENTION, le PÉRIMÈTRE VÉHICULES N'EST PAS FIGÉ : le filtre is_active porte sur l'état COURANT de dim_neshu__resource, qui n'est pas historisée, donc un véhicule désactivé côté Oracle disparaît rétroactivement de tout l'historique publié (802 des 2 571 lignes ressource du 2026-07-01 écartées au 2026-08-31). Arbitrage métier en cours.
     columns:
       - name: snapshot_date
         description: "Jour métier de la photo de stock (DATE), colonne de partition. Clé de filtre à utiliser en BI"
@@ -50,7 +50,12 @@ models:
       - name: purchase_price
         description: "Prix d'achat unitaire"
       - name: date_system
-        description: "Instant du calcul côté Oracle (TIMESTAMP, 23:00 Paris). NE PAS filtrer dessus — utiliser snapshot_date. Conservée le temps de la migration des rapports PBI"
+        description: >
+          Instant du calcul côté Oracle (TIMESTAMP, 23:00 Paris), déclaré en Europe/Paris
+          par le staging. Conservée pour l'audit : elle porte l'heure du batch, donc une
+          journée rejouée s'y voit (un rejeu écrit minuit). Ne pas s'en servir comme clé
+          de filtre pour autant — le jour calendaire d'un timestamp dépend de l'heure du
+          run, `snapshot_date` non.
         tests:
           - not_null
       - name: extracted_at
@@ -74,7 +79,7 @@ models:
       [QUOI MÉTIER] Stock théorique journalier des produits LCDP, par véhicule et par dépôt.
       [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp_gcs__stock_theorique (pipeline dlt oracle_lcdp_stock, batch Oracle de 23:15 Paris). Aucun filtre : les 11 dépôts (entity_type='company') et tous les véhicules (entity_type='resource') sont exposés. is_active aplati depuis dim_lcdp__resource pour les véhicules (FALSE si absent de la dim), NULL pour les dépôts. is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
       [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code).
-      [NOTES] Démarré le 2026-06-05 (pas d'historique antérieur). Filtrer sur snapshot_date, JAMAIS sur date_system : cette dernière porte l'heure du batch, et une lecture convertie en heure locale la ferait basculer sur le lendemain. date_system n'est conservée que le temps que les rapports PBI migrent, puis sera retirée. entity_type fait partie du grain, par prudence : côté Neshu idcompany et idresources collisionnent, LCDP n'y échappe aujourd'hui que par chance. plus/moins = écarts d'inventaire vs théorique. Stocks négatifs possibles (stock théorique). date_inventaire NULL ≈ 30 % (entités/produits jamais inventoriés).
+      [NOTES] Démarré le 2026-06-05 (pas d'historique antérieur). Filtrer sur snapshot_date : c'est une DATE, insensible à l'heure du run comme au fuseau de lecture. date_system est conservée à côté pour l'audit — elle porte l'heure du batch, donc révèle une journée rejouée — mais n'est pas une clé de filtre. entity_type fait partie du grain, par prudence : côté Neshu idcompany et idresources collisionnent, LCDP n'y échappe aujourd'hui que par chance. plus/moins = écarts d'inventaire vs théorique. Stocks négatifs possibles (stock théorique). date_inventaire NULL ≈ 30 % (entités/produits jamais inventoriés).
     columns:
       - name: snapshot_date
         description: "Jour métier de la photo de stock (DATE), colonne de partition. Clé de filtre à utiliser en BI"
@@ -120,7 +125,12 @@ models:
       - name: purchase_price
         description: "Prix d'achat unitaire"
       - name: date_system
-        description: "Instant du calcul côté Oracle (TIMESTAMP, 23:15 Paris). NE PAS filtrer dessus — utiliser snapshot_date. Conservée le temps de la migration des rapports PBI"
+        description: >
+          Instant du calcul côté Oracle (TIMESTAMP, 23:15 Paris), déclaré en Europe/Paris
+          par le staging. Conservée pour l'audit : elle porte l'heure du batch, donc une
+          journée rejouée s'y voit (un rejeu écrit minuit). Ne pas s'en servir comme clé
+          de filtre pour autant — le jour calendaire d'un timestamp dépend de l'heure du
+          run, `snapshot_date` non.
         tests:
           - not_null
       - name: extracted_at
