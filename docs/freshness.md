@@ -150,7 +150,7 @@ business qui restent peuplées :
 - Seuil : **8 jours warn / 14 jours error**
 
 ### `oracle_neshu_gcs` / `oracle_lcdp_gcs` — tier *Standard*, méthode B
-Source brute : `extracted_at` STRING. Tests sur
+Source brute : `_extracted_at`, deja un TIMESTAMP depuis la bascule dlt du 2026-08-06. Tests sur
 `stg_oracle_neshu_gcs__stock_theorique` et `stg_oracle_lcdp_gcs__stock_theorique`.
 - Pipelines quotidiens (cron `0 23 * * *` NESHU, `15 23 * * *` LCDP ; gap observé 23-24h très régulier).
 - Seuil : **26h warn / 48h error** (en heures via `datepart: hour`).

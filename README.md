@@ -54,12 +54,19 @@ Le projet integre **9 sources** couvrant l'ensemble des operations EVS :
 | **mssql_sage** | MSSQL Sage | Comptabilite : ecritures, comptes tiers, collaborateurs |
 | **gac** | SFTP CSV | Assurance flotte, sinistres vehicules |
 | **yuman_evs_sftp** | Fichier SFTP (dlt) | Stock theorique Yuman |
-| **oracle_neshu_gcs** | GCS CSV | Stock theorique Oracle NESHU |
-| **oracle_lcdp_gcs** | GCS CSV | Stock theorique Oracle LCDP |
+| **oracle_neshu_gcs** | Oracle ERP (NESHU, dlt) | Stock theorique Oracle NESHU |
+| **oracle_lcdp_gcs** | Oracle ERP (LCDP, dlt) | Stock theorique Oracle LCDP |
 
-> Les sources suffixees `_gcs` (et `nesp_tech`, `nesp_co`) transitent par GCS avant d'etre lues par dbt via table externe BigQuery.
-> C'est le cas quand Meltano ne peut pas extraire la donnee directement vers BigQuery (API specifique, Excel, PL/SQL, parsing XML…).
-> Ces ingestions sont gerees par des scripts Python dedies dans un repo separe.
+> `nesp_tech` et `nesp_co` transitent par GCS avant d'etre lus par dbt via table externe BigQuery.
+> C'est le cas quand l'extraction ne peut pas viser BigQuery directement (API specifique, Excel, parsing XML…).
+>
+> Le suffixe `_gcs` des deux sources de stock theorique est un **heritage** : depuis le
+> 2026-08-06 elles sont chargees directement depuis Oracle par les pipelines dlt
+> `oracle_neshu_stock` / `oracle_lcdp_stock`, sans CSV ni table externe. Le nom de source
+> est conserve pour ne pas casser les `source()`. Voir
+> [`docs/architecture/oracle_neshu_gcs.md`](docs/architecture/oracle_neshu_gcs.md).
+>
+> Ces ingestions sont gerees dans le depot `ingestion` (dlt).
 
 ---
 

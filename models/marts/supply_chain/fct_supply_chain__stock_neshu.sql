@@ -1,18 +1,25 @@
 {{ config(
     materialized='table',
     partition_by={
-        'field': 'date_system',
-        'data_type': 'timestamp'
+        'field': 'snapshot_date',
+        'data_type': 'date'
     }
 ) }}
 
 with filtered_stock as (
     select
+        st.snapshot_date,
         st.id_entity,
         st.entity_type,
+        st.product_code,
         st.resources_code as entity_code,
         st.entity_name,
-        st.product_code,
+        -- Exposée, et NON filtrante : c'est un état COURANT, non historisé. La
+        -- filtrer ici ferait disparaître rétroactivement de tout l'historique un
+        -- véhicule désactivé depuis, et réapparaître un véhicule réactivé.
+        case
+            when st.entity_type = 'resource' then coalesce(r.is_active, false)
+        end as is_vehicle_active,
         st.product_name,
         st.stock_at_date,
         st.stock_at_date = 0 as is_out_of_stock,
@@ -45,17 +52,20 @@ with filtered_stock as (
         or
         (
             st.entity_type = 'resource'
-            and r.resources_type = 'VEHICLE'  -- exclut la PERSON présente dans le stock
-            and r.is_active
+            -- Seul filtre conservé sur les ressources : le TYPE, qui ne bouge pas.
+            -- Il exclut la PERSON présente dans le stock.
+            and r.resources_type = 'VEHICLE'
         )
 )
 
 select
+    snapshot_date,
     id_entity,
     entity_type,
+    product_code,
     entity_code,
     entity_name,
-    product_code,
+    is_vehicle_active,
     product_name,
     stock_at_date,
     is_out_of_stock,

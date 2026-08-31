@@ -1,113 +1,227 @@
-# Architecture — Oracle Neshu GCS
+# Architecture — Oracle Neshu GCS (stock théorique)
 
-> Dernière mise à jour : 2026-05-24
+> Dernière mise à jour : 2026-08-31
+
+---
+
+## Pourquoi le nom porte encore « gcs »
+
+La source dbt s'appelle toujours `oracle_neshu_gcs`, héritage de l'époque où le
+stock théorique arrivait sous forme d'un CSV quotidien déposé sur Cloud Storage,
+relu par une table externe BigQuery. **Depuis le 2026-08-06, il n'y a plus ni CSV
+ni table externe** : la source lit `prod_raw.oracle_neshu_stock_theorique`, chargée
+directement depuis Oracle par le pipeline dlt `oracle_neshu_stock` (dépôt
+`ingestion`). L'historique CSV a été repris dans cette même table, à l'identique.
+
+Le nom de la source est conservé pour ne pas casser les `source()` existants.
+La table externe `ext_gcs_oracle_neshu__stock_theorique` n'existe plus.
 
 ---
 
 ## Vue d'ensemble
 
-Source **complémentaire** à `oracle_neshu` qui apporte une donnée non disponible
-via l'extraction Meltano standard : le **stock théorique journalier** par
-entité (ressource ou dépôt) et par produit.
+Source **complémentaire** à `oracle_neshu` : le **stock théorique journalier** par
+entité (dépôt ou véhicule) et par article, que l'extraction standard ne fournit
+pas. Il est calculé côté Oracle par la fonction PL/SQL `PCK_STOCK.GET_STOCK`,
+appelée **une fois par entité** — une boîte noire dont on ne voit pas le code.
 
-Un job externe (extraction nocturne) dépose chaque jour un **fichier CSV** sur
-Google Cloud Storage. Une **external table** BigQuery (`ext_gcs_oracle_neshu__stock_theorique`)
-pointe sur ce bucket, et un modèle staging unique nettoie / type les colonnes.
+```
+┌────────────────────────┐  dlt oracle_neshu_stock  ┌──────────────────────────────┐
+│  Oracle EVS            │  quotidien 23:00 Paris   │  prod_raw                    │
+│  PCK_STOCK.GET_STOCK   │ ───────────────────────► │  oracle_neshu_stock_theorique│
+│  (1 appel par entité)  │  merge / delete-insert    │  clé de merge snapshot_date  │
+└────────────────────────┘  sur snapshot_date        └──────────────┬───────────────┘
+                                                                    │ dbt staging
+                                                                    ▼
+                                       ┌────────────────────────────────────────┐
+                                       │  prod_staging                          │
+                                       │  stg_oracle_neshu_gcs__stock_theorique │
+                                       │  table, partition date_system          │
+                                       └──────────────┬─────────────────────────┘
+                                                      │ dbt marts (direct)
+                                                      ▼
+                                       ┌────────────────────────────────────────┐
+                                       │  marts/supply_chain/                   │
+                                       │  fct_supply_chain__stock_neshu         │
+                                       │  fct_supply_chain__flux_neshu          │
+                                       └────────────────────────────────────────┘
+```
 
-> Pourquoi un second pipeline pour Oracle ? Le stock théorique est calculé
-> côté Oracle par batch et n'est pas disponible via les tables `evs_*`
-> extraites par Meltano. Le CSV est le format de sortie natif de ce batch.
+**Pas de couche intermediate** — le staging est consommé directement par les marts.
 
 ---
 
-## Flux de données
+## Ce qui est figé, et ce qui ne l'est pas
 
-```
-┌──────────────────────┐   batch nocturne   ┌─────────────────────┐
-│   Oracle Neshu       │ ─────────────────► │   GCS bucket        │
-│   (batch stock)      │   CSV / jour       │   *.csv             │
-└──────────────────────┘                    └──────────┬──────────┘
-                                                       │ external table
-                                                       ▼
-                                       ┌──────────────────────────────────┐
-                                       │  prod_raw                        │
-                                       │  ext_gcs_oracle_neshu__          │
-                                       │  stock_theorique                 │
-                                       └──────────┬───────────────────────┘
-                                                  │ dbt staging
-                                                  ▼
-                                       ┌──────────────────────────────────┐
-                                       │  prod_staging                    │
-                                       │  stg_oracle_neshu_gcs__          │
-                                       │  stock_theorique (table)         │
-                                       │  partitionné date_system         │
-                                       └──────────┬───────────────────────┘
-                                                  │ dbt marts (direct)
-                                                  ▼
-                                       ┌──────────────────────────────────┐
-                                       │  marts/supply_chain/             │
-                                       │  fct_supply_chain__stock_neshu   │
-                                       │  fct_supply_chain__flux_neshu    │
-                                       └──────────────────────────────────┘
-```
+C'est la question qui a coûté un aller-retour avec la logistique le 2026-08-31.
+La réponse n'est pas uniforme.
 
-**Fraîcheur** : tier *Relaxe* — warn 7j / error 14j. Le batch tourne tous les
-jours mais peut sauter un cycle sans impact métier critique.
+**La valeur est figée.** Chaque nuit Oracle calcule, dlt écrit, et la journée
+n'est plus retouchée. La clé de merge est `snapshot_date`, donc seul un rejeu
+explicite pourrait réécrire une journée passée. Contrôlé sur les 303 journées
+chargées : les seules dont la date de chargement est postérieure à leur journée
+sont **2025-11-01 à 2025-11-11**, la reprise d'historique initiale. Un mouvement
+saisi en retard côté Oracle **n'altère donc pas** une ligne passée — il se
+manifeste dans les `plus`/`moins` des journées suivantes.
 
-**Pas de couche intermediate** — le staging est consommé directement par les
-marts `supply_chain`.
+**Rejouer une journée est possible mais ne l'a jamais été.** Le pipeline accepte
+`--business-date`, et le `delete-insert` rendrait l'opération idempotente. Mais
+`PCK_STOCK.GET_STOCK` est une boîte noire : **rien ne garantit qu'elle recalcule
+fidèlement un passé**. À trancher avec le DBA Distrilog avant tout usage en
+production. Un rejeu se lirait sur `extracted_at`, qui porterait la date du rejeu.
+
+**Le périmètre véhicules du mart ne l'était pas — corrigé le 2026-08-31.**
+`fct_supply_chain__stock_neshu` filtrait les ressources sur `is_active`, un attribut
+d'**état courant** de `dim_neshu__resource`, dimension sans snapshot SCD2. Un
+véhicule désactivé côté Oracle disparaissait donc rétroactivement de tout
+l'historique publié, et un véhicule réactivé y réapparaissait : au 2026-08-31, 802
+des 2 571 lignes ressource du 2026-07-01 étaient écartées. C'est ce qui a fait
+conclure à tort, côté logistique, à un solde recalculé.
+
+`is_active` n'est plus filtrante. Elle est **exposée** sous le nom
+`is_vehicle_active`, et le seul filtre conservé sur les ressources est
+`resources_type = 'VEHICLE'`, qui exclut la PERSON et ne bouge pas. Le jeu de lignes
+est donc entièrement déterminé par le raw. Un rapport qui veut le parc roulant filtre
+sur la colonne, en acceptant qu'elle porte l'état courant et non l'état à la date.
+
+Deux conséquences à connaître. Le total non filtré inclut le **résidu des véhicules
+sortis du parc** : 24 véhicules, 796 lignes, dont le stock est **figé** (aucun
+mouvement depuis le 30/06) et cumule +47 695 unités de résidu réel contre −61 951
+unités de théorique négatif jamais soldé — un sujet de qualité de donnée à traiter
+avec Distrilog, pas de modélisation. Et le taux de disponibilité véhicule passe de
+87,2 % à 82,3 % tant qu'on ne filtre pas.
+
+**Le même défaut subsiste dans `fct_supply_chain__flux_neshu`**, qui applique son
+propre `is_active` sur la dim à deux endroits (tâches d'inventaire, valorisation de
+repli). Ses chiffres mensuels bougent donc encore rétroactivement. Non traité : la
+correction touche une chaîne de valorisation et demande une revue métier.
 
 ---
 
-## Le modèle staging — `stg_oracle_neshu_gcs__stock_theorique`
+## Les deux horloges, et le piège du fuseau
 
-Grain : **1 ligne par (entité, produit, date_system)**.
+| Colonne | Nature | Usage |
+|---|---|---|
+| `snapshot_date` | `DATE`, sans heure ni fuseau | **La clé de filtre.** Jour métier de la photo, et clé de merge du pipeline |
+| `date_system` | `TIMESTAMP` — `SYSDATE` Oracle, heure comprise (23:00) | Audit : elle porte l'heure du batch, donc un rejeu s'y voit (il écrit minuit). **Pas une clé de filtre** |
+| `extracted_at` | `TIMESTAMP` du run dlt | Témoin de révision (cf. ci-dessus) |
+| `date_inventaire` | `TIMESTAMP` — `VARCHAR2` côté Oracle | Dernier inventaire physique |
 
-**Volumétrie (mai 2026)** :
-- ~620 k lignes, ~3 000 lignes/jour (très stable : min 2 630 / max 3 322)
-- 204 jours d'historique (depuis ~2025-11)
-- 76 entités stockantes × 204 produits
-- Couverture quotidienne — pas de jour manquant sur la fenêtre observée
+`SYSDATE` est une **horloge murale sans fuseau**, et le serveur Oracle est en
+Europe/Paris. Jusqu'au 2026-08-31 le staging faisait un `cast(... as timestamp)`
+dessus : BigQuery, faute de fuseau déclaré, la lisait comme UTC. L'instant stocké
+était donc faux de 1 h l'hiver et de 2 h l'été — et comme le batch tourne à 23:00,
+**toute lecture convertie en heure locale basculait la photo sur le lendemain**.
 
-**Répartition des entités (`entity_type`)** :
+> **Incident 2026-08-31.** La logistique compare le stock dépôts « fin juin » entre
+> deux extractions et trouve 11 680 € d'écart (258 014 € contre 246 333 €). Aucune
+> correction rétroactive : les deux chiffres étaient les photos du 30/06 et du 01/07,
+> lues sous deux conventions de fuseau différentes.
 
-| `entity_type` | # entités | % lignes | Exemples |
-|---|---|---|---|
-| `company` | 15 | 22 % | `06 - atelier rungis depot`, `02 - lyon depot produits`, `13 - marseille depot produits`, `10 - rebus depot`, `05 - perimes depot`… (dépôts physiques EVS, préfixe numérique) |
-| `resource` | 65 | 78 % | `anim rungis`, `prepa rungis`, `ksaadouni`, `asoumare`… (roadmen + ressources de préparation) |
+Le staging déclare désormais le fuseau d'origine :
+`timestamp(datetime(date_system), 'Europe/Paris')`, et
+`safe.parse_timestamp('%d/%m/%Y %H:%M', date_inventaire, 'Europe/Paris')`.
+`extracted_at` n'est pas touchée : elle portait déjà son décalage côté ingestion.
 
-> Les deux seules valeurs possibles aujourd'hui sont `company` et `resource` —
-> à durcir éventuellement avec un test `accepted_values`.
+**Recette du fuseau** — `date_system` et `extracted_at` décrivent le même run à une
+ou deux minutes près, donc leur écart mesure directement un décalage indûment
+appliqué. Il valait 59 min l'hiver et 117-120 min l'été (bascule au jour près le
+2026-03-29) ; il doit rester sous 2 minutes.
+
+---
+
+## Le grain
+
+**1 ligne par (`snapshot_date`, `entity_type`, `id_entity`, `product_code`).**
+
+`entity_type` est **indispensable** : `idcompany` et `idresources` viennent de deux
+séquences Oracle distinctes et **collisionnent**. Sans lui, 17 698 lignes Neshu
+apparaissent en doublon — « 06 - atelier rungis depot » partage son id avec la
+ressource « tlucet », « 05 - perimes depot » avec « elise khatchadourian ». Avec
+lui : 0 doublon sur 949 723 lignes. Le test vit sur les marts
+(`dbt_utils.unique_combination_of_columns`), pas sur le staging.
+
+---
+
+## Volumétrie (2026-08-31)
+
+| | |
+|---|---|
+| Lignes | **949 723** |
+| Journées | **303**, du 2025-11-01 au 2026-08-30 — **aucun jour manquant** |
+| Lignes par jour | 2 630 min / 3 463 max |
+| Entités | 15 dépôts (`company`) + 67 ressources (`resource`) |
+| Articles | 225 |
+| Durée du run côté Oracle | ~53 s pour 3 300 lignes — le coût est dans la fonction PL/SQL |
+
+Les 15 dépôts viennent d'une **liste blanche de libellés** déclarée côté ingestion
+(`pipelines/oracle_neshu_stock/tables.py`), contrôlée contre `EVS.company` avant
+chaque run. Le mart n'en retient que **7**.
+
+---
+
+## Colonnes du staging
 
 | Colonne | Type | Source / Transformation |
 |---|---|---|
-| `id_entity` | int64 | Cast de la colonne brute |
+| `snapshot_date` | date | Jour métier, posé par le pipeline |
+| `id_entity` | int64 | Cast |
 | `entity_name` | string | `lower(...)` |
-| `entity_type` | string | `lower(...)` — `company` (dépôt) ou `resource` (roadman / ressource interne) |
-| `date_system` | timestamp | **Partition** — date du système d'inventaire |
-| `resources_code` | string | Code ressource (camion / roadman) |
+| `entity_type` | string | `lower(...)` — `company` ou `resource` |
+| `date_system` | timestamp | **Partition** — déclaré `Europe/Paris` |
+| `resources_code` | string | Code de l'entité (`DEPOTRUNGIS`, immatriculation…) |
 | `product_code` | string | Renommé depuis `code_source` |
 | `product_name` | string | Renommé depuis `code_name` |
-| `date_inventaire` | timestamp | `safe.parse_timestamp('%d/%m/%Y %H:%M', ...)` — date du dernier inventaire physique |
+| `date_inventaire` | timestamp | `safe.parse_timestamp(..., 'Europe/Paris')` |
 | `stock_inventaire` | numeric | Stock physique constaté à `date_inventaire` |
-| `plus` | numeric | Quantité en plus par rapport au théorique |
-| `moins` | numeric | Quantité en moins par rapport au théorique |
-| `stock_at_date` | numeric | **Stock théorique** à `date_system` |
+| `plus` | numeric | Cumul des entrées depuis `date_inventaire` |
+| `moins` | numeric | Cumul des sorties depuis `date_inventaire` |
+| `stock_at_date` | numeric | **Stock théorique** — la mesure principale |
 | `dpa` | numeric | Dernier prix d'achat |
-| `pump` | numeric | Prix moyen pondéré |
+| `pump` | numeric | Prix moyen pondéré — **toujours à 0, inexploitable** |
 | `purchase_price` | numeric | Prix d'achat unitaire |
-| `extracted_at` | timestamp | Timestamp d'extraction du CSV |
-| `row_count` | int | Nombre de lignes du fichier source (audit) |
-| `file_datetime` | datetime | Extrait du nom de fichier via regex `(\d{4}_\d{2}_\d{2}_\d{4})` |
+| `extracted_at` | timestamp | Horodatage du run dlt |
 
-Configuration :
-```sql
-{{ config(
-    materialized='table',
-    partition_by={'field': 'date_system', 'data_type': 'timestamp'},
-    description='Table des stocks théoriques depuis les fichiers GCS Oracle Neshu'
-) }}
+Les huit `NUMBER` Oracle sans précision arrivent en `NUMERIC(38,9)` depuis la
+bascule dlt (`fetch_decimals=True` côté ingestion) — `dpa` et `purchase_price`
+portent jusqu'à 6 décimales. Avant, tout était `STRING`.
+
+---
+
+## L'invariant de calcul
+
 ```
+stock_at_date = stock_inventaire + plus - moins
+```
+
+Vérifié à **0 violation** sur les 949 723 lignes, et testé sur les deux marts de
+stock. `plus` et `moins` sont des **cumuls depuis le dernier inventaire physique**,
+remis à zéro à chaque nouvel inventaire — c'est cette remise à zéro, et non une
+correction rétroactive, qui explique les ruptures de série sur `plus`/`moins`.
+
+---
+
+## Taux de NULL et valeurs à connaître (2026-08-31)
+
+| Colonne | % NULL | Lecture |
+|---|---|---|
+| `stock_at_date` | 0 % | Toujours renseigné |
+| `resources_code` | 0 % | Toujours renseigné |
+| `purchase_price` | 2,1 % | Quelques articles sans prix |
+| `dpa` | 9,4 % | Articles sans historique d'achat récent |
+| `date_inventaire` | **24,6 %** | Articles sans inventaire physique remonté |
+
+`stock_at_date` est **négatif sur 70 861 lignes (7,5 %)** — c'est un stock
+théorique, pas un comptage. Les `plus`/`moins` des lignes sans `date_inventaire`
+sont à interpréter avec prudence : elles n'ont pas de point d'ancrage récent.
+
+---
+
+## Fraîcheur
+
+Tier **Standard**, méthode B : **26 h warn / 48 h error** sur `extracted_at`, via
+`dbt_expectations.expect_row_values_to_have_recent_data`. Cron `0 23 * * *`, gap
+observé 23-24 h très régulier. Autorité : [`docs/freshness.md`](../freshness.md).
 
 ---
 
@@ -115,58 +229,18 @@ Configuration :
 
 | Modèle | Rôle |
 |---|---|
-| `fct_supply_chain__stock_neshu` | Photo stock par entité × produit × date |
-| `fct_supply_chain__flux_neshu` | Flux supply chain mensuel — utilise le stock comme état initial / final |
+| `fct_supply_chain__stock_neshu` | Photo stock par entité × article × jour |
+| `fct_supply_chain__flux_neshu` | Flux mensuel — le stock sert d'état initial / final |
 
-Les dimensions associées (produit, ressource) viennent de `dim_neshu__product`
-et `dim_neshu__resource`. Joindre via `product_code` (et non `idproduct` —
-le CSV ne porte pas la PK Oracle).
+En aval : `disponibilite_article_neshu_depot_mensuel`,
+`disponibilite_article_neshu_vehicule_mensuel`, `couverture_stock_neshu`,
+`point_commande_neshu`. Les dimensions viennent de `dim_neshu__product` et
+`dim_neshu__resource` — joindre sur `product_code`, et non `idproduct` : la source
+ne porte pas la PK Oracle de l'article.
 
 ---
 
-## Points d'attention
+## Le jumeau LCDP
 
-### Pas de PK technique — clé naturelle `(id_entity, product_code, date_system)`
-La table n'expose pas d'identifiant unique technique. Le grain est garanti par
-la clé naturelle. **Aucun test `unique` n'est posé** côté staging — ajouter un
-`dbt_utils.unique_combination_of_columns` si une régression de grain est
-suspectée.
-
-### `date_system` ≠ `date_inventaire`
-- `date_system` = date à laquelle Oracle a **calculé** le stock théorique (la
-  date du batch, partition de la table)
-- `date_inventaire` = date du **dernier inventaire physique** réel utilisé
-  comme point de départ du calcul
-
-Pour une photo « stock à date X », filtrer sur `date_system = X`, pas sur
-`date_inventaire`.
-
-### Format de date français dans le CSV
-`date_inventaire` est parsée en `%d/%m/%Y %H:%M` via `safe.parse_timestamp` —
-les valeurs malformées remontent en `NULL` plutôt qu'en erreur. Surveiller via
-un test `not_null` si la qualité du CSV se dégrade.
-
-### `file_datetime` est extrait du nom de fichier
-Pattern : `..._YYYY_MM_DD_HHMM...`. Si le nommage côté job Oracle change, la
-regex échoue silencieusement (`NULL`). Audit possible via `where file_datetime is null`.
-
-### Pas de freshness stricte
-Tier *Relaxe* (7j/14j) — utiliser ce modèle pour des analyses de stock pas
-pour du temps réel. Une donnée à J-1 est attendue mais pas garantie.
-
-### Taux de NULL observés (mai 2026)
-
-| Colonne | % NULL | Lecture |
-|---|---|---|
-| `stock_at_date` | 0 % | Toujours renseigné — c'est la mesure principale |
-| `stock_inventaire` | 0 % | Toujours renseigné |
-| `resources_code` | 0 % | Toujours renseigné |
-| `pump` | 0 % | Toujours renseigné |
-| `purchase_price` | 2 % | Quelques produits sans prix |
-| `dpa` | 9 % | Produits sans historique d'achat récent |
-| `date_inventaire` | **25 %** | Significatif — produits sans inventaire physique récent |
-
-Le quart des lignes sans `date_inventaire` correspond à des produits sur
-lesquels aucun inventaire physique n'a été remonté côté Oracle. La colonne
-`stock_at_date` reste utilisable (calculée même sans point d'ancrage récent),
-mais les écarts `plus`/`moins` sont à interpréter avec prudence sur ces lignes.
+Le même moteur d'ingestion sert les deux ERP Distrilog. Voir
+[`oracle_lcdp_gcs.md`](oracle_lcdp_gcs.md) pour ce qui diffère.
