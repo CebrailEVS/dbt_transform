@@ -47,7 +47,7 @@ pre-commit install --hook-type pre-push      # hooks de push (dbt parse)
 
 | Fichier | Rôle | Modifié par |
 |---------|------|-------------|
-| `requirements.txt` | Dépendances directes avec versions fixes (`dbt-bigquery==1.11.1`) | Data Engineer uniquement |
+| `requirements.txt` | Dépendances directes avec versions fixes (`dbt-bigquery==1.12.0`) | Data Engineer uniquement |
 | `requirements-lock.txt` | Toutes les dépendances (y compris transitives) figées exactement | Généré automatiquement |
 
 **Règle simple :**

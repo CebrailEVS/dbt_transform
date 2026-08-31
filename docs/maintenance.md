@@ -8,7 +8,7 @@ jamais tout seul — d'où cet outillage.
 ## Outil — `dbt_orphan`
 
 Package : [`Matts52/dbt-orphan`](https://github.com/Matts52/dbt-orphan) (installé via
-git dans `packages.yml`, pin `v0.1.3` — **pas publié sur dbt Hub**).
+git dans `packages.yml`, pin `v0.2.0` — **pas publié sur dbt Hub**).
 
 Comment il fonctionne : il liste `INFORMATION_SCHEMA.TABLES` du dataset scanné, puis
 flague tout objet dont le nom n'est pas un `model`/`seed`/`snapshot` du graph dbt.
