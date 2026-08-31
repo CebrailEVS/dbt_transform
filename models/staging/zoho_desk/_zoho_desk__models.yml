@@ -234,6 +234,14 @@ models:
     tests:
       # Freshness fallback (tier Relaxe — source _dlt_load_id est STRING, cf. docs/freshness.md)
       # On monitore created_time : ticketerie active → tickets créés régulièrement.
+      #
+      # Le seuil 14 jours en severity: error a été RETIRÉ le 2026-08-31 : la source
+      # Zoho est volontairement gelée (scheduler PAUSED depuis la bascule dlt du
+      # 2026-08-05) et la data n'est pas encore exploitée. Un test bloquant sur une
+      # source qu'on sait figée fait échouer le job `cd` — donc pas de rebuild de
+      # l'image dbt-runner ni d'upload du manifest — pour une information déjà
+      # portée par le warn 7 jours ci-dessous. À réarmer quand le scheduler
+      # repartira et que les marts Zoho seront consommés.
       - dbt_expectations.expect_row_values_to_have_recent_data:
           arguments:
             column_name: created_time
@@ -241,13 +249,6 @@ models:
             interval: 7
           config:
             severity: warn
-      - dbt_expectations.expect_row_values_to_have_recent_data:
-          arguments:
-            column_name: created_time
-            datepart: day
-            interval: 14
-          config:
-            severity: error
     columns:
       - name: ticket_id
         description: "PK — identifiant unique du ticket (renommé depuis id)"
