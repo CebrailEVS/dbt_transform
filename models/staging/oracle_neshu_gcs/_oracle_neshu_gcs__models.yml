@@ -2,10 +2,14 @@ version: 2
 
 models:
   - name: stg_oracle_neshu_gcs__stock_theorique
-    description: "Table staging des fichiers CSV quotidiens de stock théorique Oracle Neshu depuis GCS. Les colonnes sont typées et les dates converties en TIMESTAMP."
+    description: >
+      Stock théorique Neshu, une photo par jour et par couple entité/article.
+      Chargé par le pipeline dlt `oracle_neshu_stock` (dépôt ingestion) depuis Oracle.
+      Les colonnes sont typées, et les deux horloges Oracle — nues côté
+      source — sont déclarées en Europe/Paris.
     tests:
       # Freshness fallback (tier Standard — extract quotidien 23:00 Paris, gap typique
-      # observé 23-24h ; source STRING timestamp cf. docs/freshness.md)
+      # observé 23-24h ; cf. docs/freshness.md)
       - dbt_expectations.expect_row_values_to_have_recent_data:
           arguments:
             column_name: extracted_at
@@ -30,7 +34,12 @@ models:
       - name: entity_type
         description: "Type de l'entité (en lowercase)"
       - name: date_system
-        description: "Date du système d'inventaire théorique (TIMESTAMP)"
+        description: >
+          Instant du calcul du stock théorique côté Oracle (SYSDATE, 23:00 heure de
+          Paris). L'horloge Oracle est nue, sans fuseau : le staging la déclare en
+          Europe/Paris pour en faire un instant juste. NE PAS s'en servir comme jour
+          métier — une lecture en heure locale la ferait basculer sur le lendemain.
+          Utiliser `snapshot_date`.
         tests:
           - not_null
       - name: resources_code
@@ -42,7 +51,10 @@ models:
       - name: product_name
         description: "Nom du produit"
       - name: date_inventaire
-        description: "Date du dernier inventaire réalisé (TIMESTAMP)"
+        description: >
+          Date du dernier inventaire physique, point de départ du calcul théorique.
+          VARCHAR2 côté Oracle, parsé en Europe/Paris pour la même raison que
+          `date_system`. NULL sur les produits sans inventaire physique récent.
       - name: stock_inventaire
         description: "Stock inventaire réel ou théorique à la date donnée"
       - name: plus
@@ -57,7 +69,13 @@ models:
         description: "Prix moyen pondéré ou autre information de prix"
       - name: purchase_price
         description: "Prix d'achat unitaire"
-      - name: extraction_timestamp
-        description: "Timestamp d'extraction des données (TIMESTAMP)"
-      - name: row_count
-        description: "Nombre de lignes du fichier CSV source"
+      - name: extracted_at
+        description: >
+          Horodatage du run dlt qui a chargé la ligne. Déjà daté avec son fuseau côté
+          ingestion, donc juste tel quel. Sert de témoin de révision : un écart de plus
+          de quelques minutes avec `date_system` signale une journée rechargée après coup.
+      - name: snapshot_date
+        description: >
+          Jour métier du snapshot (DATE, sans heure ni fuseau). Clé de merge du pipeline
+          dlt, et clé de filtre à privilégier en aval : contrairement à `date_system`,
+          elle ne peut pas basculer d'un jour selon le fuseau de lecture.
