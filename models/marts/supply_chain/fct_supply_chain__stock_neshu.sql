@@ -19,7 +19,7 @@ with filtered_stock as (
         -- véhicule désactivé depuis, et réapparaître un véhicule réactivé.
         case
             when st.entity_type = 'resource' then coalesce(r.is_active, false)
-        end as is_active,
+        end as is_vehicle_active,
         st.product_name,
         st.stock_at_date,
         st.stock_at_date = 0 as is_out_of_stock,
@@ -65,7 +65,7 @@ select
     product_code,
     entity_code,
     entity_name,
-    is_active,
+    is_vehicle_active,
     product_name,
     stock_at_date,
     is_out_of_stock,

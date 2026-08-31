@@ -15,7 +15,7 @@ select
     st.entity_name,
     case
         when st.entity_type = 'resource' then coalesce(r.is_active, false)
-    end as is_active,
+    end as is_vehicle_active,
     st.product_name,
     st.stock_at_date,
     st.stock_at_date = 0 as is_out_of_stock,

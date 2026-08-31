@@ -12,7 +12,7 @@ with monthly as (
         any_value(entity_name having max date_system) as entity_name,
         -- Etat COURANT du vehicule, remonte pour que le rapport puisse ecarter le
         -- parc retire. Non filtrant ici non plus : cf. fct_supply_chain__stock_neshu.
-        any_value(is_active having max date_system) as is_active,
+        any_value(is_vehicle_active having max date_system) as is_vehicle_active,
         any_value(product_name having max date_system) as product_name,
         count(distinct date(date_system)) as jours_observes,
         count(distinct case
@@ -28,7 +28,7 @@ select
     resources_id,
     entity_code,
     entity_name,
-    is_active,
+    is_vehicle_active,
     product_code,
     product_name,
     jours_observes,

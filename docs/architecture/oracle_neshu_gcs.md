@@ -70,13 +70,31 @@ manifeste dans les `plus`/`moins` des journées suivantes.
 fidèlement un passé**. À trancher avec le DBA Distrilog avant tout usage en
 production. Un rejeu se lirait sur `extracted_at`, qui porterait la date du rejeu.
 
-**Le périmètre véhicules du mart, lui, n'est PAS figé.**
-`fct_supply_chain__stock_neshu` filtre les ressources sur `dim_neshu__resource`
-(`resources_type = 'VEHICLE' and is_active`), une dimension d'**état courant** sans
-snapshot SCD2. Un véhicule désactivé côté Oracle disparaît donc rétroactivement de
-tout l'historique publié, et un véhicule réactivé y réapparaît. Au 2026-08-31,
-**802 des 2 571 lignes ressource du 2026-07-01** sont écartées par ce filtre (796
-pour 24 véhicules devenus inactifs, 6 pour une PERSON). Arbitrage métier en cours.
+**Le périmètre véhicules du mart ne l'était pas — corrigé le 2026-08-31.**
+`fct_supply_chain__stock_neshu` filtrait les ressources sur `is_active`, un attribut
+d'**état courant** de `dim_neshu__resource`, dimension sans snapshot SCD2. Un
+véhicule désactivé côté Oracle disparaissait donc rétroactivement de tout
+l'historique publié, et un véhicule réactivé y réapparaissait : au 2026-08-31, 802
+des 2 571 lignes ressource du 2026-07-01 étaient écartées. C'est ce qui a fait
+conclure à tort, côté logistique, à un solde recalculé.
+
+`is_active` n'est plus filtrante. Elle est **exposée** sous le nom
+`is_vehicle_active`, et le seul filtre conservé sur les ressources est
+`resources_type = 'VEHICLE'`, qui exclut la PERSON et ne bouge pas. Le jeu de lignes
+est donc entièrement déterminé par le raw. Un rapport qui veut le parc roulant filtre
+sur la colonne, en acceptant qu'elle porte l'état courant et non l'état à la date.
+
+Deux conséquences à connaître. Le total non filtré inclut le **résidu des véhicules
+sortis du parc** : 24 véhicules, 796 lignes, dont le stock est **figé** (aucun
+mouvement depuis le 30/06) et cumule +47 695 unités de résidu réel contre −61 951
+unités de théorique négatif jamais soldé — un sujet de qualité de donnée à traiter
+avec Distrilog, pas de modélisation. Et le taux de disponibilité véhicule passe de
+87,2 % à 82,3 % tant qu'on ne filtre pas.
+
+**Le même défaut subsiste dans `fct_supply_chain__flux_neshu`**, qui applique son
+propre `is_active` sur la dim à deux endroits (tâches d'inventaire, valorisation de
+repli). Ses chiffres mensuels bougent donc encore rétroactivement. Non traité : la
+correction touche une chaîne de valorisation et demande une revue métier.
 
 ---
 

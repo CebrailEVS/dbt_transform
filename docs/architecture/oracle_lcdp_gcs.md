@@ -24,16 +24,15 @@ Ce document ne consigne que ce qui diffère côté LCDP.
 | Table cible | `oracle_neshu_stock_theorique` | **`oracle_lcdp_stock_theorique`** |
 | Cron | `0 23 * * *` | **`15 23 * * *`** (23:15 Paris) |
 | Début de l'historique | 2025-11-01 | **2026-06-05** — pas d'antérieur, aucune reprise CSV |
-| Filtre du mart | 7 dépôts, véhicules **actifs seulement** | **aucun filtre** |
-| `is_active` dans le mart | non exposée (elle filtre) | **exposée en colonne** |
+| Filtre du mart | 7 dépôts sur 15, et `resources_type='VEHICLE'` | **aucun filtre** |
 | Modèle de flux mensuel | `fct_supply_chain__flux_neshu` | aucun |
 
-**La différence qui compte** : `fct_supply_chain__stock_lcdp` **ne filtre pas** les
-véhicules, il aplatit `is_active` depuis `dim_lcdp__resource` et laisse la BI
-décider. Son historique est donc **stable**, là où celui de son homologue Neshu
-bouge au gré des activations/désactivations de véhicules (cf.
-[`oracle_neshu_gcs.md`](oracle_neshu_gcs.md) § Ce qui est figé). C'est la forme
-vers laquelle Neshu devrait converger.
+**LCDP a toujours eu la bonne forme sur les véhicules** : il ne les filtre pas, il
+aplatit `is_active` depuis `dim_lcdp__resource` sous le nom `is_vehicle_active` et
+laisse la BI décider. Son historique est donc stable depuis l'origine, là où celui de
+Neshu bougeait au gré des activations/désactivations — c'est cette forme que Neshu a
+adoptée le 2026-08-31 (cf. [`oracle_neshu_gcs.md`](oracle_neshu_gcs.md) § Ce qui est
+figé). Les deux marts sont désormais symétriques, au périmètre de dépôts près.
 
 ---
 

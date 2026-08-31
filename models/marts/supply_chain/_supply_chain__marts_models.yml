@@ -4,9 +4,9 @@ models:
   - name: fct_supply_chain__stock_neshu
     description: |
       [QUOI MÉTIER] Stock théorique journalier des produits Neshu, par véhicule roadman et par dépôt.
-      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu_gcs__stock_theorique (pipeline dlt oracle_neshu_stock, batch Oracle de 23:00 Paris), filtré sur les dépôts 01–05, 10, 13 (entity_type='company') et sur resources_type='VEHICLE' via dim_neshu__resource, qui exclut la PERSON présente dans le stock. is_active est aplati depuis la même dim mais NE FILTRE PAS (FALSE si absent de la dim, NULL pour les dépôts). is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu_gcs__stock_theorique (pipeline dlt oracle_neshu_stock, batch Oracle de 23:00 Paris), filtré sur les dépôts 01–05, 10, 13 (entity_type='company') et sur resources_type='VEHICLE' via dim_neshu__resource, qui exclut la PERSON présente dans le stock. is_vehicle_active est aplati depuis la colonne is_active de la même dim mais NE FILTRE PAS (FALSE si absent de la dim, NULL pour les dépôts). is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
       [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code).
-      [NOTES] Filtrer sur snapshot_date : c'est une DATE, insensible à l'heure du run comme au fuseau de lecture. date_system est conservée à côté pour l'audit — elle porte l'heure du batch, donc révèle une journée rejouée — mais n'est pas une clé de filtre. entity_type fait partie du grain : idcompany et idresources viennent de deux séquences Oracle distinctes et collisionnent (17 698 lignes concernées au 2026-08-31). plus/moins = cumuls d'entrées/sorties depuis le dernier inventaire physique, d'où l'invariant stock_at_date = stock_inventaire + plus - moins. PÉRIMÈTRE VÉHICULES FIGÉ depuis le 2026-08-31 : is_active n'est plus filtrante, justement parce qu'elle porte l'état COURANT d'une dim non historisée — la filtrer faisait disparaître rétroactivement de tout l'historique un véhicule désactivé depuis. Le total NON filtré inclut donc le résidu des véhicules sortis du parc : au 2026-08-30, 24 véhicules inactifs pour 796 lignes, dont le stock est FIGÉ (aucun mouvement depuis le 30/06) et cumule +47 695 unités de résidu réel contre -61 951 unités de théorique négatif jamais soldé — sujet de qualité de donnée à traiter avec Distrilog, pas de modélisation. Un rapport qui veut le parc roulant filtre sur is_active, en acceptant que ce soit un état courant et non un état à la date.
+      [NOTES] Filtrer sur snapshot_date : c'est une DATE, insensible à l'heure du run comme au fuseau de lecture. date_system est conservée à côté pour l'audit — elle porte l'heure du batch, donc révèle une journée rejouée — mais n'est pas une clé de filtre. entity_type fait partie du grain : idcompany et idresources viennent de deux séquences Oracle distinctes et collisionnent (17 698 lignes concernées au 2026-08-31). plus/moins = cumuls d'entrées/sorties depuis le dernier inventaire physique, d'où l'invariant stock_at_date = stock_inventaire + plus - moins. PÉRIMÈTRE VÉHICULES FIGÉ depuis le 2026-08-31 : is_vehicle_active n'est plus filtrante, justement parce qu'elle porte l'état COURANT d'une dim non historisée — la filtrer faisait disparaître rétroactivement de tout l'historique un véhicule désactivé depuis. Le total NON filtré inclut donc le résidu des véhicules sortis du parc : au 2026-08-30, 24 véhicules inactifs pour 796 lignes, dont le stock est FIGÉ (aucun mouvement depuis le 30/06) et cumule +47 695 unités de résidu réel contre -61 951 unités de théorique négatif jamais soldé — sujet de qualité de donnée à traiter avec Distrilog, pas de modélisation. Un rapport qui veut le parc roulant filtre sur is_vehicle_active, en acceptant que ce soit un état courant et non un état à la date.
     columns:
       - name: snapshot_date
         description: "Jour métier de la photo de stock (DATE), colonne de partition. Clé de filtre à utiliser en BI"
@@ -31,7 +31,7 @@ models:
         description: "Code de la ressource ou dépôt"
       - name: entity_name
         description: "Nom de l'entité (en lowercase)"
-      - name: is_active
+      - name: is_vehicle_active
         description: >
           Véhicule actif ou non selon dim_neshu__resource. NULL pour les dépôts. ATTENTION, c'est un
           état COURANT et non un état à la date de la photo : la dim des ressources n'est pas
@@ -82,7 +82,7 @@ models:
   - name: fct_supply_chain__stock_lcdp
     description: |
       [QUOI MÉTIER] Stock théorique journalier des produits LCDP, par véhicule et par dépôt.
-      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp_gcs__stock_theorique (pipeline dlt oracle_lcdp_stock, batch Oracle de 23:15 Paris). Aucun filtre : les 11 dépôts (entity_type='company') et tous les véhicules (entity_type='resource') sont exposés. is_active aplati depuis dim_lcdp__resource pour les véhicules (FALSE si absent de la dim), NULL pour les dépôts. is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp_gcs__stock_theorique (pipeline dlt oracle_lcdp_stock, batch Oracle de 23:15 Paris). Aucun filtre : les 11 dépôts (entity_type='company') et tous les véhicules (entity_type='resource') sont exposés. is_vehicle_active aplati depuis is_active de dim_lcdp__resource pour les véhicules (FALSE si absent de la dim), NULL pour les dépôts. is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
       [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code).
       [NOTES] Démarré le 2026-06-05 (pas d'historique antérieur). Filtrer sur snapshot_date : c'est une DATE, insensible à l'heure du run comme au fuseau de lecture. date_system est conservée à côté pour l'audit — elle porte l'heure du batch, donc révèle une journée rejouée — mais n'est pas une clé de filtre. entity_type fait partie du grain, par prudence : côté Neshu idcompany et idresources collisionnent, LCDP n'y échappe aujourd'hui que par chance. plus/moins = écarts d'inventaire vs théorique. Stocks négatifs possibles (stock théorique). date_inventaire NULL ≈ 30 % (entités/produits jamais inventoriés).
     columns:
@@ -105,7 +105,7 @@ models:
         description: "Code de la ressource (immatriculation véhicule), NULL pour les dépôts"
       - name: entity_name
         description: "Nom de l'entité (en lowercase)"
-      - name: is_active
+      - name: is_vehicle_active
         description: "TRUE si le véhicule porte le label ISACTIVE=YES, FALSE sinon. NULL pour les dépôts"
       - name: product_code
         description: "Code du produit"
@@ -328,9 +328,9 @@ models:
   - name: fct_supply_chain__disponibilite_article_neshu_vehicule_mensuel
     description: |
       [QUOI MÉTIER] Taux de disponibilité mensuel des articles dans les véhicules Neshu : part des jours du mois où l'article était en stock (> 0) à bord du véhicule.
-      [COMMENT CONSTRUITE] Agrégation mensuelle de fct_supply_chain__stock_neshu filtré sur les véhicules (entity_type='resource' ; le filtre resources_type='VEHICLE' est appliqué en amont, is_active NON — elle est remontée en colonne). jours_observes = nb de jours où le couple véhicule/article est référencé dans les données ; jours_disponibles = nb de jours référencés où is_out_of_stock=false. taux = jours_disponibles / jours_observes. mois = date_trunc à month.
+      [COMMENT CONSTRUITE] Agrégation mensuelle de fct_supply_chain__stock_neshu filtré sur les véhicules (entity_type='resource' ; le filtre resources_type='VEHICLE' est appliqué en amont, is_active NON — elle est remontée en colonne sous le nom is_vehicle_active). jours_observes = nb de jours où le couple véhicule/article est référencé dans les données ; jours_disponibles = nb de jours référencés où is_out_of_stock=false. taux = jours_disponibles / jours_observes. mois = date_trunc à month.
       [GRAIN] 1 ligne par (mois, véhicule, article).
-      [NOTES] Le taux est calculé depuis le 1er référencement de l'article dans le véhicule (dénominateur = jours référencés), pas sur le mois calendaire : un article arrivé en cours de mois et jamais en rupture affiche 100 %, sans pénalité pour les jours antérieurs à son arrivée. Le mois en cours est partiel (taux à interpréter avec jours_observes). Clé métier = product_code ; entity_name/entity_code/product_name reflètent le libellé du snapshot le plus récent du mois (un article peut être renommé en cours de mois sans changer de code). Le périmètre inclut les véhicules SORTIS DU PARC, dont le stock est figé : ils tirent le taux moyen vers le bas (87,2 % contre 82,3 % au 2026-08-31, 42 véhicules contre 66). Un rapport qui veut le parc roulant filtre sur is_active.
+      [NOTES] Le taux est calculé depuis le 1er référencement de l'article dans le véhicule (dénominateur = jours référencés), pas sur le mois calendaire : un article arrivé en cours de mois et jamais en rupture affiche 100 %, sans pénalité pour les jours antérieurs à son arrivée. Le mois en cours est partiel (taux à interpréter avec jours_observes). Clé métier = product_code ; entity_name/entity_code/product_name reflètent le libellé du snapshot le plus récent du mois (un article peut être renommé en cours de mois sans changer de code). Le périmètre inclut les véhicules SORTIS DU PARC, dont le stock est figé : ils tirent le taux moyen vers le bas : 82,3 % sur tout le parc contre 87,2 % sur le seul parc actif au 2026-08-31 (66 véhicules contre 42). Un rapport qui veut le parc roulant filtre sur is_vehicle_active.
     columns:
       - name: mois
         description: "Premier jour du mois (DATE)"
@@ -350,7 +350,7 @@ models:
         description: "Code du véhicule"
       - name: entity_name
         description: "Nom du véhicule (en lowercase)"
-      - name: is_active
+      - name: is_vehicle_active
         description: >
           Véhicule actif ou non selon dim_neshu__resource. ATTENTION, état COURANT et non état du
           mois : la dim des ressources n'est pas historisée. Non filtrante — filtrer dessus rendrait
