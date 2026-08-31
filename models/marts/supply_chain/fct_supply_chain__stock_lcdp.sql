@@ -1,20 +1,21 @@
 {{ config(
     materialized='table',
     partition_by={
-        'field': 'date_system',
-        'data_type': 'timestamp'
+        'field': 'snapshot_date',
+        'data_type': 'date'
     }
 ) }}
 
 select
+    st.snapshot_date,
     st.id_entity,
     st.entity_type,
+    st.product_code,
     st.resources_code as entity_code,
     st.entity_name,
     case
         when st.entity_type = 'resource' then coalesce(r.is_active, false)
     end as is_active,
-    st.product_code,
     st.product_name,
     st.stock_at_date,
     st.stock_at_date = 0 as is_out_of_stock,
