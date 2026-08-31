@@ -1,14 +1,15 @@
 
 
 select
+    st.snapshot_date,
     st.id_entity,
     st.entity_type,
+    st.product_code,
     st.resources_code as entity_code,
     st.entity_name,
     case
         when st.entity_type = 'resource' then coalesce(r.is_active, false)
-    end as is_active,
-    st.product_code,
+    end as is_vehicle_active,
     st.product_name,
     st.stock_at_date,
     st.stock_at_date = 0 as is_out_of_stock,

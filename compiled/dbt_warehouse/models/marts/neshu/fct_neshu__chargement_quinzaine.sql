@@ -44,7 +44,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '319562fd-db1c-40bf-ba1a-33f203fbfe8f' as dbt_invocation_id  -- noqa: TMP
+    '36c20bc6-8089-4d19-bcd0-9d87537646ed' as dbt_invocation_id  -- noqa: TMP
 from base
 group by
     product_type,
