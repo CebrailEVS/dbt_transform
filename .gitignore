@@ -38,3 +38,8 @@ docs/audits/
 # Modèles d'analyse ad hoc / jetables (comparaisons vs prod, dev-only).
 # Non versionnés : ils tournent en local à la demande, hors CI.
 models/_analysis/
+
+# Ecrit automatiquement par le parser dbt Core v2 (`dbt parse --use-v2-parser`) :
+# il resout les packages dans son propre dossier et ajoute lui-meme cette ligne.
+# On la versionne pour que la veille v2 ne salisse pas l'arbre de travail.
+dbt_internal_packages/
