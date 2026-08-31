@@ -3,12 +3,18 @@ name: dbt_warehouse
 version: '1.0.0'
 profile: dbt_warehouse
 config-version: 2
-require-dbt-version: [">=1.0.0", "<2.0.0"]
+require-dbt-version: [">=1.12.0", "<3.0.0"]
 
 flags:
   use_colors: true
   send_anonymous_usage_stats: false
-  bigquery_use_batch_source_freshness: true  # Faster freshness checks via TABLE_STORAGE
+  # Volontairement FALSE. Le chemin "batch" (metadata TABLE_STORAGE) ne concerne que
+  # les sources sans loaded_at_field : ici il n'y en a aucune, il tourne donc sur 0
+  # source et plante dans get_relation_last_modified ("list object has no element 0").
+  # Sous dbt 1.11 l'erreur etait cosmetique, le calcul par source suivait quand meme.
+  # Sous 1.12 elle fait SKIP les 55 sources : freshness aveugle, exit 1. A remettre a
+  # true seulement si une source passe un jour en freshness sans loaded_at_field.
+  bigquery_use_batch_source_freshness: false
 
 model-paths: ["models"]
 analysis-paths: ["analysis"]

@@ -116,6 +116,14 @@ jobs:
             echo "::warning::dbt parse produced warnings — review the output above"
           fi
 
+      # Veille dbt Core v2 (moteur Fusion, Rust) — NON BLOQUANTE.
+      # Le binaire v2 est deja livre avec dbt-core 1.12 (dep dbt-core-experimental-parser),
+      # rien a installer. Objectif : voir arriver une incompatibilite v2 pendant que
+      # l'adaptateur BigQuery y est encore en Preview. Ne jamais bloquer la PR sur ce step.
+      - name: dbt parse --use-v2-parser (veille v2, non bloquant)
+        continue-on-error: true
+        run: dbt parse --use-v2-parser --target dev
+
       - name: Download manifest from GCS
         continue-on-error: true
         run: |

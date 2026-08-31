@@ -3,7 +3,7 @@
 ## Project overview
 ELT data warehouse for EVS Professionnelle France.
 **Stack:** Meltano + Cloud Run jobs (extract) → BigQuery `prod_raw` (lake) → dbt (transform) → GCP Cloud Workflows (orchestrate) → Power BI (viz)
-**dbt version:** 1.11.11 / dbt-bigquery 1.11.3
+**dbt version:** 1.12.3 / dbt-bigquery 1.12.0
 **Team:** 1 Data Engineer (owner), 1 Data Analyst (contributes to marts)
 
 ---
@@ -42,6 +42,9 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
 - `dbt deps` + `dbt debug --target dev`
 - SQLFluff lint on **changed** models only (git diff vs base ref)
 - `dbt parse --target dev` (warnings surfaced, non-blocking)
+- `dbt parse --use-v2-parser --target dev` — **veille dbt Core v2** (moteur Fusion/Rust),
+  `continue-on-error: true`. Le binaire v2 est livré avec dbt-core 1.12 (dep
+  `dbt-core-experimental-parser`), rien à installer. Ne bloque jamais la PR.
 - Pulls prod `manifest.json` from the GCS state bucket, then a **deferred incremental** build:
   `dbt build --target dev --select state:modified+ --defer --state state/ --exclude resource_type:snapshot`
   → builds only modified+downstream in `evs-datastack-dev`; unbuilt refs & snapshots **defer to prod**.
@@ -64,6 +67,11 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
 - A **direct push to master triggers `cd`** → the change builds in prod immediately, not only on PR merge.
   The rebuilt `dbt-runner` image is then picked up **per-execution** by scheduled Cloud Workflows runs.
 - CI/CD (immediate build on push/PR) is **distinct from Cloud Workflows** (scheduled EL + transform orchestration).
+- **dbt Core v2 (moteur Fusion) n'est PAS en prod** : l'adaptateur BigQuery y est en *Preview*
+  (Snowflake seul est GA). On reste sur la ligne 1.x tant que BigQuery n'est pas GA. Le step de
+  veille ci-dessus est là pour voir venir une incompatibilité, pas pour préparer une bascule.
+  Au moment de basculer : `dbt docs generate` est déprécié en v2 (→ `dbt compile --write-catalog`),
+  et le lint SQLFluff n'a pas encore d'équivalent en CI Fusion (`dbt lint` natif).
 
 ---
 
@@ -360,7 +368,7 @@ et reprompt plus précis, plutôt que continuer dans un contexte pollué.
 
 ## Key packages
 
-- `dbt_utils` 1.3.3 — `unique_combination_of_columns`, `expression_is_true`, `generate_surrogate_key`
+- `dbt_utils` 1.4.1 — `unique_combination_of_columns`, `expression_is_true`, `generate_surrogate_key`
 - `dbt_expectations` 0.10.10 — row count ranges, date ranges, regex, null rate checks
 
 ## SQLFluff rules (v4)

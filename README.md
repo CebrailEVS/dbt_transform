@@ -235,18 +235,18 @@ Toujours verifier avec `git diff` apres un `sqlfluff fix`. Voir [CONVENTIONS.md]
 
 | Package | Version | Role |
 |---------|---------|------|
-| `dbt-core` | 1.11.3 | Framework de transformation |
-| `dbt-bigquery` | 1.11.0 | Adaptateur BigQuery |
-| `sqlfluff` | 4.0.0 | Linter SQL |
-| `sqlfluff-templater-dbt` | 4.0.0 | Support Jinja/dbt pour SQLFluff |
+| `dbt-core` | 1.12.3 | Framework de transformation |
+| `dbt-bigquery` | 1.12.0 | Adaptateur BigQuery |
+| `sqlfluff` | 4.3.0 | Linter SQL |
+| `sqlfluff-templater-dbt` | 4.3.0 | Support Jinja/dbt pour SQLFluff |
 
 ### dbt packages (`packages.yml`)
 
 | Package | Version | Role |
 |---------|---------|------|
-| `dbt-utils` | 1.1.1 | Tests avances (unique_combination, expression_is_true) |
+| `dbt-utils` | 1.4.1 | Tests avances (unique_combination, expression_is_true) |
 | `dbt_expectations` | 0.10.10 | Tests de qualite (row count, date range, distributions) |
-| `dbt_orphan` | v0.1.3 (git) | Detection/suppression des objets orphelins (cf. [docs/maintenance.md](docs/maintenance.md)) |
+| `dbt_orphan` | v0.2.0 (git) | Detection/suppression des objets orphelins (cf. [docs/maintenance.md](docs/maintenance.md)) |
 
 ---
 

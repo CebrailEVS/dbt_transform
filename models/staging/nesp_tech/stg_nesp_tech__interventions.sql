@@ -142,7 +142,7 @@ deduplicated_data as (
                 order by extracted_at desc
             ) as rn
         from cleaned_data
-    )
+    ) as ranked
     where rn = 1
 
 )
