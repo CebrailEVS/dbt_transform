@@ -110,7 +110,7 @@ deduplicated as (
 
         from cleaned
 
-    )
+    ) as ranked
 
     where rn = 1
 )
