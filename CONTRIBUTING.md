@@ -20,6 +20,14 @@ source dbt_venv/bin/activate  # Windows : dbt_venv\Scripts\activate
 # 3. Installer les dépendances exactes
 pip install -r requirements-lock.txt
 
+# 3 bis. UNIQUEMENT si tu mets a jour un clone qui tournait en dbt <= 1.11 :
+#        vider target/ une fois. dbt 1.12 compile les snapshots dans
+#        target/{compiled,run}/.../<fichier>.sql/<snapshot>.sql, et un ancien
+#        fichier laisse par 1.11 au meme chemin fait echouer `dbt snapshot`
+#        avec "[Errno 20] Not a directory". Sans effet en CI ni sur le job
+#        Cloud Run, qui partent d'un arbre neuf.
+rm -rf target/
+
 # 4. Copier et remplir le fichier d'environnement
 cp .env.example .env  # puis remplir les variables avec le Data Engineer
 
