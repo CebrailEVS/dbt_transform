@@ -1,0 +1,50 @@
+
+  
+    
+
+    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_zoho_desk__ticket_priority_events`
+      
+    partition by event_date_paris
+    cluster by ticket_id
+
+    
+    OPTIONS(
+      description="""[QUOI M\u00c9TIER] Une ligne par changement de priorit\u00e9 d'un ticket. Permet d'analyser les escalades (ex. Low \u2192 High en cours de traitement).\n[COMMENT CONSTRUITE] stg_zoho_desk__ticket_history \u00d7 ticket_history_event_info, filtr\u00e9 property_name = 'Priority'. Valeur scalaire : prev/new lus dans property_value__previous_value / __updated_value, fallback property_value pour l'attribution initiale.\n[GRAIN] 1 ligne par \u00e9v\u00e9nement de changement de priorit\u00e9 (\u2265 0 par ticket). Depuis f\u00e9vrier 2024.\n[NOTES] Beaucoup de tickets n'ont aucun changement de priorit\u00e9 (priorit\u00e9 souvent jamais renseign\u00e9e, cf. ticket_enriched.priority ~35% NULL).\n"""
+    )
+    as (
+      
+
+with history as (
+    select * from `evs-datastack-prod`.`prod_staging`.`stg_zoho_desk__ticket_history`
+),
+
+event_info as (
+    select * from `evs-datastack-prod`.`prod_staging`.`stg_zoho_desk__ticket_history_event_info`
+),
+
+priority_events as (
+    select
+        h._zoho_desk_associated_tickets_id as ticket_id,
+        h.event_time as event_at,
+        date(h.event_time, 'Europe/Paris') as event_date_paris,
+        h.event_name,
+        h.actor__id as actor_id,
+        h.actor__name as actor_name,
+        h.actor__type as actor_type,
+        ei.property_value__previous_value as prev_priority,
+        coalesce(
+            ei.property_value__updated_value,
+            ei.property_value
+        ) as new_priority,
+        ei.property_value__previous_value is null
+        and ei.property_value__updated_value is null
+        and ei.property_value is not null as is_initial_assignment
+    from history as h
+    inner join event_info as ei
+        on h._dlt_id = ei._dlt_parent_id
+    where ei.property_name = 'Priority'
+)
+
+select * from priority_events
+    );
+  

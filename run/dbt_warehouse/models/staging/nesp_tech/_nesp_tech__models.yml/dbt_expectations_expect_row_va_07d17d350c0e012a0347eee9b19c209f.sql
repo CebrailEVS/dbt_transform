@@ -1,13 +1,22 @@
 
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
 
  with max_recency as (
 
-    select max(cast(created_time as timestamp)) as max_timestamp
+    select max(cast(date_heure_fin as timestamp)) as max_timestamp
     from
-        `evs-datastack-prod`.`prod_staging`.`stg_zoho_desk__tickets`
+        `evs-datastack-prod`.`prod_staging`.`stg_nesp_tech__interventions`
     where
         -- to exclude erroneous future dates
-        cast(created_time as timestamp) <= timestamp(datetime(current_timestamp(), 'Europe/Paris'))
+        cast(date_heure_fin as timestamp) <= timestamp(datetime(current_timestamp(), 'Europe/Paris'))
         
 )
 select
@@ -30,3 +39,8 @@ where
 
 
 
+
+  
+  
+      
+    ) dbt_internal_test

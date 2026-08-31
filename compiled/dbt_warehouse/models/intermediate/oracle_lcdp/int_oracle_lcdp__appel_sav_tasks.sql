@@ -96,7 +96,7 @@ deduped_task as (
                 order by bt.resources_id
             ) as rn
         from base_task as bt
-    )
+    ) as ranked
     where rn = 1
 
 )

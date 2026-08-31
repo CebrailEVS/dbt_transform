@@ -40,7 +40,7 @@ dedup as (
             ) as rn
         from union_source
         where third is not null
-    )
+    ) as ranked
     where rn = 1
 )
 
