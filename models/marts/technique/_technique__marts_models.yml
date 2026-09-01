@@ -151,7 +151,19 @@ models:
           Statut de facturation — ATTENTION, échelle différente selon la source.
           NESP (mappé depuis l'état d'intervention) : VALIDATED / NOT VALIDATED /
           NOT DEFINED. YUMAN (`billing_validation_status`) : VALIDATED /
-          UNTRACKABLE / MISSING_TARIF / NOT_BILLABLE.
+          UNTRACKABLE / MISSING_TARIF / NOT_BILLABLE. Le domaine testé est donc
+          l'union des deux échelles — toute valeur hors liste signale une
+          évolution non documentée d'une des deux sources.
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - VALIDATED
+                  - NOT VALIDATED
+                  - NOT DEFINED
+                  - UNTRACKABLE
+                  - MISSING_TARIF
+                  - NOT_BILLABLE
 
       - name: categorie_machine
         description: >
@@ -1638,12 +1650,22 @@ models:
         description: >
           Statut de facturation après application du retraitement : VALIDATED si
           `a_facturer_retraite` = OUI, NOT VALIDATED si NON, sinon le
-          `statut_facturation` du fait.
+          `statut_facturation` du fait. ⚠️ En l'absence de retraitement (majorité
+          des lignes), la colonne hérite donc de l'échelle du fait, qui diffère
+          selon la source : NESP → VALIDATED / NOT VALIDATED / NOT DEFINED ;
+          YUMAN → VALIDATED / UNTRACKABLE / MISSING_TARIF / NOT_BILLABLE. Le
+          retraitement, lui, n'émet que VALIDATED / NOT VALIDATED.
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['VALIDATED', 'NOT VALIDATED', 'NOT DEFINED']
+                values:
+                  - VALIDATED
+                  - NOT VALIDATED
+                  - NOT DEFINED
+                  - UNTRACKABLE
+                  - MISSING_TARIF
+                  - NOT_BILLABLE
 
       - name: tech_id_effectif
         description: >
