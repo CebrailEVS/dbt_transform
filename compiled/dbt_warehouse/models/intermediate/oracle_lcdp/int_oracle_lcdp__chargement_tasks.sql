@@ -75,26 +75,48 @@ with chargement_base as (
         t.updated_at, t.created_at, t.extracted_at
 ),
 
-ressources_roadman as (
+-- Une tâche peut porter plusieurs ressources d'un même type. On retient UNE
+-- ligne entière (celle du plus petit idresources) pour que l'identifiant et le
+-- code désignent toujours la même ressource : des min() indépendants par
+-- colonne les dissociaient dès qu'il y avait deux affectations.
+ressources_roadman_ranked as (
     select
         thr.idtask,
-        min(r.idresources) as roadman_id,
-        min(r.code) as roadman_code
+        r.idresources as roadman_id,
+        r.code as roadman_code,
+        row_number() over (partition by thr.idtask order by r.idresources) as rn
     from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_resources` as thr
     inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` as r on thr.idresources = r.idresources
     where r.idresources_type = 2
-    group by thr.idtask
+),
+
+ressources_roadman as (
+    select
+        idtask,
+        roadman_id,
+        roadman_code
+    from ressources_roadman_ranked
+    where rn = 1
+),
+
+ressources_vehicle_ranked as (
+    select
+        thr.idtask,
+        r.idresources as vehicle_id,
+        r.code as vehicle_code,
+        row_number() over (partition by thr.idtask order by r.idresources) as rn
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_resources` as thr
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` as r on thr.idresources = r.idresources
+    where r.idresources_type = 3
 ),
 
 ressources_vehicle as (
     select
-        thr.idtask,
-        min(r.idresources) as vehicle_id,
-        min(r.code) as vehicle_code
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_resources` as thr
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` as r on thr.idresources = r.idresources
-    where r.idresources_type = 3
-    group by thr.idtask
+        idtask,
+        vehicle_id,
+        vehicle_code
+    from ressources_vehicle_ranked
+    where rn = 1
 ),
 
 chargement_enrichi as (

@@ -411,6 +411,6 @@ select
 
     -- Métadonnées d'exécution
     current_timestamp() as dbt_updated_at,
-    'b4a61730-a077-46de-a2fe-b71b9ed7930c' as dbt_invocation_id  -- noqa: TMP
+    'eb97b3cc-dcdf-4198-9c92-771038c9f6c7' as dbt_invocation_id  -- noqa: TMP
 
 from combined_and_filtered_data
