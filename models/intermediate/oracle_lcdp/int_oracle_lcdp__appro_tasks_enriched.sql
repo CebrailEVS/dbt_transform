@@ -3,19 +3,33 @@
 -- ============================================================
 -- CTE 1 : Roadman associé à chaque tâche appro
 -- Jointure stg_oracle_lcdp__task_has_resources × resources (type=2 = roadman)
+-- Une tâche peut porter plusieurs personnes (binôme). On retient UNE ligne
+-- entière (celle du plus petit idresources) pour que l'identifiant, le code et
+-- le nom désignent toujours la même personne : des min() indépendants par
+-- colonne les dissociaient dès qu'il y avait deux affectations.
 -- ============================================================
-with resources_roadman as (
+with resources_roadman_ranked as (
     select
         thr.idtask,
-        min(r.idresources) as resources_roadman_id,
-        min(r.code) as roadman_code,
-        min(r.name) as roadman_name
+        r.idresources as resources_roadman_id,
+        r.code as roadman_code,
+        r.name as roadman_name,
+        row_number() over (partition by thr.idtask order by r.idresources) as rn
     from {{ ref('stg_oracle_lcdp__task_has_resources') }} as thr
     inner join {{ ref('stg_oracle_lcdp__resources') }} as r
         on
             thr.idresources = r.idresources
             and r.idresources_type = 2
-    group by thr.idtask
+),
+
+resources_roadman as (
+    select
+        idtask,
+        resources_roadman_id,
+        roadman_code,
+        roadman_name
+    from resources_roadman_ranked
+    where rn = 1
 ),
 
 -- ============================================================
