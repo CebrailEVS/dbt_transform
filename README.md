@@ -42,7 +42,7 @@ dbt deps && dbt debug
 
 ## Sources de donnees
 
-Le projet integre **9 sources** couvrant l'ensemble des operations EVS :
+Le projet integre **11 sources** couvrant l'ensemble des operations EVS :
 
 | Source | Systeme | Description |
 |--------|---------|-------------|
@@ -56,6 +56,7 @@ Le projet integre **9 sources** couvrant l'ensemble des operations EVS :
 | **yuman_evs_sftp** | Fichier SFTP (dlt) | Stock theorique Yuman |
 | **oracle_neshu_gcs** | Oracle ERP (NESHU, dlt) | Stock theorique Oracle NESHU |
 | **oracle_lcdp_gcs** | Oracle ERP (LCDP, dlt) | Stock theorique Oracle LCDP |
+| **powerbi_activity** | API admin Power BI (dlt) | Journaux d'usage du locataire Power BI + inventaire espaces/rapports/modeles |
 
 > `nesp_tech` et `nesp_co` transitent par GCS avant d'etre lus par dbt via table externe BigQuery.
 > C'est le cas quand l'extraction ne peut pas viser BigQuery directement (API specifique, Excel, parsing XML…).

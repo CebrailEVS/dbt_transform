@@ -1,0 +1,416 @@
+version: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MARTS — BU `bi` : gouvernance du parc Power BI
+#
+# Télémétrie sur la plateforme BI elle-même : quels rapports servent, à qui,
+# et ce que coûtent en rafraîchissement ceux que personne n'ouvre.
+# Source : docs/architecture/powerbi_activity.md.
+#
+# ⚠️ DONNÉES PERSONNELLES — arbitrage explicite du 2026-09-03.
+#
+# Le contrat de source (docs/architecture/powerbi_activity.md) prévoyait
+# initialement des agrégats seuls. **Le propriétaire du dépôt a arbitré
+# autrement le 2026-09-03** : le nominatif est exposé, parce que savoir qui
+# lit quoi est jugé utile au pilotage du parc. Cette BU applique donc :
+#
+#   - `fct_bi__consultation` porte `user_id` en clair, au grain de
+#     l'événement : 1 ligne = telle personne a ouvert tel rapport tel jour.
+#   - Les deux faits agrégés (`fct_bi__activite_rapport_jour`,
+#     `fct_bi__usage_rapport`) restent en `count(distinct user_id)` : ils
+#     répondent au « combien » sans passer par le détail nominatif.
+#   - `client_ip` et `user_agent` ne sont volontairement PAS remontés : la
+#     demande porte sur qui consulte quoi, pas sur d'où ni avec quel appareil.
+#     Ils restent disponibles dans stg_powerbi_activity__events si besoin.
+#
+# La finalité déclarée reste la rationalisation du parc de rapports, pas
+# l'évaluation des personnes. Ce qui change avec le nominatif, c'est que le
+# dispositif devient un traitement de données personnelles à part entière :
+# registre des traitements, information des salariés et arbitrage CSE relèvent
+# de docs/architecture/powerbi_activity.md § Données personnelles et de
+# ingestion/pipelines/powerbi_activity/HABILITATION.md.
+#
+# `created_by` / `modified_by` de dim_bi__rapport sont d'une autre nature :
+# ce sont des UPN d'AUTEUR, métadonnée de l'objet, nécessaires pour savoir à
+# qui parler avant d'arrêter un rapport dormant.
+#
+#
+# Ces marts lisent le staging directement, sans couche intermediate : la
+# logique tient en une jointure de périmètre et deux agrégats, un intermediate
+# n'apporterait qu'un saut de plus dans le lignage.
+# ─────────────────────────────────────────────────────────────────────────────
+
+models:
+
+  - name: dim_bi__rapport
+    description: >
+      [QUOI MÉTIER]
+      Dimension du parc de rapports Power BI réellement exploités : les
+      rapports métier des espaces de travail partagés, hors artefacts
+      techniques générés par la plateforme.
+
+      [COMMENT CONSTRUITE]
+      Jointure interne de stg_powerbi_activity__reports (déjà purgé des copies
+      d'App et des rapports de métriques d'usage) sur
+      stg_powerbi_activity__workspaces (déjà restreint aux espaces partagés
+      actifs). C'est cette jointure interne qui matérialise le troisième filtre
+      obligatoire du contrat de source et fait passer de 100 rapports à 37.
+      Aplatit `workspace_name` de l'espace parent, `dataset_name` et
+      `is_refreshable` du modèle sémantique parent.
+
+      [GRAIN]
+      1 ligne par report_id (PK). 37 lignes au 2026-09-03.
+
+      [NOTES]
+      Sans les trois filtres, le parc afficherait 139 rapports dont 55
+      « jamais consultés » — chiffre faux dans le sens alarmiste, et déjà
+      publié une fois par erreur. Le décompte de référence est : 139 bruts →
+      76 en espace partagé → 47 hors copies d'App → 37 hors métriques d'usage.
+      `dataset_id` est testé `unique` : le parc est en 1:1 rapport/modèle
+      sémantique, et les deux faits de cette BU s'appuient sur cette propriété
+      pour rattacher les rafraîchissements au rapport.
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 10
+            max_value: 200
+          config:
+            severity: warn
+    columns:
+      - name: report_id
+        description: "PK — GUID du rapport Power BI. C'est l'identifiant que les événements ViewReport référencent."
+        tests: [unique, not_null]
+      - name: workspace_id
+        description: "FK espace de travail. Toujours un espace partagé actif, par construction (jointure interne)."
+        tests: [not_null]
+      - name: dataset_id
+        description: >
+          FK modèle sémantique. Testé `unique` volontairement : le parc est en
+          1:1 rapport/modèle. C'est le garde-fou des deux faits, qui rattachent
+          les rafraîchissements (portés par le modèle) au rapport. Si un modèle
+          se met à servir deux rapports, ce test casse AVANT que les mesures
+          soient doublées.
+        tests: [unique, not_null]
+      - name: report_name
+        description: "Nom du rapport tel qu'il apparaît dans Power BI."
+        tests: [not_null]
+      - name: workspace_name
+        description: "Nom de l'espace de travail (aplati depuis le parent direct, pour l'affichage BI)."
+        tests: [not_null]
+      - name: dataset_name
+        description: "Nom du modèle sémantique (aplati depuis le parent direct, pour l'affichage BI)."
+      - name: format
+        description: "Format de définition du rapport : PBIRLegacy ou PBIR."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PBIR', 'PBIRLegacy']
+              config:
+                severity: warn
+      - name: created_by
+        description: "UPN du créateur du rapport."
+      - name: modified_by
+        description: "UPN du dernier modificateur du rapport."
+      - name: web_url
+        description: "URL d'ouverture du rapport dans le service Power BI — permet un lien cliquable depuis le tableau de bord de gouvernance."
+      - name: is_refreshable
+        description: "Vrai si le modèle sémantique sous-jacent est rafraîchissable. Un rapport dormant ET rafraîchissable est un coût net."
+      - name: created_at
+        description: "Date de création du rapport."
+      - name: updated_at
+        description: "Dernière modification du rapport. Un rapport dormant mais modifié récemment est peut-être un chantier en cours, pas un mort."
+      - name: extracted_at
+        description: "Date du snapshot d'inventaire dont cette ligne provient."
+        tests: [not_null]
+
+  - name: fct_bi__consultation
+    description: >
+      [QUOI MÉTIER]
+      Journal des consultations du parc de rapports Power BI, au grain le plus
+      fin : qui a ouvert quel rapport, quand, et depuis quel client. Répond à
+      « qui utilise quoi », là où les deux autres faits ne répondent qu'à
+      « combien ».
+
+      [COMMENT CONSTRUITE]
+      stg_powerbi_activity__events restreint à `activity = 'ViewReport'`, en
+      jointure interne sur dim_bi__rapport. La jointure interne écarte les
+      consultations hors périmètre métier (2 sur 248 au 2026-09-03 : copies
+      d'App ou rapports de métriques d'usage). Aplatit `report_name` et
+      `workspace_name` du rapport parent ; `user_domain` est dérivé de l'UPN.
+
+      [GRAIN]
+      1 ligne par event_id (PK) = 1 consultation par une personne.
+      246 lignes au 2026-09-03, pour 32 lecteurs distincts.
+
+      [NOTES]
+      ⚠️ CONTIENT DES DONNÉES PERSONNELLES NOMINATIVES (`user_id`) — arbitrage
+      du propriétaire du dépôt le 2026-09-03, cf. l'en-tête de ce fichier.
+      Fait sans mesure (« factless fact ») : le décompte des consultations est
+      le `count(*)` des lignes. Toutes les consultations sont en
+      `user_type = 0`, c'est-à-dire des personnes réelles — aucun compte de
+      service n'ouvre de rapport, ce qui rend ce fait entièrement humain.
+      `client_ip` et `user_agent` ne sont pas remontés à dessein.
+      Profondeur bornée par la source : l'API ne conserve que 27 jours
+      glissants et prod_raw est la seule archive.
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 20
+            max_value: 500000
+          config:
+            severity: warn
+    columns:
+      - name: consultation_date
+        description: "Jour de la consultation (UTC). Colonne de partition — filtrer dessus pour l'élagage."
+        tests: [not_null]
+      - name: event_id
+        description: "PK — GUID de l'événement d'audit. Garantit qu'une consultation n'est comptée qu'une fois."
+        tests: [unique, not_null]
+      - name: report_id
+        description: "FK vers dim_bi__rapport."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_bi__rapport')
+                field: report_id
+              config:
+                severity: warn
+      - name: workspace_id
+        description: "FK espace de travail, reprise du rapport parent."
+        tests: [not_null]
+      - name: dataset_id
+        description: "FK modèle sémantique, reprise du rapport parent."
+        tests: [not_null]
+      - name: report_name
+        description: "Nom du rapport consulté, aplati depuis dim_bi__rapport (marts.md § 1)."
+        tests: [not_null]
+      - name: workspace_name
+        description: "Nom de l'espace de travail, aplati depuis dim_bi__rapport. Sert d'axe « direction »."
+        tests: [not_null]
+      - name: user_id
+        description: >
+          ⚠️ DONNÉE PERSONNELLE — UPN de la personne ayant ouvert le rapport.
+          Dimension dégénérée : 32 lecteurs pour 2 domaines, ce qui ne justifie
+          pas une dimension utilisateur dédiée. Exposé sur arbitrage explicite
+          du 2026-09-03 (cf. en-tête).
+        tests: [not_null]
+      - name: user_domain
+        description: "Domaine de l'UPN : evs-pro.com ou neshu.com. Permet de segmenter les deux entités sans désigner de personne."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['evs-pro.com', 'neshu.com']
+              config:
+                severity: warn
+      - name: consumption_method
+        description: "Client utilisé : Power BI Web, Power BI Mobile, Export Report, Embedding for your organization, PowerPoint add-in."
+      - name: distribution_method
+        description: "Canal par lequel le rapport a été atteint : Apps, Workspace ou Shared."
+      - name: consultation_at
+        description: "Horodatage précis de la consultation (UTC)."
+        tests: [not_null]
+
+  - name: fct_bi__activite_rapport_jour
+    description: >
+      [QUOI MÉTIER]
+      Activité quotidienne du parc de rapports : combien de consultations,
+      par combien de personnes distinctes, et combien de rafraîchissements du
+      modèle sémantique sous-jacent.
+
+      [COMMENT CONSTRUITE]
+      Deux agrégats de stg_powerbi_activity__events restreints au parc de
+      dim_bi__rapport, réunis en FULL OUTER JOIN sur (jour, rapport) : les
+      consultations (`activity = 'ViewReport'`, rattachées par report_id) et
+      les rafraîchissements (`activity = 'RefreshDataset'`, rattachés par
+      dataset_id). Le FULL OUTER est nécessaire car un jour peut porter un
+      rafraîchissement sans aucune consultation — c'est justement le cas des
+      rapports dormants.
+
+      [GRAIN]
+      1 ligne par (activite_date, report_id) ayant porté au moins une activité.
+      ~110 lignes sur une fenêtre de 27 jours.
+
+      [NOTES]
+      Ne contient PAS les rapports dormants sur la période : sans activité,
+      pas de ligne. Pour le parc complet et la dormance, utiliser
+      fct_bi__usage_rapport. Les rafraîchissements sont portés par le modèle
+      sémantique et rattachés au rapport via l'hypothèse 1:1 verrouillée par
+      le test `unique` sur dim_bi__rapport.dataset_id.
+      L'historique est borné par la source : l'API d'administration Power BI
+      ne conserve que 27 jours glissants, et prod_raw est la seule archive.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [activite_date, report_id]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 20
+            max_value: 100000
+          config:
+            severity: warn
+      # Une ligne sans aucune activite n'a pas de raison d'exister.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "nb_consultations > 0 or nb_rafraichissements > 0"
+    columns:
+      - name: activite_date
+        description: "Jour de l'activité (UTC). Colonne de partition — filtrer dessus pour l'élagage."
+        tests: [not_null]
+      - name: report_id
+        description: "FK vers dim_bi__rapport."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_bi__rapport')
+                field: report_id
+              config:
+                severity: warn
+      - name: report_name
+        description: "Nom du rapport, aplati depuis dim_bi__rapport pour éviter une jointure à l'analyse (marts.md § 1)."
+        tests: [not_null]
+      - name: workspace_name
+        description: "Nom de l'espace de travail, aplati depuis dim_bi__rapport. Sert d'axe « direction » dans les analyses."
+        tests: [not_null]
+      - name: nb_consultations
+        description: "Nombre d'ouvertures du rapport ce jour-là (événements ViewReport). Additif."
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+      - name: nb_utilisateurs_distincts
+        description: >
+          Nombre de personnes distinctes ayant ouvert le rapport ce jour-là.
+          **NON ADDITIF** : ne jamais sommer sur plusieurs jours, la même
+          personne revenue un autre jour serait comptée deux fois. Pour un
+          total sur la période, utiliser fct_bi__usage_rapport.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+      - name: nb_rafraichissements
+        description: "Nombre de rafraîchissements du modèle sémantique ce jour-là. Additif. C'est la mesure du coût de maintien."
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+
+  - name: fct_bi__usage_rapport
+    description: >
+      [QUOI MÉTIER]
+      État d'usage de chaque rapport du parc sur la fenêtre disponible :
+      combien de fois lu, par combien de personnes, quand pour la dernière
+      fois, et combien de rafraîchissements il a coûté. Répond à la question
+      « quels rapports peut-on arrêter, et qu'est-ce qu'on y gagne ».
+
+      [COMMENT CONSTRUITE]
+      Le parc de dim_bi__rapport en LEFT JOIN sur deux agrégats de
+      stg_powerbi_activity__events (consultations par report_id,
+      rafraîchissements par dataset_id). Le LEFT JOIN est essentiel : il
+      conserve les rapports sans aucune consultation, qui sont l'objet même
+      du mart. Construit depuis les événements et non par rollup de
+      fct_bi__activite_rapport_jour, car `nb_utilisateurs_distincts` n'est pas
+      additif.
+
+      [GRAIN]
+      1 ligne par report_id (PK) — le parc entier, dormants inclus.
+      37 lignes au 2026-09-03, dont 18 dormantes.
+
+      [NOTES]
+      Fait de type snapshot, au grain de dim_bi__rapport (1:1). Les mesures
+      couvrent toute la fenêtre présente dans prod_raw, pas une période
+      glissante fixe : l'API ne conserve que 27 jours et prod_raw est la seule
+      archive, donc la profondeur croît avec l'ancienneté de la collecte.
+      `nb_jours_depuis_derniere_consultation` est figé à la date du build
+      (`current_date()`).
+      Repère métier au 2026-09-03 : 312 rafraîchissements pour zéro lecteur,
+      et 8 rapports à la fois dormants et jamais rafraîchis — ceux-là sont
+      morts, pas à optimiser.
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 10
+            max_value: 200
+          config:
+            severity: warn
+      # Coherence du flag avec la mesure qu'il resume.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_dormant = (nb_consultations = 0)"
+      # Un rapport dormant ne peut pas avoir de derniere consultation.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "not is_dormant or derniere_consultation_at is null"
+    columns:
+      - name: report_id
+        description: "PK et FK vers dim_bi__rapport. Grain identique à la dimension (fait de type snapshot)."
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_bi__rapport')
+                field: report_id
+              config:
+                severity: warn
+      - name: report_name
+        description: "Nom du rapport, aplati depuis dim_bi__rapport pour éviter une jointure à l'analyse (marts.md § 1)."
+        tests: [not_null]
+      - name: workspace_name
+        description: "Nom de l'espace de travail, aplati depuis dim_bi__rapport. Sert d'axe « direction » dans les analyses."
+        tests: [not_null]
+      - name: derniere_consultation_at
+        description: "Horodatage de la dernière ouverture connue. NULL si le rapport n'a jamais été ouvert sur la fenêtre — c'est la signature d'un dormant."
+      - name: is_dormant
+        description: "Vrai si le rapport n'a reçu aucune consultation sur la fenêtre. 18 des 37 rapports au 2026-09-03."
+      - name: nb_consultations
+        description: "Nombre total d'ouvertures sur la fenêtre. Additif."
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+      - name: nb_utilisateurs_distincts
+        description: "Nombre de personnes distinctes ayant ouvert le rapport sur la fenêtre. **NON ADDITIF** — ne se somme pas entre rapports (une même personne lit plusieurs rapports)."
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+      - name: nb_jours_actifs
+        description: >
+          Nombre de jours distincts avec au moins une consultation. Mesure la
+          régularité : 1 seul jour actif pour 20 vues = un pic, pas un usage
+          installé. **NON ADDITIF entre rapports** — sommer donnerait des
+          « rapport-jours », pas des jours (deux rapports lus le même jour
+          compteraient 2).
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+      - name: nb_rafraichissements
+        description: "Nombre de rafraîchissements du modèle sémantique sur la fenêtre. Additif. Croisé avec is_dormant, c'est le coût de maintien d'un rapport que personne ne lit."
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+      - name: nb_jours_depuis_derniere_consultation
+        description: >
+          Jours écoulés depuis la dernière ouverture, figé à la date du build
+          (`current_date()`). NULL pour un rapport jamais ouvert : l'ancienneté
+          est inconnue, pas infinie — ne pas la remplacer par 0 ni par un
+          plancher arbitraire. **NON ADDITIF** : c'est une ancienneté par
+          ligne, à lire en max ou en médiane, jamais en somme.
