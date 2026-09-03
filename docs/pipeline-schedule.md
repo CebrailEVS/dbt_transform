@@ -5,7 +5,7 @@
 >
 > **Companion doc :** `docs/architecture/` — un fichier par source avec l'ERD et les points d'attention.
 >
-> **Dernière revue :** 2026-06-09
+> **Dernière revue :** 2026-09-03 (ajout de `powerbi_activity`)
 > **Source du contenu :** scan automatique de `infra/workflows.tf`, `workflows/*.yaml`,
 > `transform/models/sources/*` et `transform/models/exposures/*`.
 > Toute modification de cron côté Terraform doit être répercutée ici.
@@ -29,6 +29,7 @@ marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de 
 00h ─────────────────────────────────────────────────────────────────────────────
 01:00  EL+T  oracle_neshu(1-5), oracle_lcdp(1-5), oracle_nayka(1-5), mssql_sage(1-5), yuman(1-5) → raw+stg+int + marts neshu/lcdp/finance/technique/supply_chain
 03:00  EL+T  zoho_desk (1-5)                                          → raw+stg+int (pas de marts à ce jour)
+03:30  EL    powerbi_activity (7j/7)                                  → raw SEUL (aucun modèle dbt à ce jour)
 06:30  EL+T  yuman_evs_sftp (7j/7, dlt)                              → + marts supply_chain
 07:30  EL+T  nesp_tech (lundi seulement)                              → + marts technique, commerce
 08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce
@@ -63,6 +64,7 @@ homonyme dans `workflows/*.yaml`.
 | pipeline-mssql-sage | `0 1 * * 1-5` | lun-ven | pipeline-mssql-sage.yaml | mssql_sage |
 | pipeline-yuman-evs | `0 1 * * 1-5` | lun-ven | pipeline-yuman-evs.yaml | yuman_api |
 | pipeline-zoho-desk | `0 3 * * 1-5` | lun-ven | pipeline-zoho-desk.yaml | zoho_desk |
+| pipeline-powerbi-activity | `30 3 * * *` | **tous les jours** | pipeline-powerbi-activity.yaml | powerbi_activity — 7j/7 délibéré : l'API ne conserve que 27 jours glissants, une journée non collectée est perdue |
 | pipeline-yuman-evs-stock | `30 6 * * *` | tous les jours | pipeline-yuman-evs-stock.yaml | yuman_evs_sftp |
 | pipeline-nesp-tech | `30 7 * * 1` | lun | pipeline-nesp-tech.yaml | nesp_tech |
 | pipeline-sftp-evs-gac | `0 8 * * *` | tous | pipeline-sftp-evs-gac.yaml | gac |
@@ -88,6 +90,7 @@ après son extract/load, un `dbt build --select source:<source>+` (étape `run_d
 | pipeline-mssql-sage | `source:mssql_sage+` | finance |
 | pipeline-oracle-stock-theorique | `source:oracle_neshu_gcs+` | supply_chain |
 | pipeline-oracle-lcdp-stock-theorique | `source:oracle_lcdp_gcs+` | supply_chain (lcdp) |
+| pipeline-powerbi-activity | *(aucun — étape dbt pas encore ajoutée)* | — voir `docs/architecture/powerbi_activity.md` § À faire |
 | pipeline-zoho-desk | `source:zoho_desk+` | — (pas de marts à ce jour) |
 
 > Snapshots exclus de tout `dbt build` via `--exclude resource_type:snapshot` (entrypoint).
