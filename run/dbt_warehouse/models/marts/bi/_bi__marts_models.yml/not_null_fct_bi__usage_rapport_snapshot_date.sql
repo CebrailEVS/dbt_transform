@@ -13,9 +13,9 @@
 
 
 
-select extracted_at
-from `evs-datastack-prod`.`prod_staging`.`stg_powerbi_activity__reports`
-where extracted_at is null
+select snapshot_date
+from `evs-datastack-prod`.`prod_marts`.`fct_bi__usage_rapport`
+where snapshot_date is null
 
 
 
