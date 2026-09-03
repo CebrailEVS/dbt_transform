@@ -177,10 +177,16 @@ models:
               config:
                 severity: warn
       - name: workspace_id
-        description: "FK espace de travail, reprise du rapport parent."
+        description: >
+          Identifiant de l'espace de travail, propagé depuis le rapport parent.
+          Pas de test `relationships` : aucune dimension `espace` n'existe dans
+          cette BU, et la jointure interne sur dim_bi__rapport rend le test
+          tautologique. Sert d'axe de filtre.
         tests: [not_null]
       - name: dataset_id
-        description: "FK modèle sémantique, reprise du rapport parent."
+        description: >
+          Identifiant du modèle sémantique, propagé depuis le rapport parent.
+          Même remarque que workspace_id sur l'absence de dimension cible.
         tests: [not_null]
       - name: report_name
         description: "Nom du rapport consulté, aplati depuis dim_bi__rapport (marts.md § 1)."
@@ -229,7 +235,11 @@ models:
 
       [GRAIN]
       1 ligne par (activite_date, report_id) ayant porté au moins une activité.
-      ~110 lignes sur une fenêtre de 27 jours.
+      684 lignes au 2026-09-03. ⚠️ Le nom trompe : la table est à 87 % du
+      rafraîchissement, pas de la consultation. Décomposition mesurée —
+      592 lignes de rafraîchissement seul, 87 lignes mixtes, 5 lignes de
+      consultation seule. Un `count(*)` ici ne compte donc PAS des
+      consultations ; sommer `nb_consultations`.
 
       [NOTES]
       Ne contient PAS les rapports dormants sur la période : sans activité,
@@ -328,10 +338,11 @@ models:
       couvrent toute la fenêtre présente dans prod_raw, pas une période
       glissante fixe : l'API ne conserve que 27 jours et prod_raw est la seule
       archive, donc la profondeur croît avec l'ancienneté de la collecte.
-      `nb_jours_depuis_derniere_consultation` est figé à la date du build
-      (`current_date()`).
+      La table est RECONSTRUITE à chaque build (pas d'historisation) :
+      `snapshot_date` dit de quand l'état date, ce qui permet de repérer une
+      table figée par un build en échec au lieu de la lire comme fraîche.
       Repère métier au 2026-09-03 : 312 rafraîchissements pour zéro lecteur,
-      et 8 rapports à la fois dormants et jamais rafraîchis — ceux-là sont
+      et 9 rapports à la fois dormants et jamais rafraîchis — ceux-là sont
       morts, pas à optimiser.
     tests:
       - dbt_expectations.expect_table_row_count_to_be_between:
@@ -349,6 +360,15 @@ models:
           arguments:
             expression: "not is_dormant or derniere_consultation_at is null"
     columns:
+      - name: snapshot_date
+        description: >
+          Date de l'état décrit par la ligne, reprise de l'extraction de
+          l'inventaire (`max(extracted_at)` de dim_bi__rapport). Sert d'as-of :
+          `nb_jours_depuis_derniere_consultation` est calculé par rapport à
+          elle et non à `current_date()`, ce qui rend le modèle déterministe —
+          fonction de ses seules entrées, sans décalage d'un jour selon
+          l'heure UTC du run.
+        tests: [not_null]
       - name: report_id
         description: "PK et FK vers dim_bi__rapport. Grain identique à la dimension (fait de type snapshot)."
         tests:
@@ -409,8 +429,8 @@ models:
                 severity: warn
       - name: nb_jours_depuis_derniere_consultation
         description: >
-          Jours écoulés depuis la dernière ouverture, figé à la date du build
-          (`current_date()`). NULL pour un rapport jamais ouvert : l'ancienneté
+          Jours écoulés entre `snapshot_date` et la dernière ouverture.
+          NULL pour un rapport jamais ouvert : l'ancienneté
           est inconnue, pas infinie — ne pas la remplacer par 0 ni par un
           plancher arbitraire. **NON ADDITIF** : c'est une ancienneté par
           ligne, à lire en max ou en médiane, jamais en somme.
