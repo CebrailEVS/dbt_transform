@@ -1,7 +1,6 @@
 {{ config(
-    materialized='table',
-    cluster_by=['report_id']
-) }}
+    materialized='table')
+}}
 
 with parc as (
     select
@@ -9,6 +8,15 @@ with parc as (
         dataset_id,
         report_name,
         workspace_name
+    from {{ ref('dim_bi__rapport') }}
+),
+
+-- As-of du snapshot. Reprise de l'extraction de l'inventaire plutot que de
+-- `current_date()` : le modele redevient fonction de ses seules entrees, et
+-- deux builds sur la meme extraction donnent le meme resultat. Regle aussi le
+-- decalage d'un jour selon l'heure UTC du run.
+asof as (
+    select date(max(extracted_at)) as snapshot_date
     from {{ ref('dim_bi__rapport') }}
 ),
 
@@ -46,6 +54,10 @@ rafraichissements as (
 )
 
 select
+    -- as-of : date de l'etat decrit. La table est reconstruite a chaque build,
+    -- cette colonne dit de quand l'etat date.
+    a.snapshot_date,
+
     -- grain : 1 ligne = 1 rapport du parc metier (tout le parc, dormants inclus)
     p.report_id,
 
@@ -64,10 +76,11 @@ select
     coalesce(c.nb_utilisateurs_distincts, 0) as nb_utilisateurs_distincts,
     coalesce(c.nb_jours_actifs, 0) as nb_jours_actifs,
     coalesce(r.nb_rafraichissements, 0) as nb_rafraichissements,
-    date_diff(current_date(), date(c.derniere_consultation_at), day)
+    date_diff(a.snapshot_date, date(c.derniere_consultation_at), day)
         as nb_jours_depuis_derniere_consultation
 
 from parc as p
+cross join asof as a
 -- LEFT : le parc entier doit sortir, y compris les rapports jamais consultes.
 -- C'est tout l'objet de ce mart.
 left join consultations as c on p.report_id = c.report_id
