@@ -1,0 +1,191 @@
+version: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SOURCE : Power BI activity (prod_raw)
+#
+# Journaux d'administration du locataire Power BI, extraits de l'API admin
+# (api.powerbi.com/v1.0/myorg/admin/) via dlt — pipeline `elt-powerbi-activity`,
+# 7 j/7 à 03:30. Cf. docs/architecture/powerbi_activity.md.
+#
+# Quatre endpoints, deux natures :
+#   - powerbi_activity_events  → événements d'audit  (écriture `merge`)
+#   - powerbi_workspaces / _reports / _datasets → inventaire (écriture `replace`)
+#
+# ⚠️ RÉTENTION 27 JOURS À LA SOURCE, IRRÉVERSIBLE. L'API ne conserve rien
+# au-delà : `prod_raw` est la SEULE archive. Un `--full-refresh` sur cette
+# source détruirait un historique non reconstituable — interdit ici comme côté
+# ingestion. C'est aussi ce qui justifie un seuil de freshness serré alors que
+# la source n'est pas critique pour la BI : une journée non collectée est
+# définitivement perdue.
+#
+# Freshness : méthode A applicable (contrairement à zoho_desk) — `_extracted_at`
+# est un vrai TIMESTAMP, pas un `_dlt_load_id` STRING. Tier Standard 26h/48h.
+#
+# ⚠️ L'API est incohérente sur la casse : elle rend `WorkspaceId` mais
+# `WorkSpaceName`, d'où `workspace_id` face à `work_space_name` après
+# normalisation dlt. Ce n'est pas une faute de frappe du pipeline.
+# ─────────────────────────────────────────────────────────────────────────────
+
+sources:
+  - name: powerbi_activity
+    description: >
+      Journaux d'administration du locataire Power BI (qui a consulté quel
+      rapport et quand) + inventaire complet des espaces de travail, rapports
+      et modèles sémantiques. Extrait de l'API admin Power BI via dlt.
+      Dataset BigQuery : evs-datastack-prod.prod_raw.
+      Finalité déclarée : rationaliser le parc de rapports — PAS évaluer les
+      personnes (cf. § Données personnelles de la doc d'architecture).
+    database: "{{ var('raw_project') }}"
+    schema: "{{ var('raw_schema', 'prod_raw') }}"
+    config:
+      tags: ['powerbi_activity', 'source']
+
+      # Tier Standard — extraction 7 j/7 à 03:30.
+      # Cf. docs/freshness.md
+      loaded_at_field: _extracted_at
+      freshness:
+        warn_after: {count: 26, period: hour}
+        error_after: {count: 48, period: hour}
+
+    tables:
+
+      # ═══════════════════════════════════════════════════════════════════════
+      # ÉVÉNEMENTS D'AUDIT
+      # ═══════════════════════════════════════════════════════════════════════
+
+      - name: powerbi_activity_events
+        description: >
+          Événements du journal d'audit unifié Microsoft 365 restreints à la
+          charge de travail PowerBI. 1 ligne = 1 événement, identifié par `id`
+          (GUID du journal d'audit — vérifié 2 135 lignes / 2 135 ids distincts
+          au 2026-09-03). Écriture `merge`, partitionnée par jour sur
+          `creation_time` avec expiration à 365 jours.
+
+          Volume faible : ~2 100 événements sur 27 jours, ~80/jour. `RefreshDataset`
+          en représente ~83 % — c'est du rafraîchissement automatique, pas de
+          l'usage humain. Pour mesurer l'usage, filtrer `activity = 'ViewReport'`
+          EN AVAL (le staging ne filtre pas : les rafraîchissements servent de
+          monitoring gratuit des pipelines, et le croisement rapport dormant ×
+          modèle rafraîchi donne le coût de maintien d'un rapport que personne
+          ne lit).
+
+          La forme d'un événement dépend de son type d'activité : les colonnes
+          `report_*`, `app_*`, `distribution_method`, `consumption_method`
+          n'existent que sur les consultations. Elles sont épinglées côté
+          extraction pour que le contrat de schéma reste stable même sur une
+          journée sans consultation — les valeurs sont donc massivement nulles
+          (`report_id` renseigné sur 12,6 % des lignes seulement).
+        columns:
+          - name: id
+            description: "PK — GUID de l'événement dans le journal d'audit unifié. Renommé event_id dans le staging."
+            tests: [unique, not_null]
+          - name: creation_time
+            description: "Horodatage de l'événement (UTC). Clé de partition. Devient created_at dans le staging."
+          - name: activity
+            description: "Type d'activité (ViewReport, RefreshDataset, ExportReport…). 11 valeurs observées au 2026-09-03."
+          - name: report_id
+            description: "FK rapport → powerbi_reports.id. Renseigné sur les seuls événements qui concernent un rapport (12,6 %)."
+          - name: workspace_id
+            description: "FK espace de travail → powerbi_workspaces.id."
+          - name: dataset_id
+            description: "FK modèle sémantique → powerbi_datasets.id."
+          - name: user_id
+            description: >
+              Identifiant nominatif de l'utilisateur (UPN). DONNÉE PERSONNELLE —
+              reste cantonné à prod_raw / staging. Les marts n'exposent que des
+              agrégats (count(distinct user_id)), jamais de liste nominative.
+          - name: _extracted_at
+            description: "Horodatage d'extraction dlt (TIMESTAMP). loaded_at_field de la source."
+
+      # Trois tables enfants dérivées de tableaux imbriqués, liées au parent par
+      # _dlt_parent_id → powerbi_activity_events._dlt_id :
+      #   powerbi_activity_events__schedules__days      (6 lignes)
+      #   powerbi_activity_events__schedules__time      (44 lignes)
+      #   powerbi_activity_events__models_snapshots     (6 lignes)
+      # Volontairement NON déclarées ici, pour DEUX raisons :
+      #   1. Elles ne portent pas `_extracted_at` (le map d'horodatage dlt n'agit
+      #      que sur l'item racine) : les déclarer imposerait un `freshness: null`
+      #      par table pour ne pas casser `dbt source freshness`.
+      #   2. dlt ne les crée que si un événement porte le tableau imbriqué non
+      #      vide. Elles EXISTENT bien dans prod_raw aujourd'hui — l'argument de
+      #      création conditionnelle vaut pour un dataset neuf (dev_raw, rebuild),
+      #      pas pour l'existant. Taux de remplissage du parent : 0,28 %.
+      # Ne pas construire de modèle qui en dépende sans gérer leur absence.
+
+      # ═══════════════════════════════════════════════════════════════════════
+      # INVENTAIRE DU LOCATAIRE (snapshot quotidien, écriture `replace`)
+      # ═══════════════════════════════════════════════════════════════════════
+
+      - name: powerbi_workspaces
+        description: >
+          Inventaire des espaces de travail du locataire. 1 ligne = 1 espace.
+          149 lignes au 2026-09-03, dont seulement 13 sont des espaces partagés
+          actifs — le reste est constitué des espaces personnels des utilisateurs.
+
+          ⚠️ FILTRE OBLIGATOIRE AU STAGING : `type = 'Workspace' and state = 'Active'`.
+          Les espaces personnels portent DEUX types distincts (`PersonalGroup`, 134
+          lignes, ET `Personal`, 2 lignes) — filtrer sur le seul `PersonalGroup`
+          en laisse passer deux. Deux espaces sont par ailleurs `Deleted`.
+        columns:
+          - name: id
+            description: "PK — GUID de l'espace de travail. Renommé workspace_id dans le staging."
+            tests: [unique, not_null]
+          - name: type
+            description: "Workspace (partagé) | PersonalGroup | Personal. Base du filtre obligatoire."
+          - name: state
+            description: "Active | Deleted. Base du filtre obligatoire."
+          - name: name
+            description: "Nom de l'espace. Préfixé workspace_name dans le staging (nom générique co-joint en aval)."
+
+      - name: powerbi_reports
+        description: >
+          Inventaire des rapports du locataire. 1 ligne = 1 rapport, copies d'App
+          incluses. 139 lignes au 2026-09-03, dont 76 dans les espaces partagés
+          actifs et 37 seulement sont des rapports métier.
+
+          ⚠️ DEUX FILTRES OBLIGATOIRES AU STAGING :
+          1. `app_id is null` — Power BI crée une COPIE de chaque rapport publié
+             dans une App, avec un `id` distinct et un `app_id` renseigné. Les
+             événements `ViewReport` référencent TOUJOURS l'original du workspace :
+             les copies affichent donc 0 vue et passent pour dormantes.
+             29 copies sur les 76 rapports des espaces partagés.
+          2. `name not ilike '%usage metrics report%'` — rapports de métriques
+             d'usage générés automatiquement par Power BI. 10 au 2026-09-03.
+             (BigQuery n'a pas ILIKE → `lower(name) not like` dans le staging.)
+
+          L'écart mesuré sans les filtres : 55 rapports « jamais consultés » sur 75,
+          contre 17 sur 36 avec. Les 38 points d'écart sont intégralement des
+          artefacts techniques. Un premier tableau de bord a été publié avec les
+          mauvais chiffres avant que l'erreur soit trouvée.
+        columns:
+          - name: id
+            description: "PK — GUID du rapport. Renommé report_id dans le staging."
+            tests: [unique, not_null]
+          - name: app_id
+            description: "GUID de l'App quand la ligne est une copie publiée. Base du filtre obligatoire n°1."
+          - name: original_report_object_id
+            description: "Rapport source dont cette ligne est la copie, quand app_id est renseigné."
+          - name: name
+            description: "Nom du rapport. Base du filtre obligatoire n°2. Préfixé report_name dans le staging."
+          - name: workspace_id
+            description: "FK espace de travail → powerbi_workspaces.id."
+          - name: dataset_id
+            description: "FK modèle sémantique → powerbi_datasets.id."
+
+      - name: powerbi_datasets
+        description: >
+          Inventaire des modèles sémantiques du locataire. 1 ligne = 1 modèle.
+          125 lignes au 2026-09-03. Aucun filtre obligatoire, mais 8 lignes ont
+          `content_provider_type = 'UsageMetricsUserReport'` : ce sont les modèles
+          des rapports de métriques d'usage auto-générés, à exclure en aval de
+          tout décompte de parc.
+        columns:
+          - name: id
+            description: "PK — GUID du modèle sémantique. Renommé dataset_id dans le staging."
+            tests: [unique, not_null]
+          - name: name
+            description: "Nom du modèle. Préfixé dataset_name dans le staging (nom générique co-joint en aval)."
+          - name: workspace_id
+            description: "FK espace de travail → powerbi_workspaces.id."
+          - name: created_date
+            description: "Date de création du modèle. Devient created_at dans le staging."

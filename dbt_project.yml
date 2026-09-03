@@ -79,6 +79,9 @@ models:
       zoho_desk:
         +tags: ['staging', 'zoho_desk']
 
+      powerbi_activity:
+        +tags: ['staging', 'powerbi_activity']
+
     intermediate:
       +schema: intermediate
       +tags: ['intermediate']
@@ -131,6 +134,9 @@ models:
 
       lcdp:
         +tags: ['marts', 'lcdp']
+
+      bi:
+        +tags: ['marts', 'bi']
 
 seeds:
   dbt_warehouse:

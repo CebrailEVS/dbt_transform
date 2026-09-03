@@ -1,0 +1,433 @@
+version: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGING : Power BI activity
+#
+# Descriptions courtes : dans le {{ config() }} de chaque modèle (règle projet).
+# Ce fichier porte le contexte métier complémentaire et les tests.
+#
+# TESTS `relationships` — ce qui est testé et ce qui ne l'est pas.
+#
+# Les filtres obligatoires rétrécissent les tables parentes : un enfant peut
+# donc légitimement pointer vers une ligne écartée. Ces "orphelins" sont le
+# périmètre voulu, pas un défaut — un test qui warne à chaque build n'apprend
+# rien et finit ignoré. Ils ne sont donc PAS testés :
+#   - reports.workspace_id   → 63 / 100 rapports sont dans un espace personnel
+#   - datasets.workspace_id  → 78 / 125 idem
+#   - events.report_id       → 18 / 270 visent une copie d'App ou un rapport
+#                              de métriques d'usage, écartés du staging
+#   - events.workspace_id    → 6 / 2 060
+#
+# Seul `events.dataset_id → datasets` est testé (0 orphelin mesuré) : celui-là
+# détecte vraiment quelque chose. En warn quand même, car l'inventaire est un
+# snapshot `replace` face à 27 jours d'événements — un modèle supprimé hier
+# reste référencé par les événements de la fenêtre.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+models:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ÉVÉNEMENTS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: stg_powerbi_activity__events
+    description: >
+      Grain : 1 ligne = 1 événement du journal d'audit unifié Power BI.
+      Toutes les activités sont conservées (aucun filtre) — voir le config block.
+
+      Contrainte RGPD : `user_id` / `user_key` identifient nominativement un
+      salarié. Le dispositif relève du suivi d'activité, avec une finalité
+      déclarée de rationalisation du parc de rapports, PAS d'évaluation des
+      personnes. Les modèles aval n'exposent que des agrégats
+      (count(distinct user_id)) — jamais « qui a ouvert quel rapport ».
+      Cf. ingestion/pipelines/powerbi_activity/HABILITATION.md.
+    tests:
+      # Fenêtre de 27 jours à ~80 événements/jour, et prod_raw accumule
+      # jusqu'à l'expiration de partition à 365 jours. Bornes larges :
+      # le but est de détecter un load vide ou une duplication massive.
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 500
+            max_value: 200000
+          config:
+            severity: warn
+    columns:
+      - name: event_id
+        description: "PK — GUID de l'événement dans le journal d'audit unifié (renommé depuis id). Vérifié 2 135/2 135 distincts au 2026-09-03."
+        tests: [unique, not_null]
+
+      - name: activity
+        description: >
+          Type d'activité. RefreshDataset domine (1 771 / 2 135 = 83 %) : c'est
+          du rafraîchissement automatique, PAS de l'usage humain. ViewReport
+          (248) est la seule activité qui mesure une consultation.
+        tests:
+          - not_null
+          # Liste fermée côté API mais susceptible de s'enrichir (nouveaux types
+          # d'activité Power BI) → warn : un drift est une information, pas une panne.
+          - accepted_values:
+              arguments:
+                values:
+                  - ViewReport
+                  - RefreshDataset
+                  - GenerateScreenshot
+                  - GetSnapshots
+                  - ExportReport
+                  - UpdateApp
+                  - InstallApp
+                  - GetCloudSupportedDatasources
+                  - SetScheduledRefresh
+                  - ExportArtifact
+                  - ExportArtifactDownload
+              config:
+                severity: warn
+
+      - name: workload
+        description: "Charge de travail Microsoft 365. Constant à 'PowerBI' : le pipeline ne collecte que ce périmètre."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PowerBI']
+              config:
+                severity: warn
+
+      - name: record_type
+        description: "Type d'enregistrement du journal d'audit. Constant à 20 (PowerBIAudit) sur 100 % des lignes."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [20]
+                # record_type est un INT64 : sans quote:false, accepted_values
+                # compare un INT64 à des littéraux STRING → erreur BigQuery.
+                quote: false
+              config:
+                severity: warn
+
+      - name: operation
+        description: "Nom d'opération de l'API d'audit. Miroir de `activity` (11 valeurs distinctes de part et d'autre)."
+
+      - name: is_success
+        description: "Vrai si l'opération a abouti."
+
+      - name: user_id
+        description: "DONNÉE PERSONNELLE — UPN du salarié. 34 utilisateurs distincts sur la fenêtre. À agréger en aval, jamais à exposer nominativement."
+        tests: [not_null]
+
+      - name: user_key
+        description: "DONNÉE PERSONNELLE — clé interne Microsoft de l'utilisateur."
+
+      - name: user_type
+        description: "0 = utilisateur régulier, 6 = compte de service / système (1 765 lignes, l'essentiel des RefreshDataset)."
+
+      - name: report_id
+        description: >
+          FK rapport. Renseigné sur 270 / 2 135 lignes (12,6 %) — uniquement les
+          événements qui concernent un rapport. NE JAMAIS faire d'inner join
+          dessus : les autres types d'activité seraient écrasés.
+
+      - name: workspace_id
+        description: "FK espace de travail. Renseigné sur 2 060 / 2 135 lignes."
+
+      - name: dataset_id
+        description: "FK modèle sémantique. Renseigné sur 2 047 / 2 135 lignes ; 0 orphelin mesuré au 2026-09-03."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_powerbi_activity__datasets')
+                field: dataset_id
+              config:
+                severity: warn
+
+      - name: work_space_name
+        description: >
+          Nom de l'espace de travail au moment de l'événement. Orthographe
+          volontaire : l'API rend `WorkSpaceName` face à `WorkspaceId`.
+          Incohérence de casse à la source, conservée en passthrough.
+
+      - name: app_id
+        description: "GUID de l'App quand la consultation passe par une App publiée. À ne pas confondre avec reports.app_id (qui marque une copie)."
+
+      - name: app_report_id
+        description: "GUID de la copie du rapport dans l'App. C'est l'id que le staging reports écarte ; `report_id` porte l'original."
+
+      - name: distribution_method
+        description: "Canal de distribution : Apps (236) | Workspace (18) | Shared (16). Null hors consultation."
+
+      - name: consumption_method
+        description: "Client utilisé : Power BI Web (221) | Export Report (28) | Power BI Mobile (8) | Embedding | PowerPoint add-in. Null hors consultation."
+
+      - name: refresh_type
+        description: "Nature du rafraîchissement (activity = 'RefreshDataset')."
+
+      - name: last_refresh_time
+        description: "Horodatage du dernier rafraîchissement connu du modèle sémantique."
+
+      - name: _dlt_id
+        description: >
+          Clé technique dlt de la ligne parente. Sert de clé de jointure aux
+          trois tables enfants (__schedules__days, __schedules__time,
+          __models_snapshots) via leur `_dlt_parent_id`. Ces tables existent dans
+          prod_raw mais ne sont PAS déclarées en source : elles ne portent pas
+          `_extracted_at` (freshness impossible), et dlt ne les crée que si un
+          événement porte le tableau imbriqué non vide (0,28 % des lignes).
+
+      - name: created_at
+        description: "Horodatage de l'événement (UTC), renommé depuis creation_time. Clé de partition — filtrer dessus en aval pour l'élagage."
+        tests: [not_null]
+      - name: updated_at
+        description: "Reprend created_at : un événement d'audit est immuable."
+      - name: extracted_at
+        description: "Horodatage d'extraction dlt."
+        tests: [not_null]
+      - name: deleted_at
+        description: "Toujours null — la source ne porte aucune notion de suppression d'événement."
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INVENTAIRE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: stg_powerbi_activity__workspaces
+    description: >
+      Grain : 1 ligne = 1 espace de travail PARTAGÉ ET ACTIF.
+      Filtre obligatoire appliqué (type = 'Workspace' and state = 'Active') :
+      149 lignes brutes → 13. Les 136 écartés sont des espaces personnels, qui
+      portent DEUX types distincts (`PersonalGroup` 134, `Personal` 2) — filtrer
+      sur le seul `PersonalGroup` en laisserait passer deux.
+    tests:
+      # GARDE-FOU DU FILTRE. 13 espaces au 2026-09-03. Si ce test remonte ~149,
+      # le filtre a sauté et tous les chiffres d'usage en aval sont faux.
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 5
+            max_value: 40
+          config:
+            severity: warn
+    columns:
+      - name: workspace_id
+        description: "PK — GUID de l'espace de travail (renommé depuis id)."
+        tests: [unique, not_null]
+      - name: workspace_name
+        description: "Nom de l'espace (préfixé depuis `name` : co-joint en aval avec report_name et dataset_name)."
+        tests: [not_null]
+      - name: workspace_description
+        description: "Description libre de l'espace. Null sur 10 des 13 espaces."
+      - name: type
+        description: "Constant à 'Workspace' par construction (filtre obligatoire). Le test prouve que le filtre tient."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Workspace']
+      - name: state
+        description: "Constant à 'Active' par construction (filtre obligatoire). Le test prouve que le filtre tient."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Active']
+      - name: is_read_only
+        description: "Vrai si l'espace est en lecture seule."
+      - name: is_on_dedicated_capacity
+        description: "Vrai si l'espace tourne sur une capacité dédiée (Premium / Fabric) et non sur la capacité partagée."
+      - name: capacity_migration_status
+        description: "État de migration de capacité."
+      - name: has_workspace_level_settings
+        description: "Vrai si des réglages spécifiques sont posés au niveau de l'espace."
+      - name: _dlt_id
+        description: "Clé technique dlt."
+      - name: created_at
+        description: "Toujours null — la source n'expose aucune date de création d'espace (snapshot `replace`). Null par contrat, pas par oubli."
+      - name: updated_at
+        description: "Toujours null — même raison que created_at."
+      - name: extracted_at
+        description: "Horodatage d'extraction dlt = date du snapshot d'inventaire."
+        tests: [not_null]
+      - name: deleted_at
+        description: "Toujours null : `state = 'Deleted'` existe à la source mais sans horodatage, et ces lignes sont écartées par le filtre."
+
+  - name: stg_powerbi_activity__reports
+    description: >
+      Grain : 1 ligne = 1 rapport original, hors rapports de métriques d'usage.
+      Deux filtres obligatoires appliqués : 139 lignes brutes → 100.
+
+      ⚠️ CE MODÈLE N'EST PAS LE PÉRIMÈTRE MÉTIER. Les 37 « rapports métier » des
+      chiffres de référence exigent EN PLUS la restriction aux espaces partagés
+      actifs — soit une jointure vers les workspaces, interdite en staging
+      (staging.md § 1 et § 9 : une source de staging = une table source, pas de
+      jointure, pas de logique de périmètre). Cette restriction appartient à
+      l'intermediate. Décomposition mesurée au 2026-09-03 :
+        139 rapports bruts
+         →  76 dans un espace partagé actif   (63 des 100 restants sont dans un espace personnel)
+         →  47 hors copies d'App              (29 copies)
+         →  37 hors métriques d'usage         (10 rapports auto-générés)
+              dont 19 consultés et 18 dormants.
+    tests:
+      # GARDE-FOU DES FILTRES. 100 rapports au 2026-09-03. Un retour vers ~139
+      # signale que les filtres ont sauté.
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 40
+            max_value: 250
+          config:
+            severity: warn
+      # Preuve directe que le filtre n°1 tient, indépendamment du volume.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "app_id is null"
+      # Preuve directe que le filtre n°2 tient.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "lower(report_name) not like '%usage metrics report%'"
+    columns:
+      - name: report_id
+        description: "PK — GUID du rapport (renommé depuis id). C'est l'id que les événements ViewReport référencent."
+        tests: [unique, not_null]
+      - name: workspace_id
+        description: >
+          FK espace de travail. Non nul sur 100 % des lignes, mais 63 / 100
+          pointent vers un espace personnel écarté du staging workspaces —
+          non testé pour cette raison (cf. en-tête). C'est la jointure vers
+          stg_powerbi_activity__workspaces qui matérialise le périmètre métier
+          (37 rapports), en marts.
+        tests: [not_null]
+      - name: dataset_id
+        description: "FK modèle sémantique. Non nul sur 100 % des lignes, 0 orphelin mesuré au 2026-09-03."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_powerbi_activity__datasets')
+                field: dataset_id
+              config:
+                severity: warn
+      - name: report_name
+        description: "Nom du rapport (préfixé depuis `name` : co-joint en aval). Porte aussi le filtre n°2."
+        tests: [not_null]
+      - name: report_type
+        description: "Constant à 'PowerBIReport' au 2026-09-03 (les rapports paginés donneraient 'PaginatedReport')."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PowerBIReport', 'PaginatedReport']
+              config:
+                severity: warn
+      - name: format
+        description: "Format de définition du rapport : PBIRLegacy (132) | PBIR (7)."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PBIR', 'PBIRLegacy']
+              config:
+                severity: warn
+      - name: web_url
+        description: "URL de consultation du rapport dans le service Power BI."
+      - name: embed_url
+        description: "URL d'embarquement du rapport."
+      - name: created_by
+        description: "UPN du créateur du rapport."
+      - name: modified_by
+        description: "UPN du dernier modificateur."
+      - name: app_id
+        description: "Null sur 100 % des lignes PAR CONSTRUCTION (filtre n°1). Conservé comme trace du filtre."
+      - name: original_report_object_id
+        description: "Null sur 100 % des lignes par construction : cette colonne n'est renseignée que sur les copies d'App, précisément celles qu'on écarte."
+      - name: _dlt_id
+        description: "Clé technique dlt."
+      - name: created_at
+        description: "Date de création du rapport (renommée depuis created_date_time)."
+        tests: [not_null]
+      - name: updated_at
+        description: "Dernière modification (modified_date_time, à défaut created_date_time). Aucun null sur les deux colonnes source au 2026-09-03."
+      - name: extracted_at
+        description: "Horodatage d'extraction dlt = date du snapshot d'inventaire."
+        tests: [not_null]
+      - name: deleted_at
+        description: "Toujours null — la source ne marque pas les suppressions (snapshot `replace` : un rapport supprimé disparaît de l'inventaire)."
+
+  - name: stg_powerbi_activity__datasets
+    description: >
+      Grain : 1 ligne = 1 modèle sémantique du locataire. 125 lignes au
+      2026-09-03, aucun filtre obligatoire.
+
+      À savoir en aval : 8 lignes portent
+      `content_provider_type = 'UsageMetricsUserReport'` — ce sont les modèles
+      des rapports de métriques d'usage auto-générés par Power BI, pendant du
+      filtre n°2 côté rapports. À écarter de tout décompte de parc ou de coût
+      de rafraîchissement.
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 50
+            max_value: 400
+          config:
+            severity: warn
+    columns:
+      - name: dataset_id
+        description: "PK — GUID du modèle sémantique (renommé depuis id)."
+        tests: [unique, not_null]
+      - name: workspace_id
+        description: >
+          FK espace de travail. Non nul sur 100 % des lignes, mais 78 / 125
+          pointent vers un espace personnel écarté du staging workspaces —
+          non testé pour cette raison (cf. en-tête).
+        tests: [not_null]
+      - name: dataset_name
+        description: "Nom du modèle sémantique (préfixé depuis `name` : co-joint en aval)."
+        tests: [not_null]
+      - name: target_storage_mode
+        description: "Mode de stockage cible. Constant à 'Abf' au 2026-09-03."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Abf', 'PremiumFiles']
+              config:
+                severity: warn
+      - name: content_provider_type
+        description: >
+          Origine du modèle : PbixInImportMode (110) | UsageMetricsUserReport (8)
+          | PbixInCompositeMode (4) | InImportMode (2) | Unknown (1).
+          'UsageMetricsUserReport' = auto-généré, à écarter en aval.
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - PbixInImportMode
+                  - UsageMetricsUserReport
+                  - PbixInCompositeMode
+                  - InImportMode
+                  - Unknown
+              config:
+                severity: warn
+      - name: configured_by
+        description: "UPN du propriétaire du modèle sémantique."
+      - name: is_refreshable
+        description: "Vrai si le modèle peut être rafraîchi (à croiser avec les événements RefreshDataset)."
+      - name: add_rows_api_enabled
+        description: "Vrai si l'API push de lignes est activée."
+      - name: is_effective_identity_required
+        description: "Vrai si une identité effective est exigée (RLS)."
+      - name: is_effective_identity_roles_required
+        description: "Vrai si des rôles d'identité effective sont exigés."
+      - name: is_in_place_sharing_enabled
+        description: "Vrai si le partage en place est activé."
+      - name: web_url
+        description: "URL du modèle dans le service Power BI."
+      - name: create_report_embed_url
+        description: "URL d'embarquement pour créer un rapport sur ce modèle."
+      - name: qna_embed_url
+        description: "URL d'embarquement du Q&A."
+      - name: query_scale_out_settings__auto_sync_read_only_replicas
+        description: "Synchronisation automatique des répliques en lecture seule."
+      - name: query_scale_out_settings__max_read_only_replicas
+        description: "Nombre maximum de répliques en lecture seule."
+      - name: _dlt_id
+        description: "Clé technique dlt."
+      - name: created_at
+        description: "Date de création du modèle (renommée depuis created_date)."
+        tests: [not_null]
+      - name: updated_at
+        description: "Reprend created_at : la source n'expose pas de date de modification."
+      - name: extracted_at
+        description: "Horodatage d'extraction dlt = date du snapshot d'inventaire."
+        tests: [not_null]
+      - name: deleted_at
+        description: "Toujours null — snapshot `replace`, les suppressions ne sont pas marquées."
