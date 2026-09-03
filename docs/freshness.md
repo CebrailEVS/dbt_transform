@@ -160,6 +160,19 @@ Source brute : `_dlt_load_id` est un STRING (Unix epoch). Test sur les
 staging zoho_desk qui exposent un timestamp cast.
 - Seuil : **7 jours warn / 14 jours error**
 
+### `powerbi_activity` — tier *Standard*, méthode A
+Contrairement à `zoho_desk`, le pipeline dlt pose un vrai `_extracted_at`
+TIMESTAMP : freshness native applicable, configurée au niveau source pour les
+4 tables.
+- `loaded_at_field: _extracted_at`
+- Seuil : **26h warn / 48h error**
+
+Le seuil est serré alors que la source n'est pas critique pour la BI, et c'est
+délibéré : **l'API admin ne conserve que 27 jours glissants**. Une journée non
+collectée est définitivement perdue, `prod_raw` étant la seule archive. Le
+pipeline tourne donc 7 j/7 à 03:30 et un retard de plus de 26h doit être vu
+tout de suite — la perte, elle, est irréversible.
+
 ---
 
 ## Synthèse — couverture finale visée
@@ -178,6 +191,7 @@ staging zoho_desk qui exposent un timestamp cast.
 | `oracle_neshu_gcs` | Standard | B | staging | 26h / 48h |
 | `oracle_lcdp_gcs` | Standard | B | staging | 26h / 48h |
 | `zoho_desk` | Relaxe | B | staging | 7j / 14j |
+| `powerbi_activity` | Standard | A | source | 26h / 48h |
 
 **Toutes les sources sont désormais monitorées**, soit nativement, soit via
 `dbt_expectations`.

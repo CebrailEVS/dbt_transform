@@ -93,7 +93,8 @@ Seeds are in `data/reference_data/<source>/` and land in `prod_reference` / `dev
 
 - **Staging / intermediate** : `<prefix>_<source>__<entity>.sql` (par source)
 - **Marts** : `<prefix>_<bu>__<entity>.sql` (par BU/domaine, **post-refacto by BU**)
-  - BUs : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`
+  - BUs : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi`
+  - `bi` = gouvernance du parc Power BI (télémétrie de la plateforme BI elle-même, pas un domaine métier)
   - Entité **singulier**, snake_case, nom métier (pas le nom source, pas le nom du rapport BI)
 - Prefixes: `stg_` staging · `int_` intermediate · `dim_` dimension · `fct_` fact · `snap_` snapshot
 - YAML files: `_<source>__models.yml` (staging/intermediate) · `_<bu>__marts_models.yml` (marts) · `_<bu>__marts_sources.yml` (external Cloud Run tables) · `_<source>__seeds.yml` (seeds, one per source, co-located in `data/reference_data/<source>/`)

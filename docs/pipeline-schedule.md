@@ -29,7 +29,7 @@ marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de 
 00h ─────────────────────────────────────────────────────────────────────────────
 01:00  EL+T  oracle_neshu(1-5), oracle_lcdp(1-5), oracle_nayka(1-5), mssql_sage(1-5), yuman(1-5) → raw+stg+int + marts neshu/lcdp/finance/technique/supply_chain
 03:00  EL+T  zoho_desk (1-5)                                          → raw+stg+int (pas de marts à ce jour)
-03:30  EL    powerbi_activity (7j/7)                                  → raw SEUL (aucun modèle dbt à ce jour)
+03:30  EL    powerbi_activity (7j/7)                                  → raw SEUL (staging existe, PAS encore branché au workflow)
 06:30  EL+T  yuman_evs_sftp (7j/7, dlt)                              → + marts supply_chain
 07:30  EL+T  nesp_tech (lundi seulement)                              → + marts technique, commerce
 08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce

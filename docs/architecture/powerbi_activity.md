@@ -1,7 +1,8 @@
 # Architecture — Power BI activity (`powerbi_activity`)
 
 > Dernière mise à jour : 2026-09-03
-> **État : source en production, AUCUN modèle dbt encore construit.**
+> **État : source en production. Staging construit (4 modèles) le 2026-09-03 ;
+> intermediate/marts à faire, et l'étape dbt reste à ajouter au workflow infra.**
 
 ---
 
@@ -41,7 +42,11 @@ Source alimentée par l'API d'administration Power BI via dlt
 └────────────────────────┘                  └──────────────┬───────────────────┘
                                                            │ dbt staging
                                                            ▼
-                                              (à construire)
+                                              prod_staging
+                                              stg_powerbi_activity__events
+                                              stg_powerbi_activity__workspaces
+                                              stg_powerbi_activity__reports
+                                              stg_powerbi_activity__datasets
 ```
 
 ---
@@ -131,13 +136,40 @@ Les événements identifient nominativement l'utilisateur (`user_id`, `user_key`
 Le dispositif relève du **suivi d'activité des salariés**, avec une finalité
 déclarée : rationaliser le parc de rapports, **pas** évaluer les personnes.
 
-Conséquence directe sur les marts : **exposer des agrégats, pas des identités.**
-Un `count(distinct user_id)` est légitime ; une liste nominative de qui a ouvert
-quel rapport ne l'est pas. L'identifiant reste cantonné à `prod_raw`, à accès
-restreint.
+> ### ⚠️ Arbitrage du 2026-09-03 — le nominatif EST exposé
+>
+> La règle initiale de cette section était « exposer des agrégats, pas des
+> identités ». **Le propriétaire du dépôt a arbitré autrement le 2026-09-03** :
+> savoir qui lit quoi est jugé utile au pilotage du parc. Cette section est
+> conservée pour mémoire du raisonnement, mais la règle appliquée est
+> désormais celle-ci :
+>
+> | Mart | Nominatif ? |
+> |---|---|
+> | `fct_bi__consultation` | **Oui** — `user_id` en clair, 1 ligne = telle personne a ouvert tel rapport tel jour |
+> | `fct_bi__activite_rapport_jour` | Non — `count(distinct user_id)` |
+> | `fct_bi__usage_rapport` | Non — `count(distinct user_id)` |
+> | `dim_bi__rapport` | `created_by` / `modified_by` = UPN d'**auteur** (métadonnée d'objet, pas de la consommation) |
+>
+> Deux limites tenues volontairement : `client_ip` et `user_agent` ne sont
+> **pas** remontés en marts (la demande porte sur qui consulte quoi, pas sur
+> d'où ni avec quel appareil), et ils restent disponibles dans
+> `stg_powerbi_activity__events` si le besoin apparaît.
+>
+> **Ce que l'arbitrage change** : le dispositif devient un traitement de
+> données personnelles à part entière, et non plus une mesure d'audience
+> anonymisée. Registre des traitements, information des salariés et arbitrage
+> CSE ne sont plus des précautions théoriques — voir
+> `ingestion/pipelines/powerbi_activity/HABILITATION.md`. La finalité déclarée
+> (rationaliser le parc, pas évaluer les personnes) reste l'invariant : c'est
+> elle qui délimite les usages légitimes de `fct_bi__consultation`.
 
-Voir `ingestion/pipelines/powerbi_activity/HABILITATION.md` pour les mesures
-complètes (registre des traitements, information des salariés, arbitrage CSE).
+Repères mesurés au 2026-09-03 : 32 lecteurs distincts pour 246 consultations,
+soit 7,7 consultations par personne en moyenne sur 27 jours ; 4 personnes n'ont
+ouvert qu'un seul rapport une seule fois. Deux domaines coexistent
+(`evs-pro.com`, `neshu.com`), ce qui donne un axe de segmentation par entité
+sans désigner personne (`user_domain`). Les 246 consultations sont toutes en
+`user_type = 0` : aucun compte de service n'ouvre de rapport.
 
 ---
 
@@ -163,16 +195,82 @@ S'il en trouve 75 et 149, les filtres ne sont pas appliqués.
 
 ## À faire
 
-1. **`_powerbi_activity__sources.yml`** — 4 tables, `loaded_at_field:
-   _extracted_at`, freshness applicable. Suivre le pattern de
-   `staging/zoho_desk/` (`database: "{{ var('raw_project') }}"`,
-   `schema: "{{ var('raw_schema', 'prod_raw') }}"`).
-2. **Staging** : `stg_powerbi_activity__events`, `__workspaces`, `__reports`,
-   `__datasets`. Les filtres ci-dessus vont ici.
-3. **Intermediate / marts** : `dim_powerbi_report`, `fct_powerbi_report_views`,
-   et un mart d'usage (vues/jour/rapport, dernière consultation, rapports
-   dormants, coût de rafraîchissement des dormants).
+1. ~~**`_powerbi_activity__sources.yml`**~~ — **FAIT 2026-09-03.** 4 tables,
+   `loaded_at_field: _extracted_at`, freshness native 26h/48h (tier Standard),
+   pattern `staging/zoho_desk/`. Les 3 tables enfants
+   (`__schedules__days`, `__schedules__time`, `__models_snapshots`) sont
+   **volontairement non déclarées** : un `source()` sur une table absente casse
+   le build, et elles n'existent que si un rafraîchissement planifié tombe dans
+   la fenêtre.
+2. ~~**Staging**~~ — **FAIT 2026-09-03.** 4 modèles `table`, 52 tests (0 erreur,
+   4 warnings attendus et documentés). Les filtres **intra-table** y sont :
+   `app_id is null` + exclusion « usage metrics report » sur `__reports`,
+   `type = 'Workspace' and state = 'Active'` sur `__workspaces`.
+
+   ⚠️ **Le périmètre « rapports métier » n'est PAS atteint par le staging seul.**
+   Les 36/37 rapports métier exigent en plus la restriction aux espaces partagés
+   actifs, soit une **jointure reports × workspaces** — interdite en staging
+   (`docs/conventions/staging.md` § 1 et § 9). `stg_powerbi_activity__reports`
+   sort donc **100** lignes, pas 37. Décomposition mesurée au 2026-09-03 :
+
+   | Étape | Lignes |
+   |---|---|
+   | rapports bruts | 139 |
+   | dans un espace partagé actif | 76 |
+   | hors copies d'App (`app_id is null`) | 47 |
+   | hors métriques d'usage | **37** |
+   | dont consultés / dormants | 19 / 18 |
+
+   Le staging garantit les deux filtres intra-table (tests
+   `expression_is_true`) ; **la jointure de périmètre appartient à
+   l'intermediate**, et c'est là que le chiffre de 37 doit être vérifié.
+3. ~~**Marts**~~ — **FAIT 2026-09-03**, dans une **nouvelle BU `bi`**
+   (`models/marts/bi/`) : gouvernance du parc Power BI, télémétrie de la
+   plateforme BI elle-même et non un domaine métier. **Pas de couche
+   intermediate** : la logique tient en une jointure de périmètre et deux
+   agrégats.
+
+   | Mart | Grain | Rôle |
+   |---|---|---|
+   | `dim_bi__rapport` | 1 rapport (37) | le parc — c'est ici que la jointure interne sur les espaces partagés actifs matérialise le 3ᵉ filtre obligatoire, et fait passer de 100 à 37 |
+   | `fct_bi__activite_rapport_jour` | (jour × rapport) (684) | série temporelle : consultations, utilisateurs distincts, rafraîchissements |
+   | `fct_bi__usage_rapport` | 1 rapport (37) | **le livrable** : dormance, dernière consultation, coût de rafraîchissement |
+   | `fct_bi__consultation` | 1 consultation (246) | **nominatif** : qui a ouvert quoi, quand, depuis quel client (arbitrage du 2026-09-03) |
+
+   Propriété structurante mesurée : **le parc est en 1:1 rapport / modèle
+   sémantique** (37 ↔ 37). C'est ce qui autorise à rattacher au rapport des
+   rafraîchissements portés par le modèle, sans double comptage. L'hypothèse
+   est verrouillée par un test `unique` sur `dim_bi__rapport.dataset_id` —
+   si un modèle se met à servir deux rapports, le test casse avant que les
+   mesures soient faussées.
+
+   `activity = 'ViewReport'` est appliqué **ici**, pas au staging, qui conserve
+   toutes les activités à dessein.
+
+   Aucune `exposure` créée : aucun rapport Power BI ne consomme encore ces
+   marts. À créer (`models/exposures/bi.yml`) le jour où le tableau de bord de
+   gouvernance existe.
 4. **Ajouter l'étape dbt au workflow.** `infra/workflows/pipeline-powerbi-activity.yaml`
-   n'a **qu'une étape EL** aujourd'hui. Conformément à l'architecture Option C,
-   y ajouter `dbt build source:powerbi_activity+` sur le modèle de
+   n'a **qu'une étape EL** aujourd'hui : le staging existe mais **rien ne le
+   construit en prod**. Conformément à l'architecture Option C, y ajouter
+   `dbt build source:powerbi_activity+` sur le modèle de
    `pipeline-yuman-evs.yaml`.
+
+---
+
+## Dérive des chiffres de référence — relevé du 2026-09-03 (build)
+
+La fenêtre de 27 jours glisse : les chiffres du relevé initial
+(2026-08-07 → 2026-09-02) ont bougé d'un jour au moment du build. Les écarts
+ci-dessous sont **normaux**, pas des filtres cassés — les deux ancres qui
+prouvent les filtres (13 espaces partagés, 19 rapports consultés) sont exactes.
+
+| Mesure | Relevé initial | Build 2026-09-03 |
+|---|---|---|
+| Événements | 2 135 | 2 135 |
+| dont `ViewReport` | 246 | 248 |
+| Espaces partagés actifs | **13** | **13** |
+| Rapports métier | 36 | 37 |
+| Rapports métier consultés | **19** | **19** |
+| Rapports métier dormants | 17 | 18 |
+| Utilisateurs distincts | 32 | 34 |

@@ -12,7 +12,7 @@ reflète la BU et l'entité métier, pas l'implémentation source.
 | Élément | Règle |
 |---------|-------|
 | Préfixe | `dim_` (dimension) ou `fct_` (fait) |
-| Clé BU/domaine | nom exact du folder : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain` |
+| Clé BU/domaine | nom exact du folder : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi` |
 | Séparateur | `__` entre BU et entité |
 | Entité | singulier, snake_case, nom métier (pas le nom source, pas le nom du rapport BI) |
 | Suffixe de grain | uniquement si agrégé au-dessus du grain naturel (`_quinzaine`, `_mensuel`) |
