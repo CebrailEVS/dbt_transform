@@ -1,7 +1,7 @@
 
 
--- Compte de résultat mensuel par client Neshu, reprise du rapport que les
--- développeurs de Distrilog produisent par une requête SQL de 457 lignes.
+-- Compte de résultat mensuel par client Neshu, reprise du rapport produit en
+-- interne par les développeurs de Distrilog.
 --
 -- Chaînage : CA - coûts produits = marge brute, puis - amortissement - coût de
 -- main-d'oeuvre - télémétrie = marge nette.

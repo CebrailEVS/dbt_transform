@@ -1,18 +1,21 @@
-
+-- back compat for old kwarg name
   
+  
+        
+            
+                
+                
+            
+                
+                
+            
+        
     
 
-    create or replace table `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_thp`
-      
-    partition by timestamp_trunc(updated_at, day)
-    cluster by idtask_has_product
-
     
-    OPTIONS(
-      description="""Labels par ligne de produit d'une t\u00e2che, nettoy\u00e9s depuis la base Oracle. Porte le mode de paiement des ventes t\u00e9l\u00e9m\u00e9trie."""
-    )
-    as (
-      
+
+    merge into `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_thp` as DBT_INTERNAL_DEST
+        using (
 
 -- ⚠️ Comme task_has_amount, la table n'a aucune colonne de modification : dlt la
 -- réplique via un curseur emprunté, mais à `task_has_product` cette fois et non
@@ -51,5 +54,31 @@ filtered_data as (
 
 select * from filtered_data
 
-    );
-  
+    where
+        (
+            updated_at > (
+                select max(t.updated_at)
+                from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_thp` as t
+            )
+            or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
+        )
+
+        ) as DBT_INTERNAL_SOURCE
+        on (
+                    DBT_INTERNAL_SOURCE.idlabel = DBT_INTERNAL_DEST.idlabel
+                ) and (
+                    DBT_INTERNAL_SOURCE.idtask_has_product = DBT_INTERNAL_DEST.idtask_has_product
+                )
+
+    
+    when matched then update set
+        `idlabel` = DBT_INTERNAL_SOURCE.`idlabel`,`idtask_has_product` = DBT_INTERNAL_SOURCE.`idtask_has_product`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`
+    
+
+    when not matched then insert
+        (`idlabel`, `idtask_has_product`, `updated_at`, `extracted_at`)
+    values
+        (`idlabel`, `idtask_has_product`, `updated_at`, `extracted_at`)
+
+
+    

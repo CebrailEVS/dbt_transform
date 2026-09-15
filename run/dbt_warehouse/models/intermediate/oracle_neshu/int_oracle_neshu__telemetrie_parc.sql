@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] Co\u00fbt mensuel de t\u00e9l\u00e9m\u00e9trie par client, d\u00e9duit du parc de terminaux de paiement observ\u00e9 chez lui.\n[COMMENT CONSTRUITE] T\u00e2ches DESTRUCTION (271) et INSTALL MACHINE (134) portant un device de type 4, jointes au produit du mod\u00e8le (device.idmodel = product.idproduct, types 4 et 7 actifs). Co\u00fbt unitaire lu dans la zone XML du produit au noeud /ZONE/CLOC, multipli\u00e9 par le nombre de terminaux distincts. Client sous contrat avant le mois observ\u00e9.\n[GRAIN] 1 ligne par (mois, company_id).\n[NOTES] Le parc est observ\u00e9 \u00e0 travers des \u00c9V\u00c9NEMENTS (destruction, installation) et non un inventaire : un client dont le parc n'a pas boug\u00e9 dans le mois n'a aucun co\u00fbt de t\u00e9l\u00e9m\u00e9trie \u2014 25 lignes sur 180 \u00e0 z\u00e9ro en ao\u00fbt 2026. Comportement de Distrilog reproduit tel quel ; savoir s'il est voulu est une question ouverte c\u00f4t\u00e9 m\u00e9tier. La vue Oracle `model` n'est pas r\u00e9pliqu\u00e9e : c'est `product` filtr\u00e9 sur les types 4 et 7 actifs, et la correspondance device.idmodel = product.idproduct tient (137 mod\u00e8les, 137 produits appari\u00e9s). Valid\u00e9 exact contre le rapport Distrilog sur ao\u00fbt 2026.\n"""
+      description="""[QUOI M\u00c9TIER] Co\u00fbt mensuel de t\u00e9l\u00e9m\u00e9trie par client, d\u00e9duit du parc de terminaux de paiement observ\u00e9 chez lui.\n[COMMENT CONSTRUITE] T\u00e2ches DESTRUCTION (271) et INSTALL MACHINE (134) portant un device de type 4, jointes au produit du mod\u00e8le (device.idmodel = product.idproduct, types 4 et 7 actifs). Co\u00fbt unitaire lu dans la zone XML du produit au noeud /ZONE/CLOC, multipli\u00e9 par le nombre de terminaux distincts. Client sous contrat avant le mois observ\u00e9.\n[GRAIN] 1 ligne par (mois, company_id).\n[NOTES] Le parc est observ\u00e9 \u00e0 travers des \u00c9V\u00c9NEMENTS (destruction, installation) et non un inventaire : un client dont le parc n'a pas boug\u00e9 dans le mois n'a aucun co\u00fbt de t\u00e9l\u00e9m\u00e9trie \u2014 25 lignes sur 180 \u00e0 z\u00e9ro en ao\u00fbt 2026. Comportement de Distrilog reproduit tel quel ; savoir s'il est voulu est une question ouverte c\u00f4t\u00e9 m\u00e9tier. La vue Oracle `model` n'est pas r\u00e9pliqu\u00e9e : c'est `product` filtr\u00e9 sur les types 4 et 7 actifs, et device.idmodel pointe directement product.idproduct. Valid\u00e9 contre le rapport Distrilog.\n"""
     )
     as (
       
@@ -21,13 +21,12 @@
 --
 -- ⚠️ Le parc est observé à travers les tâches de type DESTRUCTION (271) et
 -- INSTALL MACHINE (134) — deux ÉVÉNEMENTS, pas un inventaire. Un client dont le
--- parc n'a pas bougé dans le mois n'a donc aucun coût de télémétrie : 25 lignes
--- sur 180 sont à zéro en août 2026. C'est le comportement du rapport Distrilog,
--- reproduit tel quel ; la question de savoir s'il est voulu est ouverte côté métier.
+-- parc n'a pas bougé dans le mois n'a donc aucun coût de télémétrie. C'est le
+-- comportement du rapport Distrilog, reproduit tel quel ; savoir s'il est voulu
+-- est une question ouverte côté métier.
 --
 -- La vue Oracle `model` n'est pas répliquée : c'est `product` filtré sur les
--- types 4 et 7, actifs. La jointure device.idmodel = product.idproduct tient
--- (137 modèles, 137 produits appariés au 2026-09-15).
+-- types 4 et 7, actifs, et device.idmodel pointe directement product.idproduct.
 
 with parc_par_modele as (
 

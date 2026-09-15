@@ -7,13 +7,12 @@
 --
 -- ⚠️ Le parc est observé à travers les tâches de type DESTRUCTION (271) et
 -- INSTALL MACHINE (134) — deux ÉVÉNEMENTS, pas un inventaire. Un client dont le
--- parc n'a pas bougé dans le mois n'a donc aucun coût de télémétrie : 25 lignes
--- sur 180 sont à zéro en août 2026. C'est le comportement du rapport Distrilog,
--- reproduit tel quel ; la question de savoir s'il est voulu est ouverte côté métier.
+-- parc n'a pas bougé dans le mois n'a donc aucun coût de télémétrie. C'est le
+-- comportement du rapport Distrilog, reproduit tel quel ; savoir s'il est voulu
+-- est une question ouverte côté métier.
 --
 -- La vue Oracle `model` n'est pas répliquée : c'est `product` filtré sur les
--- types 4 et 7, actifs. La jointure device.idmodel = product.idproduct tient
--- (137 modèles, 137 produits appariés au 2026-09-15).
+-- types 4 et 7, actifs, et device.idmodel pointe directement product.idproduct.
 
 with parc_par_modele as (
 

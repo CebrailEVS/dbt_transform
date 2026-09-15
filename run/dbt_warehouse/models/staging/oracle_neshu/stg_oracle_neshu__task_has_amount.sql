@@ -1,18 +1,27 @@
-
+-- back compat for old kwarg name
   
+  
+        
+            
+                
+                
+            
+                
+                
+            
+                
+                
+            
+                
+                
+            
+        
     
 
-    create or replace table `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_amount`
-      
-    partition by timestamp_trunc(updated_at, day)
-    cluster by idtask, idtax, idtax_region
-
     
-    OPTIONS(
-      description="""Montants et taxes par t\u00e2che, nettoy\u00e9s depuis la base Oracle. Porte le co\u00fbt des produits charg\u00e9s du P&L client."""
-    )
-    as (
-      
+
+    merge into `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_amount` as DBT_INTERNAL_DEST
+        using (
 
 -- ⚠️ Deux particularités par rapport aux autres staging oracle_neshu.
 --
@@ -67,5 +76,35 @@ filtered_data as (
 
 select * from filtered_data
 
-    );
-  
+    where
+        (
+            updated_at > (
+                select max(t.updated_at)
+                from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_amount` as t
+            )
+            or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
+        )
+
+        ) as DBT_INTERNAL_SOURCE
+        on (
+                    DBT_INTERNAL_SOURCE.idtask = DBT_INTERNAL_DEST.idtask
+                ) and (
+                    DBT_INTERNAL_SOURCE.tax_rate = DBT_INTERNAL_DEST.tax_rate
+                ) and (
+                    DBT_INTERNAL_SOURCE.idtax = DBT_INTERNAL_DEST.idtax
+                ) and (
+                    DBT_INTERNAL_SOURCE.idtax_region = DBT_INTERNAL_DEST.idtax_region
+                )
+
+    
+    when matched then update set
+        `idtask` = DBT_INTERNAL_SOURCE.`idtask`,`idtax` = DBT_INTERNAL_SOURCE.`idtax`,`idtax_region` = DBT_INTERNAL_SOURCE.`idtax_region`,`tax_rate` = DBT_INTERNAL_SOURCE.`tax_rate`,`tax_code` = DBT_INTERNAL_SOURCE.`tax_code`,`tax_name` = DBT_INTERNAL_SOURCE.`tax_name`,`tax_amount` = DBT_INTERNAL_SOURCE.`tax_amount`,`amount_without_tax` = DBT_INTERNAL_SOURCE.`amount_without_tax`,`percentage` = DBT_INTERNAL_SOURCE.`percentage`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`
+    
+
+    when not matched then insert
+        (`idtask`, `idtax`, `idtax_region`, `tax_rate`, `tax_code`, `tax_name`, `tax_amount`, `amount_without_tax`, `percentage`, `updated_at`, `extracted_at`)
+    values
+        (`idtask`, `idtax`, `idtax_region`, `tax_rate`, `tax_code`, `tax_name`, `tax_amount`, `amount_without_tax`, `percentage`, `updated_at`, `extracted_at`)
+
+
+    

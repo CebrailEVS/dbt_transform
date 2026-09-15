@@ -1,18 +1,18 @@
-
+-- back compat for old kwarg name
   
+  
+        
+            
+            
+            
+            
+        
     
 
-    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__facturation_tasks`
-      
-    partition by timestamp_trunc(task_start_date, day)
-    cluster by company_id, ca_category
-
     
-    OPTIONS(
-      description="""[QUOI M\u00c9TIER] Lignes de facturation client (FACT CLIENT, type 102) et d'avoir (AVOIR, type 106), porteuses de cinq des six composantes du chiffre d'affaires du P&L client.\n[COMMENT CONSTRUITE] stg_oracle_neshu__task joint \u00e0 task_has_product et product, statuts 1/2/4 et code_status_record = '1'. Le coefficient de signe vient de stg_oracle_neshu__task_type_has_config (idconfig = 'coefficient').\n[GRAIN] 1 ligne par task_product_id.\n[NOTES] Le coefficient est LA r\u00e8gle de signe du CA : 1 sur FACT CLIENT, \u22121 sur AVOIR. Sans lui un avoir s'ajouterait au chiffre d'affaires. C'est la seule source de cette r\u00e8gle dans l'ERP. Les cinq cat\u00e9gories sont mutuellement exclusives : les trois codes de prestation sont des produits de type 1, donc hors vending (type 3), et le n\u00e9goce les \u00e9carte explicitement. Une ligne dont le produit ne rel\u00e8ve d'aucune cat\u00e9gorie garde ca_category \u00e0 NULL \u2014 le rapport Distrilog l'ignore, elle reste visible ici (\u2248 1 ligne sur 850 en ao\u00fbt 2026). La sixi\u00e8me composante, le CA t\u00e9l\u00e9m\u00e9trie, suit d'autres r\u00e8gles : voir int_oracle_neshu__ca_telemetrie.\n"""
-    )
-    as (
-      
+
+    merge into `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__facturation_tasks` as DBT_INTERNAL_DEST
+        using (
 
 with coefficient_par_type as (
 
@@ -49,7 +49,7 @@ facturation_base as (
         -- hors vending (type 3), et le `not in` du négoce les écarte.
         -- Une ligne qui ne relève d'aucune catégorie reste à NULL : le rapport
         -- Distrilog l'ignore, on la garde visible plutôt que de la faire
-        -- disparaître (≈ 1 ligne sur 850 en août 2026).
+        -- disparaître.
         case
             when p.code = 'PRESTASERV' then 'PRESTA_SERVICE'
             when p.code = 'PRESTASERVFONT' then 'FONTAINES'
@@ -119,5 +119,27 @@ select
 from facturation_base
 
 
-    );
-  
+    where
+        (
+            updated_at > (
+                select max(t.updated_at)
+                from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__facturation_tasks` as t
+            )
+            or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
+        )
+
+        ) as DBT_INTERNAL_SOURCE
+        on ((DBT_INTERNAL_SOURCE.task_product_id = DBT_INTERNAL_DEST.task_product_id))
+
+    
+    when matched then update set
+        `task_product_id` = DBT_INTERNAL_SOURCE.`task_product_id`,`task_id` = DBT_INTERNAL_SOURCE.`task_id`,`company_id` = DBT_INTERNAL_SOURCE.`company_id`,`product_id` = DBT_INTERNAL_SOURCE.`product_id`,`task_type_id` = DBT_INTERNAL_SOURCE.`task_type_id`,`company_code` = DBT_INTERNAL_SOURCE.`company_code`,`company_name` = DBT_INTERNAL_SOURCE.`company_name`,`product_code` = DBT_INTERNAL_SOURCE.`product_code`,`task_status_code` = DBT_INTERNAL_SOURCE.`task_status_code`,`task_type_code` = DBT_INTERNAL_SOURCE.`task_type_code`,`ca_category` = DBT_INTERNAL_SOURCE.`ca_category`,`task_start_date` = DBT_INTERNAL_SOURCE.`task_start_date`,`sale_amount_net` = DBT_INTERNAL_SOURCE.`sale_amount_net`,`sign_coefficient` = DBT_INTERNAL_SOURCE.`sign_coefficient`,`ca_ht_eur` = DBT_INTERNAL_SOURCE.`ca_ht_eur`,`updated_at` = DBT_INTERNAL_SOURCE.`updated_at`,`created_at` = DBT_INTERNAL_SOURCE.`created_at`,`extracted_at` = DBT_INTERNAL_SOURCE.`extracted_at`
+    
+
+    when not matched then insert
+        (`task_product_id`, `task_id`, `company_id`, `product_id`, `task_type_id`, `company_code`, `company_name`, `product_code`, `task_status_code`, `task_type_code`, `ca_category`, `task_start_date`, `sale_amount_net`, `sign_coefficient`, `ca_ht_eur`, `updated_at`, `created_at`, `extracted_at`)
+    values
+        (`task_product_id`, `task_id`, `company_id`, `product_id`, `task_type_id`, `company_code`, `company_name`, `product_code`, `task_status_code`, `task_type_code`, `ca_category`, `task_start_date`, `sale_amount_net`, `sign_coefficient`, `ca_ht_eur`, `updated_at`, `created_at`, `extracted_at`)
+
+
+    

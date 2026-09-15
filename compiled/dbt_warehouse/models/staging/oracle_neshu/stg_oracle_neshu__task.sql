@@ -25,7 +25,7 @@ cleaned_data as (
         -- Zone XML libre de la tâche, exposée brute : le parsing est le travail
         -- de l'aval, comme dans stg_oracle_neshu__contract. Porte notamment
         -- /ZONE/COUTRM, l'enveloppe mensuelle de charges sociales (type 242).
-        -- 47 Mo pour 30 M de lignes : l'immense majorité est NULL.
+        -- Renseignée sur une petite minorité de tâches.
         xml,
 
         -- Colonne numérique

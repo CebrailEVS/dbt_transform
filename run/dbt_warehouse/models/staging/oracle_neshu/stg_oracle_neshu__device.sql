@@ -45,9 +45,9 @@ cleaned_data as (
         -- Point de départ de l'amortissement quand il diffère de l'achat.
         timestamp(start_date_credit) as start_date_credit,
 
-        -- Amortissement : coût d'acquisition et durée en mois. 700 machines sur
-        -- 2580 n'ont pas de purchase_cost au 2026-09-15, leur dotation vaut donc
-        -- zéro — donnée absente à la source, pas erreur de calcul.
+        -- Amortissement : coût d'acquisition et durée en mois. Une machine sans
+        -- purchase_cost a une dotation nulle en aval — donnée absente à la
+        -- source, pas erreur de calcul.
         cast(purchase_cost as float64) as purchase_cost,
         cast(damping_duration as int64) as damping_duration,
 

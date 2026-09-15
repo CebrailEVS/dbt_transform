@@ -1,8 +1,7 @@
 
 
--- Un client peut porter plusieurs contrats (314 contrats pour 240 clients au
--- 2026-09-15). Le rapport Distrilog retient le plus ancien : c'est lui qui date
--- l'entrée en relation, donc la typologie.
+-- Un client peut porter plusieurs contrats. Le plus ancien date l'entrée en
+-- relation, donc la typologie.
 --
 -- La typologie elle-même (GET = acquis dans l'année) n'est PAS calculée ici : elle
 -- dépend de l'année de référence, donc du mois analysé. Elle vit au grain

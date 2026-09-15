@@ -9,14 +9,13 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] Date du premier contrat de chaque client, qui date l'entr\u00e9e en relation et fonde la typologie GET / OTHER du P&L.\n[COMMENT CONSTRUITE] Minimum de original_start_date par idcompany_peer sur stg_oracle_neshu__contract.\n[GRAIN] 1 ligne par company_id.\n[NOTES] Un client peut porter plusieurs contrats \u2014 314 contrats pour 240 clients au 2026-09-15 \u2014 d'o\u00f9 le minimum. La typologie elle-m\u00eame n'est PAS calcul\u00e9e ici : elle d\u00e9pend de l'ann\u00e9e de r\u00e9f\u00e9rence, donc du mois analys\u00e9, et vit au grain (mois, client) dans le mart.\n"""
+      description="""[QUOI M\u00c9TIER] Date du premier contrat de chaque client, qui date l'entr\u00e9e en relation et fonde la typologie GET / OTHER du P&L.\n[COMMENT CONSTRUITE] Minimum de original_start_date par idcompany_peer sur stg_oracle_neshu__contract.\n[GRAIN] 1 ligne par company_id.\n[NOTES] Un client peut porter plusieurs contrats, d'o\u00f9 le minimum. La typologie elle-m\u00eame n'est PAS calcul\u00e9e ici : elle d\u00e9pend de l'ann\u00e9e de r\u00e9f\u00e9rence, donc du mois analys\u00e9, et vit au grain (mois, client) dans le mart.\n"""
     )
     as (
       
 
--- Un client peut porter plusieurs contrats (314 contrats pour 240 clients au
--- 2026-09-15). Le rapport Distrilog retient le plus ancien : c'est lui qui date
--- l'entrée en relation, donc la typologie.
+-- Un client peut porter plusieurs contrats. Le plus ancien date l'entrée en
+-- relation, donc la typologie.
 --
 -- La typologie elle-même (GET = acquis dans l'année) n'est PAS calculée ici : elle
 -- dépend de l'année de référence, donc du mois analysé. Elle vit au grain
