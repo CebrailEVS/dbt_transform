@@ -159,6 +159,10 @@ vars:
   # evs-datastack-dev) lise le lac en cross-project read-only sans le dupliquer.
   # Cf. infra/dev_project_isolation.tf.
   raw_project: 'evs-datastack-prod'
+  # Coût du paiement sans contact, en part du CA télémétrie. Le rapport finance
+  # de Distrilog l'écrit en dur à 2 % ; aucune trace de ce taux en base, et aucun
+  # paramétrage côté ERP. Exposé ici pour qu'il se change sans toucher au SQL.
+  taux_cout_cashless: 0.02
   # Required by dbt_date (transitive dep of dbt_expectations) for recency checks.
   # Cf. docs/freshness.md méthode B.
   'dbt_date:time_zone': 'Europe/Paris'

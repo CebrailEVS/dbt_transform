@@ -620,3 +620,114 @@ models:
           - unique 
           - not_null
         description: "Identifiant unique du type de tâche"
+  - name: stg_oracle_neshu__task_has_amount
+    description: "Montants et taxes par tâche, nettoyés depuis la base Oracle. Porte le coût des produits chargés du P&L client."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idtask
+              - tax_rate
+              - idtax
+              - idtax_region
+    columns:
+      - name: idtask
+        description: "Identifiant de la tâche - composante de la clé"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__task')
+                field: idtask
+      - name: tax_rate
+        description: "Taux de taxe - composante de la clé, gardé en NUMERIC exact"
+        tests:
+          - not_null
+      - name: idtax
+        description: "Identifiant de la taxe - composante de la clé"
+        tests:
+          - not_null
+      - name: idtax_region
+        description: "Identifiant de la région de taxe - composante de la clé"
+        tests:
+          - not_null
+      - name: amount_without_tax
+        description: "Montant HT de la ligne - base du coût des produits chargés"
+      - name: updated_at
+        description: "Curseur emprunté au parent task : la table n'a pas de date propre"
+        tests:
+          - not_null
+
+  - name: stg_oracle_neshu__label_has_thp
+    description: "Labels par ligne de produit d'une tâche, nettoyés depuis la base Oracle. Porte le mode de paiement des ventes télémétrie."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idlabel
+              - idtask_has_product
+    columns:
+      - name: idlabel
+        description: "Identifiant du label - composante de la clé"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__label')
+                field: idlabel
+      - name: idtask_has_product
+        description: "Identifiant de la ligne de produit - composante de la clé"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__task_has_product')
+                field: idtask_has_product
+      - name: updated_at
+        description: "Curseur emprunté au parent task_has_product : la table n'a pas de date propre"
+        tests:
+          - not_null
+
+  - name: stg_oracle_neshu__task_type_has_config
+    description: "Paramétrage par type de tâche, nettoyé depuis la base Oracle. Porte le coefficient de signe du CA."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idtask_type
+              - idconfig
+    columns:
+      - name: idtask_type
+        description: "Identifiant du type de tâche - composante de la clé"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__task_type')
+                field: idtask_type
+      - name: idconfig
+        description: "Nom du paramètre - composante de la clé"
+        tests:
+          - not_null
+      - name: value
+        description: "Valeur du paramètre, en texte. Pour idconfig='coefficient' : 1 sur FACT CLIENT, -1 sur AVOIR"
+
+  - name: stg_oracle_neshu__string
+    description: "Libellés traduits de l'ERP, nettoyés depuis la base Oracle. Résout les idstring en texte lisible."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idstring
+              - langage_code
+    columns:
+      - name: idstring
+        description: "Identifiant du libellé - composante de la clé"
+        tests:
+          - not_null
+      - name: langage_code
+        description: "Code langue - composante de la clé (fr_FR, en_US, ...)"
+        tests:
+          - not_null
+      - name: text
+        description: "Le libellé traduit, à lire avec langage_code = 'fr_FR'"

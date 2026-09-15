@@ -24,6 +24,10 @@ cleaned_data as (
         name,
         commercial_name,
         code_status_record,
+        -- Zone XML libre du produit, exposée brute : le parsing est le travail de
+        -- l'aval, comme dans stg_oracle_neshu__contract. Porte notamment
+        -- /ZONE/CLOC, le coût mensuel de télémétrie d'un modèle de terminal.
+        xml,
 
         -- Colonnes numériques
         cast(purchase_unit_price as float64) as purchase_unit_price,
