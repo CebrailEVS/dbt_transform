@@ -22,6 +22,11 @@ cleaned_data as (
         -- Colonnes texte et types
         type_product_source,
         type_product_destination,
+        -- Zone XML libre de la tâche, exposée brute : le parsing est le travail
+        -- de l'aval, comme dans stg_oracle_neshu__contract. Porte notamment
+        -- /ZONE/COUTRM, l'enveloppe mensuelle de charges sociales (type 242).
+        -- 47 Mo pour 30 M de lignes : l'immense majorité est NULL.
+        xml,
 
         -- Colonne numérique
         -- FLOAT64 depuis le passage de prod_raw a dlt (etait STRING sous Meltano).

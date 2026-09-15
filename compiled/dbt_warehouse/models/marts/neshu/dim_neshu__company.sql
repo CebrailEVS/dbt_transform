@@ -9,7 +9,13 @@ with company_labels as (
         c.created_at,
         c.updated_at,
         l.code as label_code,
+        -- Libellé lisible du label : `label.code` ne porte que le code technique
+        -- (`1J2` contre `1 jour sur 2`). Les deux coexistent, les colonnes `_name`
+        -- s'ajoutent sans remplacer les colonnes de code déjà consommées ailleurs.
+        s.text as label_text,
         lf.code as label_family_code,
+        -- Zone XML libre de la société, d'où vient l'effectif saisi.
+        c.xml,
         loc.address1,
         loc.address2,
         loc.city,
@@ -22,6 +28,10 @@ with company_labels as (
         on lhc.idlabel = l.idlabel
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_family` as lf
         on l.idlabel_family = lf.idlabel_family
+    -- left join : un label sans traduction française garde son code, il ne
+    -- disparaît pas de la dimension.
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__string` as s
+        on l.idstring = s.idstring and s.langage_code = 'fr_FR'
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__company_has_location` as chl
         on c.idcompany = chl.idcompany and chl.idlocation_type = 1
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__location` as loc
@@ -64,7 +74,26 @@ aggregated_labels as (
         MAX(case when label_family_code = 'TYPECOMPAGNIE' then label_code end) as company_type,
         MAX(case when label_family_code = 'MODELEECOCLIENT' then label_code end) as company_economic_model,
         MAX(case when label_family_code = 'BL_GRP' then label_code end) as bl_group,
-        MAX(case when label_family_code = 'KA' then label_code end) as key_account
+        MAX(case when label_family_code = 'KA' then label_code end) as key_account,
+
+        -- 🏷️ Libellés lisibles des mêmes labels, pour les huit familles que le
+        -- P&L client affiche. Les colonnes de code ci-dessus restent inchangées.
+        MAX(case when label_family_code = 'REGION' then label_text end) as region_name,
+        MAX(case when label_family_code = 'SECTEUR_ACTVITE' then label_text end) as sector_name,
+        MAX(case when label_family_code = 'CODE_SECTEUR' then label_text end) as sector_code_name,
+        MAX(case when label_family_code = 'KA' then label_text end) as key_account_name,
+        MAX(case when label_family_code = 'KATIERS' then label_text end) as katiers_name,
+        MAX(case when label_family_code = 'PROADMAN' then label_text end) as proadman_name,
+        MAX(case when label_family_code = 'STATUT_CLIENT' then label_text end) as client_status_name,
+        MAX(case when label_family_code = 'MODELEECOCLIENT' then label_text end)
+            as company_economic_model_name,
+
+        -- 👥 Effectif SAISI dans le XML de la société, distinct de employee_range
+        -- qui est une tranche déclarée par label. Les deux divergent souvent —
+        -- 60 contre 250 sur certains clients — et disent deux choses différentes.
+        SAFE_CAST(
+            REGEXP_EXTRACT(MAX(xml), r'<EFFECTIF>([^<]*)</EFFECTIF>') as int64
+        ) as employee_count
     from company_labels
     group by
         company_id,
@@ -91,14 +120,23 @@ select
     CONCAT(company_code, ' - ', company_name) as company_label,
 
     -- 🏢 Caractéristiques entreprise
+    -- Les colonnes `_name` portent le libellé lisible du même label que la
+    -- colonne qui les précède. Le P&L client les lit ; les autres modèles
+    -- continuent de lire les codes.
     region,
+    region_name,
     sector,
+    sector_name,
     sector_code,
+    sector_code_name,
     activity_sector,
     employee_range,
+    employee_count,
     company_type,
     company_economic_model,
+    company_economic_model_name,
     client_status,
+    client_status_name,
 
     COALESCE(LOWER(is_active) = 'yes', false) as is_active,
 
@@ -116,13 +154,16 @@ select
 
     -- 👥 Gestion commerciale
     key_account,
+    key_account_name,
     katiers,
+    katiers_name,
 
     -- 🏨 Spécificités métier  
     remote_work,
 
     -- 🔧 Services et options
     proadman,
+    proadman_name,
     gsm,
     badge,
     recycling,

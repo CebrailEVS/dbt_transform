@@ -28,6 +28,14 @@ cleaned_data as (
         -- Date liée à la machine
         timestamp(last_installation_date) as last_installation_date,
         timestamp(purchase_date) as purchase_date,
+        -- Point de départ de l'amortissement quand il diffère de l'achat.
+        timestamp(start_date_credit) as start_date_credit,
+
+        -- Amortissement : coût d'acquisition et durée en mois. 700 machines sur
+        -- 2580 n'ont pas de purchase_cost au 2026-09-15, leur dotation vaut donc
+        -- zéro — donnée absente à la source, pas erreur de calcul.
+        cast(purchase_cost as float64) as purchase_cost,
+        cast(damping_duration as int64) as damping_duration,
 
         -- Timestamps harmonisés
         timestamp(creation_date) as created_at,

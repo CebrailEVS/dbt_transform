@@ -10,6 +10,9 @@ cleaned_data as (
         -- IDs convertis en BIGINT
         cast(idlabel as int64) as idlabel,
         cast(idlabel_family as int64) as idlabel_family,
+        -- Résout le libellé lisible du label dans stg_oracle_neshu__string :
+        -- `code` ne porte que le code technique (`1J2` contre `1 jour sur 2`).
+        cast(idstring as int64) as idstring,
 
         -- Colonnes texte
         code,
