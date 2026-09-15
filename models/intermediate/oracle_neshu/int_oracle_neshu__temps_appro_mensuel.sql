@@ -30,11 +30,9 @@ with amplitude_par_jour as (
             max(t.real_end_date), min(t.real_start_date), second
         ) / 60 as nb_min,
         -- distinct volontaire : la jointure sur task_has_resources peut
-        -- démultiplier une tâche. Le raw porte 58 635 lignes de cette table
-        -- supprimées à la source et jamais purgées (elle n'a pas weekly_purge),
-        -- ce qui gonflait le comptage de 23 % sur août 2026. À la source une
-        -- tâche d'appro n'a jamais qu'un approvisionneur : le distinct ne change
-        -- donc rien au résultat attendu, il le protège.
+        -- démultiplier une tâche si le raw porte des lignes que la source n'a
+        -- plus. Une tâche d'appro n'ayant qu'un approvisionneur, le distinct ne
+        -- change pas le résultat attendu — il le protège.
         count(distinct t.idtask) as nb_passages_machine
 
     from {{ ref('stg_oracle_neshu__task') }} as t

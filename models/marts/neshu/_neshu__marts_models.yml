@@ -53,7 +53,7 @@ models:
         description: "Tranche de collaborateurs (label TRANCHE_COLLAB)"
 
       - name: employee_count
-        description: "Effectif SAISI dans le XML de la société (/ZONE/EFFECTIF). Distinct de `employee_range`, qui est une tranche déclarée par label : les deux divergent souvent et ne disent pas la même chose. C'est cette valeur que le P&L client affiche."
+        description: "Effectif saisi dans le XML de la société (/ZONE/EFFECTIF). Distinct de `employee_range`, une tranche déclarée par label : les deux ne mesurent pas la même chose et divergent souvent. C'est cette valeur que le P&L client affiche."
 
       - name: company_type
         description: "Type d’entreprise (label TYPECOMPAGNIE)"

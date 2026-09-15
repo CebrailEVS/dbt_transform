@@ -44,7 +44,7 @@ facturation_base as (
         -- hors vending (type 3), et le `not in` du négoce les écarte.
         -- Une ligne qui ne relève d'aucune catégorie reste à NULL : le rapport
         -- Distrilog l'ignore, on la garde visible plutôt que de la faire
-        -- disparaître (≈ 1 ligne sur 850 en août 2026).
+        -- disparaître.
         case
             when p.code = 'PRESTASERV' then 'PRESTA_SERVICE'
             when p.code = 'PRESTASERVFONT' then 'FONTAINES'
