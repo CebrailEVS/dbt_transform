@@ -31,11 +31,20 @@ models:
       - name: region
         description: "Région géographique de la société (label REGION)"
 
+      - name: region_name
+        description: "Libellé lisible de la région (ex. `OFFICESUD` -> `OFFICE SUD`). Même label que `region`, côté texte."
+
       - name: sector
         description: "Secteur d’activité (HORECA/OFFICE) (label SECTEUR_ACTVITE)"
 
+      - name: sector_name
+        description: "Libellé lisible du secteur (ex. `OFFICE` -> `Office`). Même label que `sector`, côté texte."
+
       - name: sector_code
         description: "Code sectoriel associé, lien avec ceux de nespresso (label CODE_SECTEUR)"
+
+      - name: sector_code_name
+        description: "Libellé lisible du code sectoriel (ex. `OFFICE_AQUITAINE_1` -> `OFFICE - Aquitaine 1`)."
 
       - name: activity_sector
         description: "Secteur d'activité détaillé (label SECTEUR_DACTIVITE)"
@@ -43,14 +52,23 @@ models:
       - name: employee_range
         description: "Tranche de collaborateurs (label TRANCHE_COLLAB)"
 
+      - name: employee_count
+        description: "Effectif SAISI dans le XML de la société (/ZONE/EFFECTIF). Distinct de `employee_range`, qui est une tranche déclarée par label : les deux divergent souvent et ne disent pas la même chose. C'est cette valeur que le P&L client affiche."
+
       - name: company_type
         description: "Type d’entreprise (label TYPECOMPAGNIE)"
 
       - name: company_economic_model
         description: "Modèle économique client (label MODELEECOCLIENT)"
 
+      - name: company_economic_model_name
+        description: "Libellé lisible du modèle économique. Identique au code aujourd'hui, mais la colonne existe pour ne pas diverger en silence si un libellé est renommé dans l'ERP."
+
       - name: client_status
         description: "Statut client (OR/ARGENT/BRONZE) (label STATUT_CLIENT)"
+
+      - name: client_status_name
+        description: "Libellé lisible du statut client. Identique au code aujourd'hui, même raison que ci-dessus."
 
       - name: is_active
         description: >
@@ -77,14 +95,23 @@ models:
       - name: key_account
         description: "KA grand compte (label KA)"
 
+      - name: key_account_name
+        description: "Libellé lisible du grand compte (ex. `LAPOSTE` -> `LA POSTE`)."
+
       - name: katiers
         description: "Label KATIERS lié au KA"
+
+      - name: katiers_name
+        description: "Libellé lisible du grand compte tiers (ex. `VINCIFM` -> `VINCI FM`)."
 
       - name: remote_work
         description: "Indicateur du nombre de télétravail par semaine (label TELETRAVAIL)"
 
       - name: proadman
         description: "Nombre de passage roadman (label PROADMAN)"
+
+      - name: proadman_name
+        description: "Libellé lisible de la fréquence de passage (ex. `1J2` -> `1 jour sur 2`)."
 
       - name: gsm
         description: "Gobelet Sucre Melangeur FORMULE (label GSM_TERRAIN)"

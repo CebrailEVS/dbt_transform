@@ -92,6 +92,28 @@ sources:
               - not_null
             description: "Identifiant de la resources"
 
+      - name: evs_task_has_amount
+        description: "Montants et taxes par tâche - porte le coût des produits chargés"
+        columns:
+          - name: idtask
+            tests:
+              - not_null
+            description: "Identifiant de la tâche"
+          - name: tax_rate
+            tests:
+              - not_null
+            description: "Taux de taxe - composante de la clé, une ligne par taux"
+          - name: idtax
+            tests:
+              - not_null
+            description: "Identifiant de la taxe - composante de la clé"
+          - name: idtax_region
+            tests:
+              - not_null
+            description: "Identifiant de la région de taxe - composante de la clé"
+          - name: amount_without_tax
+            description: "Montant HT de la ligne"
+
       - name: evs_label_has_task
         description: "Labels par tâche"
         columns:
@@ -353,6 +375,18 @@ sources:
               - not_null
             description: "Identifiant du resources"
 
+      - name: evs_label_has_thp
+        description: "Labels par LIGNE de produit d'une tâche - porte le mode de paiement des ventes télémétrie"
+        columns:
+          - name: idlabel
+            tests:
+              - not_null
+            description: "Identifiant du label"
+          - name: idtask_has_product
+            tests:
+              - not_null
+            description: "Identifiant de la ligne de produit"
+
       # ═══════════════════════════════════════════════════════════════════
       # REFERENCE/TYPE TABLES (rarely change) - Freshness disabled
       # ═══════════════════════════════════════════════════════════════════
@@ -422,6 +456,22 @@ sources:
           - name: code
             description: "Code type resource"
 
+      - name: evs_string
+        description: "Libellés traduits de l'ERP - résout les idstring en texte lisible"
+        config:
+          freshness: null
+        columns:
+          - name: idstring
+            tests:
+              - not_null
+            description: "Identifiant du libellé - composante de la clé"
+          - name: langage_code
+            tests:
+              - not_null
+            description: "Code langue - composante de la clé (fr_FR, en_US, ...)"
+          - name: text
+            description: "Le libellé traduit"
+
       - name: evs_task_status
         description: "Statuts de tâche"
         config:
@@ -445,3 +495,19 @@ sources:
               - unique
               - not_null
             description: "Identifiant unique du type de tâche"
+
+      - name: evs_task_type_has_config
+        description: "Paramétrage par type de tâche - porte le coefficient de signe du CA"
+        config:
+          freshness: null
+        columns:
+          - name: idtask_type
+            tests:
+              - not_null
+            description: "Identifiant du type de tâche - composante de la clé"
+          - name: idconfig
+            tests:
+              - not_null
+            description: "Nom du paramètre - composante de la clé ('coefficient', ...)"
+          - name: value
+            description: "Valeur du paramètre, en texte : 1 sur FACT CLIENT, -1 sur AVOIR"
