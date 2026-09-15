@@ -10,10 +10,10 @@
 -- on reproduit, ce qui protège d'une double saisie sans la masquer (nb_saisies
 -- l'expose).
 --
--- ⚠️ La saisie est MANUELLE et peut manquer : au 2026-09-15, rien n'est saisi
--- depuis juin 2026. Un mois sans saisie ne produit aucune ligne ici, et le coût
--- de main-d'oeuvre de ce mois vaudra donc zéro dans le P&L — pas une erreur de
--- calcul, une donnée absente à la source.
+-- ⚠️ La saisie est MANUELLE et peut manquer. Un mois sans saisie ne produit
+-- aucune ligne ici, et le coût de main-d'oeuvre de ce mois vaut alors zéro dans
+-- le P&L — donnée absente à la source, pas erreur de calcul. La colonne
+-- nb_saisies expose à l'inverse une double saisie, que le max masquerait.
 
 with source_data as (
 
