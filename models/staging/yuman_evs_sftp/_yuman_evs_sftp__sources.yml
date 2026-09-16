@@ -29,7 +29,13 @@ sources:
       # C'est ce test qui détecte un jour perdu : 5 jours ouvrés ont disparu de
       # l'archive entre novembre 2025 et février 2026 sans que rien ne le
       # signale. Cf. docs/freshness.md
-      loaded_at_field: export_date
+      # export_date est un DATE en raw (verifie sur INFORMATION_SCHEMA.COLUMNS
+      # le 2026-09-16), pas un TIMESTAMP : sans cast, la requete de fraicheur
+      # echoue a chaque run avec « Expected a timestamp value ... received DATE »
+      # et ne rend donc AUCUN verdict depuis le 2026-08-02. Le cast donne minuit
+      # UTC du jour d'export, ce qui correspond exactement au raisonnement des
+      # seuils ci-dessous (~30h30 en regime normal).
+      loaded_at_field: "timestamp(export_date)"
       freshness:
         warn_after: {count: 36, period: hour}
         error_after: {count: 48, period: hour}

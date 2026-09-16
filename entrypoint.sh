@@ -28,7 +28,19 @@ dbt deps
 
 if [ -n "${DBT_SOURCE_SELECTOR:-}" ]; then
   echo "[dbt] Running source freshness: ${DBT_SOURCE_SELECTOR}"
-  dbt source freshness --select "${DBT_SOURCE_SELECTOR}" || echo "[WARN] Source freshness had warnings, continuing..."
+  # `dbt source freshness` rend 0 sur un WARN et 1 UNIQUEMENT sur le cas grave :
+  # seuil error_after franchi, ou requete de fraicheur en echec. Le `|| echo`
+  # d'origine transformait donc ce cas grave en ligne INFO, que rien ne regarde
+  # — alors que c'est le seul detecteur d'une journee de donnees definitivement
+  # perdue sur les sources non retroactives (cf. docs/freshness.md).
+  #
+  # On ecrit desormais sur stderr : Cloud Run route stderr en severity=ERROR, et
+  # l'alerte `cloud_run_job_failed` de infra/monitoring.tf la recupere sans
+  # qu'on ait a creer la moindre policy. Volontairement NON BLOQUANT : la donnee
+  # deja chargee doit continuer a se transformer, on veut le signal, pas l'arret.
+  if ! dbt source freshness --select "${DBT_SOURCE_SELECTOR}"; then
+    echo "[FRESHNESS-ERROR] ${DBT_SOURCE_SELECTOR} : seuil error_after franchi ou requete en echec — build poursuivi" >&2
+  fi
 fi
 
 DBT_COMMAND="${DBT_COMMAND:-build}"
