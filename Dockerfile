@@ -14,11 +14,17 @@ RUN pip install --no-cache-dir -r requirements-lock.txt
 
 WORKDIR /app
 
+# Ces COPY doivent couvrir TOUS les chemins declares dans dbt_project.yml
+# (model-paths, test-paths, macro-paths, seed-paths, snapshot-paths). `tests/`
+# manquait : dbt ne signale pas un test-path absent, il collecte simplement 0
+# test singulier. Les 6 tests de tests/ etaient donc verts en CI (checkout
+# complet) et INEXISTANTS dans tout build de production. Audit 2026-09-16.
 COPY dbt_project.yml packages.yml profiles.yml selectors.yml ./
 COPY models/ models/
 COPY macros/ macros/
 COPY snapshots/ snapshots/
 COPY data/ data/
+COPY tests/ tests/
 COPY entrypoint.sh .
 
 RUN chmod +x entrypoint.sh

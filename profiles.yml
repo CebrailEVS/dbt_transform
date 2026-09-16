@@ -31,5 +31,7 @@ dbt_warehouse:
       threads: 6
       location: europe-west1
       keyfile: "{{ env_var('DBT_BIGQUERY_KEYFILE') }}"
-      job_retries: 0
+      # 0 retirait le filet sur TOUTES les erreurs transitoires BigQuery, pas
+      # seulement sur les collisions d'ecriture. 1 est le defaut de l'adaptateur.
+      job_retries: 1
       job_execution_timeout_seconds: 600
