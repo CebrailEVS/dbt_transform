@@ -107,5 +107,5 @@ select
     valorisation_totale_machine,
     -- Métadonnées d'exécution
     current_timestamp() as dbt_updated_at,
-    '8914c392-6be3-4f60-a311-402810bc9ef8' as dbt_invocation_id  -- noqa: CV10, TMP
+    'af261d77-169e-4c64-9070-ee65f7c8fc97' as dbt_invocation_id  -- noqa: CV10, TMP
 from final_result
