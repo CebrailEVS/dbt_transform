@@ -12,6 +12,15 @@ sources:
       drafts/ du bucket est de l'état applicatif et n'est jamais lu ici.
       Pas de freshness déclarée : soumissions humaines événementielles, sans
       cadence garantie (un test de récence flapperait).
+
+      ORCHESTRATION — cette source n'est branchée sur AUCUN cron, et c'est
+      délibéré : le build de sa chaîne sera déclenché par l'app Suivi Tech
+      elle-même, au moment de la saisie. Ne pas l'ajouter à un DBT_TAG_SELECTOR
+      d'un workflow EL (fait puis défait le 2026-09-16) : le jour où l'app
+      déclenchera, les 9 modèles seraient construits deux fois. Dérogation
+      déclarée dans infra/CLAUDE.md § Charte d'orchestration, règle 12.
+      Conséquence assumée tant que le développement de l'app est en pause :
+      les modèles restent figés à leur dernier build.
     database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     tables:
