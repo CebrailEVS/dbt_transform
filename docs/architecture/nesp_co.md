@@ -20,7 +20,8 @@ fichiers Excel/CSV** déposés sur SFTP :
 - `nespresso_base_client` arrive via un tap Singer `tap-spreadsheets-anywhere`
   → BigQuery direct, livraison manuelle
 
-> Voir `docs/pipeline-schedule.md` pour le cron et l'orchestration.
+> Orchestration et régime de cadence : `docs/pipeline-schedule.md`.
+> L'horaire exact vit dans `infra/workflows_el.tf`.
 
 > Source historiquement artisanale : les colonnes Excel sans en-tête se
 > traduisent par des champs `unnamed_*` au niveau brut.

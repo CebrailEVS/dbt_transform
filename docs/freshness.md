@@ -115,7 +115,7 @@ Symétrique de `oracle_neshu`. Même action : nettoyer les overrides redondants.
 ### `yuman_evs_sftp` — tier *Quotidien 7j/7*, méthode A
 - `loaded_at_field: export_date` (DATE — dbt accepte)
 - Défaut source : **36h warn / 48h error**
-- Pipeline `pipeline-yuman-evs-stock`, 7j/7 à 06:30 Paris (cron `30 6 * * *`).
+- Pipeline `pipeline-yuman-evs-stock`, 7 j/7 au petit matin (horaire dans `infra/workflows_el.tf`).
   `export_date` est le snapshot (DATE = minuit) et vaut la date de MODIFICATION
   du fichier sur le SFTP, non celle du run. Pire cas normal : juste avant le run
   du lendemain, max = la veille = ~30h30. 36h laisse ~5h de marge après l'heure
@@ -152,7 +152,7 @@ business qui restent peuplées :
 ### `oracle_neshu_gcs` / `oracle_lcdp_gcs` — tier *Standard*, méthode B
 Source brute : `_extracted_at`, deja un TIMESTAMP depuis la bascule dlt du 2026-08-06. Tests sur
 `stg_oracle_neshu_gcs__stock_theorique` et `stg_oracle_lcdp_gcs__stock_theorique`.
-- Pipelines quotidiens (cron `0 23 * * *` NESHU, `15 23 * * *` LCDP ; gap observé 23-24h très régulier).
+- Pipelines quotidiens en fin de soirée, LCDP décalé après NESHU ; gap observé 23-24 h très régulier.
 - Seuil : **26h warn / 48h error** (en heures via `datepart: hour`).
 
 ### `zoho_desk` — tier *Relaxe*, méthode B

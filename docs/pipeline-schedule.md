@@ -1,230 +1,114 @@
-# Pipeline Schedule — État opérationnel
+# Rythme des pipelines — principes
 
-> Vue synchronisée extract → transform → snapshot → BI. Source de vérité pour répondre à :
-> *"À quelle heure telle donnée est-elle dispo, et quand est-elle transformée ?"*
+> Ce document explique **comment** la donnée circule de la source au mart, et
+> **pourquoi** l'orchestration est faite ainsi.
 >
-> **Companion doc :** `docs/architecture/` — un fichier par source avec l'ERD et les points d'attention.
+> Il ne contient **aucun horaire, aucun décompte, aucun cron**. Ces valeurs
+> changent, et une copie diverge toujours de l'original. La cadence réelle vit
+> dans `infra/workflows_el.tf` — s'y reporter, ou la lire d'une commande :
 >
-> **Dernière revue :** 2026-09-03 (ajout de `powerbi_activity`)
-> **Source du contenu :** scan automatique de `infra/workflows.tf`, `workflows/*.yaml`,
-> `transform/models/sources/*` et `transform/models/exposures/*`.
-> Toute modification de cron côté Terraform doit être répercutée ici.
->
-> **⚠️ Architecture Option C (2026-06-09)** : les marts ne sont plus construits par des
-> workflows `transform-<bu>-daily` dédiés. Chaque pipeline EL build désormais avec
-> `source:<source>+` → les marts d'une BU se reconstruisent automatiquement dès qu'une de
-> leurs sources atterrit. Le fan-out est résolu par le graphe de lignage dbt. Seuls les
-> snapshots gardent un scheduler de transform autonome.
-
-Timezone : **Europe/Paris** pour tous les crons.
+> ```bash
+> grep -oE 'pipeline_[a-z_]+ += \{ schedule = "[^"]+"' infra/workflows_el.tf
+> gcloud scheduler jobs list --location=europe-west1 \
+>   --format='table(name.basename(),schedule,state)'
+> ```
 
 ---
 
-## 1. Timeline journée type (jour ouvré)
+## 1. Le principe : chaque EL enchaîne sa propre transformation
 
-Chaque pipeline EL enchaîne extract → load → `dbt build source:<source>+` (staging + int +
-marts aval). Le transform n'a plus d'horaire propre : il suit la fin de l'EL de sa source.
+Il n'y a **pas** de workflow « transform » global. Chaque pipeline d'extraction
+fait, dans un seul workflow :
 
 ```
-00h ─────────────────────────────────────────────────────────────────────────────
-01:00  EL+T  oracle_neshu(1-5), oracle_lcdp(1-5), oracle_nayka(1-5), mssql_sage(1-5), yuman(1-5) → raw+stg+int + marts neshu/lcdp/finance/technique/supply_chain
-03:00  EL+T  zoho_desk (1-5)                                          → raw+stg+int (pas de marts à ce jour)
-03:30  EL    powerbi_activity (7j/7)                                  → raw SEUL (staging existe, PAS encore branché au workflow)
-06:30  EL+T  yuman_evs_sftp (7j/7, dlt)                              → + marts supply_chain
-07:30  EL+T  nesp_tech (lundi seulement)                              → + marts technique, commerce
-08:00  EL+T  sftp_evs/gac, nesp_co                                    → + marts services_generaux, commerce
-09:00  SN    transform-snapshots-daily (tous snapshots)
-08,15,18h  EL+T  oracle_lcdp (périmètre complet + refresh PBI)             → marts lcdp, supply_chain
-23:00  EL+T  oracle_stock_theorique                                  → + marts supply_chain
-23:15  EL+T  oracle_lcdp_stock_theorique                             → + marts supply_chain (lcdp)
-─────────────────────────────────────────────────────────────────────────────────
-Légende : EL = extract/load · T = transform dbt (source:X+, embarqué dans le pipeline EL) · SN = snapshot
+extract → load BigQuery → dbt build --select source:<source>+ → [refresh Power BI]
 ```
 
-> Un mart multi-source est donc rebuildé plusieurs fois/jour (une fois par source qui atterrit) —
-> choix assumé : fraîcheur maximale, coût compute négligeable. Pas de filet nocturne.
+Conséquence directe : **l'ordre entre le chargement et la transformation est
+garanti par construction**, sans qu'aucun cron n'ait à être accordé avec un
+autre. C'est la principale raison de ce choix.
 
----
+Le sous-graphe à reconstruire n'est pas maintenu à la main : `source:<source>+`
+laisse le **lignage dbt** décider de ce qui descend de cette source. Ajouter un
+mart ne demande donc aucune modification d'orchestration.
 
-## 2. Cloud Scheduler — vue exhaustive
+**Deux exceptions à connaître :**
+- Les **snapshots** ont leur propre workflow (`dbt snapshot`, jamais `dbt build`).
+  Ils sont exclus de tous les autres builds.
+- La chaîne **`apptech`** n'est branchée sur aucun cron, volontairement : son
+  build sera déclenché par l'app Suivi Tech elle-même (événementiel).
+  Cf. `infra/CLAUDE.md` § Charte d'orchestration, règle 11.
 
-Tous les schedulers sont déclarés dans `infra/workflows.tf`. Ils invoquent un Cloud Workflow
-homonyme dans `workflows/*.yaml`.
+## 2. Trois régimes de cadence
 
-### 2.1 Extract (EL)
-
-| Scheduler | Cron | Jours | Workflow ciblé | Source |
-|---|---|---|---|---|
-| pipeline-oracle-neshu | `0 1 * * 1-5` | lun-ven | pipeline-oracle-neshu.yaml | oracle_neshu (EL dlt + dbt + refresh PBI) |
-| pipeline-oracle-neshu-intraday | `0 8,11,15 * * 1-5` | lun-ven | *(même workflow)* | oracle_neshu — second déclencheur du workflow ci-dessus |
-| pipeline-oracle-neshu-purge | `0 4 * * 0` | dim | pipeline-oracle-neshu-purge.yaml | oracle_neshu (`--purge-deletes` : supprime les lignes effacées à la source) |
-| pipeline-oracle-lcdp | `0 1 * * 1-5` | lun-ven | pipeline-oracle-lcdp.yaml | oracle_lcdp (EL dlt + dbt + refresh PBI) |
-| pipeline-oracle-lcdp-intraday | `0 8,15,18 * * 1-5` | lun-ven | *(même workflow)* | oracle_lcdp — second déclencheur du workflow ci-dessus |
-| pipeline-oracle-lcdp-purge | `0 4 * * 0` | dim | pipeline-oracle-lcdp-purge.yaml | oracle_lcdp (`--purge-deletes` : supprime les lignes effacées à la source) |
-| pipeline-mssql-sage | `0 1 * * 1-5` | lun-ven | pipeline-mssql-sage.yaml | mssql_sage |
-| pipeline-yuman-evs | `0 1 * * 1-5` | lun-ven | pipeline-yuman-evs.yaml | yuman_api |
-| pipeline-zoho-desk | `0 3 * * 1-5` | lun-ven | pipeline-zoho-desk.yaml | zoho_desk |
-| pipeline-powerbi-activity | `30 3 * * *` | **tous les jours** | pipeline-powerbi-activity.yaml | powerbi_activity — 7j/7 délibéré : l'API ne conserve que 27 jours glissants, une journée non collectée est perdue |
-| pipeline-yuman-evs-stock | `30 6 * * *` | tous les jours | pipeline-yuman-evs-stock.yaml | yuman_evs_sftp |
-| pipeline-nesp-tech | `30 7 * * 1` | lun | pipeline-nesp-tech.yaml | nesp_tech |
-| pipeline-sftp-evs-gac | `0 8 * * *` | tous | pipeline-sftp-evs-gac.yaml | gac |
-| pipeline-nesp-co | `0 8 * * *` | tous | pipeline-nesp-co.yaml | nesp_co |
-| pipeline-oracle-stock-theorique | `0 23 * * *` | tous | pipeline-oracle-stock-theorique.yaml | oracle_neshu_gcs |
-
-### 2.2 Transform (dbt) — embarqué dans les pipelines EL (Option C)
-
-Il n'existe **plus** de scheduler `transform-<bu>-daily`. Chaque pipeline EL de §2.1 exécute,
-après son extract/load, un `dbt build --select source:<source>+` (étape `run_dbt`, env var
-`DBT_TAG_SELECTOR`). Le sélecteur par pipeline :
-
-| Pipeline EL | Sélecteur build | Marts reconstruits (BU aval via lignage) |
+| Régime | Ce qu'il sert | Comment il est exprimé |
 |---|---|---|
-| pipeline-oracle-neshu | `source:oracle_neshu+` | neshu, supply_chain |
-| pipeline-oracle-lcdp | `source:oracle_lcdp+` | lcdp, supply_chain |
-| pipeline-yuman-evs | `source:yuman_api+` | neshu, technique |
-| pipeline-yuman-evs-stock | `source:yuman_evs_sftp+` | supply_chain |
-| pipeline-nesp-tech | `source:nesp_tech+` | technique, commerce |
-| pipeline-nesp-co | `source:nesp_co+` | commerce |
-| pipeline-sftp-evs-gac | `source:gac+` | services_generaux |
-| pipeline-sftp-evs-nesp-client | `source:nesp_co+` | commerce — **sans scheduler**, declenchement manuel |
-| pipeline-mssql-sage | `source:mssql_sage+` | finance |
-| pipeline-oracle-stock-theorique | `source:oracle_neshu_gcs+` | supply_chain |
-| pipeline-oracle-lcdp-stock-theorique | `source:oracle_lcdp_gcs+` | supply_chain (lcdp) |
-| pipeline-powerbi-activity | *(aucun — étape dbt pas encore ajoutée)* | — voir `docs/architecture/powerbi_activity.md` § À faire |
-| pipeline-zoho-desk | `source:zoho_desk+` | — (pas de marts à ce jour) |
+| **Nocturne** | remise à niveau complète d'une source | un scheduler par pipeline EL |
+| **Intraday** | besoins suivis en journée (passages appro, tournées roadmen) | un **second scheduler** pointant le **même** workflow |
+| **Hebdomadaire** | sources à faible rotation, et les purges | un scheduler à cadence hebdo |
 
-> Snapshots exclus de tout `dbt build` via `--exclude resource_type:snapshot` (entrypoint).
+L'intraday ne duplique pas le YAML : deux schedulers, une seule recette. Dupliquer
+condamnerait à reporter chaque correction deux fois, et un jour elles
+divergeraient.
 
-### 2.3 Snapshots
+**Ce que l'intraday reconstruit aujourd'hui est le sous-graphe entier de la
+source**, pas un sous-ensemble ciblé. Une voie rapide plus étroite a existé à
+l'époque Meltano, puis a été abandonnée : le gain de calcul ne justifiait pas un
+second workflow à maintenir pour un mainteneur unique. *Si le besoin revient, la
+parade n'est pas un second YAML mais des `params:` sur l'existant — le scheduler
+intraday passerait alors un sélecteur différent dans son `body`.*
 
-| Scheduler | Cron | Workflow | Périmètre |
-|---|---|---|---|
-| transform-snapshots-daily | `0 9 * * *` | transform-snapshots-daily.yaml | Tous les snapshots de `snapshots/` |
+> **Un build partiel n'est pas gratuit, et c'est la leçon à retenir de cette
+> voie rapide.** Reconstruire les faits sans leurs référentiels casse les tests
+> `relationships` : une entité créée dans la journée est référencée par une
+> tâche fraîche mais absente d'un référentiel resté sur la nuit — le test
+> remonte un orphelin et bloque le run. Deux parades, à choisir avant de coder :
+> rafraîchir aussi les référentiels que le sous-graphe joint, ou différer ces
+> tests au build complet avec `--indirect-selection cautious` (déjà géré par
+> `entrypoint.sh` en mode sélecteur nommé). Ne jamais découvrir ce problème en
+> production.
 
-### 2.4 Export
+## 3. Fan-out : ce que ce design coûte, assumé
 
-| Scheduler | Cron | Jours | Workflow | Description |
-|---|---|---|---|---|
-| export-nesp-tech-stock-yuman | `0 10 * * 1` | lun | export-nesp-tech-stock-yuman.yaml | Export stock Nespresso Tech → SFTP Yuman |
+Un mart se reconstruit **dès qu'une seule** de ses sources atterrit. On n'attend
+pas que toutes soient fraîches : la fraîcheur est *eventual*.
 
----
+- **Un mart multi-sources est reconstruit une fois par source.** Redondant, mais
+  il est toujours aussi frais que sa source la plus récente.
+- **Un mart multi-sources expose un état mixte** : une source à jour, une autre
+  d'hier. C'est acceptable tant que le grain du mart ne suppose pas la
+  simultanéité — à vérifier au cas par cas quand on écrit le mart.
+- **Pas de filet nocturne.** Si un EL échoue ou ne tourne pas ce jour-là, ses
+  marts restent sur la dernière donnée chargée jusqu'au prochain run de la
+  source. Aucun rattrapage automatique.
+- **Le fan-out traverse les refs mart→mart**, y compris entre BU. Un sélecteur
+  de source touche donc parfois des marts d'une autre BU que la sienne.
 
-## 3. Fan-out source → BU (Option C)
+Pour savoir ce qu'une source déclenche réellement, ne pas lire une matrice :
+la demander à dbt.
 
-Plus de barrière de synchronisation : un mart se reconstruit **dès qu'une seule** de ses sources
-atterrit, via le `source:<source>+` du pipeline EL correspondant. Pas besoin que toutes les
-sources soient fraîches en même temps (fraîcheur *eventual*). Matrice de déclenchement :
+```bash
+dbt ls --select "source:<source>+" --resource-type model
+```
 
-| Source rafraîchie (EL) | BU dont les marts se reconstruisent |
+## 4. Fraîcheur
+
+Chaque pipeline lance `dbt source freshness` sur sa propre source **avant** le
+build. Le contrôle est **non bloquant** : la donnée déjà chargée doit continuer
+à se transformer. En cas de dépassement du seuil, une ligne part sur **stderr**,
+que Cloud Run route en `severity=ERROR` et que l'alerte existante récupère.
+
+Les seuils par source, et la distinction entre les deux méthodes de mesure,
+vivent dans [`freshness.md`](freshness.md) — ne pas les recopier ici.
+
+## 5. Où trouver quoi
+
+| Question | Où est la réponse |
 |---|---|
-| oracle_neshu | neshu, supply_chain |
-| oracle_lcdp | lcdp, supply_chain |
-| yuman_api | neshu, technique |
-| yuman_evs_sftp | supply_chain |
-| oracle_neshu_gcs | supply_chain |
-| oracle_lcdp_gcs | supply_chain (lcdp) |
-| nesp_tech | technique, commerce |
-| nesp_co | commerce |
-| mssql_sage | finance |
-| gac | services_generaux |
-
-**Conséquences (design assumé) :**
-- Un mart multi-source est rebuildé une fois par source (ex. `technique` via oracle_neshu 01h,
-  yuman 01h, puis nesp_tech le lundi 07:30). Redondant mais inoffensif, fraîcheur maximale.
-- **Pas de filet nocturne** : si un EL échoue ou ne tourne pas (week-end pour yuman/mssql_sage,
-  semaine pour nesp_tech), les marts concernés restent sur la dernière donnée chargée jusqu'au
-  prochain run de la source. Choix assumé.
-- `fct_technique__alerting_consommation_aguila` et `fct_technique__piece_detachee_pricing_nespresso`
-  ne dépendent que de `nesp_tech` (hebdo, lundi) → rebuild hebdo = cohérent avec leur source.
-- Le fan-out suit le lignage `ref()`/`source()` : il traverse les refs mart→mart cross-BU
-  (ex. `source:oracle_neshu+` touche aussi des marts technique via `fct_neshu__workorder_delai`).
-  Couverture validée : `dbt ls --select source:X+,tag:marts` → 40/40 marts, 0 orphelin.
-
----
-
-## 3bis. Sources consommées par BU (lineage dbt)
-
-Vérité issue du lineage dbt (`ref()` traversé jusqu'aux `source()` dans staging).
-Permet de répondre à : *"Quelles sources doivent être fraîches pour que la BU X soit à jour ?"*.
-
-| BU | Sources upstream (via lineage) | Sources externes `prod_marts` (Cloud Run hors dbt) | Nb marts |
-|---|---|---|---|
-| neshu | `oracle_neshu`, `yuman` | — | 13 (6 dim + 7 fct) |
-| lcdp | `oracle_lcdp` | — | 4 (3 dim + 1 fct) |
-| technique | `yuman`, `nesp_tech` | — | 10 (5 dim + 5 fct) |
-| commerce | `nesp_co`, `nesp_tech` | — | 1 (0 dim + 1 fct) |
-| finance | `mssql_sage` (+ source statique `historic`) | — | 1 (0 dim + 1 fct) |
-| services_generaux | `gac` | — | 1 (0 dim + 1 fct) |
-| supply_chain | `oracle_neshu`, `oracle_neshu_gcs`, `yuman_evs_sftp` | — | 3 (0 dim + 3 fct) |
-
-**Notes :**
-- `technique` consomme du parc machine Neshu via `yuman` (les machines y sont synchronisées), pas
-  directement via `oracle_neshu`.
-- `commerce` dépend de `nesp_tech` qui n'est rafraîchi que **le lundi à 07:30** : les autres jours,
-  le run commerce retraite les mêmes interventions Nespresso Tech que le lundi précédent.
-- `supply_chain` est la seule BU qui consomme les exports GCS (`*_gcs`).
-
----
-
-## 4. Freshness SLA dbt (sources)
-
-Les sources critiques exposent un `freshness` dans `models/staging/*/_*_sources.yml` :
-
-| Source | warn_after | error_after |
-|---|---|---|
-| oracle_neshu, oracle_lcdp, yuman, mssql_sage, zoho_desk | 26h | 36h |
-| yuman_evs_sftp, oracle_neshu_gcs, gac | 26h | 48h (relaxe) |
-| Référentiels (seeds-like sources) | — | — |
-
-`dbt source freshness` peut être lancé manuellement ; pas encore intégré comme gate automatique
-dans les workflows transform.
-
----
-
-## 5. Exposures Power BI (consommation aval)
-
-| BU | Rapports déclarés (`models/exposures/<bu>.yml`) | Owner |
-|---|---|---|
-| neshu | Business Review, Reporting Appro, Maintenance Préventives, PROD Chargement & Consos, PROD Délais Curatives, PROD Scorecard Neshu-Nespresso, Passage Appro Monitoring | Cebrail Aksoy |
-| lcdp | Passage Appro Monitoring LCDP | Cebrail Aksoy |
-| technique | Pilotage Technique, Cartographie Partenaires | Etienne Boulinier |
-| finance | P&L par BU | Etienne Boulinier |
-| supply_chain | Diagramme Flux Neshu (dev) | Etienne Boulinier |
-| commerce | PROD Machines & Interventions | Rim Bouchikhi |
-| services_generaux | *(aucune exposure déclarée)* | — |
-
----
-
-## 6. TODO — à compléter à la main
-
-Ces infos ne sont pas dans le code, à enrichir au fil de l'eau :
-
-- [ ] **Durée typique de chaque workflow** (extract et transform) — à relever depuis Cloud Workflows
-      exec logs. Cible : ajouter une colonne "durée p50 / p95" aux tableaux §2.
-- [ ] **Mécanisme de refresh Power BI** — les jobs `pipeline-passages-appro-*` annoncent un
-      refresh PBI mais le déclenchement exact (API call PBI ? Power Automate ?) n'est pas dans
-      le code Terraform. Documenter ici.
-- [ ] **Horaires de refresh Power BI dataset** par rapport (au-delà des passages appro) — quand
-      les datasets PBI quotidiens se rafraîchissent-ils ? (à confirmer côté tenant PBI)
-- [ ] **Zoho Desk** — pipeline actif depuis quand, consommé par quel mart ? (pas d'exposure encore)
-- [ ] **Exposures `commerce` et `services_generaux`** — créer les fichiers si des rapports PBI
-      existent réellement.
-- [ ] **Alerting** — où sont remontés les échecs de workflow (Slack, mail, Cloud Monitoring) ?
-      Cf. `infra/monitoring.tf` à documenter.
-
----
-
-## 7. Comment maintenir ce doc
-
-À mettre à jour **dans la même PR** quand :
-
-| Changement | Section à mettre à jour |
-|---|---|
-| Nouveau Cloud Scheduler EL (cron modifié, jour ajouté) | §2.1 + §1 timeline |
-| Nouvelle source dbt | §2.1 + §2.2 (ajouter le `source:X+`) + §3 matrice + §4 |
-| Nouveau mart dans une BU existante | rien côté scheduling (rebuild auto via `source:X+`) ; §3bis si nouvelle source upstream |
-| Nouveau rapport PBI / exposure | §5 |
-| Changement de SLA freshness | §4 |
-
-Source du contenu : `infra/workflows.tf` est la **source de vérité** des crons.
-Si un cron change, modifier le `.tf`, appliquer, **puis** mettre à jour ce doc.
+| À quelle heure tourne un pipeline ? | `infra/workflows_el.tf` |
+| Qu'est-ce qu'un pipeline fait, étape par étape ? | `infra/workflows/<nom>.yaml` |
+| Qu'est-ce qu'une source déclenche ? | `dbt ls --select "source:X+"` |
+| Quels seuils de fraîcheur ? | [`freshness.md`](freshness.md) |
+| Quel rapport BI consomme quel mart ? | `models/exposures/<bu>.yml` |
+| Pourquoi l'orchestration est-elle faite ainsi ? | `infra/CLAUDE.md` § Charte |
+| Les particularités d'une source | [`architecture/`](architecture/) |
