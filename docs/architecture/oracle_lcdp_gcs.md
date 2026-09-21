@@ -22,7 +22,7 @@ Ce document ne consigne que ce qui diffère côté LCDP.
 | Pipeline dlt | `oracle_neshu_stock` | **`oracle_lcdp_stock`** |
 | Schéma Oracle | `EVS` | **`LCDP`** |
 | Table cible | `oracle_neshu_stock_theorique` | **`oracle_lcdp_stock_theorique`** |
-| Cron | `0 23 * * *` | **`15 23 * * *`** (23:15 Paris) |
+| Cadence | quotidienne, en fin de soirée | **quotidienne, décalée 15 min après NESHU** (horaire dans `infra/workflows_el.tf`) |
 | Début de l'historique | 2025-11-01 | **2026-06-05** — pas d'antérieur, aucune reprise CSV |
 | Filtre du mart | 7 dépôts sur 15, et `resources_type='VEHICLE'` | **aucun filtre** |
 | Modèle de flux mensuel | `fct_supply_chain__flux_neshu` | aucun |

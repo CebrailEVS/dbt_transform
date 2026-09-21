@@ -26,7 +26,8 @@ Source alimentée par l'API d'administration Power BI via dlt
 (`ingestion/pipelines/powerbi_activity`). Volume faible : ~2 100 événements pour
 27 jours, ~80 événements/jour.
 
-> Voir `docs/pipeline-schedule.md` pour le cron et l'orchestration.
+> Orchestration et régime de cadence : `docs/pipeline-schedule.md`.
+> L'horaire exact vit dans `infra/workflows_el.tf`.
 
 ---
 

@@ -1,44 +1,21 @@
-selectors:
-  # ============================================================
-  # FAST-LANE — Passages appro (refresh intra-day)
-  # ============================================================
-  # Sous-graphe minimal alimentant un mart de passages appro : ancêtres
-  # de fct_<bu>__passage_appro (staging.task + intermediate.appro_tasks
-  # incrémentaux + enriched + pointage + dims), PAS tout le DAG Oracle.
-  #
-  # Production : chaque workflow EL appelle SON selector par BU (isolé),
-  # pour ne rebuild que sa propre BU :
-  #   pipeline-passages-appro-neshu  → passage_appro_fastlane_neshu
-  #
-  # LCDP n'a plus de voie rapide : son pipeline dlt rafraîchit tout le périmètre
-  # à 01h puis 08h/15h/18h, donc `source:oracle_lcdp+` suffit.
-  #
-  # Le build rapide tourne avec `--indirect-selection cautious` (cf. entrypoint.sh) :
-  # les tests relationships de bord (réfs hors sous-graphe) sont différés au nocturne.
-  # Inutile donc d'ajouter un modèle au selector juste pour faire passer son test FK.
-  #
-  # Le selector combiné `passage_appro_fastlane` reste disponible pour un
-  # full refresh manuel des deux BUs (`dbt build --selector passage_appro_fastlane`).
-  # ============================================================
-
-  - name: passage_appro_fastlane_neshu
-    description: >
-      Sous-graphe ancêtre de fct_neshu__passage_appro (refresh intra-day neshu).
-    default: false
-    definition:
-      method: fqn
-      value: fct_neshu__passage_appro
-      parents: true
-
-  - name: passage_appro_fastlane
-    description: >
-      Full refresh manuel des deux marts passages appro (neshu + lcdp).
-    default: false
-    definition:
-      union:
-        - method: fqn
-          value: fct_neshu__passage_appro
-          parents: true
-        - method: fqn
-          value: fct_lcdp__passage_appro
-          parents: true
+# =============================================================================
+# selectors.yml — selecteurs nommes, appelables via DBT_SELECTOR_NAME
+#
+# VIDE a dessein depuis le 2026-09-21.
+#
+# Les deux selecteurs `passage_appro_fastlane*` ont ete supprimes : ils
+# n'avaient plus aucun appelant depuis la bascule dlt, et la voie rapide
+# intraday qu'ils devaient servir a ete abandonnee — le gain (~195
+# constructions/jour) ne justifiait pas un 24e YAML dupliquant le nocturne,
+# donc une 21e copie du bloc run_cloud_run_job (cf. regle 10 de la charte,
+# infra/CLAUDE.md).
+#
+# Le full refresh manuel des passages appro se fait directement :
+#   dbt build -s +fct_neshu__passage_appro
+#   dbt build -s +fct_lcdp__passage_appro
+#
+# Regle 14 de la charte : un selecteur nomme a un appelant, ou il est supprime.
+# `entrypoint.sh` continue de gerer DBT_SELECTOR_NAME : le mecanisme reste
+# disponible, il n'a simplement plus d'utilisateur.
+# =============================================================================
+selectors: []

@@ -21,7 +21,8 @@ de labels, mêmes types de tâches.
 > d'unité, `idcompany_peer` vs `idcompany`, etc.). Le présent document se
 > limite aux **spécificités LCDP**.
 
-> Voir `docs/pipeline-schedule.md` pour le cron et l'orchestration.
+> Orchestration et régime de cadence : `docs/pipeline-schedule.md`.
+> L'horaire exact vit dans `infra/workflows_el.tf`.
 
 ---
 

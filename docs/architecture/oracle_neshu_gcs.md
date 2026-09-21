@@ -220,8 +220,8 @@ sont à interpréter avec prudence : elles n'ont pas de point d'ancrage récent.
 ## Fraîcheur
 
 Tier **Standard**, méthode B : **26 h warn / 48 h error** sur `extracted_at`, via
-`dbt_expectations.expect_row_values_to_have_recent_data`. Cron `0 23 * * *`, gap
-observé 23-24 h très régulier. Autorité : [`docs/freshness.md`](../freshness.md).
+`dbt_expectations.expect_row_values_to_have_recent_data`. Pipeline quotidien en
+fin de soirée, gap observé 23-24 h très régulier. Autorité : [`docs/freshness.md`](../freshness.md).
 
 ---
 
