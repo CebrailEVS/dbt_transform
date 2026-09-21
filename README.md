@@ -237,7 +237,7 @@ Toujours verifier avec `git diff` apres un `--fix`. Voir [CONVENTIONS.md](CONVEN
 
 | Package | Version | Role |
 |---------|---------|------|
-| `dbt` | 2.0.6 | Moteur dbt v2 (Rust) — adaptateur BigQuery et linter inclus |
+| `dbt` | 2.0.6 | Moteur dbt v2 (Rust) — adaptateur BigQuery et linter inclus. Distribution gratuite, licence propriétaire dbt Labs (l'alternative Apache 2.0 `dbt-oss` n'a pas `dbt lint`) |
 
 ### dbt packages (`packages.yml`)
 

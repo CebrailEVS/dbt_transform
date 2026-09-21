@@ -3,7 +3,9 @@
 ## Project overview
 ELT data warehouse for EVS Professionnelle France.
 **Stack:** Meltano + Cloud Run jobs (extract) → BigQuery `prod_raw` (lake) → dbt (transform) → GCP Cloud Workflows (orchestrate) → Power BI (viz)
-**dbt version:** 2.0.6 (dbt v2, moteur Rust — le paquet `dbt` embarque l'adaptateur BigQuery)
+**dbt version:** 2.0.6 — paquet `dbt` (moteur Rust, adaptateur BigQuery inclus). Distribution
+gratuite mais **propriétaire** (dbt Product Licensing Agreement) ; `dbt-oss` est l'équivalent
+Apache 2.0, **sans `dbt lint`**. Choix assumé le 2026-09-21.
 **Team:** 1 Data Engineer (owner), 1 Data Analyst (contributes to marts)
 
 ---
@@ -75,6 +77,12 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
   `.sqlfluff`, mêmes codes de règles, mêmes `-- noqa`, pas de connexion BigQuery). La parité
   n'est pas garantie règle pour règle — layout/indentation (LT02) est la divergence connue.
 - `dbt docs generate` **fonctionne en v2** : `deploy-docs` est inchangé.
+- **Installation par `pip`**, la voie documentée par dbt Labs. Le paquet `dbt` n'est pas un
+  binaire autonome : c'est une extension CPython (`dbt/_core.abi3.so`), donc **Python ≥ 3.11
+  reste requis à l'exécution**. Un binaire autonome existe (`install.sh`) et allègerait l'image
+  d'environ 130 Mo — écarté pour rester sur la voie standard.
+- **`dbt lint` est gratuit sans compte** (« free forever » côté dbt Labs). Demandent un
+  `dbt login` : LSP complet, lineage colonne précis, compréhension SQL avancée.
 
 ---
 
