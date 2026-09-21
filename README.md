@@ -33,7 +33,7 @@ dbt deps && dbt debug
 | **Cloud Scheduler**        | Declenchement des workflows (cron)                |
 | **Cloud Run**              | Execution des jobs Meltano et dbt en production   |
 | **GitHub Actions**         | CI/CD automatisee                                 |
-| **SQLFluff**               | Linting et formatage SQL                          |
+| **dbt lint**               | Linting SQL (natif dbt v2, config `.sqlfluff`)    |
 | **Power BI**               | Visualisation et reporting                        |
 | **Cloud Storage**          | Zone d'atterrissage intermediaire pour certaines types de données                |
 | **Meltano** *(repo separe)*| Extraction et chargement vers BigQuery            |
@@ -127,7 +127,7 @@ python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
 # ou venv\Scripts\activate  # Windows
 
-# 3. Installer les dependances (dbt, dbt-bigquery, sqlfluff)
+# 3. Installer les dependances (dbt v2 — adaptateur BigQuery inclus)
 pip install -r requirements-lock.txt
 
 # 4. Configurer les variables d'environnement
@@ -202,20 +202,21 @@ dbt seed
 
 ---
 
-## Linting SQL (SQLFluff)
+## Linting SQL (`dbt lint`)
 
-Le projet utilise [SQLFluff](https://sqlfluff.com/) pour garantir un style SQL homogene. Configuration dans `.sqlfluff`.
+Le linter est integre a dbt v2. Il lit la configuration `.sqlfluff` existante (memes codes de
+regles, memes `-- noqa`) et ne se connecte pas a BigQuery. SQLFluff n'est plus installe.
 
 ```bash
 # Analyser un fichier ou repertoire
-sqlfluff lint models/staging/oracle_neshu/
-sqlfluff lint models/
+dbt lint models/staging/oracle_neshu/
+dbt lint models/
 
 # Corriger automatiquement
-sqlfluff fix models/staging/oracle_neshu/
+dbt lint models/staging/oracle_neshu/ --fix
 ```
 
-Toujours verifier avec `git diff` apres un `sqlfluff fix`. Voir [CONVENTIONS.md](CONVENTIONS.md) pour les regles appliquees.
+Toujours verifier avec `git diff` apres un `--fix`. Voir [CONVENTIONS.md](CONVENTIONS.md) pour les regles appliquees.
 
 ---
 
@@ -236,10 +237,7 @@ Toujours verifier avec `git diff` apres un `sqlfluff fix`. Voir [CONVENTIONS.md]
 
 | Package | Version | Role |
 |---------|---------|------|
-| `dbt-core` | 1.12.3 | Framework de transformation |
-| `dbt-bigquery` | 1.12.0 | Adaptateur BigQuery |
-| `sqlfluff` | 4.3.0 | Linter SQL |
-| `sqlfluff-templater-dbt` | 4.3.0 | Support Jinja/dbt pour SQLFluff |
+| `dbt` | 2.0.6 | Moteur dbt v2 (Rust) — adaptateur BigQuery et linter inclus |
 
 ### dbt packages (`packages.yml`)
 
@@ -259,7 +257,7 @@ direnv allow                           # direnv bloque ou non autorise
 set -a && source .env && set +a        # Variables non chargees (sans direnv)
 git rebase --abort                     # Annuler un rebase en echec
 dbt build --select tag:oracle_neshu    # Cibler les modeles en echec
-sqlfluff lint models/staging/          # Verifier le linting SQL
+dbt lint models/staging/              # Verifier le linting SQL
 dbt ls --select +mon_modele            # Voir les dependances d'un modele
 ```
 
@@ -269,7 +267,7 @@ dbt ls --select +mon_modele            # Voir les dependances d'un modele
 
 - [Documentation dbt](https://docs.getdbt.com/)
 - [dbt BigQuery Adapter](https://docs.getdbt.com/reference/warehouse-profiles/bigquery-profile)
-- [SQLFluff](https://docs.sqlfluff.com/)
+- [dbt lint](https://docs.getdbt.com/reference/commands/lint)
 - [dbt_expectations](https://github.com/metaplane/dbt-expectations)
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Workflow Git et collaboration
 - [CONVENTIONS.md](CONVENTIONS.md) — Conventions de nommage et qualite

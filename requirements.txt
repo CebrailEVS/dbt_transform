@@ -1,5 +1,8 @@
-# Local dev and CI/CD only (dbt is managed via official Docker image)
-dbt-core==1.12.3
-dbt-bigquery==1.12.0
-sqlfluff==4.3.0
-sqlfluff-templater-dbt==4.3.0
+# dbt v2 (moteur Rust). Le paquet `dbt` embarque son adaptateur BigQuery :
+# plus de `dbt-core` + `dbt-bigquery` separes, et plus de venv Python a gerer
+# cote execution — c'est un binaire.
+#
+# SQLFluff n'est plus installe : le lint passe par `dbt lint`, natif a v2, qui
+# lit le meme fichier .sqlfluff et les memes codes de regles (CP01, RF03...),
+# et respecte les `-- noqa`. Il ne se connecte pas a BigQuery.
+dbt==2.0.6

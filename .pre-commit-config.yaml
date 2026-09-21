@@ -4,20 +4,23 @@
 #
 # Install once per clone (isolated, ne pollue pas dbt_venv) :
 #   pipx install pre-commit
-#   pre-commit install              # commit-stage hooks (sqlfluff)
+#   pre-commit install              # commit-stage hooks (dbt lint)
 #   pre-commit install --hook-type pre-push   # pre-push hooks (dbt parse)
 #
 # Hooks call ./dbt_venv/bin/* directly — single source of truth for tool versions
-# (sqlfluff/dbt pinned in requirements.txt). No duplicated tool install here.
+# (dbt pinned in requirements.txt). No duplicated tool install here.
 
 repos:
   - repo: local
     hooks:
-      # --- commit stage : lint SQL models with the dbt templater ---
-      - id: sqlfluff-lint
-        name: sqlfluff lint (models)
+      # --- commit stage : lint SQL models (dbt lint, natif v2) ---
+      # SQLFluff n'est pas compatible dbt v2. `dbt lint` lit le meme .sqlfluff
+      # et les memes `-- noqa`. Il ne se connecte pas a BigQuery, mais profiles.yml
+      # resout des env_var() : on source .env comme avant.
+      - id: dbt-lint
+        name: dbt lint (models)
         language: system
-        entry: bash -c 'set -a; [ -f .env ] && . ./.env; set +a; exec ./dbt_venv/bin/sqlfluff lint "$@"' --
+        entry: bash -c 'set -a; [ -f .env ] && . ./.env; set +a; exec ./dbt_venv/bin/dbt lint "$@"' --
         files: ^models/.*\.sql$
         pass_filenames: true
 
