@@ -13,8 +13,8 @@ with
 resources_roadman as (
     select
         thr.idtask,
-        MIN(r.idresources) as idresources_roadman,
-        MIN(r.code) as code_roadman
+        min(r.idresources) as idresources_roadman,
+        min(r.code) as code_roadman
     from {{ ref('stg_oracle_lcdp__task_has_resources') }} as thr
     inner join {{ ref('stg_oracle_lcdp__resources') }} as r
         on
@@ -62,7 +62,7 @@ select
     status_code,
     label_code,
     date_pointage,
-    DATE(date_pointage) as date_pointage_jour,
+    date(date_pointage) as date_pointage_jour,
     created_at,
     updated_at,
     extracted_at

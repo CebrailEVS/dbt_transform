@@ -8,9 +8,9 @@
 with liste_machine_oracle as (
     select
         d.device_id,
-        CONCAT('NESH_', d.device_code) as device_code,
+        concat('NESH_', d.device_code) as device_code,
         d.device_name,
-        CONCAT('NESH_', company_code) as company_code,
+        concat('NESH_', company_code) as company_code,
         d.company_name,
         d.last_installation_date,
         d.created_at as device_created_at,
@@ -19,7 +19,7 @@ with liste_machine_oracle as (
     where
         is_active
         and device_type_id in (1, 2)
-        and REGEXP_CONTAINS(company_code, r'^CN[0-9]{4}$')
+        and regexp_contains(company_code, r'^CN[0-9]{4}$')
         and device_name in (
             'MOMENTO 100', 'GEMINI 200', 'MOMENTO 200', 'MINITOWER GEMINI', 'MINITOWER MOMENTO',
             'SBS MOMENTO 100', 'TOWER GEMINI', 'TOWER MOMENTO', 'MILANO LYO FTS120',
@@ -164,8 +164,8 @@ workorder_enrichi as (
 -- LISTE INTERVENTION PREV DLOG
 intervention_prev_dlog as (
     select
-        CONCAT('NESH_', device_code) as device_code,
-        MAX(task_end_date) as last_preventive_date
+        concat('NESH_', device_code) as device_code,
+        max(task_end_date) as last_preventive_date
     from {{ ref('int_oracle_neshu__inter_techinique_tasks') }}
     where
         dc04 = 'DC0402'
@@ -203,7 +203,7 @@ calcul_retard as (
         material_created_at,
 
         -- Déterminer la dernière préventive de la source 1 (Yuman)
-        MAX(
+        max(
             case
                 when (
                     workorder_type = 'Preventive'
@@ -216,12 +216,12 @@ calcul_retard as (
             as derniere_preventive_source1,
 
         -- Récupérer la préventive externe (source 2 - DLOG)
-        MAX(last_preventive_date) over (
+        max(last_preventive_date) over (
             partition by material_id
         ) as derniere_preventive_source2,
 
         -- Date du jour
-        CURRENT_TIMESTAMP() as today
+        current_timestamp() as today
 
     from material_enrichi
 ),
@@ -248,7 +248,7 @@ retard_final as (
         -- CAS 1: Machine installée depuis moins de 13 mois
         case
             when
-                last_installation_date > TIMESTAMP_SUB(today, interval 395 day)
+                last_installation_date > timestamp_sub(today, interval 395 day)
                 then false
 
             -- CAS 2: Machine ancienne sans aucune préventive
@@ -259,16 +259,16 @@ retard_final as (
 
             -- CAS 3: Machine avec préventives - vérifier si retard > 365 jours
             when
-                GREATEST(
-                    COALESCE(
+                greatest(
+                    coalesce(
                         derniere_preventive_source1,
-                        TIMESTAMP('1900-01-01')
+                        timestamp('1900-01-01')
                     ),
-                    COALESCE(
+                    coalesce(
                         derniere_preventive_source2,
-                        TIMESTAMP('1900-01-01')
+                        timestamp('1900-01-01')
                     )
-                ) < TIMESTAMP_SUB(today, interval 365 day)
+                ) < timestamp_sub(today, interval 365 day)
                 then true
             else false
         end as retard_bol,
@@ -277,10 +277,10 @@ retard_final as (
         case
             -- CAS 1: Machine récente (< 13 mois)
             when
-                last_installation_date > TIMESTAMP_SUB(today, interval 395 day)
+                last_installation_date > timestamp_sub(today, interval 395 day)
                 then
-                    TIMESTAMP_DIFF(
-                        TIMESTAMP_ADD(
+                    timestamp_diff(
+                        timestamp_add(
                             last_installation_date, interval 395 day
                         ),
                         today,
@@ -292,9 +292,9 @@ retard_final as (
                 derniere_preventive_source1 is null
                 and derniere_preventive_source2 is null
                 then
-                    -TIMESTAMP_DIFF(
+                    -timestamp_diff(
                         today,
-                        TIMESTAMP_ADD(
+                        timestamp_add(
                             last_installation_date, interval 365 day
                         ),
                         day
@@ -302,48 +302,48 @@ retard_final as (
 
             -- CAS 3: Avec préventives
             when
-                TIMESTAMP_DIFF(
+                timestamp_diff(
                     today,
-                    GREATEST(
-                        COALESCE(
+                    greatest(
+                        coalesce(
                             derniere_preventive_source1,
-                            TIMESTAMP('1900-01-01')
+                            timestamp('1900-01-01')
                         ),
-                        COALESCE(
+                        coalesce(
                             derniere_preventive_source2,
-                            TIMESTAMP('1900-01-01')
+                            timestamp('1900-01-01')
                         )
                     ),
                     day
                 ) > 365
                 then
                     -(
-                        TIMESTAMP_DIFF(
+                        timestamp_diff(
                             today,
-                            GREATEST(
-                                COALESCE(
+                            greatest(
+                                coalesce(
                                     derniere_preventive_source1,
-                                    TIMESTAMP('1900-01-01')
+                                    timestamp('1900-01-01')
                                 ),
-                                COALESCE(
+                                coalesce(
                                     derniere_preventive_source2,
-                                    TIMESTAMP('1900-01-01')
+                                    timestamp('1900-01-01')
                                 )
                             ),
                             day
                         ) - 365
                     )
             else
-                365 - TIMESTAMP_DIFF(
+                365 - timestamp_diff(
                     today,
-                    GREATEST(
-                        COALESCE(
+                    greatest(
+                        coalesce(
                             derniere_preventive_source1,
-                            TIMESTAMP('1900-01-01')
+                            timestamp('1900-01-01')
                         ),
-                        COALESCE(
+                        coalesce(
                             derniere_preventive_source2,
-                            TIMESTAMP('1900-01-01')
+                            timestamp('1900-01-01')
                         )
                     ),
                     day
@@ -353,7 +353,7 @@ retard_final as (
         -- SOURCE DE LA DERNIÈRE PRÉVENTIVE
         case
             when
-                last_installation_date > TIMESTAMP_SUB(today, interval 395 day)
+                last_installation_date > timestamp_sub(today, interval 395 day)
                 then 'aucune'
             when
                 derniere_preventive_source1 is null
@@ -379,7 +379,7 @@ retard_final as (
 deduplique as (
     select
         * except (today),
-        ROW_NUMBER() over (
+        row_number() over (
             partition by material_serial_number
             order by
                 retard_bol asc,                -- Les machines non en retard d'abord (FALSE avant TRUE)
@@ -467,7 +467,7 @@ joined_data as (
 deduplicated as (
     select
         *,
-        ROW_NUMBER() over (
+        row_number() over (
             partition by device_id
             order by demand_created_at desc nulls last  -- Les plus récentes d'abord, NULL à la fin
         ) as rn
@@ -492,12 +492,12 @@ final as (
         retard_bol,
         retard_delai,
         source_last_preventive,
-        COALESCE(status_inter, 'Aucune') as status_inter,
+        coalesce(status_inter, 'Aucune') as status_inter,
         date_planned,
         material_created_at,
 
         -- Métadonnées dbt
-        CURRENT_TIMESTAMP() as dbt_updated_at,
+        current_timestamp() as dbt_updated_at,
         '{{ invocation_id }}' as dbt_invocation_id  -- noqa: TMP
 
     from deduplicated

@@ -20,7 +20,7 @@ with ranked as (
     from {{ ref('stg_nesp_tech__interventions') }}
     where agency in ('evs', 'evs idf', 'evs paris', 'evs paris 2')
 
-    qualify ROW_NUMBER() over (
+    qualify row_number() over (
         partition by n_planning
         order by date_heure_fin desc, extracted_at desc
     ) = 1

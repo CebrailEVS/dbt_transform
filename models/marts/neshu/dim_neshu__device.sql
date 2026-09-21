@@ -48,13 +48,13 @@ aggregated_labels as (
         last_installation_date,
         created_at,
         updated_at,
-        MAX(case when label_family_code = 'ETAT_MACHINE' then label_code end) as device_state,
-        MAX(case when label_family_code = 'STATUT_MATERIEL' then label_code end) as device_material_status,
-        MAX(case when label_family_code = 'ISACTIVE' then label_code end) as is_active,
-        MAX(case when label_family_code = 'GAMME' then label_code end) as device_gamme,
-        MAX(case when label_family_code = 'CATEGORIE' then label_code end) as device_category,
-        MAX(case when label_family_code = 'MARQUE' then label_code end) as device_brand,
-        MAX(case when label_family_code = 'MODECOMA' then label_code end) as device_economic_model
+        max(case when label_family_code = 'ETAT_MACHINE' then label_code end) as device_state,
+        max(case when label_family_code = 'STATUT_MATERIEL' then label_code end) as device_material_status,
+        max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active,
+        max(case when label_family_code = 'GAMME' then label_code end) as device_gamme,
+        max(case when label_family_code = 'CATEGORIE' then label_code end) as device_category,
+        max(case when label_family_code = 'MARQUE' then label_code end) as device_brand,
+        max(case when label_family_code = 'MODECOMA' then label_code end) as device_economic_model
     from device_labels
     group by
         device_id,
@@ -83,7 +83,7 @@ select
     -- 📇 Codes et noms
     device_code,
     device_name,
-    CONCAT(device_code, ' - ', device_name) as device_label,
+    concat(device_code, ' - ', device_name) as device_label,
     company_code,
     company_name,
 
@@ -97,7 +97,7 @@ select
     access_info as device_location,
 
     -- 🏷️ État et statu
-    COALESCE(LOWER(is_active) = 'yes', false) as is_active,
+    coalesce(lower(is_active) = 'yes', false) as is_active,
 
     -- 🕒 Dates
     last_installation_date,

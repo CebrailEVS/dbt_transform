@@ -26,11 +26,11 @@ capitalisation_policy = lower
 
 # Functions: lowercase (cast, coalesce, timestamp, etc.)
 [sqlfluff:rules:capitalisation.functions]
-capitalisation_policy = lower
+extended_capitalisation_policy = lower
 
 # Types: lowercase (int64, float64, string, etc.)
 [sqlfluff:rules:capitalisation.types]
-capitalisation_policy = lower
+extended_capitalisation_policy = lower
 
 # Literals: lowercase (null, true, false)
 [sqlfluff:rules:capitalisation.literals]

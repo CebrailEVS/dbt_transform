@@ -39,7 +39,7 @@ pivoted as (
     select *
     from product_labels
     pivot (
-        MAX(label_code)
+        max(label_code)
         for label_family_code in (
             'MARQUEP' as product_brand,
             'PROPRIETAIRE' as product_owner,
@@ -76,11 +76,11 @@ final as (
         product_group,
         product_type_raw,
         -- convert isactive from string to boolean
-        COALESCE(LOWER(isactive) = 'yes', false) as is_active,
+        coalesce(lower(isactive) = 'yes', false) as is_active,
         created_at,
         updated_at,
         -- logique de typologie standardisée
-        COALESCE(
+        coalesce(
             case
                 when product_id = 1 then 'INDEFINI'
                 when product_family in ('CAFE CAPSULES', 'CAFE CAPSULES PREMIUM') then 'CAFE CAPS'
@@ -91,7 +91,7 @@ final as (
                 when product_code = 'VANHCHOC23' then 'CHOCOLATS VAN HOUTEN'
                 when product_type_raw = 'BGOURMANDE' then 'BOISSONS GOURMANDES'
             end,
-            NULLIF(TRIM(product_type_raw), ''),
+            nullif(trim(product_type_raw), ''),
             'Non renseigné'
         ) as product_type
     from pivoted
@@ -131,8 +131,8 @@ purchase_unit as (
     -- (vérifié : 0 produit avec plusieurs unités d'achat actives) ; max() = collapse défensif.
     select
         idproduct as product_id,
-        MAX(coeff_multi) as purchase_unit_coeff,
-        MAX(code) as purchase_unit_code
+        max(coeff_multi) as purchase_unit_coeff,
+        max(code) as purchase_unit_code
     from {{ ref('stg_oracle_neshu__product_unit') }}
     where idunit_type = 1 and isactive = 1
     group by idproduct
