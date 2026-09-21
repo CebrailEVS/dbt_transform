@@ -4,8 +4,8 @@ with
 resources_roadman as (
     select
         thr.idtask,
-        MIN(r.idresources) as idresources_roadman,
-        MIN(r.code) as code_roadman
+        min(r.idresources) as idresources_roadman,
+        min(r.code) as code_roadman
     from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_resources` as thr
     inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__resources` as r
         on
@@ -53,7 +53,7 @@ select
     status_code,
     label_code,
     date_pointage,
-    DATE(date_pointage) as date_pointage_jour,
+    date(date_pointage) as date_pointage_jour,
     created_at,
     updated_at,
     extracted_at
