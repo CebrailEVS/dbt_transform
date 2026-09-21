@@ -44,11 +44,11 @@ aggregated_labels as (
         updated_at,
 
         -- pivot des familles de labels
-        MAX(case when label_family_code = 'TRANCHE_COLLAB' then label_code end) as employee_range,
-        MAX(case when label_family_code = 'PROADMAN' then label_code end) as proadman,
-        MAX(case when label_family_code = 'REGION' then label_code end) as region,
-        MAX(case when label_family_code = 'TELETRAVAIL' then label_code end) as teletravail,
-        MAX(case when label_family_code = 'ISACTIVE' then label_code end) as is_active
+        max(case when label_family_code = 'TRANCHE_COLLAB' then label_code end) as employee_range,
+        max(case when label_family_code = 'PROADMAN' then label_code end) as proadman,
+        max(case when label_family_code = 'REGION' then label_code end) as region,
+        max(case when label_family_code = 'TELETRAVAIL' then label_code end) as teletravail,
+        max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active
 
     from contract_labels
     group by
@@ -74,7 +74,7 @@ aggreated_contract as (
         engagement_raw,
         engagement_clean,
         nombre_collab,
-        COALESCE(LOWER(is_active) = 'yes', false) as is_active,
+        coalesce(lower(is_active) = 'yes', false) as is_active,
         original_start_date,
         original_end_date,
         current_end_date,
@@ -101,7 +101,7 @@ select
 from (
     select
         *,
-        ROW_NUMBER() over (
+        row_number() over (
             partition by company_id
             order by is_active desc, current_end_date desc, original_start_date desc, contract_id asc
         ) as rn

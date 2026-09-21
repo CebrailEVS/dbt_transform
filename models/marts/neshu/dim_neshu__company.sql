@@ -54,45 +54,45 @@ aggregated_labels as (
         city,
         postal_code,
         country,
-        MAX(case when label_family_code = 'TRANCHE_COLLAB' then label_code end) as employee_range,
-        MAX(case when label_family_code = 'PROADMAN' then label_code end) as proadman,
-        MAX(case when label_family_code = 'REGION' then label_code end) as region,
-        MAX(case when label_family_code = 'TELETRAVAIL' then label_code end) as remote_work,
-        MAX(case when label_family_code = 'SECTEUR_ACTVITE' then label_code end) as sector,
-        MAX(case when label_family_code = 'SECTEUR_DACTIVITE' then label_code end) as activity_sector,
-        MAX(case when label_family_code = 'RCOMM' then label_code end) as commercial_rep,
-        MAX(case when label_family_code = 'HORECA' then label_code end) as horeca,
-        MAX(case when label_family_code = 'GSM_TERRAIN' then label_code end) as gsm,
-        MAX(case when label_family_code = 'KATIERS' then label_code end) as katiers,
-        MAX(case when label_family_code = 'ISACTIVE' then label_code end) as is_active,
-        MAX(case when label_family_code = 'CODE_SECTEUR' then label_code end) as sector_code,
-        MAX(case when label_family_code = 'STATUT_CLIENT' then label_code end) as client_status,
-        MAX(case when label_family_code = 'Gestion reliquat' then label_code end) as remainder_management,
-        MAX(case when label_family_code = 'MODEENVOIFACTURE' then label_code end) as invoice_delivery_mode,
-        MAX(case when label_family_code = 'BADGE' then label_code end) as badge,
-        MAX(case when label_family_code = 'RECYCLAGE' then label_code end) as recycling,
-        MAX(case when label_family_code = 'TYPECOMPAGNIE' then label_code end) as company_type,
-        MAX(case when label_family_code = 'MODELEECOCLIENT' then label_code end) as company_economic_model,
-        MAX(case when label_family_code = 'BL_GRP' then label_code end) as bl_group,
-        MAX(case when label_family_code = 'KA' then label_code end) as key_account,
+        max(case when label_family_code = 'TRANCHE_COLLAB' then label_code end) as employee_range,
+        max(case when label_family_code = 'PROADMAN' then label_code end) as proadman,
+        max(case when label_family_code = 'REGION' then label_code end) as region,
+        max(case when label_family_code = 'TELETRAVAIL' then label_code end) as remote_work,
+        max(case when label_family_code = 'SECTEUR_ACTVITE' then label_code end) as sector,
+        max(case when label_family_code = 'SECTEUR_DACTIVITE' then label_code end) as activity_sector,
+        max(case when label_family_code = 'RCOMM' then label_code end) as commercial_rep,
+        max(case when label_family_code = 'HORECA' then label_code end) as horeca,
+        max(case when label_family_code = 'GSM_TERRAIN' then label_code end) as gsm,
+        max(case when label_family_code = 'KATIERS' then label_code end) as katiers,
+        max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active,
+        max(case when label_family_code = 'CODE_SECTEUR' then label_code end) as sector_code,
+        max(case when label_family_code = 'STATUT_CLIENT' then label_code end) as client_status,
+        max(case when label_family_code = 'Gestion reliquat' then label_code end) as remainder_management,
+        max(case when label_family_code = 'MODEENVOIFACTURE' then label_code end) as invoice_delivery_mode,
+        max(case when label_family_code = 'BADGE' then label_code end) as badge,
+        max(case when label_family_code = 'RECYCLAGE' then label_code end) as recycling,
+        max(case when label_family_code = 'TYPECOMPAGNIE' then label_code end) as company_type,
+        max(case when label_family_code = 'MODELEECOCLIENT' then label_code end) as company_economic_model,
+        max(case when label_family_code = 'BL_GRP' then label_code end) as bl_group,
+        max(case when label_family_code = 'KA' then label_code end) as key_account,
 
         -- 🏷️ Libellés lisibles des mêmes labels, pour les huit familles que le
         -- P&L client affiche. Les colonnes de code ci-dessus restent inchangées.
-        MAX(case when label_family_code = 'REGION' then label_text end) as region_name,
-        MAX(case when label_family_code = 'SECTEUR_ACTVITE' then label_text end) as sector_name,
-        MAX(case when label_family_code = 'CODE_SECTEUR' then label_text end) as sector_code_name,
-        MAX(case when label_family_code = 'KA' then label_text end) as key_account_name,
-        MAX(case when label_family_code = 'KATIERS' then label_text end) as katiers_name,
-        MAX(case when label_family_code = 'PROADMAN' then label_text end) as proadman_name,
-        MAX(case when label_family_code = 'STATUT_CLIENT' then label_text end) as client_status_name,
-        MAX(case when label_family_code = 'MODELEECOCLIENT' then label_text end)
+        max(case when label_family_code = 'REGION' then label_text end) as region_name,
+        max(case when label_family_code = 'SECTEUR_ACTVITE' then label_text end) as sector_name,
+        max(case when label_family_code = 'CODE_SECTEUR' then label_text end) as sector_code_name,
+        max(case when label_family_code = 'KA' then label_text end) as key_account_name,
+        max(case when label_family_code = 'KATIERS' then label_text end) as katiers_name,
+        max(case when label_family_code = 'PROADMAN' then label_text end) as proadman_name,
+        max(case when label_family_code = 'STATUT_CLIENT' then label_text end) as client_status_name,
+        max(case when label_family_code = 'MODELEECOCLIENT' then label_text end)
             as company_economic_model_name,
 
         -- 👥 Effectif SAISI dans le XML de la société, distinct de employee_range
         -- qui est une tranche déclarée par label. Les deux divergent souvent —
         -- 60 contre 250 sur certains clients — et disent deux choses différentes.
-        SAFE_CAST(
-            REGEXP_EXTRACT(MAX(xml), r'<EFFECTIF>([^<]*)</EFFECTIF>') as int64
+        safe_cast(
+            regexp_extract(max(xml), r'<EFFECTIF>([^<]*)</EFFECTIF>') as int64
         ) as employee_count
     from company_labels
     group by
@@ -117,7 +117,7 @@ select
     -- 📇 Codes et noms
     company_code,
     company_name,
-    CONCAT(company_code, ' - ', company_name) as company_label,
+    concat(company_code, ' - ', company_name) as company_label,
 
     -- 🏢 Caractéristiques entreprise
     -- Les colonnes `_name` portent le libellé lisible du même label que la
@@ -138,10 +138,10 @@ select
     client_status,
     client_status_name,
 
-    COALESCE(LOWER(is_active) = 'yes', false) as is_active,
+    coalesce(lower(is_active) = 'yes', false) as is_active,
 
     -- 🏷️ Client Neshu : code client CN/CP (+ 4 car.) ou type de compagnie CLIENTNESHU
-    COALESCE(
+    coalesce(
         company_code like 'CN____'
         or company_code like 'CP____'
         or company_type = 'CLIENTNESHU',

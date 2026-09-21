@@ -38,12 +38,12 @@ aggregated_labels as (
         purchase_unit_price,
         created_at,
         updated_at,
-        MAX(case when label_family_code = 'FAMIPRO' then label_text_fr end) as product_family,
-        MAX(case when label_family_code = 'GROUPRO' then label_text_fr end) as product_group,
-        MAX(case when label_family_code = 'BIO' then label_text_fr end) as product_bio,
+        max(case when label_family_code = 'FAMIPRO' then label_text_fr end) as product_family,
+        max(case when label_family_code = 'GROUPRO' then label_text_fr end) as product_group,
+        max(case when label_family_code = 'BIO' then label_text_fr end) as product_bio,
         -- is_active conservé sur le code (YES/NO) pour le test lower(...) = 'yes' ci-dessous
-        MAX(case when label_family_code = 'ISACTIVE' then label_code end) as is_active,
-        MAX(case when label_family_code = 'MARQPRO' then label_text_fr end) as product_brand
+        max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active,
+        max(case when label_family_code = 'MARQPRO' then label_text_fr end) as product_brand
     from product_labels
     group by
         product_id,
@@ -70,7 +70,7 @@ select
     product_group,
     product_brand,
     product_bio,
-    COALESCE(LOWER(is_active) = 'yes', false) as is_active,
+    coalesce(lower(is_active) = 'yes', false) as is_active,
 
     -- Dates
     created_at,

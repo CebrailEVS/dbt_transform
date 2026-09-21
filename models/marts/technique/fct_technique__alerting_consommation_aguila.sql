@@ -13,7 +13,7 @@ with articles as (
     select
         n_planning,                 -- Identifiant intervention (clé métier)
         code_article,               -- Code article consommé (déjà normalisé en minuscules)
-        SUM(quantite_article) as qty -- Quantité totale consommée pour cet article
+        sum(quantite_article) as qty -- Quantité totale consommée pour cet article
     from {{ ref('int_nesp_tech__articles_dedup') }}
     group by n_planning, code_article
 
@@ -31,33 +31,33 @@ articles_pivot as (
         n_planning,
 
         -- Présence PREV / MINIPREV
-        MAX(COALESCE(code_article in ('prev', 'miniprev'), false)) as has_prev_or_miniprev,
+        max(coalesce(code_article in ('prev', 'miniprev'), false)) as has_prev_or_miniprev,
 
         -- Présence spécifique MINIPREV / PREV
-        MAX(COALESCE(code_article = 'miniprev', false)) as has_miniprev,
-        MAX(COALESCE(code_article = 'prev', false)) as has_prev,
+        max(coalesce(code_article = 'miniprev', false)) as has_miniprev,
+        max(coalesce(code_article = 'prev', false)) as has_prev,
 
         -- Présence filtre obligatoire
-        MAX(COALESCE(code_article = 'everpurexl', false)) as has_filtre,
+        max(coalesce(code_article = 'everpurexl', false)) as has_filtre,
 
         -- Comptage des kits consommés
-        COUNTIF(code_article in ('kitcomptp126', 'tp126617', 'tp130174', 'tp125377')) as nb_kits,
+        countif(code_article in ('kitcomptp126', 'tp126617', 'tp130174', 'tp125377')) as nb_kits,
 
         -- Présence d’au moins un kit
-        MAX(COALESCE(code_article in ('kitcomptp126', 'tp126617', 'tp130174', 'tp125377'), false))
+        max(coalesce(code_article in ('kitcomptp126', 'tp126617', 'tp130174', 'tp125377'), false))
             as has_kit,
 
         -- Cohérence kit vs machine
-        MAX(COALESCE(code_article in ('tp126617', 'kitcomptp126'), false)) as kit_aguila2_ok,
-        MAX(COALESCE(code_article in ('tp130174', 'tp125377'), false)) as kit_aguila4_ok,
+        max(coalesce(code_article in ('tp126617', 'kitcomptp126'), false)) as kit_aguila2_ok,
+        max(coalesce(code_article in ('tp130174', 'tp125377'), false)) as kit_aguila4_ok,
 
         -- Quantités pièces hors kit
-        SUM(IF(code_article = 'tp126015', qty, 0)) as qty_126015,
-        SUM(IF(code_article = 'tp120555', qty, 0)) as qty_120555,
-        SUM(IF(code_article = 'tp120257', qty, 0)) as qty_120257,
+        sum(if(code_article = 'tp126015', qty, 0)) as qty_126015,
+        sum(if(code_article = 'tp120555', qty, 0)) as qty_120555,
+        sum(if(code_article = 'tp120257', qty, 0)) as qty_120257,
 
         -- Détection consommation hors kit
-        MAX(COALESCE(code_article in ('tp126015', 'tp120555', 'tp120257'), false))
+        max(coalesce(code_article in ('tp126015', 'tp120555', 'tp120257'), false))
             as has_hors_kit_parts
 
     from articles
@@ -75,7 +75,7 @@ final as (
 
     select
         i.n_planning,
-        CAST(i.date_heure_fin as DATE) as date_fin, -- Date analytique standardisée
+        cast(i.date_heure_fin as date) as date_fin, -- Date analytique standardisée
         i.intervention_type,
         i.consignes,
 
@@ -99,13 +99,13 @@ final as (
         case
             when
                 i.intervention_type = '2'
-                and LOWER(i.consignes) like 'mini-pr%'
+                and lower(i.consignes) like 'mini-pr%'
                 and not ap.has_miniprev
                 then 'CONSIGNE'
 
             when
                 i.intervention_type = '2'
-                and LOWER(i.consignes) not like 'mini-pr%'
+                and lower(i.consignes) not like 'mini-pr%'
                 and not ap.has_prev
                 then 'CONSIGNE'
         end as alt_coherence_consigne,
@@ -159,7 +159,7 @@ final as (
 
     -- Jointure référentiel machines (clé de normalisation)
     left join {{ ref('ref_nesp_tech__machines_clean') }} as r
-        on i.nom_machine = LOWER(r.nom_machine)
+        on i.nom_machine = lower(r.nom_machine)
 
     -- Jointure indicateurs de consommation
     left join articles_pivot as ap
@@ -197,11 +197,11 @@ select
     alt_conso_hors_kit,
 
     -- Compilation des alertes (équivalent concat_ws PostgreSQL)
-    ARRAY_TO_STRING(
-        ARRAY(
+    array_to_string(
+        array(
             select alert
             from
-                UNNEST([
+                unnest([
                     alt_nomenclature,
                     alt_coherence_consigne,
                     alt_prevcompletekit,
@@ -216,7 +216,7 @@ select
     ) as alerte_compile,
 
     -- Métadonnées dbt (audit & lineage)
-    CURRENT_TIMESTAMP() as dbt_updated_at,
+    current_timestamp() as dbt_updated_at,
     '{{ invocation_id }}' as dbt_invocation_id  -- noqa: TMP
 
 from final
