@@ -17,6 +17,12 @@ on:
       - 'profiles.yml'
       - 'packages.yml'
       - 'selectors.yml'
+      # Le Dockerfile definit le runtime de PROD (version dbt, methode
+      # d'installation, base Python). Il etait absent d'ici alors qu'il est
+      # present cote `push` : une PR qui ne touchait que lui passait donc sans
+      # aucune validation, puis `cd` reconstruisait et poussait l'image au
+      # merge. Ajoute le 2026-09-21.
+      - 'Dockerfile'
       - 'entrypoint.sh'
       - 'requirements.txt'
       - 'requirements-lock.txt'
