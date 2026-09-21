@@ -358,7 +358,7 @@ models:
       - name: client_address
         description: "Adresse du client"
 
-      - name: is_active
+      - name: client_is_active
         description: "Statut d'activation du client"
 
       - name: partner_name
