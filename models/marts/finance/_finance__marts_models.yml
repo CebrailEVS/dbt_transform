@@ -151,7 +151,11 @@ models:
               config:
                 severity: warn
       - name: company_code
-        description: "Code client, toujours préfixé CN sur ce mart."
+        description: "Code client, toujours préfixé CN sur ce mart. Lu dans dim_neshu__company, qui porte la signalétique."
+        tests:
+          - not_null
+      - name: company_name
+        description: "Raison sociale, lue dans dim_neshu__company. Le test not_null garde la jointure à la dimension : un client absent de celle-ci passerait sinon inaperçu."
         tests:
           - not_null
       - name: typologie
