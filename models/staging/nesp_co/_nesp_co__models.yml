@@ -45,7 +45,7 @@ models:
         description: "Nom du compte"
       - name: c4c_id_main_account
         description: "ID C4C du nom du compte lié a main_account"
-      - name: role 
+      - name: type_role 
         description: "Prospect / Client"
       - name: nessoft_id_main_account 
         description: "Identifiant Nessoft du compte principal"
@@ -108,7 +108,7 @@ models:
         description: "ID C4C de la campagne"
       - name: created_on
         description: "Date de création de l'opportunité"
-      - name: source
+      - name: source_name
         description: "Source de l'opportunité"
       - name: account_name
         description: "Nom du compte associé à l'opportunité"
@@ -118,10 +118,6 @@ models:
         description: "Raison du statut de l'opportunité"
       - name: close_date
         description: "Date de clôture de l'opportunité"
-      - name: calendar_month
-        description: "Mois du calendrier en format texte"
-      - name: calendar_year
-        description: "Année du calendrier"
       - name: nessoft_id_account
         description: "Identifiant Nessoft du compte"
       - name: sales_unit
@@ -210,9 +206,9 @@ models:
         description: "Score NS actuel."
       - name: ns_n1
         description: "Score NS annuel N-1."
-      - name: ns_n_nytd
+      - name: ns_n_ytd
         description: "Score NS NYTD."
-      - name: ns_n1_nytd
+      - name: ns_n1_ytd
         description: "Score NS N-1 NYTD."
       - name: caps
         description: "Volume de capsules."
@@ -236,13 +232,3 @@ models:
         description: "Volume EZ N-1."
 
       # Metadata
-      - name: _smart_source_bucket
-        description: "Bucket source du fichier initial."
-      - name: _smart_source_file
-        description: "Nom du fichier source."
-      - name: _smart_source_lineno
-        description: "Numéro de ligne dans le fichier source."
-      - name: _sdc_batched_at
-        description: "Timestamp de traitement batch."
-      - name: _sdc_received_at
-        description: "Timestamp de réception initiale par le système."

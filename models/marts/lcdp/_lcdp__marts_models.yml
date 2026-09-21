@@ -626,8 +626,6 @@ models:
       - name: date_pointage_fin
         description: Fin de journée du roadman (dernier pointage END_DAY postérieur au début, même jour). NULL si absent.
 
-      - name: date_pointage_jour
-        description: Jour de pointage du roadman (date sans heure)
 
       - name: start_date_day
         description: Date de début du passage sans l'heure. Clé de rattachement au pointage journalier.

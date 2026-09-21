@@ -16,7 +16,7 @@ models:
         description: "Nom du client"
       - name: client_category
         description: "Catégorie du client (Spécifique NESHU : OR / ARGENT / BRONZE)"
-      - name: client_adress
+      - name: client_address
         description: "Adresse du client"
 
   - name: stg_yuman__contacts
@@ -272,7 +272,7 @@ models:
         description: "Date de création de l'enregistrement"
         tests:
           - not_null
-      - name: last_updated
+      - name: updated_at
         description: "Date de dernière mise à jour"
       - name: extracted_at
         description: "Date d'extraction depuis la source"
@@ -306,7 +306,7 @@ models:
       # --- Champs commande (entête) ---
       - name: purchase_order_number
         description: "Numéro du bon de commande"
-      - name: purchase_order_satus
+      - name: purchase_order_status
         description: "Statut de la commande"
       - name: purchase_order_invoice_status
         description: "Statut de facturation du bon de commande"

@@ -1087,8 +1087,6 @@ models:
           Numéro de série du matériel Yuman (correspond au device_code Oracle avec préfixe NESH_).
           Clé de liaison entre Oracle et Yuman. Peut être NULL si machine uniquement dans Oracle.
 
-      - name: material_name
-        description: Nom du type de machine ('MOMENTO 100', 'GEMINI 200', 'OPTIBEAN X 12' etc)
 
       - name: client_code
         description: Code client (source Yuman)
@@ -1246,8 +1244,6 @@ models:
         description: Adresse complète du site client.
       - name: site_postal_code
         description: Code postal fourni dans le système Yuman.
-      - name: postal_code_site
-        description: Code postal normalisé du site (corrigé ou extrait de la description si manquant).
 
       # --- MATERIEL ---
       - name: material_serial_number
