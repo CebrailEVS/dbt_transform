@@ -8,14 +8,15 @@
       
     
   
+    
+    
 
 
 
-select
-    1
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__rupture_depot_yuman`
+select mois
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__ca_client_mensuel`
+where mois is null
 
-where not(is_out_of_stock_depot = (qty_depot = 0))
 
 
   

@@ -1,4 +1,18 @@
 
+  
+    
+
+    create or replace table `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__ca_client_mensuel`
+      
+    
+    
+
+    
+    OPTIONS(
+      description="""[QUOI M\u00c9TIER] Chiffre d'affaires mensuel par client, ventil\u00e9 en six composantes et totalis\u00e9.\n[COMMENT CONSTRUITE] Pivot de int_oracle_neshu__facturation_tasks sur ca_category, r\u00e9uni par full outer join \u00e0 int_oracle_neshu__ca_telemetrie.\n[GRAIN] 1 ligne par (mois, company_id).\n[NOTES] Le full outer join est n\u00e9cessaire : un client peut n'avoir que de la facturation, ou que de la t\u00e9l\u00e9m\u00e9trie. Les lignes de facturation sans cat\u00e9gorie sont ignor\u00e9es ici, comme chez Distrilog ; elles restent visibles dans le mod\u00e8le amont.\n"""
+    )
+    as (
+      
 
 -- Réunit les six composantes du chiffre d'affaires du P&L client : cinq viennent
 -- de la facturation (int_oracle_neshu__facturation_tasks), la sixième de la
@@ -68,3 +82,5 @@ select
         + ca_laves_verres_ht_eur + ca_negoce_ht_eur + ca_nayax_ht_eur, 2
     ) as ca_total_ht_eur
 from assemble
+    );
+  

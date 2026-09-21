@@ -1,10 +1,19 @@
 
     
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
     
 
 with child as (
     select company_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_finance__pnl_client_mensuel`
+    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__pnl_client_mensuel`
     where company_id is not null
 ),
 
@@ -23,3 +32,8 @@ left join parent
 where parent.to_field is null
 
 
+
+  
+  
+      
+    ) dbt_internal_test

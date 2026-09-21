@@ -8,7 +8,7 @@ with all_values as (
         typologie as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_marts`.`fct_finance__pnl_client_mensuel`
+    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__pnl_client_mensuel`
     group by typologie
 
 )

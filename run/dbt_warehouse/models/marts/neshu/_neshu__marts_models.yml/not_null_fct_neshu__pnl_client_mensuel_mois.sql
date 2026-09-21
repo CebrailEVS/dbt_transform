@@ -8,14 +8,15 @@
       
     
   
+    
+    
 
 
 
-select
-    1
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__rupture_depot_yuman`
+select mois
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__pnl_client_mensuel`
+where mois is null
 
-where not(nb_conso_180j >= 2)
 
 
   

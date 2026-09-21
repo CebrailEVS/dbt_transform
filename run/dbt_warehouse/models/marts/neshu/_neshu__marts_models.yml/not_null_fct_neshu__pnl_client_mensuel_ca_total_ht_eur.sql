@@ -13,9 +13,9 @@
 
 
 
-select reference
-from `evs-datastack-prod`.`prod_staging`.`stg_yuman_evs_sftp__stock_theorique`
-where reference is null
+select ca_total_ht_eur
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__pnl_client_mensuel`
+where ca_total_ht_eur is null
 
 
 

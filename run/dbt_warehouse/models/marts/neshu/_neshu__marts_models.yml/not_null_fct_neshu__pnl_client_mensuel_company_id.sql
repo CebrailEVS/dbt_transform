@@ -13,9 +13,9 @@
 
 
 
-select stock_date
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__rupture_depot_yuman`
-where stock_date is null
+select company_id
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__pnl_client_mensuel`
+where company_id is null
 
 
 

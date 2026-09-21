@@ -47,7 +47,6 @@ assemble as (
         ca.mois,
         ca.company_id,
         ca.company_code,
-        ca.company_name,
 
         -- Chiffre d'affaires
         ca.ca_vending_ht_eur,
@@ -115,10 +114,12 @@ select
     -- 🔑 Grain
     m.mois,
     m.company_id,
-    m.company_code,
-    m.company_name,
 
-    -- 📇 Signalétique client, portée par la dimension
+    -- 📇 Signalétique client, portée par la dimension — y compris le code et le
+    -- nom. Les lire dans le fait laissait sans nom les clients qui n'ont que du
+    -- CA télémétrie un mois donné, faute de ligne de facturation d'où le tirer.
+    d.company_code,
+    d.company_name,
     d.postal_code,
     d.city,
     cc.first_contract_date,
@@ -179,4 +180,4 @@ select
 from avec_marges as m
 left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__company` as d on m.company_id = d.company_id
 left join `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__contrat_client` as cc on m.company_id = cc.company_id
-where m.company_code like 'CN%'
+where d.company_code like 'CN%'
