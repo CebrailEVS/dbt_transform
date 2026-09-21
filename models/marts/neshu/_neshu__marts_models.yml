@@ -1542,3 +1542,76 @@ models:
         description: Titre du workorder planifié.
       - name: future_intervention_report
         description: Rapport (normalement vide pour un planifié).
+
+  - name: fct_neshu__pnl_client_mensuel
+    description: |
+      [QUOI MÉTIER] Compte de résultat mensuel par client Neshu (codes CN), du chiffre d'affaires à la marge nette. Reprise du rapport que les développeurs de Distrilog produisent par une requête SQL de 457 lignes, portée dans notre stack.
+      [COMMENT CONSTRUITE] Assemble int_oracle_neshu__ca_client_mensuel (6 composantes de CA), __cout_produits_mensuel (produits chargés et livrés), __temps_appro_mensuel (temps et passages), __charges_sociales (enveloppe à répartir), __amortissement_machines, __telemetrie_parc et __contrat_client, enrichi de la signalétique de dim_neshu__company. Chaînage : CA − coûts produits = marge brute ; − amortissement − coût de main-d'oeuvre − télémétrie = marge nette.
+      [GRAIN] 1 ligne par (mois, company_id), restreint aux clients dont le code commence par CN.
+      [NOTES] ÉCARTS CONNUS AVEC LE RAPPORT DISTRILOG — à lire avant de conclure à une erreur de calcul.
+        (1) LATENCE DE PURGE : le raw conserve les lignes supprimées dans l'ERP jusqu'à la purge hebdomadaire (CONVENTIONS.md règle 9). L'écart croît dans la semaine puis retombe, et touche le CA vending, presta et fontaines, donc la marge brute. Ce n'est pas un défaut de modèle mais le délai de propagation des suppressions.
+        (2) AMORTISSEMENT, écart VOLONTAIRE : la requête Distrilog groupe les sous-équipements par la VALEUR de leur dotation et non par leur identifiant. Elle fusionne donc ceux qui coûtent pareil (dotation sous-évaluée) et démultiplie la dotation de la machine quand ils diffèrent (surévaluée). Ici chaque sous-équipement compte une fois et chaque machine une fois. Ce modèle est plus juste que le rapport d'origine ; la marge nette hérite de l'écart.
+        (3) TYPOLOGIE, écart VOLONTAIRE : un client est GET s'il a signé dans l'année DU MOIS ANALYSÉ. Distrilog compare à l'année du jour où la requête tourne, ce qui fait basculer l'historique chaque 1er janvier. Le choix d'ici rend le mart rejouable.
+        (4) FUITE DE RÉPARTITION, reproduite volontairement : le dénominateur du coût RM couvre tous les clients ayant reçu un passage, y compris ceux absents du rapport faute de CA. La somme des coûts RM affichés est donc légèrement inférieure aux charges saisies. Corriger le dénominateur ferait diverger tous les clients de Distrilog pour un gain marginal : non retenu.
+        (5) COÛT RM À ZÉRO : les charges sociales sont saisies manuellement dans l'ERP, une tâche par mois. Un mois non saisi donne un coût nul et une marge nette surévaluée d'autant. Le rapport Distrilog porte le même trou. Donnée absente à la source, pas erreur de calcul.
+        (6) Le mart RECALCULE tout à chaque run, car l'ERP retouche des mois clos. Un mois publié peut donc changer : la colonne calcule_le date le calcul et explique deux exports qui diffèrent.
+        Taux de coût cashless : var('taux_cout_cashless'), aligné sur celui écrit en dur chez Distrilog, sans trace de ce taux en base.
+    columns:
+      - name: mois
+        description: "Premier jour du mois analysé. Clé de partitionnement."
+        tests:
+          - not_null
+      - name: company_id
+        description: "Identifiant du client."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: company_code
+        description: "Code client, toujours préfixé CN sur ce mart. Lu dans dim_neshu__company, qui porte la signalétique."
+        tests:
+          - not_null
+      - name: company_name
+        description: "Raison sociale, lue dans dim_neshu__company. Le test not_null garde la jointure à la dimension : un client absent de celle-ci passerait sinon inaperçu."
+        tests:
+          - not_null
+      - name: typologie
+        description: "GET si le client a signé son premier contrat dans l'année du mois analysé, OTHER sinon. Voir [NOTES] (4)."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['GET', 'OTHER']
+      - name: effectif
+        description: "Effectif saisi dans le XML de la société, et non la tranche déclarée par label. Additif : non."
+      - name: ca_total_ht_eur
+        description: "Somme des six composantes de CA. Additif."
+        tests:
+          - not_null
+      - name: cout_produits_total_ht_eur
+        description: "Produits chargés + produits livrés + cashless. Additif."
+      - name: marge_brute_eur
+        description: "CA total − coûts produits. Additif."
+      - name: pct_marge_brute
+        description: "Marge brute rapportée au CA total, en %. NON additif : à recalculer, jamais à sommer."
+      - name: nb_min_rm
+        description: "Temps de présence des approvisionneurs, en minutes. AMPLITUDE de la journée chez le client (première arrivée à dernier départ), pas somme des durées de tâches. Additif."
+      - name: cout_rm_eur
+        description: "Quote-part des charges sociales du mois, au prorata du temps. Vaut 0 quand rien n'est saisi — voir [NOTES] (6). Additif."
+      - name: cout_minute_eur
+        description: "Charges du mois divisées par le temps total. Identique pour tous les clients d'un même mois. NON additif."
+      - name: nb_passages_machine
+        description: "Nombre de tâches d'approvisionnement, une par machine servie. Additif."
+      - name: nb_passages_client
+        description: "Nombre de jours distincts de visite. Additif."
+      - name: montant_amortissement_eur
+        description: "Dotation du mois, machine et sous-équipements. Écart connu avec Distrilog, voir [NOTES] (3). Additif."
+      - name: marge_nette_eur
+        description: "Marge brute − amortissement − coût RM − coût télémétrie. Additif."
+      - name: pct_marge_nette
+        description: "Marge nette rapportée au CA total, en %. NON additif."
+      - name: calcule_le
+        description: "Horodatage du run qui a produit la ligne. Voir [NOTES] (7)."
