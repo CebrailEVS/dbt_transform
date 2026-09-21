@@ -19,7 +19,6 @@ with facturation as (
         date_trunc(date(task_start_date), month) as mois,
         company_id,
         company_code,
-        company_name,
         round(sum(if(ca_category = 'VENDING', ca_ht_eur, 0)), 2) as ca_vending_ht_eur,
         round(sum(if(ca_category = 'PRESTA_SERVICE', ca_ht_eur, 0)), 2) as ca_presta_service_ht_eur,
         round(sum(if(ca_category = 'FONTAINES', ca_ht_eur, 0)), 2) as ca_fontaines_ht_eur,
@@ -27,7 +26,7 @@ with facturation as (
         round(sum(if(ca_category = 'NEGOCE', ca_ht_eur, 0)), 2) as ca_negoce_ht_eur
     from {{ ref('int_oracle_neshu__facturation_tasks') }}
     where ca_category is not null
-    group by mois, company_id, company_code, company_name
+    group by mois, company_id, company_code
 ),
 
 telemetrie as (
@@ -48,7 +47,6 @@ assemble as (
         coalesce(f.mois, t.mois) as mois,
         coalesce(f.company_id, t.company_id) as company_id,
         coalesce(f.company_code, t.company_code) as company_code,
-        f.company_name,
         coalesce(f.ca_vending_ht_eur, 0) as ca_vending_ht_eur,
         coalesce(f.ca_presta_service_ht_eur, 0) as ca_presta_service_ht_eur,
         coalesce(f.ca_fontaines_ht_eur, 0) as ca_fontaines_ht_eur,
@@ -64,7 +62,6 @@ select
     mois,
     company_id,
     company_code,
-    company_name,
     ca_vending_ht_eur,
     ca_presta_service_ht_eur,
     ca_fontaines_ht_eur,
