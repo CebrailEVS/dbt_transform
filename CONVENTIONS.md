@@ -99,9 +99,11 @@ Packages : `dbt_utils` (`unique_combination_of_columns`, `expression_is_true`,
 
 ---
 
-## SQLFluff
+## Lint SQL (`dbt lint`)
 
-SQLFluff v4, templater dbt. Configuration dans `.sqlfluff`, exclusions dans `.sqlfluffignore`.
+`dbt lint`, natif à dbt v2. Il lit la configuration `.sqlfluff` existante — mêmes codes de
+règles, mêmes `-- noqa` — mais **ne se connecte pas à BigQuery** : il n'y a plus de templater
+à choisir. SQLFluff est retiré du projet (incompatible v2).
 
 | Règle | Paramètre |
 |-------|-----------|
@@ -112,11 +114,21 @@ SQLFluff v4, templater dbt. Configuration dans `.sqlfluff`, exclusions dans `.sq
 | Longueur de ligne | 120 max |
 
 ```bash
-sqlfluff lint models/path/        # analyser
-sqlfluff fix models/path/         # corriger, puis vérifier avec git diff
+dbt lint models/path/             # analyser
+dbt lint models/path/ --fix       # corriger, puis vérifier avec git diff
+dbt lint --changed                # seulement ce que le working tree a modifié
 ```
 
 Désactiver une règle ponctuellement : `-- noqa: RF02` en fin de ligne.
+
+> **Piège de configuration** : `capitalisation.functions` et `capitalisation.types` attendent
+> `extended_capitalisation_policy`. `capitalisation_policy` n'est valide que pour `keywords` et
+> `literals` ; sur les deux autres, la clé est ignorée et la règle retombe silencieusement sur
+> `consistent`. Ce sont deux règles mortes sans le moindre message. Constaté le 2026-09-21 :
+> 168 violations passaient la CI.
+
+> **Parité** : `dbt lint` vise une couverture élevée de SQLFluff sans la garantir règle pour
+> règle. Les règles de layout/indentation (LT02) sont la divergence connue.
 
 ---
 

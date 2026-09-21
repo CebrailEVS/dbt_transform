@@ -98,7 +98,12 @@ jobs:
           dbt deps
           dbt debug --target dev
 
-      - name: SQLFluff lint (changed models)
+      # `dbt lint` remplace SQLFluff, incompatible avec dbt v2. Il lit le meme
+      # .sqlfluff (memes codes de regles, memes `-- noqa`) et ne se connecte pas
+      # a BigQuery. La parite avec SQLFluff est elevee mais PAS garantie regle
+      # pour regle — les regles de layout/indentation (LT02) sont la divergence
+      # connue. On garde le lint sur les seuls modeles modifies.
+      - name: dbt lint (changed models)
         run: |
           git fetch origin ${{ github.base_ref }} --depth=1
           CHANGED=$(git diff --name-only --diff-filter=d origin/${{ github.base_ref }} HEAD -- 'models/**/*.sql' | tr '\n' ' ')
@@ -106,7 +111,7 @@ jobs:
             echo "No SQL model files changed, skipping lint"
           else
             echo "Linting changed files: $CHANGED"
-            sqlfluff lint $CHANGED --format github-annotation-native
+            dbt lint $CHANGED --format github-annotation
           fi
 
       - name: dbt parse (check for warnings)
@@ -115,14 +120,6 @@ jobs:
           if grep -i "\[WARNING\]" dbt_parse_output.txt; then
             echo "::warning::dbt parse produced warnings — review the output above"
           fi
-
-      # Veille dbt Core v2 (moteur Fusion, Rust) — NON BLOQUANTE.
-      # Le binaire v2 est deja livre avec dbt-core 1.12 (dep dbt-core-experimental-parser),
-      # rien a installer. Objectif : voir arriver une incompatibilite v2 pendant que
-      # l'adaptateur BigQuery y est encore en Preview. Ne jamais bloquer la PR sur ce step.
-      - name: dbt parse --use-v2-parser (veille v2, non bloquant)
-        continue-on-error: true
-        run: dbt parse --use-v2-parser --target dev
 
       - name: Download manifest from GCS
         continue-on-error: true

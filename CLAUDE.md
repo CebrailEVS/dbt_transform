@@ -3,7 +3,7 @@
 ## Project overview
 ELT data warehouse for EVS Professionnelle France.
 **Stack:** Meltano + Cloud Run jobs (extract) → BigQuery `prod_raw` (lake) → dbt (transform) → GCP Cloud Workflows (orchestrate) → Power BI (viz)
-**dbt version:** 1.12.3 / dbt-bigquery 1.12.0
+**dbt version:** 2.0.6 (dbt v2, moteur Rust — le paquet `dbt` embarque l'adaptateur BigQuery)
 **Team:** 1 Data Engineer (owner), 1 Data Analyst (contributes to marts)
 
 ---
@@ -40,11 +40,8 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
 
 **`pr-check`** — runs on `pull_request` → master (model paths only; `models/exposures/**` excluded):
 - `dbt deps` + `dbt debug --target dev`
-- SQLFluff lint on **changed** models only (git diff vs base ref)
+- `dbt lint` on **changed** models only (git diff vs base ref)
 - `dbt parse --target dev` (warnings surfaced, non-blocking)
-- `dbt parse --use-v2-parser --target dev` — **veille dbt Core v2** (moteur Fusion/Rust),
-  `continue-on-error: true`. Le binaire v2 est livré avec dbt-core 1.12 (dep
-  `dbt-core-experimental-parser`), rien à installer. Ne bloque jamais la PR.
 - Pulls prod `manifest.json` from the GCS state bucket, then a **deferred incremental** build:
   `dbt build --target dev --select state:modified+ --defer --state state/ --exclude resource_type:snapshot`
   → builds only modified+downstream in `evs-datastack-dev`; unbuilt refs & snapshots **defer to prod**.
@@ -67,11 +64,17 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
 - A **direct push to master triggers `cd`** → the change builds in prod immediately, not only on PR merge.
   The rebuilt `dbt-runner` image is then picked up **per-execution** by scheduled Cloud Workflows runs.
 - CI/CD (immediate build on push/PR) is **distinct from Cloud Workflows** (scheduled EL + transform orchestration).
-- **dbt Core v2 (moteur Fusion) n'est PAS en prod** : l'adaptateur BigQuery y est en *Preview*
-  (Snowflake seul est GA). On reste sur la ligne 1.x tant que BigQuery n'est pas GA. Le step de
-  veille ci-dessus est là pour voir venir une incompatibilité, pas pour préparer une bascule.
-  Au moment de basculer : `dbt docs generate` est déprécié en v2 (→ `dbt compile --write-catalog`),
-  et le lint SQLFluff n'a pas encore d'équivalent en CI Fusion (`dbt lint` natif).
+- **dbt v2 est EN PROD depuis le 2026-09-21.** GA éditeur le 2026-09-16, adaptateur BigQuery
+  *Generally available*. Le `manifest.json` reste en **schéma v12**, identique à 1.12 : l'état
+  GCS, `--defer` et `state:modified+` fonctionnent **dans les deux sens**, donc un rollback vers
+  1.12 ne demande qu'un revert du `Dockerfile` + un `cd` (l'image est re-résolue par exécution).
+- **v2 exige `roles/bigquery.readSessionUser`** : il lit via la BigQuery Storage Read API. Sans
+  ce rôle → `[DbDriverFailed (dbt1308)]`. Accordé au SA `dbt-dev` sur le projet dev
+  (`infra/dev.tf`) ; la prod passe via le `roles/owner` de `meltano-service`.
+- **SQLFluff est retiré** : incompatible v2, remplacé par `dbt lint` (natif, lit le même
+  `.sqlfluff`, mêmes codes de règles, mêmes `-- noqa`, pas de connexion BigQuery). La parité
+  n'est pas garantie règle pour règle — layout/indentation (LT02) est la divergence connue.
+- `dbt docs generate` **fonctionne en v2** : `deploy-docs` est inchangé.
 
 ---
 
@@ -122,10 +125,13 @@ dbt build --select tag:intermediate
 dbt build --select tag:marts
 
 # Lint before committing
-sqlfluff lint models/path/to/model.sql --templater jinja
+dbt lint models/path/to/model.sql
 
 # Fix lint issues automatically
-sqlfluff fix models/path/to/model.sql --templater jinja
+dbt lint models/path/to/model.sql --fix
+
+# Lint only what the working tree changed
+dbt lint --changed
 
 # Run source freshness
 dbt source freshness
@@ -137,8 +143,8 @@ dbt ls --select exposure:*
 dbt build -s +exposure:business_review
 ```
 
-> Note: `sqlfluff` requires `--templater jinja` when `DBT_BIGQUERY_PROJECT` is not set,
-> otherwise use the default dbt templater with env vars loaded.
+> Note: `dbt lint` ne se connecte pas à BigQuery — pas de templater à choisir. Il lui faut
+> seulement de quoi résoudre les `env_var()` de `profiles.yml`, donc `.env` chargé.
 
 ---
 
@@ -233,7 +239,8 @@ Cluster on **foreign key columns** used in JOINs or BI filters, up to 4 columns.
 - For staging incremental: cluster on the FK columns most used in downstream joins
 
 ### Incremental strategy
-Only `stg_oracle_neshu__task` is incremental today. Standard pattern:
+**16 modèles** sont incrémentaux (6 en staging `oracle_neshu`/`oracle_lcdp`, 10 en
+intermediate). Standard pattern:
 ```sql
 {{ config(materialized='incremental', unique_key='id', incremental_strategy='merge') }}
 ...
@@ -257,7 +264,7 @@ After any model creation, deletion, or convention change, update the relevant do
 | New source added | Add row in Sources table | Add source to "Ajouter une nouvelle source" steps | — | — |
 | New BI report / exposure added | — | — | — | Update `models/exposures/<bu>.yml` |
 | New naming/column convention | — | — | Update relevant section | — |
-| New SQLFluff rule | — | — | Update SQLFluff table | — |
+| New lint rule | — | — | Update lint rules table | — |
 | New materialization pattern | — | Update "Ajouter un nouveau modele" steps | Update Materialisation table | — |
 | New mandatory test pattern | — | Update checklist | Update Tests section | Update `docs/conventions/marts.md` § 4 if marts test rule |
 | New marts modeling rule | — | — | — | Update `docs/conventions/marts.md` |
@@ -359,7 +366,7 @@ et reprompt plus précis, plutôt que continuer dans un contexte pollué.
   commits du chantier en cours, et `git diff --stat origin/master...HEAD` que ses fichiers.
   Correction si la branche est déjà polluée : nouvelle branche depuis `origin/master` +
   `git cherry-pick` des seuls commits du chantier (non destructif, l'autre branche reste intacte).
-- **Never skip SQLFluff lint** before considering a model done
+- **Never skip `dbt lint`** before considering a model done
 - **Marts must follow a star schema** — facts (`fct_`) reference dimensions (`dim_`) via `<entity>_id` foreign keys only. No fact-to-fact joins (un fait peut toutefois en **agréger** un autre à un grain plus grossier via `GROUP BY`, ou l'**étendre** à grain strictement identique 1:1 — cf. [`docs/conventions/marts.md`](docs/conventions/marts.md)), no snowflaked dimensions, no wide one-big-table marts. **Aplatir uniquement les attributs d'affichage du parent direct (1-3 colonnes max)**, jamais une dim parente entière. Voir [`docs/conventions/marts.md`](docs/conventions/marts.md) § Marts — pattern complet.
 - **Description placement** : staging **doit** avoir `description='...'` dans `{{ config() }}` (cf. feedback memory, convention historique). Intermediate et **marts** : description en YAML uniquement, pas dans le config block (persist_docs gère BQ).
 - All contributions go through PRs — DE owns staging/intermediate/snapshots, DA contributes/reviews marts.
@@ -372,10 +379,14 @@ et reprompt plus précis, plutôt que continuer dans un contexte pollué.
 - `dbt_utils` 1.4.1 — `unique_combination_of_columns`, `expression_is_true`, `generate_surrogate_key`
 - `dbt_expectations` 0.10.10 — row count ranges, date ranges, regex, null rate checks
 
-## SQLFluff rules (v4)
+## Règles de lint (`dbt lint`, config `.sqlfluff`)
 
 - Keywords, functions, types: **lowercase**
 - Indent: **4 spaces**
 - Max line length: **120 characters**
 - **No trailing commas**
-- Templater: `dbt` (requires env vars) or `jinja` as fallback
+- Pas de templater à configurer : `dbt lint` est natif.
+- **Piège vécu** : `capitalisation.functions` et `capitalisation.types` attendent
+  `extended_capitalisation_policy`, PAS `capitalisation_policy` (valide pour `keywords` et
+  `literals` seulement). Mauvaise clé = règle silencieusement inerte, retombée sur
+  `consistent`. A laissé passer 168 violations jusqu'au 2026-09-21.

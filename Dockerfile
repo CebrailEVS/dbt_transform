@@ -1,6 +1,12 @@
 # =============================================================================
 # Dockerfile for dbt-runner Cloud Run Job
 # Python version and dbt versions are managed in requirements.txt
+#
+# dbt v2 : le paquet `dbt` est un binaire Rust qui embarque son adaptateur
+# BigQuery. requirements-lock.txt est passe de ~110 paquets Python a 4, donc
+# plus de pyarrow / pandas / google-cloud-* a installer ici. L'image maigrit
+# d'autant. python:3.11-slim reste la base : elle ne sert plus qu'a fournir pip
+# pour l'installation.
 # =============================================================================
 FROM python:3.11-slim
 

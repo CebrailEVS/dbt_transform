@@ -42,20 +42,20 @@ dbt debug --target dev
 
 # 7. Installer les guardrails pre-commit (lint SQL au commit, dbt parse au push)
 pipx install pre-commit                      # isole, ne pollue pas dbt_venv
-pre-commit install                           # hooks de commit (sqlfluff)
+pre-commit install                           # hooks de commit (dbt lint)
 pre-commit install --hook-type pre-push      # hooks de push (dbt parse)
 ```
 
 > `direnv allow` est a executer une seule fois par machine/repo. Apres ca, les variables `.env` sont chargees automatiquement des que tu entres dans le dossier.
 > **Sans direnv**, charge les variables manuellement avant chaque session : `set -a && source .env && set +a`
 
-> **Guardrails pre-commit** : `.pre-commit-config.yaml` rejoue le lint SQLFluff (au commit) et `dbt parse` (au push) — les memes verifications que les hooks Claude Code. Elles tournent quel que soit l'auteur du code (humain ou IA), donc un commit non lint est bloque localement avant meme la CI.
+> **Guardrails pre-commit** : `.pre-commit-config.yaml` rejoue `dbt lint` (au commit) et `dbt parse` (au push) — les memes verifications que les hooks Claude Code. Elles tournent quel que soit l'auteur du code (humain ou IA), donc un commit non lint est bloque localement avant meme la CI.
 
 ### Comprendre les fichiers de dépendances
 
 | Fichier | Rôle | Modifié par |
 |---------|------|-------------|
-| `requirements.txt` | Dépendances directes avec versions fixes (`dbt-bigquery==1.12.0`) | Data Engineer uniquement |
+| `requirements.txt` | Dépendances directes avec versions fixes (`dbt==2.0.6`) | Data Engineer uniquement |
 | `requirements-lock.txt` | Toutes les dépendances (y compris transitives) figées exactement | Généré automatiquement |
 
 **Règle simple :**
@@ -64,7 +64,7 @@ pre-commit install --hook-type pre-push      # hooks de push (dbt parse)
 
 ### Mettre à jour ses dépendances
 
-Si le Data Engineer a mis à jour les versions (dbt, sqlfluff...) :
+Si le Data Engineer a mis à jour les versions (dbt...) :
 
 ```bash
 git pull
@@ -111,8 +111,8 @@ git checkout -b feature/oracle_neshu/add-kpi-livraison
 dbt build --select tag:oracle_neshu
 
 # 5. Linter le SQL
-sqlfluff lint models/staging/oracle_neshu/
-sqlfluff lint models/intermediate/oracle_neshu/
+dbt lint models/staging/oracle_neshu/
+dbt lint models/intermediate/oracle_neshu/
 
 # 6. Commiter
 git add models/staging/oracle_neshu/...
@@ -174,7 +174,7 @@ git rebase --continue
 ### Avant de creer une PR
 
 1. **Tester localement** : `dbt build` sur les modeles concernes
-2. **Linter** : `sqlfluff lint` sans violations bloquantes
+2. **Linter** : `dbt lint` sans violations bloquantes
 3. **Verifier les dependances** : `dbt build --select +mon_modele` (amont complet)
 4. **Verifier les warnings dbt** : `dbt parse` ne doit produire aucun `[WARNING]`
 5. **Pas de secrets** : ne jamais commiter `.env`, cles GCP, credentials
@@ -327,7 +327,7 @@ Quand un rapport Power BI est cree ou modifie, mettre a jour le fichier exposure
 ## Checklist avant merge
 
 - [ ] `dbt build` passe sans erreur sur les modeles concernes (PASS ou WARN accepte, pas d'ERROR)
-- [ ] `sqlfluff lint` sans violations sur les fichiers modifies
+- [ ] `dbt lint` sans violations sur les fichiers modifies
 - [ ] `dbt parse` sans `[WARNING]` — verifier les fichiers YAML modifies
 - [ ] Modeles documentes dans les fichiers YAML
 - [ ] Si le modele est consomme par un rapport Power BI : exposure mise a jour dans `models/exposures/`
