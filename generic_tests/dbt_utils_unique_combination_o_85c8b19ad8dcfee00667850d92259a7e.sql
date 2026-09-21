@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["budg_bu","budg_categorie_pnl","budg_annee","budg_mois"], model=get_where_subquery(ref('ref_mssql_sage__pnl_budget'))) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="periode", model=get_where_subquery(ref('int_apptech__retraitements'))) }}

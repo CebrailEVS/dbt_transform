@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="intervention_state", model=get_where_subquery(ref('fct_technique__consommation_article_yuman')), values=["REALISEE","NON_REALISEE","EN_COURS","EN_PAUSE","PLANIFIEE","DEMANDE_OUVERTE","DEMANDE_REJETEE","AUTRE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

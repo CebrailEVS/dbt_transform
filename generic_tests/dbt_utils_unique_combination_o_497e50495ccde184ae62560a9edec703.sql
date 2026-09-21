@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["device_id","month_start_date"], model=get_where_subquery(ref('fct_lcdp__ca_mensuel'))) }}

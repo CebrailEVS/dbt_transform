@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="ca_total_ht_eur", model=get_where_subquery(ref('fct_neshu__pnl_client_mensuel'))) }}

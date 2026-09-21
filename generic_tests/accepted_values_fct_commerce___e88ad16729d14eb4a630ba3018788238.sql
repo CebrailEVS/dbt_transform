@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="opp_statut", model=get_where_subquery(ref('fct_commerce__opportunite')), values=["Gagné","Perdu","En cours"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

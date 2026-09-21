@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="ca_num", field="ca_num", model=get_where_subquery(ref('stg_mssql_sage__f_ecriturea')), to=ref('stg_mssql_sage__f_comptea')) }}

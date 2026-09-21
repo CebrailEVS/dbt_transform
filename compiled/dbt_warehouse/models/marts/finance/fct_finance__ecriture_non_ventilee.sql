@@ -1,5 +1,3 @@
-
-
 with __dbt__cte__int_mssql_sage__ecriture_non_ventilee as (
 
 
@@ -32,7 +30,12 @@ from ecritures_6_7 as e
 left join ventilations as v
     on e.numero_ecriture_comptable = v.ec_no
 where v.ec_no is null
-) select
+)
+--EPHEMERAL-SELECT-WRAPPER-START
+select * from (
+
+
+select
     date_facturation,
     numero_ecriture_comptable as ecriture_comptable_id,
     numero_compte_general,
@@ -43,3 +46,5 @@ where v.ec_no is null
     montant_signe,
     extracted_at
 from __dbt__cte__int_mssql_sage__ecriture_non_ventilee
+--EPHEMERAL-SELECT-WRAPPER-END
+)

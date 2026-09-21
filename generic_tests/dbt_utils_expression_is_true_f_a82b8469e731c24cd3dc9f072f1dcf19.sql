@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="nb_conso_180j >= 2", model=get_where_subquery(ref('fct_supply_chain__rupture_depot_yuman'))) }}

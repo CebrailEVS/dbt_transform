@@ -1,0 +1,1 @@
+{{ test_unique(column_name="idproduct_unit", model=get_where_subquery(source('oracle_neshu', 'evs_product_unit'))) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="mois_cible", model=get_where_subquery(ref('fct_supply_chain__erreur_prevision_neshu'))) }}

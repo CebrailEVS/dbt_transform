@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["key_ref_inter","valid_from"], model=get_where_subquery(ref('ref_nesp_tech__key_facturation'))) }}

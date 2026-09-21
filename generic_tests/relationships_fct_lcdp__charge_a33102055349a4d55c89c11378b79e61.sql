@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="device_id", field="device_id", model=get_where_subquery(ref('fct_lcdp__chargement_sortie')), to=ref('dim_lcdp__device')) }}

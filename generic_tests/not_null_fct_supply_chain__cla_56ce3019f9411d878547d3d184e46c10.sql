@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="statut_vie", model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu'))) }}

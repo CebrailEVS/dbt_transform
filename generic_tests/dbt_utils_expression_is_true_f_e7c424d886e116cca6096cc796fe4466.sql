@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="is_dormant = (nb_consultations = 0)", model=get_where_subquery(ref('fct_bi__usage_rapport'))) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="etat_intervention", model=get_where_subquery(ref('fct_commerce__machine_intervention')), values=["terminée signée","signature différée","terminée non signée"]) }}

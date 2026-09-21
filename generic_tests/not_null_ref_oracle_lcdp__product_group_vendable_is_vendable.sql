@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="is_vendable", model=get_where_subquery(ref('ref_oracle_lcdp__product_group_vendable'))) }}

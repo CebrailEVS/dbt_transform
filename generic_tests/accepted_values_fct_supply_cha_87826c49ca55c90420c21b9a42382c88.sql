@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="rupture_statut", model=get_where_subquery(ref('fct_supply_chain__rupture_depot_yuman')), values=["RUPTURE_TOTALE","STOCK_RESTANT_VANS","STOCK_AILLEURS"]) }}

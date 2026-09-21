@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="jours_disponibles <= jours_observes", model=get_where_subquery(ref('fct_supply_chain__disponibilite_article_lcdp_depot_mensuel'))) }}

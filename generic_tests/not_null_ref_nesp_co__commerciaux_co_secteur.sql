@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="co_secteur", model=get_where_subquery(ref('ref_nesp_co__commerciaux'))) }}

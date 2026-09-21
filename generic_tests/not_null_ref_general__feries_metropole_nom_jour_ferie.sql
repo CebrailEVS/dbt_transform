@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="nom_jour_ferie", model=get_where_subquery(ref('ref_general__feries_metropole'))) }}

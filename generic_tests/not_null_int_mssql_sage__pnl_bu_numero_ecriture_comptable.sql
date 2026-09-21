@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="numero_ecriture_comptable", model=get_where_subquery(ref('int_mssql_sage__pnl_bu'))) }}

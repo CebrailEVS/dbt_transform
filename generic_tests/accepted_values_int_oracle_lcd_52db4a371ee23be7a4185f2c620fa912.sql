@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="task_status_code", model=get_where_subquery(ref('int_oracle_lcdp__commande_fournisseur_tasks')), values=["FAIT","VALIDE","PREVU","ENCOURS","ANNULE","ANOMALIE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

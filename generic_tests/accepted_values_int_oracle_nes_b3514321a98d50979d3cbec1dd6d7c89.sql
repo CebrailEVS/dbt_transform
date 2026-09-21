@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="ca_category", model=get_where_subquery(ref('int_oracle_neshu__facturation_tasks')), values=["VENDING","PRESTA_SERVICE","FONTAINES","LAVES_VERRES","NEGOCE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

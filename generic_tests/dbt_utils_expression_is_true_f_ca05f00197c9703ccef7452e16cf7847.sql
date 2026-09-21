@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="(rupture_statut is not null) = is_out_of_stock_depot", model=get_where_subquery(ref('fct_supply_chain__rupture_depot_yuman'))) }}

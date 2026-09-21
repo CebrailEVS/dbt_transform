@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="intervention_id", model=get_where_subquery(ref('int_apptech__retraitements'))) }}

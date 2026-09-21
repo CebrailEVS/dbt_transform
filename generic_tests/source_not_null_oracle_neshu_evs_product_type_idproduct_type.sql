@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idproduct_type", model=get_where_subquery(source('oracle_neshu', 'evs_product_type'))) }}

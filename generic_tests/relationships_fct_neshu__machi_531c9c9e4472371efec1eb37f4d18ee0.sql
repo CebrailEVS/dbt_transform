@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="future_material_id", field="material_id", model=get_where_subquery(ref('fct_neshu__machine_appro_intervention')), to=ref('dim_technique__material')) }}

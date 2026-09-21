@@ -1,0 +1,1 @@
+{{ test_unique(column_name="idcontact", model=get_where_subquery(source('oracle_neshu', 'evs_contact'))) }}

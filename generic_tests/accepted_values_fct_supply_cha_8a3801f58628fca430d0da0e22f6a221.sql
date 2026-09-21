@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="saison_produit", model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu')), values=["ete","hiver","annuel","non_renseigne"]) }}

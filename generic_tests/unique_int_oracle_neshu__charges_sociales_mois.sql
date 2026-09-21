@@ -1,0 +1,1 @@
+{{ test_unique(column_name="mois", model=get_where_subquery(ref('int_oracle_neshu__charges_sociales'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="reception_fournisseur >= 0 and livraison_client >= 0", model=get_where_subquery(ref('fct_supply_chain__flux_neshu'))) }}

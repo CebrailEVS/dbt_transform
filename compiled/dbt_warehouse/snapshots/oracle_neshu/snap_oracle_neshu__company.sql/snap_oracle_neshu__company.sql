@@ -52,3 +52,4 @@
         updated_at
 
     from source_table
+

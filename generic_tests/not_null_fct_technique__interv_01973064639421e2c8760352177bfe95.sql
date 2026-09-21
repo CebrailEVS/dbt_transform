@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="flag_hors_delai_tech_effectif", model=get_where_subquery(ref('fct_technique__intervention_retraitee'))) }}

@@ -13,3 +13,4 @@
         storehouses_address,
         extracted_at
     from source_table
+

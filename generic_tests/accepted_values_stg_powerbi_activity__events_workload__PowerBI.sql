@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="workload", model=get_where_subquery(ref('stg_powerbi_activity__events')), values=["PowerBI"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

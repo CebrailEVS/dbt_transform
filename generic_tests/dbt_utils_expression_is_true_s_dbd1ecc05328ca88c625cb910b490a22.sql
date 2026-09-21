@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="periode = format('%04d-%02d', annee, mois)", model=get_where_subquery(ref('stg_apptech__suivi_tech_rw'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

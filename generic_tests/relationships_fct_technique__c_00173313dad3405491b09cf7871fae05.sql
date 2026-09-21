@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="product_id", field="product_id", model=get_where_subquery(ref('fct_technique__consommation_article_yuman')), to=ref('dim_technique__product')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

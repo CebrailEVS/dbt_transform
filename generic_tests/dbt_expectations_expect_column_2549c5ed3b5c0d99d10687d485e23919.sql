@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_column_values_to_be_between(column_name="delai_jours_depuis_precedente", min_value=0, model=get_where_subquery(ref('fct_technique__repair'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

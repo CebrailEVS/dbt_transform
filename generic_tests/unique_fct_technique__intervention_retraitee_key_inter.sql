@@ -1,0 +1,1 @@
+{{ test_unique(column_name="key_inter", model=get_where_subquery(ref('fct_technique__intervention_retraitee'))) }}

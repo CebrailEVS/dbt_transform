@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["task_id","roadman_code"], model=get_where_subquery(ref('fct_lcdp__passage_appro'))) }}{{ config({"severity":"error"}) }}

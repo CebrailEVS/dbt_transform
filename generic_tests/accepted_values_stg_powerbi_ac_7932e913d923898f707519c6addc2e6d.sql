@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="type", model=get_where_subquery(ref('stg_powerbi_activity__workspaces')), values=["Workspace"]) }}

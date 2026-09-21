@@ -1,0 +1,1 @@
+{{ dbt_utils.test_accepted_range(column_name="consumption_date", max_value="current_date()", min_value="'2020-01-01'", model=get_where_subquery(ref('fct_neshu__consommation'))) }}

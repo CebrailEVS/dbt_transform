@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="classe_abc", model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu')), values=["A","B","C"]) }}

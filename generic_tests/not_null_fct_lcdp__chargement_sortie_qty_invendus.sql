@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="qty_invendus", model=get_where_subquery(ref('fct_lcdp__chargement_sortie'))) }}

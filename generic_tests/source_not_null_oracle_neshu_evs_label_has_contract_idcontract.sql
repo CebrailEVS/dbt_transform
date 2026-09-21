@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idcontract", model=get_where_subquery(source('oracle_neshu', 'evs_label_has_contract'))) }}

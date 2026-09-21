@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="n_analytique", model=get_where_subquery(ref('stg_mssql_sage__f_ecriturea'))) }}

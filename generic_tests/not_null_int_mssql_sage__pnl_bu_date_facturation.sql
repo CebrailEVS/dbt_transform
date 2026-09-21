@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="date_facturation", model=get_where_subquery(ref('int_mssql_sage__pnl_bu'))) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="device_last_installation_date", model=get_where_subquery(ref('fct_neshu__maintenance_preventive'))) }}

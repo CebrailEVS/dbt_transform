@@ -1,0 +1,1 @@
+{{ test_unique(column_name="dpt", model=get_where_subquery(ref('ref_nesp_tech__dpts_montagne_factu'))) }}

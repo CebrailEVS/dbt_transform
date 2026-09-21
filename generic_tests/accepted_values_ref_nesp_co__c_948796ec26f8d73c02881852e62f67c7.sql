@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="co_statut", model=get_where_subquery(ref('ref_nesp_co__commerciaux')), values=["Actif","Inactif"]) }}

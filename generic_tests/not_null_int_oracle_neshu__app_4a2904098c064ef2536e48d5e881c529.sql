@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="task_status_code", model=get_where_subquery(ref('int_oracle_neshu__appro_tasks_enriched'))) }}

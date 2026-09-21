@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idlabel_family", model=get_where_subquery(source('oracle_lcdp', 'lcdp_label_family'))) }}

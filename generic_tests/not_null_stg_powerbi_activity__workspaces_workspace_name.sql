@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="workspace_name", model=get_where_subquery(ref('stg_powerbi_activity__workspaces'))) }}

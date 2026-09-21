@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["src_inter","intervention_id","type_retraitement"], model=get_where_subquery(ref('int_apptech__retraitements'))) }}

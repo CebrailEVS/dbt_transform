@@ -27,3 +27,4 @@
         created_at,
         updated_at
     from source_table
+

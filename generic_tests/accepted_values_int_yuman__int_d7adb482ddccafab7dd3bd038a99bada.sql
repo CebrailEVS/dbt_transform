@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="billing_validation_status", model=get_where_subquery(ref('int_yuman__interventions')), values=["VALIDATED","MISSING_TARIF","UNTRACKABLE","NOT_BILLABLE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

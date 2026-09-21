@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="is_anomaly", model=get_where_subquery(ref('fct_lcdp__passage_appro')), quote=false, values=[0,1]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

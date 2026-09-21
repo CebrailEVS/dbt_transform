@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="ct_num", model=get_where_subquery(ref('stg_mssql_sage__f_comptet'))) }}

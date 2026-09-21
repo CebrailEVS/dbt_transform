@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="cbco_no", field="co_no", model=get_where_subquery(ref('stg_mssql_sage__f_docligne')), to=ref('stg_mssql_sage__f_collaborateur')) }}

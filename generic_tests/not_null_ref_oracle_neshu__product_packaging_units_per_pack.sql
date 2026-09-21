@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="units_per_pack", model=get_where_subquery(ref('ref_oracle_neshu__product_packaging'))) }}

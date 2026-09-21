@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="obj_vol_annee", model=get_where_subquery(ref('ref_nesp_tech__objectifs_volumes'))) }}

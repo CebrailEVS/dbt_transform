@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="cp_depart_int", model=get_where_subquery(ref('ref_yuman__cp_tech'))) }}

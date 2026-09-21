@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="statut_reappro", model=get_where_subquery(ref('fct_supply_chain__point_commande_neshu')), values=["rupture","a_commander","ok","exclu"]) }}

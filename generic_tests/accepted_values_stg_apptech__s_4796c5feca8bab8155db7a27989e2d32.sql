@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="evt_event_unit", model=get_where_subquery(ref('stg_apptech__suivi_tech_events')), values=["Journee","Heure"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

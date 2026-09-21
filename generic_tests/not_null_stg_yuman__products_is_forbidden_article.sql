@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="is_forbidden_article", model=get_where_subquery(ref('stg_yuman__products'))) }}

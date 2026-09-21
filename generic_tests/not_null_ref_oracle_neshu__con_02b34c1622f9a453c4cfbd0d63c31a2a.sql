@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="forced_source", model=get_where_subquery(ref('ref_oracle_neshu__consommation_source_override'))) }}

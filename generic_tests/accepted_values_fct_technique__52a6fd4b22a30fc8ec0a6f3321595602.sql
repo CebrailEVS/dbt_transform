@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="agency", model=get_where_subquery(ref('fct_technique__consommation_article_nespresso')), values=["evs","evs paris","evs idf","evs paris 2"]) }}

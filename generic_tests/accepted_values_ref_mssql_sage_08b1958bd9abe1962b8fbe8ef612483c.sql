@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="budg_categorie_pnl", model=get_where_subquery(ref('ref_mssql_sage__pnl_budget')), values=["CA","MASSE_SALARIALE","CONSOMMATION_MP_SSTT"]) }}

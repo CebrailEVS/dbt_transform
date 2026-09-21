@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="dbt_scd_id", model=get_where_subquery(ref('snap_oracle_neshu__device'))) }}

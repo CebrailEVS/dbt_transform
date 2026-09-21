@@ -1,0 +1,1 @@
+{{ test_unique(column_name="idlocation", model=get_where_subquery(source('oracle_lcdp', 'lcdp_location'))) }}

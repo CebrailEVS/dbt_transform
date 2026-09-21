@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="_dlt_parent_id", model=get_where_subquery(ref('stg_zoho_desk__ticket_metrics_staging_data'))) }}

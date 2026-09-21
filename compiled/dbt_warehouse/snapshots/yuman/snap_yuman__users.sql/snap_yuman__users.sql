@@ -22,3 +22,4 @@
         updated_at,
         extracted_at
     from source_table
+

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="target_storage_mode", model=get_where_subquery(ref('stg_powerbi_activity__datasets')), values=["Abf","PremiumFiles"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

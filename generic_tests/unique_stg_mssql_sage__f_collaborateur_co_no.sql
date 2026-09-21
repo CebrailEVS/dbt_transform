@@ -1,0 +1,1 @@
+{{ test_unique(column_name="co_no", model=get_where_subquery(ref('stg_mssql_sage__f_collaborateur'))) }}

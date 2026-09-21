@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["contrat_immatriculation_edi"], model=get_where_subquery(ref('int_gac__vehicule_code_analytique'))) }}

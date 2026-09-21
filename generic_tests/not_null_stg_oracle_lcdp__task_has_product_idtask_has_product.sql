@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idtask_has_product", model=get_where_subquery(ref('stg_oracle_lcdp__task_has_product'))) }}

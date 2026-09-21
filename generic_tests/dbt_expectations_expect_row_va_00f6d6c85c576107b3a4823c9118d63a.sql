@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_row_values_to_have_recent_data(column_name="created_time", datepart="day", interval=7, model=get_where_subquery(ref('stg_zoho_desk__tickets'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

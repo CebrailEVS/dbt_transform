@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="source_last_preventive", model=get_where_subquery(ref('fct_neshu__maintenance_preventive')), values=["yuman","dlog","aucune"]) }}

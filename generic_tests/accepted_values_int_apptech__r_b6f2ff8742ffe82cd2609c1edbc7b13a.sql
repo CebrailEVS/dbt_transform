@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="type_retraitement", model=get_where_subquery(ref('int_apptech__retraitements')), values=["astreinte","mee","curative","aguila","pause","modif_intervention"]) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="type_stock", model=get_where_subquery(ref('fct_supply_chain__stock_yuman')), values=["DEPOT","TECHNICIEN"]) }}

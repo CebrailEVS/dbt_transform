@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="substr(numero_compte_general, 1, 1) in ('6', '7')", model=get_where_subquery(ref('fct_finance__ecriture_non_ventilee'))) }}

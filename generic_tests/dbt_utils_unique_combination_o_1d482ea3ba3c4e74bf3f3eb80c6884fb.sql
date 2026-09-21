@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["ec_no","n_analytique","ea_ligne"], model=get_where_subquery(ref('stg_mssql_sage__f_ecriturea'))) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="date_sinistre", model=get_where_subquery(ref('fct_services_generaux__sinistre'))) }}

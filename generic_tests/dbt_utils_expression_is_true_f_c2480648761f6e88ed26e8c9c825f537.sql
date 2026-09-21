@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="demande_retenue_journaliere >= demande_prevue_journaliere - 0.001", model=get_where_subquery(ref('fct_supply_chain__point_commande_neshu'))) }}

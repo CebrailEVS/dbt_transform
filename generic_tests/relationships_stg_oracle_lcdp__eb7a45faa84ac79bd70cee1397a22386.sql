@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idcontact", field="idcontact", model=get_where_subquery(ref('stg_oracle_lcdp__contact_has_device')), to=ref('stg_oracle_lcdp__contact')) }}

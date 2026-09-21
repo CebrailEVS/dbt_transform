@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="material_id", field="material_id", model=get_where_subquery(ref('fct_neshu__maintenance_preventive')), to=ref('stg_yuman__materials')) }}{{ config({"meta":{},"tags":[],"where":"material_id is not null"}) }}

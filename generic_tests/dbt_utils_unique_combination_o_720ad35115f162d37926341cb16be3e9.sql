@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["product_type","company_code","annee_chgt","quinzaine_chgt"], model=get_where_subquery(ref('fct_neshu__chargement_quinzaine'))) }}

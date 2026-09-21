@@ -1,0 +1,1 @@
+{{ test_unique(column_name="material_id", model=get_where_subquery(ref('dim_technique__parc_machine'))) }}

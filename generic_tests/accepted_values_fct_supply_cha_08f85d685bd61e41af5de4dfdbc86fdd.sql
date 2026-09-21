@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="source_sigma", model=get_where_subquery(ref('fct_supply_chain__point_commande_neshu')), values=["erreur","demande_fallback"]) }}

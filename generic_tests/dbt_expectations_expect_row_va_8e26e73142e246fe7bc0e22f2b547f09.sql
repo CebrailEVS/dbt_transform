@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_row_values_to_have_recent_data(column_name="extracted_at", datepart="hour", interval=26, model=get_where_subquery(ref('stg_oracle_lcdp_gcs__stock_theorique'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

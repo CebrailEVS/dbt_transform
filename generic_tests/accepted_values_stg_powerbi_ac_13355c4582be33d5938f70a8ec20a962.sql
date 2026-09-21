@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="content_provider_type", model=get_where_subquery(ref('stg_powerbi_activity__datasets')), values=["PbixInImportMode","UsageMetricsUserReport","PbixInCompositeMode","InImportMode","Unknown"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

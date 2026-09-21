@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="company_id", field="company_id", model=get_where_subquery(ref('fct_neshu__consommation')), to=ref('dim_neshu__company')) }}

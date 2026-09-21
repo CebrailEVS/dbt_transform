@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="Departement", model=get_where_subquery(ref('ref_yuman__dpt_metropole'))) }}

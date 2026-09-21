@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="quantity > 0", model=get_where_subquery(ref('fct_technique__consommation_article_yuman'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

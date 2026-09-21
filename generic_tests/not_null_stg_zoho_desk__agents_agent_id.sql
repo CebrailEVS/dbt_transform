@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="agent_id", model=get_where_subquery(ref('stg_zoho_desk__agents'))) }}

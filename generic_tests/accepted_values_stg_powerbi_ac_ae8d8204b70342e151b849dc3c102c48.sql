@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="format", model=get_where_subquery(ref('stg_powerbi_activity__reports')), values=["PBIR","PBIRLegacy"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

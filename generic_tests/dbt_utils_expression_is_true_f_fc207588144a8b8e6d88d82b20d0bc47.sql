@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="ca_total_ttc_eur >= 0", model=get_where_subquery(ref('fct_lcdp__ca_mensuel'))) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="status_code", model=get_where_subquery(ref('int_oracle_lcdp__pointage_tasks')), values=["VALIDE","FAIT","ANNULE","ANOMALIE","PREVU","ENCOURS","ACQUITTE","ENATTENTE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

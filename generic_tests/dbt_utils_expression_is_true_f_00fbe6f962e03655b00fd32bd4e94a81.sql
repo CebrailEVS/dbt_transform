@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="not is_dormant or derniere_consultation_at is null", model=get_where_subquery(ref('fct_bi__usage_rapport'))) }}

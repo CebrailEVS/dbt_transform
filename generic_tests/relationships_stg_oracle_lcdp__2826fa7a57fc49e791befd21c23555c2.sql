@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idlocation", field="idlocation", model=get_where_subquery(ref('stg_oracle_lcdp__task_has_product')), to=ref('stg_oracle_lcdp__location')) }}

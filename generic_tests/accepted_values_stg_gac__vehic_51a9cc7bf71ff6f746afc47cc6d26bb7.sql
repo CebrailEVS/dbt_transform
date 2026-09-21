@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="dernier_evenement_disponibilite_du_vehicule", model=get_where_subquery(ref('stg_gac__vehicule')), values=["Disponible","Affecté","Indisponible","En maintenance"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

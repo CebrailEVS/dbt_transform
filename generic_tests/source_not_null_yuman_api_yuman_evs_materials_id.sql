@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="id", model=get_where_subquery(source('yuman_api', 'yuman_evs_materials'))) }}

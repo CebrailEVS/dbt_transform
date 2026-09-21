@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="device_name", model=get_where_subquery(ref('int_oracle_neshu__valorisation_parc_machines'))) }}

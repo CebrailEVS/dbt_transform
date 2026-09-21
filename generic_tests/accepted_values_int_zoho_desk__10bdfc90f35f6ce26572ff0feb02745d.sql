@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="priority", model=get_where_subquery(ref('int_zoho_desk__ticket_enriched')), values=["Low","Medium","High","Urgent"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

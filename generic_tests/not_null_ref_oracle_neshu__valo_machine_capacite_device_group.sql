@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="device_group", model=get_where_subquery(ref('ref_oracle_neshu__valo_machine_capacite'))) }}

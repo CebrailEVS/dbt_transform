@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="segment_start_at", model=get_where_subquery(ref('int_zoho_desk__ticket_lifecycle_segments'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["company_id"], model=get_where_subquery(ref('dim_neshu__contract'))) }}{{ config({"error_if":">1","meta":{},"severity":"WARN","tags":[]}) }}

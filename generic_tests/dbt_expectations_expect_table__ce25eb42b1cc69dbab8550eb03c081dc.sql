@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_table_row_count_to_be_between(max_value=500000, min_value=20, model=get_where_subquery(ref('fct_bi__consultation'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

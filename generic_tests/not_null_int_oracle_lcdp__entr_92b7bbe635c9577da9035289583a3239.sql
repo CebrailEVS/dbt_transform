@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="destination_code", model=get_where_subquery(ref('int_oracle_lcdp__entree_fabrication_tasks'))) }}

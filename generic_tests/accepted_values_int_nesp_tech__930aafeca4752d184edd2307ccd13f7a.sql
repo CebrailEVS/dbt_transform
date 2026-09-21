@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="agency", model=get_where_subquery(ref('int_nesp_tech__interventions_dedup')), values=["evs","evs idf","evs paris","evs paris 2"]) }}

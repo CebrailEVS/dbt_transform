@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="methode_prevision != 'exclu' or demande_prevue_mensuelle = 0", model=get_where_subquery(ref('fct_supply_chain__prevision_demande_neshu'))) }}

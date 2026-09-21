@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="etat_intervention", model=get_where_subquery(ref('fct_technique__consommation_article_nespresso')), values=["terminée signée","signature différée","terminée non signée","mise en échec","annulée"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

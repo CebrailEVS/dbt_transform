@@ -1,0 +1,1 @@
+{{ test_unique(column_name="Machine_Brut", model=get_where_subquery(ref('ref_yuman__machine_clean'))) }}

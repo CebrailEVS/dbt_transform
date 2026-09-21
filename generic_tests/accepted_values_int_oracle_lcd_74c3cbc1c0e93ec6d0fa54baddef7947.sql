@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="telemetry_source", model=get_where_subquery(ref('int_oracle_lcdp__telemetry_tasks')), values=["TELEM_NAYAX"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

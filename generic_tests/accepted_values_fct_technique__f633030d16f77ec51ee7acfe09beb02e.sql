@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="src_inter", model=get_where_subquery(ref('fct_technique__intervention')), values=["NESP","YUMAN"]) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["snapshot_date","entity_type","id_entity","product_code"], model=get_where_subquery(ref('fct_supply_chain__stock_lcdp'))) }}

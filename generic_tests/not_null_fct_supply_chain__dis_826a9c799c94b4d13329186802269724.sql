@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="mois", model=get_where_subquery(ref('fct_supply_chain__disponibilite_article_lcdp_depot_mensuel'))) }}

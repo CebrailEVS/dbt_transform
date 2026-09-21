@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="material_is_active", model=get_where_subquery(ref('dim_technique__material'))) }}

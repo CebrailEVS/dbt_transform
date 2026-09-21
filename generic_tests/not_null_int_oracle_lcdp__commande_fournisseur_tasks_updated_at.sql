@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="updated_at", model=get_where_subquery(ref('int_oracle_lcdp__commande_fournisseur_tasks'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="methode_prevision != 'exclu' or (quantite_a_commander = 0 and statut_reappro = 'exclu')", model=get_where_subquery(ref('fct_supply_chain__point_commande_neshu'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_column_values_to_be_between(column_name="intervention_date", max_value="current_date()", min_value="date('2023-01-01')", model=get_where_subquery(ref('fct_technique__repair'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

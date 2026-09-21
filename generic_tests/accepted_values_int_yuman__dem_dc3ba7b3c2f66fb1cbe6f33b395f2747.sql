@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="intervention_state", model=get_where_subquery(ref('int_yuman__demands_workorders_enriched')), values=["REALISEE","NON_REALISEE","EN_PAUSE","EN_COURS","PLANIFIEE","DEMANDE_OUVERTE","DEMANDE_REJETEE","AUTRE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

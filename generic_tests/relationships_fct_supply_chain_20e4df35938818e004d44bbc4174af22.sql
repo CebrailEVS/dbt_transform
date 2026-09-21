@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="company_id", field="company_id", model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu')), to=ref('dim_neshu__company')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

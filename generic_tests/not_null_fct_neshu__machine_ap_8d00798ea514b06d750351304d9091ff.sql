@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="nb_interventions_15j", model=get_where_subquery(ref('fct_neshu__machine_appro_intervention'))) }}

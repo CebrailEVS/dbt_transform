@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="not (a_facturer_mee = 'OUI' and a_facturer_modif = 'NOT VALIDATED')", model=get_where_subquery(ref('fct_technique__intervention_retraitee'))) }}{{ config({"meta":{},"severity":"ERROR","tags":[]}) }}

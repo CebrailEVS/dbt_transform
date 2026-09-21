@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="code_analytique_bu", model=get_where_subquery(ref('int_mssql_sage__pnl_bu')), values=["COMMERCE","NUNSHEN","NESHU","SUPPORT","TECHNIQUE","PIECES DET","ZSITUATION"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

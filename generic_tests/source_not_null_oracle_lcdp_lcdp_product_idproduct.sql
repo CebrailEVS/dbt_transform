@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idproduct", model=get_where_subquery(source('oracle_lcdp', 'lcdp_product'))) }}

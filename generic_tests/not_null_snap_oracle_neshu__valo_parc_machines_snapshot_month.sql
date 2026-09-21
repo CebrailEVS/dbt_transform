@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="snapshot_month", model=get_where_subquery(ref('snap_oracle_neshu__valo_parc_machines'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="is_out_of_stock_depot = (qty_depot = 0)", model=get_where_subquery(ref('fct_supply_chain__rupture_depot_yuman'))) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="typologie", model=get_where_subquery(ref('fct_neshu__pnl_client_mensuel')), values=["GET","OTHER"]) }}

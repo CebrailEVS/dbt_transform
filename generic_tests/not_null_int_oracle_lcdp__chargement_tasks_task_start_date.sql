@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="task_start_date", model=get_where_subquery(ref('int_oracle_lcdp__chargement_tasks'))) }}

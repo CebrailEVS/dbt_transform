@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(column_name="units_per_pack", expression=" > 1", model=get_where_subquery(ref('ref_oracle_neshu__product_packaging'))) }}

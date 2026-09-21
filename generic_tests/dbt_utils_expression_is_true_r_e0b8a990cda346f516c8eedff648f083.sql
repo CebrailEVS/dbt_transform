@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(column_name="article_prix_unitaire", expression=" >= 0", model=get_where_subquery(ref('ref_nesp_tech__articles_prix'))) }}

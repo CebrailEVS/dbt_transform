@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="num_departement_texte", model=get_where_subquery(ref('ref_yuman__cp_tech'))) }}

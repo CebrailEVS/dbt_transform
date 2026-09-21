@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="data_source", model=get_where_subquery(ref('fct_neshu__consommation'))) }}

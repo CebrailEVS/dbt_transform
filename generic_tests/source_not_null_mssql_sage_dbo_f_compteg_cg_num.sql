@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="cg_num", model=get_where_subquery(source('mssql_sage', 'dbo_f_compteg'))) }}

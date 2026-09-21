@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="client_id", field="client_id", model=get_where_subquery(ref('dim_technique__site')), to=ref('dim_technique__client')) }}

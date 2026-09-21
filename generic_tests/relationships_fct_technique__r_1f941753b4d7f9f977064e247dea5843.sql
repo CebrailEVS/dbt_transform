@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="material_id", field="material_id", model=get_where_subquery(ref('fct_technique__repair')), to=ref('dim_technique__parc_machine')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

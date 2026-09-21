@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="EQUIPE", model=get_where_subquery(ref('ref_yuman__technicien_clean'))) }}

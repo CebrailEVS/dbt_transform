@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="ar_ref", field="ar_ref", model=get_where_subquery(ref('stg_mssql_sage__f_docligne')), to=ref('stg_mssql_sage__f_article')) }}

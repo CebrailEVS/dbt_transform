@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idresources_type", field="idresources_type", model=get_where_subquery(ref('stg_oracle_neshu__resources')), to=ref('stg_oracle_neshu__resources_type')) }}

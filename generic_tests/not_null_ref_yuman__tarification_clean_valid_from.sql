@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="valid_from", model=get_where_subquery(ref('ref_yuman__tarification_clean'))) }}

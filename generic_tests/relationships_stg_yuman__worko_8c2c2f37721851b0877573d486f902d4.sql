@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="client_id", field="client_id", model=get_where_subquery(ref('stg_yuman__workorder_demands')), to=ref('stg_yuman__clients')) }}

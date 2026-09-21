@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="stock_depot >= 0 and stock_vehicule >= 0", model=get_where_subquery(ref('fct_supply_chain__flux_neshu'))) }}

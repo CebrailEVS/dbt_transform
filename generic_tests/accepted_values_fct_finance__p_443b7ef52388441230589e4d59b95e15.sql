@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="kpi", model=get_where_subquery(ref('fct_finance__pnl_bu')), values=["CA","CONSOMMATION_MP_SSTT","MASSE_SALARIALE","FRAIS_DIRECTS_AMORTISSEMENTS","MARGE_BRUTE","MARGE_NETTE"]) }}

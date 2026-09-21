@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="report_id", field="report_id", model=get_where_subquery(ref('fct_bi__consultation')), to=ref('dim_bi__rapport')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

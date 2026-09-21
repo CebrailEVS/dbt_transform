@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="nb_appros_planifies_a_venir", model=get_where_subquery(ref('int_oracle_neshu__appro_machine_context'))) }}

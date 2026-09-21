@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="company_id", model=get_where_subquery(ref('snap_oracle_neshu__company'))) }}

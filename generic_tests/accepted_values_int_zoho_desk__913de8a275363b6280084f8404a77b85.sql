@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="status_type", model=get_where_subquery(ref('int_zoho_desk__ticket_lifecycle_segments')), values=["Open","On Hold","Closed"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

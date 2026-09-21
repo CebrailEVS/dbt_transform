@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="status_inter", model=get_where_subquery(ref('fct_neshu__maintenance_preventive'))) }}

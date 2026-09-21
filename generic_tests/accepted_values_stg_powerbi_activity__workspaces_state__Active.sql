@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="state", model=get_where_subquery(ref('stg_powerbi_activity__workspaces')), values=["Active"]) }}

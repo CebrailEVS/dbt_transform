@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_table_row_count_to_be_between(max_value=400, min_value=50, model=get_where_subquery(ref('stg_powerbi_activity__datasets'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

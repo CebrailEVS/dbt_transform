@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="product_quantity", model=get_where_subquery(ref('stg_yuman__workorder_products'))) }}

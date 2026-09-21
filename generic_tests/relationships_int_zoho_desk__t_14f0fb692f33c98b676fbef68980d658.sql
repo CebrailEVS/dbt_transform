@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="ticket_id", field="ticket_id", model=get_where_subquery(ref('int_zoho_desk__ticket_priority_events')), to=ref('stg_zoho_desk__tickets')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

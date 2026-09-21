@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="budg_bu", model=get_where_subquery(ref('ref_mssql_sage__pnl_budget')), values=["NESHU","NUNSHEN","COMMERCE","TECHNIQUE"]) }}

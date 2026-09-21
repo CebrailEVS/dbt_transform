@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="convertir_code_5", model=get_where_subquery(ref('stg_apptech__suivi_tech_aguila')), values=["OUI","NON"]) }}

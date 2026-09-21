@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="task_status_code", model=get_where_subquery(ref('int_oracle_neshu__appro_tasks')), values=["FAIT","ANNULE","PREVU","ENCOURS","ANOMALIE","VALIDE","ACQUITTE","ENATTENTE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ test_unique(column_name="device_id", model=get_where_subquery(ref('int_oracle_neshu__appro_machine_context'))) }}

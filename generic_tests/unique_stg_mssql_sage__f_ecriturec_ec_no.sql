@@ -1,0 +1,1 @@
+{{ test_unique(column_name="ec_no", model=get_where_subquery(ref('stg_mssql_sage__f_ecriturec'))) }}

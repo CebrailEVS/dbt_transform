@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="consultation_at", model=get_where_subquery(ref('fct_bi__consultation'))) }}

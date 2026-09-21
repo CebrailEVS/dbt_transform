@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="storehouses_id", field="user_id", model=get_where_subquery(ref('stg_yuman__storehouses')), to=ref('stg_yuman__users')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

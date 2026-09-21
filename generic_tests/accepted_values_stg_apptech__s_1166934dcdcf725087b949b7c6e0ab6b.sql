@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="doubler_prime", model=get_where_subquery(ref('stg_apptech__suivi_tech_pause')), values=["OUI","NON"]) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="activity_type", model=get_where_subquery(ref('stg_nesp_co__activite'))) }}

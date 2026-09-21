@@ -1,0 +1,1 @@
+{{ test_unique(column_name="idcompany_type", model=get_where_subquery(ref('stg_oracle_lcdp__company_type'))) }}

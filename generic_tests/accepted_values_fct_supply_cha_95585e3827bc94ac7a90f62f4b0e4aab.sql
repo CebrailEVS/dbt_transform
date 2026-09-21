@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="statut_vie", model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu')), values=["actif","hors_saison","inactif","arrete"]) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="taux_disponibilite_pct between 0 and 100", model=get_where_subquery(ref('fct_supply_chain__disponibilite_article_neshu_depot_mensuel'))) }}

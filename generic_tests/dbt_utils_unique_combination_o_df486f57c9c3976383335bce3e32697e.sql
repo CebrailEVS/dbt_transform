@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["intervention_fautive_id"], model=get_where_subquery(ref('fct_technique__credit_repair_warranty'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

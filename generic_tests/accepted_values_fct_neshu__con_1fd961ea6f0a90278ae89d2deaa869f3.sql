@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="data_source", model=get_where_subquery(ref('fct_neshu__consommation')), values=["TELEMETRIE","CHARGEMENT","LIVRAISON"]) }}

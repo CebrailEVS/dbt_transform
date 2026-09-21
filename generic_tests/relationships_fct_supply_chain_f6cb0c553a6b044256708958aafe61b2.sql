@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="product_id", field="product_id", model=get_where_subquery(ref('fct_supply_chain__erreur_prevision_neshu')), to=ref('dim_neshu__product')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

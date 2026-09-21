@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="machine_clean", model=get_where_subquery(ref('int_nesp_tech__facturation_interventions'))) }}

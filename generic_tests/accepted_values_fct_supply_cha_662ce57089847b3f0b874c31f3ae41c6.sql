@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="alerte_exploit", model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu')), values=["arrete_mais_vend","actif_mais_silencieux"]) }}

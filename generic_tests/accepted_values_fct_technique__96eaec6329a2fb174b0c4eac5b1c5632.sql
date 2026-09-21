@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="workorder_type", model=get_where_subquery(ref('fct_technique__consommation_article_yuman')), values=["Reactive","Preventive","Installation"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

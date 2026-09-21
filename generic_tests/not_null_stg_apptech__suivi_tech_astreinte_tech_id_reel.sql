@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="tech_id_reel", model=get_where_subquery(ref('stg_apptech__suivi_tech_astreinte'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

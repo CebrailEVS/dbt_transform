@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["n_planning","code_article","date_intervention"], model=get_where_subquery(ref('stg_nesp_tech__articles'))) }}

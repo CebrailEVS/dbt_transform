@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="prevision_retenue >= 0 and prevision_moyenne_mobile >= 0 and prevision_saisonniere >= 0", model=get_where_subquery(ref('fct_supply_chain__erreur_prevision_neshu'))) }}

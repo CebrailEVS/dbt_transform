@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="evt_tech_yuman_id", model=get_where_subquery(ref('stg_apptech__suivi_tech_events'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

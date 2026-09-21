@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="task_status_code", model=get_where_subquery(ref('int_oracle_neshu__chargement_tasks')), values=["FAIT","ANNULE","VALIDE","ANOMALIE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="classe_demande", model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu')), values=["regulier","erratique","intermittent","lumpy","indetermine"]) }}

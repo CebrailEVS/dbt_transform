@@ -1,0 +1,1 @@
+{{ test_unique(column_name="mois_date", model=get_where_subquery(ref('fct_supply_chain__flux_neshu'))) }}

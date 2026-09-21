@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="montant_credit < 0", model=get_where_subquery(ref('fct_technique__credit_repair_warranty'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

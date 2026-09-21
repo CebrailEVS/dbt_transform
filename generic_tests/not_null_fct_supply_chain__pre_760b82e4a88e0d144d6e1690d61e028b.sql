@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="methode_prevision", model=get_where_subquery(ref('fct_supply_chain__prevision_demande_neshu'))) }}

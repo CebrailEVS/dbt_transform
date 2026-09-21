@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["obj_vol_anneemois","obj_vol_key_item"], model=get_where_subquery(ref('ref_nesp_tech__objectifs_volumes'))) }}

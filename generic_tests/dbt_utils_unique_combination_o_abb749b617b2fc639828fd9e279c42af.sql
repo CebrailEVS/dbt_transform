@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["workorder_id","product_id"], model=get_where_subquery(ref('fct_technique__consommation_article_yuman'))) }}

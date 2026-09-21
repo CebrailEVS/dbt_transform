@@ -1,0 +1,1 @@
+{{ test_unique(column_name="activity_id", model=get_where_subquery(ref('stg_nesp_co__activite'))) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="current_is_workorder_paused", model=get_where_subquery(ref('fct_neshu__machine_appro_intervention'))) }}

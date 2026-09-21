@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="code_analytique", model=get_where_subquery(ref('ref_mssql_sage__code_analytique_bu'))) }}

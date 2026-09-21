@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["device_id","valid_from"], model=get_where_subquery(ref('dim_neshu__device_history'))) }}

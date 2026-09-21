@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="delai_jours_debut", model=get_where_subquery(ref('int_nesp_tech__delais_interventions'))) }}

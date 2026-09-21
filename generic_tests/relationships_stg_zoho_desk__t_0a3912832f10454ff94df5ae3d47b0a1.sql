@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="ticket_id", field="ticket_id", model=get_where_subquery(ref('stg_zoho_desk__ticket_details')), to=ref('stg_zoho_desk__tickets')) }}

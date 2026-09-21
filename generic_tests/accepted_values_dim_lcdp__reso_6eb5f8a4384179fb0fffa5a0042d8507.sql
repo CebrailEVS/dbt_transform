@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="resources_type", model=get_where_subquery(ref('dim_lcdp__resource')), values=["PERSON","VEHICLE"]) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="statut", model=get_where_subquery(ref('fct_supply_chain__couverture_stock_neshu')), values=["RUPTURE TOTALE","RUPTURE","VIGILANCE","OK","NON CONSOMME"]) }}

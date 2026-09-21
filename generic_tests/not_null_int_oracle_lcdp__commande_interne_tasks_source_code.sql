@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="source_code", model=get_where_subquery(ref('int_oracle_lcdp__commande_interne_tasks'))) }}

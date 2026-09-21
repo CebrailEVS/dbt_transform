@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="delivery_status_code", model=get_where_subquery(ref('int_oracle_lcdp__commande_fournisseur_tasks')), values=["LIVRE","LIVRE_PARTIEL","EN_ATTENTE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

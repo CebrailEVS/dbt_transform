@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="valorisation_totale_machine", model=get_where_subquery(ref('snap_oracle_neshu__valo_parc_machines'))) }}

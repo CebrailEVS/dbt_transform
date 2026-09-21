@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idtask_type", field="idtask_type", model=get_where_subquery(ref('stg_oracle_neshu__task_type_has_config')), to=ref('stg_oracle_neshu__task_type')) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="nom", model=get_where_subquery(ref('ref_yuman__tech_agence'))) }}

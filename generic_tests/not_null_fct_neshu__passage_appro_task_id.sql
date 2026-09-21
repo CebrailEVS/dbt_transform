@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="task_id", model=get_where_subquery(ref('fct_neshu__passage_appro'))) }}

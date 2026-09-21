@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="created_at", model=get_where_subquery(ref('int_oracle_lcdp__appel_sav_tasks'))) }}

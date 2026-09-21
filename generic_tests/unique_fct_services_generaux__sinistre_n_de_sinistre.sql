@@ -1,0 +1,1 @@
+{{ test_unique(column_name="n_de_sinistre", model=get_where_subquery(ref('fct_services_generaux__sinistre'))) }}

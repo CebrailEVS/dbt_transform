@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["idtask","idtax"], model=get_where_subquery(ref('stg_oracle_lcdp__task_has_amount'))) }}

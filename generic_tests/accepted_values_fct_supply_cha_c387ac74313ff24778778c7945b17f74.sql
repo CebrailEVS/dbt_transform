@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="methode_prevision", model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu')), values=["moyenne_mobile","moyenne_mobile_surveille","reference_saisonniere","naif","exclu"]) }}

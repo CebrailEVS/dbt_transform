@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="entity_type", model=get_where_subquery(ref('fct_supply_chain__stock_lcdp')), values=["company","resource"]) }}

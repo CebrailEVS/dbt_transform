@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idresources", field="idresources", model=get_where_subquery(ref('stg_oracle_lcdp__task_has_resources')), to=ref('stg_oracle_lcdp__resources')) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="is_active", model=get_where_subquery(ref('stg_yuman__users'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

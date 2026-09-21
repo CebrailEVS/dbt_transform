@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="opp_id", model=get_where_subquery(ref('fct_commerce__opportunite'))) }}

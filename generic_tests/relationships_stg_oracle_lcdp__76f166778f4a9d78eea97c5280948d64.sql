@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idcompany_peer", field="idcompany", model=get_where_subquery(ref('stg_oracle_lcdp__task_has_product')), to=ref('stg_oracle_lcdp__company')) }}

@@ -1,0 +1,1 @@
+{{ test_unique(column_name="_zoho_desk_associated_tickets_id", model=get_where_subquery(source('zoho_desk', 'zoho_desk_ticket_details'))) }}

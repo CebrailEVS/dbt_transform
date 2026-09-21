@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(column_name="task_start_date", expression="<= task_end_date", model=get_where_subquery(ref('fct_lcdp__passage_appro'))) }}{{ config({"severity":"warn"}) }}

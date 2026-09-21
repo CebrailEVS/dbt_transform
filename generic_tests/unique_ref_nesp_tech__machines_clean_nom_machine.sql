@@ -1,0 +1,1 @@
+{{ test_unique(column_name="nom_machine", model=get_where_subquery(ref('ref_nesp_tech__machines_clean'))) }}

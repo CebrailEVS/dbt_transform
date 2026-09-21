@@ -1,0 +1,1 @@
+{{ test_unique(column_name="cp_depart_texte", model=get_where_subquery(ref('ref_yuman__cp_tech'))) }}

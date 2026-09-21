@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="load_type_code", model=get_where_subquery(ref('int_oracle_lcdp__chargement_tasks')), values=["LOADING","REMOVING"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

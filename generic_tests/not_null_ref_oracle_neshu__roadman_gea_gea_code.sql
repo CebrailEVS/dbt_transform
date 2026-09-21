@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="gea_code", model=get_where_subquery(ref('ref_oracle_neshu__roadman_gea'))) }}

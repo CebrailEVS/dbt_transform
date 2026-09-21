@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["device_id"], model=get_where_subquery(ref('snap_lcdp__device'))) }}{{ config({"meta":{},"severity":"ERROR","tags":[],"where":"dbt_valid_to is null"}) }}

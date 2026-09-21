@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="app_id is null", model=get_where_subquery(ref('stg_powerbi_activity__reports'))) }}

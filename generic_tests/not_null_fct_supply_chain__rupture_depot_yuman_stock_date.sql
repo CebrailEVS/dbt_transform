@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="stock_date", model=get_where_subquery(ref('fct_supply_chain__rupture_depot_yuman'))) }}

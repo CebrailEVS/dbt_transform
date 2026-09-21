@@ -1,0 +1,1 @@
+{{ test_unique(column_name="id", model=get_where_subquery(source('yuman_api', 'yuman_evs_products_storehouses'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["idtask_type","idconfig"], model=get_where_subquery(ref('stg_oracle_neshu__task_type_has_config'))) }}

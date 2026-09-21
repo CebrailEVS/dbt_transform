@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_row_values_to_have_recent_data(column_name="date_intervention", datepart="day", interval=8, model=get_where_subquery(ref('stg_nesp_tech__articles'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="company_id", field="company_id", model=get_where_subquery(ref('fct_supply_chain__disponibilite_article_lcdp_depot_mensuel')), to=ref('dim_lcdp__company')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

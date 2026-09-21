@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="user_domain", model=get_where_subquery(ref('fct_bi__consultation')), values=["evs-pro.com","neshu.com"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

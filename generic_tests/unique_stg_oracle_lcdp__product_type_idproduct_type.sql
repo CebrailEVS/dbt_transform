@@ -1,0 +1,1 @@
+{{ test_unique(column_name="idproduct_type", model=get_where_subquery(ref('stg_oracle_lcdp__product_type'))) }}

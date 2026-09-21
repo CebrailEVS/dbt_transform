@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="budg_categorie_pnl", model=get_where_subquery(ref('ref_mssql_sage__pnl_budget'))) }}

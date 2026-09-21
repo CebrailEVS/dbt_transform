@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="site_id", field="site_id", model=get_where_subquery(ref('stg_yuman__materials')), to=ref('stg_yuman__sites')) }}

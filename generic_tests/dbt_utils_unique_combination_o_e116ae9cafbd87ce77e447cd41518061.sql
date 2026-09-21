@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["mois","company_id","product_code"], model=get_where_subquery(ref('fct_supply_chain__disponibilite_article_lcdp_depot_mensuel'))) }}

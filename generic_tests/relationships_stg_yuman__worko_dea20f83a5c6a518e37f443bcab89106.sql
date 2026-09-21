@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="product_id", field="product_id", model=get_where_subquery(ref('stg_yuman__workorder_products')), to=ref('stg_yuman__products')) }}

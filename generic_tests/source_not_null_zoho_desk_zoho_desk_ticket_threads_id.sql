@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="id", model=get_where_subquery(source('zoho_desk', 'zoho_desk_ticket_threads'))) }}

@@ -1,0 +1,1 @@
+{{ test_unique(column_name="intervention", model=get_where_subquery(ref('fct_commerce__machine_intervention'))) }}

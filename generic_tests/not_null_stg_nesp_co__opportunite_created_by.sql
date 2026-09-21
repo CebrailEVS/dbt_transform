@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="created_by", model=get_where_subquery(ref('stg_nesp_co__opportunite'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="qte_a_commander >= 0", model=get_where_subquery(ref('fct_supply_chain__couverture_stock_neshu'))) }}

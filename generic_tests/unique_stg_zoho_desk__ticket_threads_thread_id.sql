@@ -1,0 +1,1 @@
+{{ test_unique(column_name="thread_id", model=get_where_subquery(ref('stg_zoho_desk__ticket_threads'))) }}

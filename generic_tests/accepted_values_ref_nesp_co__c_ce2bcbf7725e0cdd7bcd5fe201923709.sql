@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="co_fonction", model=get_where_subquery(ref('ref_nesp_co__commerciaux')), values=["ALL","alternant rs","commercial","commercial","fidelisation","manager"]) }}

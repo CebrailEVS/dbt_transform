@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="assigned_roadman_id", field="resources_id", model=get_where_subquery(ref('dim_lcdp__device')), to=ref('dim_lcdp__resource')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

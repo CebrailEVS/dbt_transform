@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="category_id", field="category_id", model=get_where_subquery(ref('stg_yuman__materials')), to=ref('stg_yuman__materials_categories')) }}

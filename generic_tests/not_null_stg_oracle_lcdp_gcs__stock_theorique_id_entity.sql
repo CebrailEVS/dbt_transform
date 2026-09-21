@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="id_entity", model=get_where_subquery(ref('stg_oracle_lcdp_gcs__stock_theorique'))) }}

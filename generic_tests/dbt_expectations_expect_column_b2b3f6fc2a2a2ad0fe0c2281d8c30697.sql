@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_column_values_to_be_between(column_name="nb_consultations", min_value=0, model=get_where_subquery(ref('fct_bi__activite_rapport_jour'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

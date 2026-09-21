@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["idlabel","idtask_has_product"], model=get_where_subquery(ref('stg_oracle_neshu__label_has_thp'))) }}

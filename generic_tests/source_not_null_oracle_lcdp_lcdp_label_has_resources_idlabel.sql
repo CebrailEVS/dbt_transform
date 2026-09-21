@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idlabel", model=get_where_subquery(source('oracle_lcdp', 'lcdp_label_has_resources'))) }}

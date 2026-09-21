@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="(device_id IS NOT NULL) OR (data_source = 'LIVRAISON')", model=get_where_subquery(ref('fct_neshu__consommation'))) }}

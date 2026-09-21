@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="budg_mois", model=get_where_subquery(ref('ref_mssql_sage__pnl_budget')), quote=false, values=[1,2,3,4,5,6,7,8,9,10,11,12]) }}

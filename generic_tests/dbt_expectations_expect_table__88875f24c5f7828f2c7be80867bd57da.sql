@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_table_row_count_to_be_between(max_value=1000000, min_value=100000, model=get_where_subquery(ref('fct_technique__consommation_article_nespresso'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

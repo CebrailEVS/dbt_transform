@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="date_calcul", model=get_where_subquery(ref('fct_supply_chain__point_commande_neshu'))) }}

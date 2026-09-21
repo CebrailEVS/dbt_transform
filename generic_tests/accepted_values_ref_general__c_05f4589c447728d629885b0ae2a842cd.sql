@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="saison", model=get_where_subquery(ref('ref_general__calendrier_saison')), values=["ete","hiver"]) }}

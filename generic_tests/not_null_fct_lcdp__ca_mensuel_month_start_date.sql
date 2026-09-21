@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="month_start_date", model=get_where_subquery(ref('fct_lcdp__ca_mensuel'))) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="type_inter_libelle", model=get_where_subquery(ref('ref_nesp_tech__key_type_inter'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_table_row_count_to_be_between(max_value=100000, min_value=1000, model=get_where_subquery(ref('dim_commerce__client'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

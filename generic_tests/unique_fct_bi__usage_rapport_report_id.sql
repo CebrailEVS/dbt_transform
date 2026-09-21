@@ -1,0 +1,1 @@
+{{ test_unique(column_name="report_id", model=get_where_subquery(ref('fct_bi__usage_rapport'))) }}

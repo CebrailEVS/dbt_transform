@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="label_code", model=get_where_subquery(ref('int_oracle_neshu__pointage_tasks')), values=["START_DAY","END_DAY"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

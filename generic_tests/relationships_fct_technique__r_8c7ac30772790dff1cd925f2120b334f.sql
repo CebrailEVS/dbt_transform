@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="technician_id", field="user_id", model=get_where_subquery(ref('fct_technique__repair')), to=ref('dim_technique__technician')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

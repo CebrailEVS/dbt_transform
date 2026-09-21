@@ -1,0 +1,1 @@
+{{ snapshot_snap_yuman__storehouses() }}

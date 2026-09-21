@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="key_inter_fautive", model=get_where_subquery(ref('fct_technique__credit_repair_warranty'))) }}

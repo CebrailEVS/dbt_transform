@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="a_facturer_retraite", model=get_where_subquery(ref('fct_technique__intervention_retraitee')), values=["OUI","NON"]) }}

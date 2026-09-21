@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["ticket_id","segment_idx"], model=get_where_subquery(ref('int_zoho_desk__ticket_lifecycle_segments'))) }}

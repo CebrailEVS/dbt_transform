@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["numero_ecriture_comptable","numero_plan_analytique","numero_ligne_analytique"], model=get_where_subquery(ref('int_mssql_sage__pnl_bu'))) }}

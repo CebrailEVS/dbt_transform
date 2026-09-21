@@ -1,0 +1,1 @@
+{{ dbt_utils.test_accepted_range(column_name="valorisation_totale_machine", min_value=0, model=get_where_subquery(ref('snap_oracle_neshu__valo_parc_machines'))) }}

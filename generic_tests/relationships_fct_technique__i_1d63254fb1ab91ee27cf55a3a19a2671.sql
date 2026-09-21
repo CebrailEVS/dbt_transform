@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="key_inter", field="key_inter", model=get_where_subquery(ref('fct_technique__intervention_retraitee')), to=ref('fct_technique__intervention')) }}

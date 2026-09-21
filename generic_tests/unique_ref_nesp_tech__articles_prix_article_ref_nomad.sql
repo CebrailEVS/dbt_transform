@@ -1,0 +1,1 @@
+{{ test_unique(column_name="article_ref_nomad", model=get_where_subquery(ref('ref_nesp_tech__articles_prix'))) }}

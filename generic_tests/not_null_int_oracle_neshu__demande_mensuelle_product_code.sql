@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="product_code", model=get_where_subquery(ref('int_oracle_neshu__demande_mensuelle'))) }}

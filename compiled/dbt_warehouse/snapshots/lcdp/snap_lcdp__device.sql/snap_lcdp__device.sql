@@ -50,3 +50,4 @@
         last_installation_date,
         created_at
     from source_table
+

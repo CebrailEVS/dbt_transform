@@ -1,0 +1,1 @@
+{{ test_unique(column_name="code_comptable", model=get_where_subquery(ref('ref_mssql_sage__code_comptable_bu'))) }}

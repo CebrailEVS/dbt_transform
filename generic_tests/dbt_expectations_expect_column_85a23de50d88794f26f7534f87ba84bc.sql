@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_column_values_to_be_between(column_name="date_intervention", max_value="current_timestamp()", min_value="timestamp_sub(current_timestamp(), interval 200 day)", model=get_where_subquery(ref('fct_commerce__machine_intervention'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

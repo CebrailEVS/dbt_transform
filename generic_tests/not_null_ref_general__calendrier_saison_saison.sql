@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="saison", model=get_where_subquery(ref('ref_general__calendrier_saison'))) }}

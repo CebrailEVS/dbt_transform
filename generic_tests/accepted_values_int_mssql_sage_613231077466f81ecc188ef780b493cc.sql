@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="macro_categorie_pnl_bu", model=get_where_subquery(ref('int_mssql_sage__pnl_bu')), values=["Chiffre d\\'Affaires","Masse Salariale","Frais Directs & Amortissements","Consommation MP & SSTT"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

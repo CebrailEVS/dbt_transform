@@ -1,0 +1,1 @@
+{{ test_unique(column_name="purchase_order_line_id", model=get_where_subquery(ref('stg_yuman__purchase_orders'))) }}

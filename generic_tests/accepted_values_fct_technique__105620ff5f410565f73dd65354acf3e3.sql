@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="agency", model=get_where_subquery(ref('fct_technique__credit_repair_warranty')), values=["evs","evs idf","evs paris","evs paris 2"]) }}

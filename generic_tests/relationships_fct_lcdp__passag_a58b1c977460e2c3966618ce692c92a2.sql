@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="resources_roadman_id", field="resources_id", model=get_where_subquery(ref('fct_lcdp__passage_appro')), to=ref('dim_lcdp__resource')) }}

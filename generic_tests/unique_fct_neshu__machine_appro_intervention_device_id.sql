@@ -1,0 +1,1 @@
+{{ test_unique(column_name="device_id", model=get_where_subquery(ref('fct_neshu__machine_appro_intervention'))) }}

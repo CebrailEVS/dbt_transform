@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="a_facturer", model=get_where_subquery(ref('stg_apptech__suivi_tech_mee'))) }}

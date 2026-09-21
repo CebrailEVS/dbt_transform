@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="report_type", model=get_where_subquery(ref('stg_powerbi_activity__reports')), values=["PowerBIReport","PaginatedReport"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

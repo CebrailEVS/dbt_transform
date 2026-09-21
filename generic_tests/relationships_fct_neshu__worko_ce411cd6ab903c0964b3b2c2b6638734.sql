@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="client_id", field="client_id", model=get_where_subquery(ref('fct_neshu__workorder_delai')), to=ref('dim_technique__client')) }}

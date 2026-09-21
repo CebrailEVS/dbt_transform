@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idcompany_peer", field="idcompany", model=get_where_subquery(ref('stg_oracle_neshu__contract')), to=ref('stg_oracle_neshu__company')) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="key_ref_inter", model=get_where_subquery(ref('ref_nesp_tech__key_facturation'))) }}

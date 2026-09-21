@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="quantite_a_commander_conditionnee * coeff_conditionnement >= quantite_a_commander", model=get_where_subquery(ref('fct_supply_chain__point_commande_neshu'))) }}

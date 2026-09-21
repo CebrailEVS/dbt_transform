@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="dataset_id", field="dataset_id", model=get_where_subquery(ref('stg_powerbi_activity__reports')), to=ref('stg_powerbi_activity__datasets')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

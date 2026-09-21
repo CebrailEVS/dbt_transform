@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="activity", model=get_where_subquery(ref('stg_powerbi_activity__events')), values=["ViewReport","RefreshDataset","GenerateScreenshot","GetSnapshots","ExportReport","UpdateApp","InstallApp","GetCloudSupportedDatasources","SetScheduledRefresh","ExportArtifact","ExportArtifactDownload"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

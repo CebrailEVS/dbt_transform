@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="material_id", field="material_id", model=get_where_subquery(ref('fct_neshu__workorder_delai')), to=ref('dim_technique__material')) }}

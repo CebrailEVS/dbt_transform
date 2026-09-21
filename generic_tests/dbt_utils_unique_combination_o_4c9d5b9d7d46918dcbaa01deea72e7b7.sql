@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["company_id","product_id"], model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu'))) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="product_reference", model=get_where_subquery(ref('fct_technique__consommation_article_nespresso'))) }}

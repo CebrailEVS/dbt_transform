@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="resources_roadman_id", model=get_where_subquery(ref('fct_neshu__passage_appro'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_table_row_count_to_be_between(max_value=200, min_value=10, model=get_where_subquery(ref('dim_bi__rapport'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="depot", model=get_where_subquery(ref('fct_supply_chain__rupture_depot_yuman')), values=["06 - ATELIER RUNGIS DEPOT","07 - ATELIER LYON DEPOT","08 - ATELIER BORDEAUX DEPOT","09 - ATELIER STRASBOURG DEPOT"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

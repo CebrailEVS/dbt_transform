@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="obj_vol_alias_type_inter", model=get_where_subquery(ref('ref_nesp_tech__objectifs_volumes'))) }}

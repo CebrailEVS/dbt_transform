@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idlocation", field="idlocation", model=get_where_subquery(ref('stg_oracle_neshu__device')), to=ref('stg_oracle_neshu__location')) }}

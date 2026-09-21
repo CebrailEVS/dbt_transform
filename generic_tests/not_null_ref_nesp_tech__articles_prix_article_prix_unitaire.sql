@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="article_prix_unitaire", model=get_where_subquery(ref('ref_nesp_tech__articles_prix'))) }}

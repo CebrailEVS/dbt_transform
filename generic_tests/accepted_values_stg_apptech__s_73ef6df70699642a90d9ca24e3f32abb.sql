@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="a_facturer", model=get_where_subquery(ref('stg_apptech__suivi_tech_modif_intervention')), values=["NOT VALIDATED"]) }}

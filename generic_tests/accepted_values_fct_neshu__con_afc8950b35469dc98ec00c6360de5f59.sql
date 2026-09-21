@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="product_type", model=get_where_subquery(ref('fct_neshu__consommation')), values=["THE","CAFE CAPS","CHOCOLATS VAN HOUTEN","BOISSONS GOURMANDES","ACCESSOIRES","CAFENOIR","INDEFINI","SNACKING","BOISSONS FRAICHES"]) }}

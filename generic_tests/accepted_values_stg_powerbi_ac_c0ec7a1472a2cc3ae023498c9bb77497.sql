@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="record_type", model=get_where_subquery(ref('stg_powerbi_activity__events')), quote=false, values=[20]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

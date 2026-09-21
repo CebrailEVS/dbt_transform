@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="contrat_type_etat", model=get_where_subquery(ref('stg_gac__vehicule')), values=["Actif","Inactif"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

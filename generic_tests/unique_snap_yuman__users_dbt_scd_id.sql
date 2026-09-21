@@ -1,0 +1,1 @@
+{{ test_unique(column_name="dbt_scd_id", model=get_where_subquery(ref('snap_yuman__users'))) }}

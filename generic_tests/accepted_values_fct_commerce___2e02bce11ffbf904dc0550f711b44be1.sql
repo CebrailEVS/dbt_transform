@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="act_statut", model=get_where_subquery(ref('fct_commerce__activite')), values=["En cours","Terminé"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

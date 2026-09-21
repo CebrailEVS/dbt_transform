@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="key_inter_fautive", field="key_inter", model=get_where_subquery(ref('fct_technique__credit_repair_warranty')), to=ref('fct_technique__intervention')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

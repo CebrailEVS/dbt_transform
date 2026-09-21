@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_table_row_count_to_be_between(max_value=30000, min_value=4000, model=get_where_subquery(ref('fct_supply_chain__erreur_prevision_neshu'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

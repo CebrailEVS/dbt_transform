@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="actor_type", model=get_where_subquery(ref('int_zoho_desk__ticket_priority_events')), values=["Agent","Contact","Workflow"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

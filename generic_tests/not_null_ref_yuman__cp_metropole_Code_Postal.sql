@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="Code_Postal", model=get_where_subquery(ref('ref_yuman__cp_metropole'))) }}

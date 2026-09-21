@@ -1,0 +1,1 @@
+{{ test_unique(column_name="numero_semaine", model=get_where_subquery(ref('ref_general__calendrier_saison'))) }}

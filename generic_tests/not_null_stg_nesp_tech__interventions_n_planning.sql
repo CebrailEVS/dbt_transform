@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="n_planning", model=get_where_subquery(ref('stg_nesp_tech__interventions'))) }}

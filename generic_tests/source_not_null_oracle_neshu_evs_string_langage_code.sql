@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="langage_code", model=get_where_subquery(source('oracle_neshu', 'evs_string'))) }}

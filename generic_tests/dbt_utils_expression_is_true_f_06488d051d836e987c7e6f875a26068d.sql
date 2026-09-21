@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="is_repair = (episode_rank > 1)", model=get_where_subquery(ref('fct_technique__repair'))) }}

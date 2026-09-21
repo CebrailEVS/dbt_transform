@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="erreur_absolue = abs(erreur)", model=get_where_subquery(ref('fct_supply_chain__erreur_prevision_neshu'))) }}

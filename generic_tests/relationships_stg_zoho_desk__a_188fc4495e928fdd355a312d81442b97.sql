@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="_dlt_parent_id", field="_dlt_id", model=get_where_subquery(ref('stg_zoho_desk__agent_departments')), to=ref('stg_zoho_desk__agents')) }}

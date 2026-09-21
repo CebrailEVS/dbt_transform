@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="machine_clean", field="machine_clean", model=get_where_subquery(ref('ref_nesp_tech__key_facturation')), to=ref('ref_nesp_tech__machines_clean')) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="device_version_key", model=get_where_subquery(ref('dim_neshu__device_history'))) }}

@@ -1,0 +1,1 @@
+{{ test_unique(column_name="task_id", model=get_where_subquery(ref('int_oracle_lcdp__appro_tasks_enriched'))) }}

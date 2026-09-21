@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="product_id", field="product_id", model=get_where_subquery(ref('fct_neshu__consommation')), to=ref('dim_neshu__product')) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idlocation", model=get_where_subquery(ref('stg_oracle_lcdp__company_has_location'))) }}

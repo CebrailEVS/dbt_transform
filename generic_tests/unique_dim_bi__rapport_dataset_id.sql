@@ -1,0 +1,1 @@
+{{ test_unique(column_name="dataset_id", model=get_where_subquery(ref('dim_bi__rapport'))) }}

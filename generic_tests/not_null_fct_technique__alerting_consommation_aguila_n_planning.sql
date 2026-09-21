@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="n_planning", model=get_where_subquery(ref('fct_technique__alerting_consommation_aguila'))) }}

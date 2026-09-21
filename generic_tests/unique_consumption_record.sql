@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["company_id","device_id","product_id","location_id","location","consumption_date","data_source"], model=get_where_subquery(ref('fct_neshu__consommation'))) }}

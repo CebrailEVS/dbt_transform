@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="act_type", model=get_where_subquery(ref('fct_commerce__activite')), values=["Rendez-vous","Tâche dactivité","Appel téléphonique","e-mail"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

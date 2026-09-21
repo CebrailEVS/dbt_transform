@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["snapshot_month","device_name","device_group"], model=get_where_subquery(ref('snap_oracle_neshu__valo_parc_machines'))) }}{{ config({"error_if":">0","meta":{},"severity":"ERROR","tags":[],"warn_if":">0","where":"dbt_valid_to IS NULL"}) }}

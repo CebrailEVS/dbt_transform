@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="date_pointage", model=get_where_subquery(ref('int_oracle_neshu__pointage_tasks'))) }}

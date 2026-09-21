@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="statut_facturation_effectif", model=get_where_subquery(ref('fct_technique__intervention_retraitee')), values=["VALIDATED","NOT VALIDATED","NOT DEFINED","UNTRACKABLE","MISSING_TARIF","NOT_BILLABLE"]) }}

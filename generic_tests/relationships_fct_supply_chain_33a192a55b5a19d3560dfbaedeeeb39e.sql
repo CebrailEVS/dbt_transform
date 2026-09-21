@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="resources_id", field="resources_id", model=get_where_subquery(ref('fct_supply_chain__disponibilite_article_neshu_vehicule_mensuel')), to=ref('dim_neshu__resource')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

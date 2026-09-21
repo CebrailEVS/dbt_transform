@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="ecriture_comptable_id", model=get_where_subquery(ref('fct_finance__ecriture_non_ventilee'))) }}

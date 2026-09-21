@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="contrat_immatriculation_edi", model=get_where_subquery(ref('int_gac__vehicule_code_analytique'))) }}

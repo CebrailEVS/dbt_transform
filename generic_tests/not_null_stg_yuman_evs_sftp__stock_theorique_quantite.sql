@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="quantite", model=get_where_subquery(ref('stg_yuman_evs_sftp__stock_theorique'))) }}

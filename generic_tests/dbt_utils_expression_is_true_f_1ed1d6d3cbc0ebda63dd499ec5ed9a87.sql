@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="(methode_prevision = 'exclu') = (statut_vie in ('arrete', 'inactif'))", model=get_where_subquery(ref('fct_supply_chain__classification_article_neshu'))) }}

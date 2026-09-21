@@ -1,0 +1,1 @@
+{{ test_unique(column_name="idtask_status", model=get_where_subquery(source('oracle_neshu', 'evs_task_status'))) }}
