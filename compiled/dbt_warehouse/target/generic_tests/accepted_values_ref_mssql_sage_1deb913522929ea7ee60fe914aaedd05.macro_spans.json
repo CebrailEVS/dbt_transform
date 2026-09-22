@@ -1,4 +1,31 @@
 {
-  "macro_spans": [],
+  "macro_spans": [
+    {
+      "macro_span": {
+        "start": {
+          "line": 1,
+          "col": 1,
+          "index": 0
+        },
+        "stop": {
+          "line": 1,
+          "col": 163,
+          "index": 162
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 1,
+          "col": 1,
+          "index": 0
+        },
+        "stop": {
+          "line": 23,
+          "col": 1,
+          "index": 300
+        }
+      }
+    }
+  ],
   "reclassify_spans": []
 }
