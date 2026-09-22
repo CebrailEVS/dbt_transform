@@ -760,7 +760,7 @@ models:
       FROID, à rouvrir si le besoin BI s'élargit. Le filtre « produits vendables » de
       chargement_sortie n'est PAS repris : il ne retirerait que 7 lignes sur ce parc.
       CONVENTION MESURES : qty_ = quantité physique en unités de base ; montant_*_eur =
-      valorisation au prix d'achat courant ; nb_ = compte d'événements.
+      valorisation au prix d'achat courant.
     columns:
       - name: mouvement_date
         description: "Jour du mouvement (date de réalisation de la tâche, real_start_date). Colonne de partitionnement."
@@ -848,16 +848,6 @@ models:
         tests:
           - not_null
 
-      - name: nb_taches_chargement
-        description: "Nombre de tâches de chargement distinctes ayant touché ce produit sur cette machine ce jour-là. Contexte, mesure additive (count). 0 si la ligne ne porte qu'un constat d'invendus."
-        tests:
-          - not_null
-
-      - name: nb_constats_invendus
-        description: "Nombre de constats d'invendus distincts sur ce produit × machine × jour. Contexte, mesure additive (count). 0 si la ligne ne porte qu'un chargement."
-        tests:
-          - not_null
-
       - name: updated_at
         description: "Date de dernière modification la plus récente parmi les tâches agrégées sur la ligne (chargement et invendus confondus)."
 
@@ -878,7 +868,7 @@ models:
             expression: "qty_invendus >= 0"
       - dbt_utils.expression_is_true:
           arguments:
-            expression: "nb_taches_chargement + nb_constats_invendus > 0"
+            expression: "qty_chargee != 0 or qty_retiree != 0 or qty_invendus != 0"
       - dbt_expectations.expect_table_row_count_to_be_between:
           arguments:
             min_value: 50000

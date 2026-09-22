@@ -40,7 +40,6 @@ chargement_daily as (
             as montant_charge_eur,
         sum(case when c.movement_type = 'REMOVING' then -c.load_valuation else 0 end)
             as montant_retire_eur,
-        count(distinct c.task_id) as nb_taches_chargement,
         max(c.updated_at) as updated_at
     from {{ ref('int_oracle_lcdp__chargement_tasks') }} as c
     inner join devices_perimeter as dp on c.device_id = dp.device_id
@@ -59,7 +58,6 @@ invendus_daily as (
         max(i.company_id) as company_id,
         sum(i.quantity) as qty_invendus,
         sum(i.valuation) as montant_invendus_eur,
-        count(distinct i.task_id) as nb_constats_invendus,
         max(i.updated_at) as updated_at
     from {{ ref('int_oracle_lcdp__invendus_tasks') }} as i
     inner join devices_perimeter as dp on i.device_id = dp.device_id
@@ -83,9 +81,6 @@ mouvements as (
         coalesce(c.montant_charge_eur, 0) as montant_charge_eur,
         coalesce(c.montant_retire_eur, 0) as montant_retire_eur,
         coalesce(i.montant_invendus_eur, 0) as montant_invendus_eur,
-
-        coalesce(c.nb_taches_chargement, 0) as nb_taches_chargement,
-        coalesce(i.nb_constats_invendus, 0) as nb_constats_invendus,
 
         greatest(
             coalesce(c.updated_at, timestamp('1970-01-01')),
@@ -125,9 +120,6 @@ select
     m.montant_charge_eur,
     m.montant_retire_eur,
     m.montant_invendus_eur,
-
-    m.nb_taches_chargement,
-    m.nb_constats_invendus,
 
     m.updated_at
 
