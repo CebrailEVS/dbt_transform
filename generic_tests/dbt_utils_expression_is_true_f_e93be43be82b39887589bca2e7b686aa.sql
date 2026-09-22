@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="qty_retiree >= 0", model=get_where_subquery(ref('fct_lcdp__mouvement_produit'))) }}

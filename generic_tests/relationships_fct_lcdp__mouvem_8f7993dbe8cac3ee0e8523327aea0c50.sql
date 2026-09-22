@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="company_id", field="company_id", model=get_where_subquery(ref('fct_lcdp__mouvement_produit')), to=ref('dim_lcdp__company')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

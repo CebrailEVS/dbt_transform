@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="montant_charge_eur", model=get_where_subquery(ref('fct_lcdp__mouvement_produit'))) }}

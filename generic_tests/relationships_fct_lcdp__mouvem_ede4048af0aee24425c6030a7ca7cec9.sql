@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="product_id", field="product_id", model=get_where_subquery(ref('fct_lcdp__mouvement_produit')), to=ref('dim_lcdp__product')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

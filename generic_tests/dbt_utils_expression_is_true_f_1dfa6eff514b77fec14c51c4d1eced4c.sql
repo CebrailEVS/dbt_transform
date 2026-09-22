@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="qty_invendus >= 0", model=get_where_subquery(ref('fct_lcdp__mouvement_produit'))) }}
