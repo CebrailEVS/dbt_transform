@@ -697,11 +697,70 @@ models:
 
 
   - name: fct_lcdp__mouvement_produit
-    description: |
-      [QUOI MÉTIER] Mouvements de stock produit en machine LCDP : quantités chargées, retirées et constatées invendues, avec leur valorisation, au grain produit × machine × jour. Répond au besoin BI « analyse produits LCDP » (chargements et invendus par référence, et leur valorisation).
-      [COMMENT CONSTRUITE] Périmètre dim_lcdp__device.audit_type='1- AUDIT TELEMETRIE (NAYAX)' AND device_category='DA FROID' AND currency_mode='SANS MONNAIE' (full Nayax) — même parc que fct_lcdp__chargement_sortie, pour que les deux rapports réconcilient. Deux flux agrégés au jour puis FULL OUTER JOIN sur (mouvement_date, device_id, product_id) : (1) chargement, depuis int_oracle_lcdp__chargement_tasks (task_type 13), réparti par movement_type — LOADING → qty_chargee, REMOVING → qty_retiree (le sens vient du SIGNE de la quantité, pas du label) ; (2) invendus, depuis int_oracle_lcdp__invendus_tasks (task_type 11, constat dédié de produits retirés car invendus). Le FULL OUTER JOIN est nécessaire : 37 % des constats d'invendus n'ont pas de chargement sur le même produit × machine × jour. Quantités de retrait et d'invendus normalisées en POSITIF. Valorisation = quantité × prix d'achat courant de la fiche produit (dim_lcdp__product.purchase_unit_price via l'intermediate), méthode identique à fct_supply_chain__flux_neshu. Backfill depuis 2025-01-01, aligné sur fct_lcdp__chargement_sortie.
-      [GRAIN] 1 ligne par product_id × device_id × mouvement_date. ~173k lignes.
-      [NOTES] TROIS MESURES DE VOLUME, JAMAIS À CUMULER SANS DÉCISION MÉTIER : qty_chargee est une entrée ; qty_retiree et qty_invendus sont deux canaux de sortie DISTINCTS et sans double comptage (retrait saisi pendant le passage de chargement vs constat d'invendus dédié). 266 couples produit × machine × jour portent un chargement ET un retrait le même jour — les sommer masquerait les deux. AUCUN RATIO N'EST CALCULÉ ICI (taux de perte, taux d'écoulement) : la question « un retrait compte-t-il comme une perte ? » est un arbitrage métier ouvert, et une mesure non additive n'a pas sa place à ce grain — à construire en BI. PAS DE QUANTITÉ VENDUE PAR PRODUIT : la télémétrie Nayax ne résout pas le produit (99,88 % des events portent product_id=1 'INDEFINI'), la comparaison chargé/vendu n'est donc possible qu'au niveau machine — c'est ce que fait fct_lcdp__chargement_sortie (grain device × semaine). VALORISATION AU PRIX COURANT : une valorisation passée se recalcule si un tarif produit évolue ; ce n'est pas un chiffre comptable figé. Ce sont des prix d'ACHAT — les tâches de chargement et d'invendus ne portent aucun prix de vente, aucune valorisation en manque à gagner n'est possible depuis cette source. PÉRIMÈTRE : les DA FROID à monnayeur sont exclues pour rester aligné sur fct_lcdp__chargement_sortie, alors que leur exclusion n'a pas de justification au grain produit (elle sert à fiabiliser la comparaison aux ventes Nayax, absente ici) — elles représentent +52 % de volume chargé et +79 % d'invendus DA FROID, à rouvrir si le besoin BI s'élargit. Le filtre « produits vendables » de chargement_sortie n'est PAS repris (il ne retire que 13 lignes sur ce parc). CONVENTION MESURES : qty_ = quantité physique en unités de base ; valeur_*_eur = valorisation au prix d'achat courant ; nb_ = compte d'événements.
+    description: >
+      [QUOI MÉTIER]
+      Mouvements de stock produit en machine LCDP : quantités chargées, retirées et
+      constatées invendues, avec leur valorisation, au grain produit × machine × jour.
+      Répond au besoin BI « analyse produits LCDP » (chargements et invendus par
+      référence produit, et leur valorisation).
+
+      [COMMENT CONSTRUITE]
+      Périmètre dim_lcdp__device.audit_type='1- AUDIT TELEMETRIE (NAYAX)' AND
+      device_category='DA FROID' AND currency_mode='SANS MONNAIE' (full Nayax) — même
+      parc que fct_lcdp__chargement_sortie. Deux flux agrégés au jour puis FULL OUTER
+      JOIN sur (mouvement_date, device_id, product_id) : (1) chargement, depuis
+      int_oracle_lcdp__chargement_tasks (task_type 13), réparti par movement_type —
+      LOADING → qty_chargee, REMOVING → qty_retiree (le sens vient du SIGNE de la
+      quantité, pas du label) ; (2) invendus, depuis int_oracle_lcdp__invendus_tasks
+      (task_type 11, constat dédié de produits retirés car invendus). Le FULL OUTER
+      JOIN est nécessaire : 1 190 des 3 195 constats d'invendus (37 %) n'ont pas de
+      chargement sur le même produit × machine × jour. Statuts de tâche retenus :
+      FAIT et VALIDE des deux côtés — le filtre est appliqué ici sur le chargement,
+      dont l'intermediate remonte aussi ANNULE et ANOMALIE, pour que qty_chargee et
+      qty_invendus partagent la même définition de « réalisé ». Quantités de retrait
+      et d'invendus normalisées en POSITIF. Valorisation = quantité × prix d'achat
+      courant de la fiche produit (dim_lcdp__product.purchase_unit_price via
+      l'intermediate), méthode identique à fct_supply_chain__flux_neshu. Historique
+      complet du périmètre, depuis 2024-12-11. Attributs d'affichage (device_code /
+      device_name, product_code / product_name, company_code / company_name) aplatis
+      depuis les dims parentes pour le confort BI ; les dims restent la source de
+      vérité et les FK sont conservées.
+
+      [GRAIN]
+      1 ligne par product_id × device_id × mouvement_date. ~173k lignes.
+
+      [NOTES]
+      TROIS MESURES DE VOLUME, JAMAIS À CUMULER SANS DÉCISION MÉTIER : qty_chargee est
+      une entrée ; qty_retiree et qty_invendus sont deux canaux de sortie DISTINCTS et
+      sans double comptage (retrait saisi pendant le passage de chargement vs constat
+      d'invendus dédié). 146 couples produit × machine × jour portent un chargement ET
+      un retrait le même jour — les sommer masquerait les deux mouvements.
+      AUCUN RATIO N'EST CALCULÉ ICI (taux de perte, taux d'écoulement) : une mesure non
+      additive n'a pas sa place à ce grain, et la question « un retrait compte-t-il
+      comme une perte ? » est un arbitrage métier — à construire en BI. Attention au
+      dénominateur : certaines lignes portent des invendus avec qty_chargee = 0
+      (produit chargé avant la fenêtre, ou arrivé par une machine hors périmètre).
+      PAS DE QUANTITÉ VENDUE PAR PRODUIT : la télémétrie Nayax ne résout pas le produit
+      (99,9 % des events portent product_id = 1 'INDEFINI'), la comparaison chargé /
+      vendu n'est donc possible qu'au niveau machine — c'est ce que fait
+      fct_lcdp__chargement_sortie (grain device × semaine).
+      VALORISATION AU PRIX COURANT : une valorisation passée se recalcule si un tarif
+      produit évolue, ce n'est pas un chiffre comptable figé. Ce sont des prix d'ACHAT —
+      les tâches de chargement et d'invendus ne portent aucun prix de vente, aucune
+      valorisation en manque à gagner n'est possible depuis cette source. Un prix de
+      fiche aberrant se propage tel quel dans les montants (constaté : LION BROWNIE,
+      code 30018, à 15,62 € contre une médiane SNACK à 0,56 €). Inversement, un produit
+      sans prix de fiche sort à 0 € et non à NULL : 12 lignes / 28 unités sont ainsi
+      valorisées à 0 (produit 40048 SDW POULET OEUF, et le produit technique INDEFINI)
+      — les quantités restent justes, les montants sont minorés d'autant.
+      PÉRIMÈTRE : les DA FROID à monnayeur sont exclues pour rester aligné sur
+      fct_lcdp__chargement_sortie, alors que leur exclusion n'a pas de justification au
+      grain produit — elle sert à fiabiliser la comparaison aux ventes Nayax, absente
+      ici. Elles représentent +52 % de volume chargé et +81 % d'invendus sur les DA
+      FROID, à rouvrir si le besoin BI s'élargit. Le filtre « produits vendables » de
+      chargement_sortie n'est PAS repris : il ne retirerait que 7 lignes sur ce parc.
+      CONVENTION MESURES : qty_ = quantité physique en unités de base ; montant_*_eur =
+      valorisation au prix d'achat courant ; nb_ = compte d'événements.
     columns:
       - name: mouvement_date
         description: "Jour du mouvement (date de réalisation de la tâche, real_start_date). Colonne de partitionnement."
@@ -731,14 +790,33 @@ models:
                 severity: warn
 
       - name: company_id
-        description: "Identifiant du client servi par la machine au moment de la tâche (FK vers dim_lcdp__company). Porté par la tâche (company_peer), pas par la machine : une machine peut changer de client dans le temps."
+        description: "Identifiant du client servi au moment de la tâche (FK vers dim_lcdp__company). Porté par la tâche (company_peer), pas par la machine : une machine peut changer de client dans le temps."
         tests:
+          - not_null
           - relationships:
               arguments:
                 to: ref('dim_lcdp__company')
                 field: company_id
               config:
                 severity: warn
+
+      - name: device_code
+        description: "Code de la machine — attribut d'affichage aplati depuis dim_lcdp__device."
+
+      - name: device_name
+        description: "Libellé de la machine — attribut d'affichage aplati depuis dim_lcdp__device."
+
+      - name: product_code
+        description: "Code du produit — attribut d'affichage aplati depuis dim_lcdp__product."
+
+      - name: product_name
+        description: "Libellé du produit — attribut d'affichage aplati depuis dim_lcdp__product."
+
+      - name: company_code
+        description: "Code du client servi au moment de la tâche — attribut d'affichage aplati depuis dim_lcdp__company. À ne pas confondre avec le client courant de la machine, aplati sur dim_lcdp__device."
+
+      - name: company_name
+        description: "Libellé du client servi au moment de la tâche — attribut d'affichage aplati depuis dim_lcdp__company."
 
       - name: qty_chargee
         description: "Quantité chargée en machine sur le jour (movement_type='LOADING'), en unités de base. Mesure additive."
@@ -755,17 +833,17 @@ models:
         tests:
           - not_null
 
-      - name: valeur_chargee_eur
+      - name: montant_charge_eur
         description: "Valorisation de qty_chargee au prix d'achat courant de la fiche produit, en euros. Mesure additive."
         tests:
           - not_null
 
-      - name: valeur_retiree_eur
+      - name: montant_retire_eur
         description: "Valorisation de qty_retiree au prix d'achat courant de la fiche produit, en euros (valeur positive). Mesure additive."
         tests:
           - not_null
 
-      - name: valeur_invendus_eur
+      - name: montant_invendus_eur
         description: "Valorisation de qty_invendus au prix d'achat courant de la fiche produit, en euros — coût d'achat des pertes constatées, pas un manque à gagner. Mesure additive."
         tests:
           - not_null
@@ -790,8 +868,8 @@ models:
               - mouvement_date
               - device_id
               - product_id
-            config:
-              severity: error
+          config:
+            severity: error
       - dbt_utils.expression_is_true:
           arguments:
             expression: "qty_retiree >= 0"

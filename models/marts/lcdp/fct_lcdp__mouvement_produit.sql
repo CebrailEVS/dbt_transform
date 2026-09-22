@@ -7,33 +7,18 @@
 }}
 
 -- Mouvements de stock produit en machine (LCDP), au grain produit × machine × jour.
--- Réponse au besoin BI « analyse produits » : quantités chargées, retirées et
--- constatées invendues, avec leur valorisation, lisibles par référence produit.
---
--- DEUX FLUX DISTINCTS, JAMAIS CUMULÉS EN UNE SEULE MESURE :
---   - chargement (task_type 13) → qty_chargee (entrée en machine) et qty_retiree
---     (produit ressorti pendant le passage, saisi en quantité négative — le sens
---     vient du SIGNE, cf. movement_type dans int_oracle_lcdp__chargement_tasks) ;
---   - invendus (task_type 11) → qty_invendus, constat dédié (péremption / casse).
--- 266 couples produit × machine × jour portent un chargement ET un retrait le même
--- jour : les sommer masquerait les deux mouvements. D'où trois colonnes séparées,
--- toutes additives, et aucun ratio calculé ici (la règle « un retrait est-il une
--- perte ? » relève du métier, elle se pose en BI).
---
--- PÉRIMÈTRE : DA FROID en full télémétrie Nayax — même parc que
--- fct_lcdp__chargement_sortie, pour que les deux rapports BI réconcilient.
--- Le filtre « produits vendables » de chargement_sortie n'est PAS repris : sur ce
--- parc il ne retirerait que 13 lignes, et une analyse produits a vocation à voir
--- tout ce qui est chargé.
---
--- VALORISATION : quantité × prix d'achat COURANT de la fiche produit, méthode
--- identique à fct_supply_chain__flux_neshu. Conséquence assumée : une valorisation
--- passée se recalcule si un tarif évolue — ce n'est pas un chiffre comptable figé.
--- Ce sont des prix d'ACHAT : aucune valorisation au prix de vente n'est possible
--- ici (les tâches de chargement et d'invendus ne portent pas de prix de vente).
+-- Trois mesures de volume exposées séparément : une entrée (qty_chargee) et DEUX
+-- canaux de sortie distincts, sans double comptage — qty_retiree (produit ressorti
+-- pendant le passage de chargement, saisi en négatif : le sens vient du SIGNE, cf.
+-- movement_type en amont) et qty_invendus (constat dédié, task_type 11).
+-- Détail du périmètre, de la valorisation et des pièges de lecture : voir la
+-- description YAML du modèle, qui fait foi.
 
 with devices_perimeter as (
-    select device_id
+    select
+        device_id,
+        device_code,
+        device_name
     from {{ ref('dim_lcdp__device') }}
     where
         audit_type = '1- AUDIT TELEMETRIE (NAYAX)'
@@ -52,14 +37,17 @@ chargement_daily as (
         sum(case when c.movement_type = 'REMOVING' then -c.load_quantity else 0 end)
             as qty_retiree,
         sum(case when c.movement_type = 'LOADING' then c.load_valuation else 0 end)
-            as valeur_chargee_eur,
+            as montant_charge_eur,
         sum(case when c.movement_type = 'REMOVING' then -c.load_valuation else 0 end)
-            as valeur_retiree_eur,
+            as montant_retire_eur,
         count(distinct c.task_id) as nb_taches_chargement,
         max(c.updated_at) as updated_at
     from {{ ref('int_oracle_lcdp__chargement_tasks') }} as c
     inner join devices_perimeter as dp on c.device_id = dp.device_id
-    where date(c.task_start_date) >= date('2025-01-01')
+    -- Même définition de « réalisé » que les invendus en amont, qui ne retiennent
+    -- que FAIT / VALIDE : sans ce filtre, qty_chargee inclurait les tâches ANNULE
+    -- et ANOMALIE alors que qty_invendus les exclut déjà.
+    where c.task_status_code in ('FAIT', 'VALIDE')
     group by 1, 2, 3
 ),
 
@@ -70,43 +58,80 @@ invendus_daily as (
         i.product_id,
         max(i.company_id) as company_id,
         sum(i.quantity) as qty_invendus,
-        sum(i.valuation) as valeur_invendus_eur,
+        sum(i.valuation) as montant_invendus_eur,
         count(distinct i.task_id) as nb_constats_invendus,
         max(i.updated_at) as updated_at
     from {{ ref('int_oracle_lcdp__invendus_tasks') }} as i
     inner join devices_perimeter as dp on i.device_id = dp.device_id
-    where date(i.task_start_date) >= date('2025-01-01')
     group by 1, 2, 3
-)
+),
 
 -- FULL OUTER JOIN obligatoire : 37 % des constats d'invendus n'ont pas de
 -- chargement sur le même produit × machine × jour. Un LEFT JOIN sur le
 -- chargement en perdrait plus d'un tiers.
+mouvements as (
+    select
+        coalesce(c.mouvement_date, i.mouvement_date) as mouvement_date,
+        coalesce(c.device_id, i.device_id) as device_id,
+        coalesce(c.product_id, i.product_id) as product_id,
+        coalesce(c.company_id, i.company_id) as company_id,
+
+        coalesce(c.qty_chargee, 0) as qty_chargee,
+        coalesce(c.qty_retiree, 0) as qty_retiree,
+        coalesce(i.qty_invendus, 0) as qty_invendus,
+
+        coalesce(c.montant_charge_eur, 0) as montant_charge_eur,
+        coalesce(c.montant_retire_eur, 0) as montant_retire_eur,
+        coalesce(i.montant_invendus_eur, 0) as montant_invendus_eur,
+
+        coalesce(c.nb_taches_chargement, 0) as nb_taches_chargement,
+        coalesce(i.nb_constats_invendus, 0) as nb_constats_invendus,
+
+        greatest(
+            coalesce(c.updated_at, timestamp('1970-01-01')),
+            coalesce(i.updated_at, timestamp('1970-01-01'))
+        ) as updated_at
+
+    from chargement_daily as c
+    full outer join invendus_daily as i
+        on
+            c.mouvement_date = i.mouvement_date
+            and c.device_id = i.device_id
+            and c.product_id = i.product_id
+)
+
 select
-    coalesce(c.mouvement_date, i.mouvement_date) as mouvement_date,
-    coalesce(c.device_id, i.device_id) as device_id,
-    coalesce(c.product_id, i.product_id) as product_id,
-    coalesce(c.company_id, i.company_id) as company_id,
+    m.mouvement_date,
+    m.device_id,
+    m.product_id,
+    m.company_id,
 
-    coalesce(c.qty_chargee, 0) as qty_chargee,
-    coalesce(c.qty_retiree, 0) as qty_retiree,
-    coalesce(i.qty_invendus, 0) as qty_invendus,
+    -- Attributs d'affichage aplatis depuis les dims parentes (code + libellé
+    -- seulement) : évitent une jointure côté BI sans dupliquer les dimensions.
+    -- company_code / company_name viennent de dim_lcdp__company via le client
+    -- porté par la TÂCHE, pas du client courant de la machine aplati sur
+    -- dim_lcdp__device — une machine peut changer de client dans le temps.
+    dp.device_code,
+    dp.device_name,
+    p.product_code,
+    p.product_name,
+    co.company_code,
+    co.company_name,
 
-    coalesce(c.valeur_chargee_eur, 0) as valeur_chargee_eur,
-    coalesce(c.valeur_retiree_eur, 0) as valeur_retiree_eur,
-    coalesce(i.valeur_invendus_eur, 0) as valeur_invendus_eur,
+    m.qty_chargee,
+    m.qty_retiree,
+    m.qty_invendus,
 
-    coalesce(c.nb_taches_chargement, 0) as nb_taches_chargement,
-    coalesce(i.nb_constats_invendus, 0) as nb_constats_invendus,
+    m.montant_charge_eur,
+    m.montant_retire_eur,
+    m.montant_invendus_eur,
 
-    greatest(
-        coalesce(c.updated_at, timestamp('1970-01-01')),
-        coalesce(i.updated_at, timestamp('1970-01-01'))
-    ) as updated_at
+    m.nb_taches_chargement,
+    m.nb_constats_invendus,
 
-from chargement_daily as c
-full outer join invendus_daily as i
-    on
-        c.mouvement_date = i.mouvement_date
-        and c.device_id = i.device_id
-        and c.product_id = i.product_id
+    m.updated_at
+
+from mouvements as m
+left join devices_perimeter as dp on m.device_id = dp.device_id
+left join {{ ref('dim_lcdp__product') }} as p on m.product_id = p.product_id
+left join {{ ref('dim_lcdp__company') }} as co on m.company_id = co.company_id
