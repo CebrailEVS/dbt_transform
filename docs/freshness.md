@@ -1,197 +1,125 @@
-# Source freshness — audit et conventions
+# Source freshness — référence
 
-> Dernière mise à jour : 2026-05-24
+> Vérifié le 2026-09-22 : 61 tables en `PASS`, 0 warn, 0 error.
 
----
-
-## À quoi sert ce document
-
-Référence unique pour la stratégie de monitoring de fraîcheur des 10 sources
-du projet : tiers définis, configuration par source, mécanisme de fallback
-pour les sources à timestamp STRING.
+Référence unique du monitoring de fraîcheur. **14 sources, 115 tables déclarées.**
 
 ---
 
-## Tiers de freshness
+## État par source
 
-| Tier | Cadence typique | `warn_after` | `error_after` | Sources |
-|---|---|---|---|---|
-| **Critique** | quotidien, business-day SLA | 26h | 36h | `oracle_neshu`, `oracle_lcdp` |
-| **Standard** | quotidien tolérant (tous les jours) | 26h | 48h | `yuman`, `mssql_sage`, `nesp_co` (activite/opportunite), `oracle_neshu_gcs`, `oracle_lcdp_gcs` |
-| **Quotidien 7j/7** | extraction tous les jours + lag snapshot DATE | 36h | 48h | `yuman_evs_sftp` |
-| **Hebdomadaire** | extraction 1×/semaine | 8 jours | 14 jours | `nesp_tech` |
-| **Relaxe** | batch journalier non critique | 7 jours | 14 jours | `gac`, `zoho_desk` |
-| **Manuel** | livraison ponctuelle uniquement | 60 jours | 90 jours | `nesp_co.nespresso_base_client` |
+| Source | Tables | Tier | Méthode | Champ | Seuils |
+|---|---|---|---|---|---|
+| `oracle_neshu` | 20 / 30 | Critique | A · source | `_extracted_at` | 26h / 36h |
+| `oracle_lcdp` | 17 / 28 | Critique | A · source | `_extracted_at` | 26h / 36h |
+| `yuman_api` | 8 / 13 | Standard | A · source | `_extracted_at` | 26h / 48h |
+| `mssql_sage` | 8 / 8 | Standard | A · source | `_extracted_at` | 26h / 48h |
+| `powerbi_activity` | 4 / 4 | Standard | A · source | `_extracted_at` | 26h / 48h |
+| `gac` | 2 / 2 | Relaxe | A · source | `_extracted_at` | 7j / 14j |
+| `yuman_evs_sftp` | 1 / 1 | Quotidien 7j/7 | A · source | `timestamp(export_date)` | 36h / 48h |
+| `nesp_co.base_client` | 1 / 3 | Manuel | A · table | `_extracted_at` | 60j / 90j |
+| `nesp_co` activite + opportunite | 2 | Standard | B · staging | `extracted_at` | 2j warn |
+| `nesp_tech` | 2 | Hebdomadaire | B · staging | `date_heure_fin`, `date_intervention` | 8j / 14j |
+| `oracle_neshu_gcs` | 1 | Standard | B · staging | `extracted_at` | 26h / 48h |
+| `oracle_lcdp_gcs` | 1 | Standard | B · staging | `extracted_at` | 26h / 48h |
+| `zoho_desk` | 1 modèle | Relaxe | B · staging | `created_time` | 7j warn |
+| `apptech` | 0 / 8 | — | **aucune** | — | — |
+| `historic` | 0 / 1 | — | aucune (archive 2024) | — | — |
 
-> **Principe directeur** : `freshness: null` se justifie *uniquement* sur les
-> référentiels vraiment immuables (codes, libellés, types). Toute source qui
-> porte des événements ou des données vivantes mérite un seuil — quitte à
-> le mettre très large.
+**26 tables en `freshness: null`** (10 `oracle_neshu`, 11 `oracle_lcdp`, 5 `yuman_api`) :
+des référentiels immuables — `*_type`, `label`, `label_family`, `product_unit`,
+`*_categories`.
+
+> **Principe directeur** : `freshness: null` ne se justifie que sur un référentiel
+> vraiment immuable. Toute source portant des événements mérite un seuil, quitte
+> à le mettre très large.
 
 ---
 
-## Mécanismes de monitoring — deux familles
+## Méthode A — freshness native, au niveau source
 
-### A. `dbt source freshness` natif
-
-Pour les sources dont la table brute expose un champ **TIMESTAMP ou DATE
-nativement** (Singer `_sdc_*`, ou colonne dédiée typée).
-
-Configuré dans `_<source>__sources.yml` au niveau source :
+Quand le raw expose un **TIMESTAMP** exploitable.
 
 ```yaml
 sources:
   - name: <source>
     config:
-      loaded_at_field: _sdc_extracted_at
+      loaded_at_field: _extracted_at
       freshness:
         warn_after: {count: 26, period: hour}
         error_after: {count: 48, period: hour}
     tables:
-      - name: <table_référentiel_stable>
+      - name: <référentiel_immuable>
         config:
-          freshness: null   # désactivé — table immuable (codes, libellés)
+          freshness: null
 ```
 
-> **Ne jamais répéter** le `freshness` par table quand il est identique au
-> défaut source. C'est du bruit YAML.
+Ne jamais répéter le `freshness` par table quand il est identique au défaut source.
 
-### B. Tests `dbt_expectations` sur le staging
+**Une colonne DATE est refusée** (`dbt9002 : loaded_at_field should have a timestamp
+type`) — vérifié le 2026-09-22. Deux parades : une expression
+(`loaded_at_field: timestamp(export_date)`, cf. `yuman_evs_sftp`) ou
+`loaded_at_query`.
 
-Pour les sources dont la table brute n'a **que des champs STRING** (les
-external tables GCS et certains taps custom). Le staging fait déjà le cast
-en TIMESTAMP via `safe.parse_timestamp` — on monitore donc **à ce niveau**.
+## Méthode B — test de récence sur le staging
 
-Configuré dans `_<source>__models.yml` :
+Quand le raw ne livre qu'un STRING. Le staging a déjà casté, on monitore là.
 
 ```yaml
 models:
   - name: stg_<source>__<table>
     tests:
       - dbt_expectations.expect_row_values_to_have_recent_data:
-          column: extracted_at   # déjà cast TIMESTAMP en staging
-          datepart: day
-          interval: 8            # ex. tier Hebdomadaire
+          arguments:
+            column_name: extracted_at
+            datepart: hour        # ou day
+            interval: 26
           config:
             severity: warn
 ```
 
-**Avantage** : pas de vue technique en amont. **Inconvénient** : pas
-remonté dans `dbt source freshness` ni dans le rapport HTML standard — c'est
-un test data quality classique.
+**Différence de gravité à connaître** : un test en `severity: error` fait échouer
+`dbt build`, donc le job Cloud Run — la chaîne s'arrête. Un `error_after` de
+méthode A est au contraire **non bloquant** : `entrypoint.sh` l'enveloppe
+volontairement et se contente d'écrire sur stderr. La méthode B est donc la plus
+stricte des deux.
 
 ---
 
-## État cible par source
+## Pourquoi ces seuils — les cas non évidents
 
-### `oracle_neshu` — tier *Critique*, méthode A
-- `loaded_at_field: _sdc_extracted_at`
-- Défaut source : **26h / 36h**
-- Référentiels en `freshness: null` (intentionnel) : `evs_company_type`,
-  `evs_product_type`, `evs_resources_type`, `evs_task_status`, `evs_task_type`,
-  `evs_label`, `evs_label_family`, `evs_contract_parsed`
-- **Action** : nettoyer les overrides 26h/36h redondants sur les tables actives
+### `yuman_evs_sftp` — 36h / 48h
+`export_date` est un snapshot DATE (donc minuit) et reflète la date de
+**modification du fichier** sur le SFTP, pas celle du run. Pire cas normal :
+juste avant le run du lendemain, soit ~30h30. 36h laisse ~5h de marge, 48h ne se
+déclenche que si une journée entière manque.
 
-### `oracle_lcdp` — tier *Critique*, méthode A
-Symétrique de `oracle_neshu`. Même action : nettoyer les overrides redondants.
+Le seuil a été resserré à la bascule dlt (2026-08-02) : l'ancienne source
+tolérait 80h parce que le cron Meltano sautait le dimanche.
 
-### `yuman` — tier *Standard*, méthode A
-- `loaded_at_field: _sdc_extracted_at`
-- Défaut source : **26h / 48h** (à passer de 36h actuel)
-- Référentiels en `null` : `yuman_products`, `yuman_material_categories`,
-  `yuman_workorder_categories`, `yuman_workorder_demands_categories`,
-  `yuman_storehouses`
+**C'est la seule détection d'un jour perdu.** Cinq jours ouvrés ont disparu de
+l'archive entre novembre 2025 et février 2026, dont quatre consécutifs, sans que
+rien ne le signale. La source n'est pas rétroactive.
 
-### `mssql_sage` — tier *Standard*, méthode A
-- `loaded_at_field: _sdc_extracted_at` partout (supprimer l'override
-  `_sdc_received_at` sur `dbo_f_ecriturea` / `dbo_f_ecriturec` — écart
-  observé = 0 minute, override inutile)
-- Défaut source : **26h / 48h** (à passer de 36h actuel)
+### `powerbi_activity` — 26h / 48h
+Seuil serré sur une source non critique pour la BI, délibérément : **l'API admin
+ne conserve que 27 jours glissants**, et `prod_raw` est la seule archive. Le
+pipeline tourne 7j/7 à 03:30 ; la perte est irréversible.
 
-### `gac` — tier *Relaxe*, méthode A
-- `loaded_at_field: _sdc_batched_at`
-- Défaut source : **7j / 14j** (à activer, actuellement `null`)
+### `oracle_*_gcs` — 26h / 48h
+Pipelines en fin de soirée, LCDP décalé après NESHU. Gap observé de 23-24h, très
+régulier.
 
-### `yuman_evs_sftp` — tier *Quotidien 7j/7*, méthode A
-- `loaded_at_field: export_date` (DATE — dbt accepte)
-- Défaut source : **36h warn / 48h error**
-- Pipeline `pipeline-yuman-evs-stock`, 7 j/7 au petit matin (horaire dans `infra/workflows_el.tf`).
-  `export_date` est le snapshot (DATE = minuit) et vaut la date de MODIFICATION
-  du fichier sur le SFTP, non celle du run. Pire cas normal : juste avant le run
-  du lendemain, max = la veille = ~30h30. 36h laisse ~5h de marge après l'heure
-  attendue ; 48h ne se déclenche que si une journée entière manque.
-- **Le resserrement vient de la migration dlt** (2026-08-02). L'ancienne source
-  `yuman_gcs` tolérait 80h parce que le cron Meltano sautait le dimanche. Le
-  pipeline dlt tourne 7j/7, et le fournisseur dépose bien le fichier tous les
-  jours — la fenêtre du week-end n'a plus lieu d'être.
-- **Ce test est la seule détection d'un jour perdu.** Cinq jours ouvrés ont
-  disparu de l'archive entre novembre 2025 et février 2026, dont quatre
-  consécutifs, sans que rien ne le signale. La source n'est pas rétroactive :
-  ce qui n'est pas capté un jour l'est définitivement.
-
-### `nesp_co.nespresso_base_client` — tier *Manuel*, méthode A
-- `loaded_at_field: _sdc_extracted_at`
-- **60j / 90j** (table-level override, distinct du défaut source si défini
-  pour activite/opportunite)
-
-### `nesp_co.nespresso_commerce_activite` + `nespresso_commerce_opportunite` — tier *Standard*, méthode B
-Source brute : `extracted_at` est STRING → fallback `dbt_expectations` sur
-le staging.
-- Test sur `stg_nesp_co__activite` et `stg_nesp_co__opportunite`
-- Colonne : `extracted_at` (cast en TIMESTAMP en staging)
-- Seuil : **2 jours / warn** (équivalent 26h/48h en granularité jour)
-
-### `nesp_tech` — tier *Hebdomadaire*, méthode B
-Source brute : `extracted_at` est **STRING et NULL sur les fichiers récents**
-(le champ a été abandonné par l'export Arbiter). Bascule sur les colonnes
-business qui restent peuplées :
-- `stg_nesp_tech__interventions` : test sur **`date_heure_fin`** (TIMESTAMP)
-- `stg_nesp_tech__articles` : test sur **`date_intervention`** (DATE)
-- Seuil : **8 jours warn / 14 jours error**
-
-### `oracle_neshu_gcs` / `oracle_lcdp_gcs` — tier *Standard*, méthode B
-Source brute : `_extracted_at`, deja un TIMESTAMP depuis la bascule dlt du 2026-08-06. Tests sur
-`stg_oracle_neshu_gcs__stock_theorique` et `stg_oracle_lcdp_gcs__stock_theorique`.
-- Pipelines quotidiens en fin de soirée, LCDP décalé après NESHU ; gap observé 23-24 h très régulier.
-- Seuil : **26h warn / 48h error** (en heures via `datepart: hour`).
-
-### `zoho_desk` — tier *Relaxe*, méthode B
-Source brute : `_dlt_load_id` est un STRING (Unix epoch). Test sur les
-staging zoho_desk qui exposent un timestamp cast.
-- Seuil : **7 jours warn / 14 jours error**
-
-### `powerbi_activity` — tier *Standard*, méthode A
-Contrairement à `zoho_desk`, le pipeline dlt pose un vrai `_extracted_at`
-TIMESTAMP : freshness native applicable, configurée au niveau source pour les
-4 tables.
-- `loaded_at_field: _extracted_at`
-- Seuil : **26h warn / 48h error**
-
-Le seuil est serré alors que la source n'est pas critique pour la BI, et c'est
-délibéré : **l'API admin ne conserve que 27 jours glissants**. Une journée non
-collectée est définitivement perdue, `prod_raw` étant la seule archive. Le
-pipeline tourne donc 7 j/7 à 03:30 et un retard de plus de 26h doit être vu
-tout de suite — la perte, elle, est irréversible.
+### `nesp_co` activite / opportunite — 2j, warn seul
+Seules sources de méthode B sans seuil d'erreur. À trancher : aligner sur les
+autres, ou documenter pourquoi le warn suffit.
 
 ---
 
-## Synthèse — couverture finale visée
+## Non couvert — assumé
 
-| Source | Tier | Méthode | Niveau | Seuils |
-|---|---|---|---|---|
-| `oracle_neshu` | Critique | A | source | 26h / 36h |
-| `oracle_lcdp` | Critique | A | source | 26h / 36h |
-| `yuman` | Standard | A | source | 26h / 48h |
-| `mssql_sage` | Standard | A | source | 26h / 48h |
-| `gac` | Relaxe | A | source | 7j / 14j |
-| `yuman_evs_sftp` | Quotidien 7j/7 | A | source | 36h / 48h |
-| `nesp_co.base_client` | Manuel | A | table | 60j / 90j |
-| `nesp_co.activite/opp` | Standard | B | staging | 2j |
-| `nesp_tech` | Hebdomadaire | B | staging | 8j / 14j |
-| `oracle_neshu_gcs` | Standard | B | staging | 26h / 48h |
-| `oracle_lcdp_gcs` | Standard | B | staging | 26h / 48h |
-| `zoho_desk` | Relaxe | B | staging | 7j / 14j |
-| `powerbi_activity` | Standard | A | source | 26h / 48h |
-
-**Toutes les sources sont désormais monitorées**, soit nativement, soit via
-`dbt_expectations`.
+- **`apptech`** (8 tables) : tables externes GCS, écrites par l'app sans cron
+  (cf. mémoire projet — ne jamais rattacher à un pipeline horaire). Un seuil
+  horaire n'aurait pas de sens ; un arrêt total passerait aujourd'hui inaperçu.
+  **Décision explicite à prendre.**
+- **`historic`** (1 table) : archive 2024 figée, la fraîcheur n'a pas d'objet.

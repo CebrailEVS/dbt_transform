@@ -289,7 +289,7 @@ After any model creation, deletion, or convention change, update the relevant do
 - Step-by-step model creation process if the workflow changes
 - Checklist before merge if new quality gates are added
 
-**`CONVENTIONS.md`** — now a **minimal global index**. Holds only transversal rules (naming format, columns, materialisation summary, test/severity strategy, SQLFluff, tags) + a router table to the per-layer docs. Layer-specific rules live in `docs/conventions/`, NOT here.
+**`CONVENTIONS.md`** — now a **minimal global index**. Holds only transversal rules (naming format, columns, materialisation summary, test/severity strategy, lint, tags) + a router table to the per-layer docs. Layer-specific rules live in `docs/conventions/`, NOT here.
 
 **`docs/conventions/{staging,intermediate,marts,seeds-snapshots}.md`** — the per-layer/-resource convention docs, loaded on demand. Each follows the same skeleton (rôle · nommage · colonnes · pattern SQL · matérialisation · description · tests minimum · freshness · anti-patterns · checklist PR). **Update the relevant layer doc** when a rule for that layer changes — that's the source of truth now:
 - `staging.md` — passthrough naming rule, system columns, CTE pattern, incremental, tests, freshness method A/B
@@ -297,7 +297,7 @@ After any model creation, deletion, or convention change, update the relevant do
 - `marts.md` — naming by BU, star schema, 4-block description trame, config hygiene, tests, anti-patterns, grain-first order
 - `seeds-snapshots.md` — CSV seeds (column_types, BigQuery types, BOM), SCD2 snapshots
 
-**`docs/freshness.md`** — source freshness authority: tiers, monitoring mechanisms (A/B), per-source target state. `CONVENTIONS.md § Source freshness` and `staging.md § 8` only point here.
+**`docs/freshness.md`** — source freshness authority: état par source (14 sources), méthodes A/B, seuils et leur justification, sources non couvertes. `CONVENTIONS.md § Source freshness` and `staging.md § 8` only point here.
 
 ---
 

@@ -1,7 +1,7 @@
 # Conventions — couche Staging
 
 > Doc de référence pour écrire un modèle `stg_*`. Règles transversales (format de
-> nommage, SQLFluff, tags) : voir [`../../CONVENTIONS.md`](../../CONVENTIONS.md).
+> nommage, lint, tags) : voir [`../../CONVENTIONS.md`](../../CONVENTIONS.md).
 > Pattern marts : [`marts.md`](marts.md) · Intermediate : [`intermediate.md`](intermediate.md).
 
 ## 1. Rôle de la couche
@@ -185,4 +185,4 @@ Deux mécanismes selon le type de timestamp source — **détail et état par so
 - [ ] `description='...'` dans le `config()`
 - [ ] PK testée `unique` + `not_null` ; FK testées `relationships`
 - [ ] Freshness configurée (méthode A ou B) si la table porte des événements
-- [ ] `sqlfluff lint` OK
+- [ ] `dbt lint` OK

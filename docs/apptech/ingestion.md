@@ -105,7 +105,7 @@ Points d'attention :
 2. **dbt** (branche feature depuis master) : entrée dans `_apptech__sources.yml`,
    `stg_apptech__suivi_tech_<type>.sql` (pattern §2), doc + tests dans
    `_apptech__models.yml`. Rien à toucher dans `dbt_project.yml` (tag hérité).
-3. **Valider** : `sqlfluff lint models/staging/apptech/` puis
+3. **Valider** : `dbt lint models/staging/apptech/` puis
    `dbt build --select tag:apptech --target dev` (env : `source dbt_venv/bin/activate`
    + `set -a && source .env && set +a`).
 4. PR → Slim CI ne build que les nouveaux nœuds → squash merge → CD prod.

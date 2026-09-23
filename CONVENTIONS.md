@@ -147,7 +147,7 @@ dbt build --select tag:staging        # toute une couche
 ## Source freshness
 
 Tiers, mécanismes de monitoring (méthode A native / méthode B `dbt_expectations`)
-et état cible par source : **[`docs/freshness.md`](docs/freshness.md)** (autorité
+et état par source : **[`docs/freshness.md`](docs/freshness.md)** (autorité
 unique). Le placement du test côté staging est décrit dans
 [`docs/conventions/staging.md`](docs/conventions/staging.md) § 8.
 

@@ -157,4 +157,4 @@ staging). Voir [`../freshness.md`](../freshness.md).
 - [ ] Pas de jointure cross-source
 - [ ] PK/grain testé `unique` + `not_null` (composite → `unique_combination_of_columns`)
 - [ ] Description en YAML (pas dans le config)
-- [ ] `sqlfluff lint` OK
+- [ ] `dbt lint` OK

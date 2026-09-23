@@ -1,7 +1,8 @@
-# EVS Data Warehouse - dbt Project
+# EVS Data Warehouse — projet dbt
 
 Projet dbt de transformation de donnees pour **EVS Professionnelle France**.
-Ce repo couvre la couche **Transform** du pipeline ELT : modélisation BigQuery via dbt, déclenchée automatiquement par Google Cloud Workflows après chaque extraction.
+Ce repo couvre la couche **Transform** du pipeline ELT : modelisation BigQuery via dbt,
+declenchee automatiquement par Google Cloud Workflows apres chaque extraction.
 
 **[Documentation dbt generee](https://cebrailevs.github.io/dbt_transform/)** | [CONTRIBUTING.md](CONTRIBUTING.md) | [CONVENTIONS.md](CONVENTIONS.md)
 
@@ -12,62 +13,69 @@ Ce repo couvre la couche **Transform** du pipeline ELT : modélisation BigQuery 
 ```bash
 git clone https://github.com/CebrailEVS/dbt_transform.git
 cd dbt_transform
-python3 -m venv venv && source venv/bin/activate
+python3 -m venv dbt_venv && source dbt_venv/bin/activate
 pip install -r requirements-lock.txt
 cp .env.example .env   # editer avec vos valeurs
 set -a && source .env && set +a
 dbt deps && dbt debug
 ```
 
-> Python 3.11+ requis (gere automatiquement via `pyenv` et `.python-version`)
+> Python 3.11+ requis. dbt v2 est un moteur Rust distribue comme extension CPython :
+> Python reste necessaire a l'execution.
 
 ---
 
 ## Stack technique
 
-| Composant                  | Role                                              |
-|----------------------------|---------------------------------------------------|
-| **dbt**                    | Transformation et modelisation (ce repo)          |
-| **BigQuery**               | Data Lake (`prod_raw`) + Data Warehouse           |
-| **Cloud Workflows**        | Orchestration production (ELT → dbt → done)      |
-| **Cloud Scheduler**        | Declenchement des workflows (cron)                |
-| **Cloud Run**              | Execution des jobs Meltano et dbt en production   |
-| **GitHub Actions**         | CI/CD automatisee                                 |
-| **dbt lint**               | Linting SQL (natif dbt v2, config `.sqlfluff`)    |
-| **Power BI**               | Visualisation et reporting                        |
-| **Cloud Storage**          | Zone d'atterrissage intermediaire pour certaines types de données                |
-| **Meltano** *(repo separe)*| Extraction et chargement vers BigQuery            |
+| Composant | Role |
+|---|---|
+| **dbt v2** | Transformation et modelisation (ce repo) — moteur Rust, adaptateur BigQuery et linter inclus |
+| **BigQuery** | Data Lake (`prod_raw`) + Data Warehouse |
+| **dlt** *(repo `ingestion`)* | Extraction et chargement vers BigQuery |
+| **Cloud Workflows** | Orchestration production (EL → dbt → refresh PBI) |
+| **Cloud Scheduler** | Declenchement des workflows (cron, `infra/workflows_el.tf`) |
+| **Cloud Run Jobs** | Execution des jobs dlt et dbt en production |
+| **Cloud Storage** | Zone d'atterrissage pour les sources qui ne visent pas BigQuery directement |
+| **GitHub Actions** | CI/CD |
+| **Power BI** | Visualisation et reporting |
 
 ---
 
 ## Sources de donnees
 
-Le projet integre **11 sources** couvrant l'ensemble des operations EVS :
+**14 sources**, 115 tables declarees.
 
 | Source | Systeme | Description |
-|--------|---------|-------------|
+|---|---|---|
 | **oracle_neshu** | Oracle ERP (NESHU) | ERP principal : clients, machines, produits, taches |
 | **oracle_lcdp** | Oracle ERP (LCDP) | ERP secondaire, meme schema qu'oracle_neshu |
-| **yuman** | Yuman API | Interventions terrain : clients, sites, materiels, bons de travail |
-| **nesp_tech** | Nomad Repair API | Interventions techniques Nespresso, pieces detachees |
-| **nesp_co** | Excel / Nespresso | Donnees commerciales Nespresso (WIP) |
+| **yuman_api** | Yuman API | Interventions terrain : clients, sites, materiels, bons de travail |
 | **mssql_sage** | MSSQL Sage | Comptabilite : ecritures, comptes tiers, collaborateurs |
+| **nesp_tech** | Nomad Repair API | Interventions techniques Nespresso, pieces detachees |
+| **nesp_co** | Excel / Nespresso | Donnees commerciales Nespresso |
+| **zoho_desk** | Zoho Desk API | Tickets support, SLA, threads |
+| **apptech** | App interne (tables externes GCS) | Suivi technicien : events, pauses, curatif, astreinte |
 | **gac** | SFTP CSV | Assurance flotte, sinistres vehicules |
-| **yuman_evs_sftp** | Fichier SFTP (dlt) | Stock theorique Yuman |
-| **oracle_neshu_gcs** | Oracle ERP (NESHU, dlt) | Stock theorique Oracle NESHU |
-| **oracle_lcdp_gcs** | Oracle ERP (LCDP, dlt) | Stock theorique Oracle LCDP |
-| **powerbi_activity** | API admin Power BI (dlt) | Journaux d'usage du locataire Power BI + inventaire espaces/rapports/modeles |
+| **powerbi_activity** | API admin Power BI | Journaux d'usage du locataire + inventaire espaces/rapports/modeles |
+| **yuman_evs_sftp** | Fichier SFTP | Stock theorique Yuman |
+| **oracle_neshu_gcs** | Oracle ERP (NESHU) | Stock theorique Oracle NESHU |
+| **oracle_lcdp_gcs** | Oracle ERP (LCDP) | Stock theorique Oracle LCDP |
+| **historic** | Archive | Analytique Sage 2024, figee |
 
-> `nesp_tech` et `nesp_co` transitent par GCS avant d'etre lus par dbt via table externe BigQuery.
-> C'est le cas quand l'extraction ne peut pas viser BigQuery directement (API specifique, Excel, parsing XML…).
->
+> **Tables externes GCS** : `nesp_tech` (2 tables) et `apptech` (8 tables) sont lues par
+> dbt via des tables externes BigQuery adossees a GCS — l'extraction ne peut pas viser
+> BigQuery directement (API specifique, fichiers ecrits par l'app). Verifie le 2026-09-23
+> via `INFORMATION_SCHEMA.TABLES`. Toutes les autres sources sont des tables natives.
+> `nesp_co` en faisait partie et n'en fait plus : ses 3 tables sont chargees directement
+> par dlt.
+
 > Le suffixe `_gcs` des deux sources de stock theorique est un **heritage** : depuis le
 > 2026-08-06 elles sont chargees directement depuis Oracle par les pipelines dlt
-> `oracle_neshu_stock` / `oracle_lcdp_stock`, sans CSV ni table externe. Le nom de source
-> est conserve pour ne pas casser les `source()`. Voir
+> `oracle_neshu_stock` / `oracle_lcdp_stock`, sans CSV ni table externe. Le nom est
+> conserve pour ne pas casser les `source()`. Voir
 > [`docs/architecture/oracle_neshu_gcs.md`](docs/architecture/oracle_neshu_gcs.md).
->
-> Ces ingestions sont gerees dans le depot `ingestion` (dlt).
+
+Fraicheur des sources : **[`docs/freshness.md`](docs/freshness.md)** (autorite unique).
 
 ---
 
@@ -75,35 +83,40 @@ Le projet integre **11 sources** couvrant l'ensemble des operations EVS :
 
 ```
 models/
-├── staging/          Nettoyage, typage, standardisation
-├── intermediate/     Logique metier, enrichissement, aggregations
-└── marts/            Dimensions + facts pour Power BI
+├── staging/          Nettoyage, typage, standardisation — 1 modele = 1 table source
+├── intermediate/     Logique metier, enrichissement — aligne par source
+└── marts/            Dimensions + faits pour Power BI — organise par BU
 ```
 
-**6 domaines metier :** Operations (oracle_neshu), Service Technique (yuman, nesp_tech), Finance (mssql_sage), Flotte (gac), Stock (yuman_evs_sftp, oracle_neshu_gcs, oracle_lcdp_gcs), Commercial Nespresso (nesp_co - WIP).
+**8 BU dans `marts/`** : `neshu`, `lcdp`, `technique`, `commerce`, `finance`,
+`services_generaux`, `supply_chain`, `bi`. Staging et intermediate restent organises
+**par source**, les marts **par domaine metier** (refacto terminee en mai 2026).
 
-Voir la [documentation dbt generee](https://cebrailevs.github.io/dbt_transform/) pour le detail de chaque modele, colonne et test.
+Voir la [documentation dbt generee](https://cebrailevs.github.io/dbt_transform/) pour le
+detail de chaque modele, colonne et test.
 
 ### Zones de responsabilite
 
-- **Data Engineer** : `staging/`, `intermediate/` — qualite des sources et logique metier
-- **Data Analyst** : `intermediate/`, `marts/` — analytics et reporting
+- **Data Engineer** : `staging/`, `intermediate/`, snapshots — qualite des sources et logique metier
+- **Data Analyst** : `marts/` — analytics et reporting
 
 ### Couche IA (Claude Code)
 
-La couche assistant est **versionnee et partagee** par l'equipe (seuls `.claude/settings.local.json` et `.claude/notes/` restent locaux) :
+Versionnee et partagee par l'equipe (seuls `.claude/settings.local.json` et
+`.claude/notes/` restent locaux) :
 
 ```
 CLAUDE.md              Contexte projet (architecture, conventions, hard rules)
-.mcp.json              Serveurs MCP : BigQuery, Power BI, dbt (chemins absolus = repo en /mnt/data/transform ; adapter si checkout ailleurs)
+.mcp.json              Serveurs MCP : BigQuery, Power BI, dbt (chemins absolus)
 .claude/
-├── commands/          Slash commands : /build-source, /new-mart, /lint-fix, /freshness
-├── skills/            Skills : audit-sources, audit-docs, profile
-├── hooks/             Hooks PostToolUse (lint SQL + dbt parse) et helpers d'auth MCP
+├── commands/          /build-source, /new-mart, /lint-fix, /freshness
+├── skills/            audit-sources, audit-docs, check-staging-relationships, profile
+├── agents/            mart-reviewer (review adversariale d'un mart avant PR)
+├── hooks/             PostToolUse (dbt lint, dbt parse) + helpers d'auth MCP
 └── settings.json      Config des hooks (versionnee)
 ```
 
-Les memes garde-fous tournent aussi hors IA via `.pre-commit-config.yaml` (cf. [CONTRIBUTING.md](CONTRIBUTING.md)).
+Les memes garde-fous tournent hors IA via `.pre-commit-config.yaml` (cf. [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ---
 
@@ -111,61 +124,44 @@ Les memes garde-fous tournent aussi hors IA via `.pre-commit-config.yaml` (cf. [
 
 ### Prerequis
 
-- Python 3.11+ (via `pyenv`, detecte automatiquement)
-- Acces BigQuery avec cle de service GCP
-- Variables d'environnement configurees (voir ci-dessous)
+- Python 3.11+ (via `pyenv`, `.python-version`)
+- Acces BigQuery avec cle de service GCP (une pour `dev`, une pour `prod`)
 
 ### Etapes
 
 ```bash
-# 1. Cloner le repository
 git clone https://github.com/CebrailEVS/dbt_transform.git
 cd dbt_transform
 
-# 2. Environnement virtuel (recommande)
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou venv\Scripts\activate  # Windows
-
-# 3. Installer les dependances (dbt v2 — adaptateur BigQuery inclus)
+python3 -m venv dbt_venv
+source dbt_venv/bin/activate          # Windows : dbt_venv\Scripts\activate
 pip install -r requirements-lock.txt
 
-# 4. Configurer les variables d'environnement
-cp .env.example .env  # Ajuster les valeurs
+cp .env.example .env                  # ajuster les valeurs
 
-# 5. Installer direnv (recommande — charge .env automatiquement a chaque cd)
-sudo apt install direnv                  # Linux
-# brew install direnv                    # macOS
+# direnv (recommande) — charge .env automatiquement a chaque cd
+sudo apt install direnv               # Linux ; macOS : brew install direnv
 echo 'eval "$(direnv hook bash)"' >> ~/.bashrc && source ~/.bashrc
-direnv allow                             # a faire une seule fois dans le repo
+direnv allow                          # une seule fois dans le repo
 
-# 6. Installer les packages dbt
 dbt deps
-
-# 7. Tester la configuration
 dbt debug
 ```
 
-> **Sans direnv**, charger les variables manuellement avant chaque session : `set -a && source .env && set +a`
-
-### Variables d'environnement (.env)
-
-```bash
-DBT_TARGET=dev
-DBT_BIGQUERY_PROJECT=evs-datastack-prod
-DBT_BIGQUERY_KEYFILE=/chemin/vers/votre/cle.json
-DBT_BIGQUERY_DATASET_DEV=dev
-DBT_BIGQUERY_DATASET_PROD=prod
-```
+> **Sans direnv**, charger les variables avant chaque session :
+> `set -a && source .env && set +a`
 
 ### Environnements
 
-| Environnement | Utilisateur | Schemas | Usage |
-|---------------|-------------|---------|-------|
-| `dev` | Data Engineer + Data Analyst | `dev_staging`, `dev_intermediate`, `dev_marts` | Developpement et tests |
-| `prod` | Cloud Workflows | `prod_staging`, `prod_intermediate`, `prod_marts` | Production automatisee |
+| Environnement | Projet GCP | Schemas | Usage |
+|---|---|---|---|
+| `dev` *(defaut)* | `evs-datastack-dev` | `dev_staging`, `dev_intermediate`, `dev_marts` | Developpement et tests |
+| `prod` | `evs-datastack-prod` | `prod_staging`, `prod_intermediate`, `prod_marts` | Cloud Workflows uniquement |
 
-> Les deux profils lisent depuis `prod_raw` (memes sources). Seuls les schemas de destination changent.
+> **Les deux cibles ecrivent dans des projets GCP differents** (isolation depuis PR #165).
+> Les sources restent lues dans `evs-datastack-prod.prod_raw` en cross-project via
+> `var('raw_project')` : aucune duplication de pipeline. Ne jamais lancer `--target prod`
+> en local.
 
 ---
 
@@ -174,60 +170,60 @@ DBT_BIGQUERY_DATASET_PROD=prod
 ```bash
 # Build par source (run + test en ordre DAG, fail-fast)
 dbt build --select tag:oracle_neshu
-dbt build --select tag:yuman
 
 # Build par couche
 dbt build --select tag:staging
 dbt build --select tag:marts
 
-# Build un modele et ses dependances amont
-dbt build --select +fct_oracle_neshu__conso_business_review
+# Un modele et ses dependances amont / aval
+dbt build --select +fct_neshu__consommation
+dbt build --select fct_neshu__consommation+
 
-# Build un modele et ses dependances aval (les modeles qui en dependent)
-dbt build --select fct_oracle_neshu__conso_business_review+
-
-# Freshness / Seeds
-dbt source freshness
+# Fraicheur / seeds
+dbt freshness
 dbt seed
 ```
 
-> **Selecteurs `+` :** le `+` est un raccourci pour inclure les dependances d'un modele.
-> - `+mon_modele` — construit le modele **et tous ses parents** (staging → intermediate → mart)
-> - `mon_modele+` — construit le modele **et tous ses enfants** (utile pour verifier qu'un changement ne casse rien en aval)
-> - `+mon_modele+` — les deux en meme temps
+> **Selecteurs `+`** : `+modele` inclut tous ses **parents**, `modele+` tous ses
+> **enfants** (utile pour verifier qu'un changement ne casse rien en aval), `+modele+` les deux.
 
-> Les snapshots sont executes automatiquement par Cloud Workflows — ne pas les lancer manuellement.
+> `dbt build` remplace `dbt run` + `dbt test` : chaque modele est teste avant que ses
+> enfants soient construits. Si un test staging echoue, les marts ne sont pas batis sur
+> des donnees fausses.
 
-> `dbt build` remplace `dbt run` + `dbt test` : il execute et teste chaque modele avant de passer aux modeles enfants. Si un test staging echoue, les marts ne sont pas construits sur des donnees incorrectes.
+> Les snapshots sont executes par Cloud Workflows — ne pas les lancer manuellement.
 
 ---
 
 ## Linting SQL (`dbt lint`)
 
-Le linter est integre a dbt v2. Il lit la configuration `.sqlfluff` existante (memes codes de
+Le linter est integre a dbt v2. Il lit la configuration `.sqlfluff` (memes codes de
 regles, memes `-- noqa`) et ne se connecte pas a BigQuery. SQLFluff n'est plus installe.
 
 ```bash
-# Analyser un fichier ou repertoire
-dbt lint models/staging/oracle_neshu/
-dbt lint models/
-
-# Corriger automatiquement
+dbt lint models/staging/oracle_neshu/    # analyser
 dbt lint models/staging/oracle_neshu/ --fix
+dbt lint --changed                       # seulement ce que le working tree a modifie
 ```
 
-Toujours verifier avec `git diff` apres un `--fix`. Voir [CONVENTIONS.md](CONVENTIONS.md) pour les regles appliquees.
+Toujours verifier avec `git diff` apres un `--fix`. Regles : [CONVENTIONS.md](CONVENTIONS.md).
 
 ---
 
 ## CI/CD
 
 | Evenement | Action |
-|-----------|--------|
-| Pull Request vers `master` | `dbt build --exclude resource_type:snapshot` sur dev (slim CI si manifest disponible) |
-| Merge dans `master` | Build complet en prod + generation docs + deploiement GitHub Pages |
+|---|---|
+| Pull Request vers `master` | `dbt lint` sur les modeles modifies, puis build `state:modified+` en dev avec `--defer` vers prod |
+| Merge / push sur `master` | Build `state:modified+` **directement en prod**, docs generees et publiees, image `dbt-runner` repoussee |
 
-> Les snapshots sont exclus du CI pour eviter des captures SCD parasites. Ils sont geres uniquement par Cloud Workflows en production.
+> Les builds sont **incrementaux par etat** (`state:modified+` contre le manifest stocke
+> sur GCS), jamais des reconstructions completes.
+
+> Les snapshots sont **toujours exclus** du CI/CD — ils appartiennent a Cloud Workflows.
+
+> Un push direct sur `master` declenche le job `cd` : le changement part en prod
+> immediatement, pas seulement au merge d'une PR.
 
 ---
 
@@ -236,43 +232,41 @@ Toujours verifier avec `git diff` apres un `--fix`. Voir [CONVENTIONS.md](CONVEN
 ### Python (`requirements.txt`)
 
 | Package | Version | Role |
-|---------|---------|------|
-| `dbt` | 2.0.6 | Moteur dbt v2 (Rust) — adaptateur BigQuery et linter inclus. Distribution gratuite, licence propriétaire dbt Labs (l'alternative Apache 2.0 `dbt-oss` n'a pas `dbt lint`) |
+|---|---|---|
+| `dbt` | 2.0.6 | Moteur dbt v2 (Rust) — adaptateur BigQuery et linter inclus. Gratuit, licence proprietaire dbt Labs (l'alternative Apache 2.0 `dbt-oss` n'a pas `dbt lint`) |
 
 ### dbt packages (`packages.yml`)
 
 | Package | Version | Role |
-|---------|---------|------|
-| `dbt-utils` | 1.4.1 | Tests avances (unique_combination, expression_is_true) |
-| `dbt_expectations` | 0.10.10 | Tests de qualite (row count, date range, distributions) |
-| `dbt_orphan` | v0.2.0 (git) | Detection/suppression des objets orphelins (cf. [docs/maintenance.md](docs/maintenance.md)) |
+|---|---|---|
+| `dbt_utils` | 1.4.1 | `unique_combination_of_columns`, `expression_is_true`, `generate_surrogate_key` |
+| `dbt_expectations` | 0.10.10 | Row count ranges, date ranges, regex, taux de NULL |
+| `dbt_orphan` | v0.2.0 (git) | Detection des objets orphelins (cf. [docs/maintenance.md](docs/maintenance.md)) |
 
 ---
 
 ## Depannage
 
 ```bash
-dbt debug                              # Verifier la configuration
+dbt debug                              # verifier la configuration
 direnv allow                           # direnv bloque ou non autorise
-set -a && source .env && set +a        # Variables non chargees (sans direnv)
-git rebase --abort                     # Annuler un rebase en echec
-dbt build --select tag:oracle_neshu    # Cibler les modeles en echec
-dbt lint models/staging/              # Verifier le linting SQL
-dbt ls --select +mon_modele            # Voir les dependances d'un modele
+set -a && source .env && set +a        # variables non chargees (sans direnv)
+dbt build --select tag:oracle_neshu    # cibler les modeles en echec
+dbt lint models/staging/               # verifier le linting SQL
+dbt ls --select +mon_modele            # voir les dependances d'un modele
+rm -rf target/                         # artefact d'une ancienne version de dbt
 ```
 
 ---
 
 ## Ressources
 
-- [Documentation dbt](https://docs.getdbt.com/)
-- [dbt BigQuery Adapter](https://docs.getdbt.com/reference/warehouse-profiles/bigquery-profile)
-- [dbt lint](https://docs.getdbt.com/reference/commands/lint)
-- [dbt_expectations](https://github.com/metaplane/dbt-expectations)
-- [CONTRIBUTING.md](CONTRIBUTING.md) — Workflow Git et collaboration
-- [CONVENTIONS.md](CONVENTIONS.md) — Conventions de nommage et qualite
-- [docs/pipeline-schedule.md](docs/pipeline-schedule.md) — Comment la donnée circule de la source au mart, et pourquoi l'orchestration est faite ainsi (les horaires vivent dans `infra/workflows_el.tf`)
-- [docs/maintenance.md](docs/maintenance.md) — Nettoyage des objets orphelins BigQuery (`dbt_orphan`)
+- [Documentation dbt](https://docs.getdbt.com/) · [adaptateur BigQuery](https://docs.getdbt.com/docs/core/connect-data-platform/bigquery-setup) · [`dbt lint`](https://docs.getdbt.com/reference/commands/lint)
+- [CONTRIBUTING.md](CONTRIBUTING.md) — workflow Git et collaboration
+- [CONVENTIONS.md](CONVENTIONS.md) — conventions de nommage et qualite
+- [docs/freshness.md](docs/freshness.md) — fraicheur des sources (autorite unique)
+- [docs/pipeline-schedule.md](docs/pipeline-schedule.md) — circulation de la donnee, de la source au mart
+- [docs/maintenance.md](docs/maintenance.md) — nettoyage des objets orphelins BigQuery
 
 ---
 

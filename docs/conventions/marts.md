@@ -300,7 +300,7 @@ Description et tests vivent dans `_<bu>__marts_models.yml` (voir §2 et §4).
 
 ## 7. Ordre des colonnes du `select` final
 
-Convention **indicative** (non verifiee par SQLFluff, mais attendue en review).
+Convention **indicative** (non verifiee par `dbt lint`, mais attendue en review).
 Regle dite **grain-first** : les colonnes du grain ouvrent le `select`, puis on
 reprend un tri par role. Objectif : lire « de quoi parle la ligne » (cles →
 contexte → quand) avant « combien » (mesures).
@@ -363,4 +363,4 @@ et on sait qu'on compte des evenements.
 - [ ] Nommage des mesures (`qty_`/`nb_`/`ca_`/`taux_`, périmètre invariant non répété, additif/non-additif documenté)
 - [ ] Ordre des colonnes grain-first
 - [ ] `exposure` mise à jour si un rapport Power BI consomme le mart
-- [ ] `sqlfluff lint` OK
+- [ ] `dbt lint` OK
