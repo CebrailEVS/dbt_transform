@@ -44,6 +44,9 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
 - `dbt deps` + `dbt debug --target dev`
 - `dbt lint` on **changed** models only (git diff vs base ref)
 - `dbt parse --target dev` (warnings surfaced, non-blocking)
+- `dbt compile --static-analysis strict --target dev` — **bloquant**. Type-check le projet
+  **entier** contre les schémas réels de BigQuery (~16 s). Portée globale voulue : une dérive
+  de type vient du **raw**, pas d'une PR. Vert depuis le 2026-09-23.
 - Pulls prod `manifest.json` from the GCS state bucket, then a **deferred incremental** build:
   `dbt build --target dev --select state:modified+ --defer --state state/ --exclude resource_type:snapshot`
   → builds only modified+downstream in `evs-datastack-dev`; unbuilt refs & snapshots **defer to prod**.
@@ -318,6 +321,12 @@ build en `--full-refresh` était vert, l'incrémental non.
 Parade : après toute évolution de type au raw, faire un build **sans**
 `--full-refresh`, et caster explicitement toute colonne passée telle quelle — le
 modèle devient indépendant du type de la source.
+
+`--static-analysis strict` (actif en CI) **ne remplace pas le cast** : il ne compare que
+là où un `data_type` est déclaré en YAML, soit **13 % des colonnes** (459/3371). `spantime`,
+la colonne victime en juillet, n'en a pas — strict ne l'aurait pas vue venir. C'est un
+détecteur partiel dont la couverture grandit avec les `data_type` déclarés ; le bouclier
+reste le cast.
 
 **Le raw est délibérément fidèle à la source.** `ingestion/` ne fait aucun typage
 métier : les `NUMBER` Oracle sans précision atterrissent en `FLOAT64`, les colonnes de

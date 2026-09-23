@@ -127,6 +127,20 @@ jobs:
             echo "::warning::dbt parse produced warnings — review the output above"
           fi
 
+      # Analyse statique SQL de dbt v2 : type-check le projet ENTIER contre les
+      # schemas reels de BigQuery (~16 s, 137 schemas telecharges, pas de login
+      # requis). Detecte une derive entre le type reel d'une colonne et le
+      # `data_type` declare en YAML.
+      #
+      # Portee volontairement globale, pas limitee au sous-graphe modifie : une
+      # derive de type vient du RAW, elle n'arrive pas par une PR. La verifier
+      # ici la rattrape au plus tard a la PR suivante.
+      #
+      # Bloquant : le projet est vert au 2026-09-23 (12 ecarts corriges). Si ce
+      # step devient bruyant, corriger la cause plutot que le desarmer.
+      - name: dbt static analysis (strict)
+        run: dbt compile --static-analysis strict --target dev
+
       - name: Download manifest from GCS
         continue-on-error: true
         run: |

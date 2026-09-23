@@ -222,26 +222,26 @@ models:
       # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi
         description: "Coefficient multiplicateur de conditionnement (passage en unités de base)."
-        data_type: int64
+        data_type: float64
       - name: unit_coeff_div
         description: "Coefficient diviseur de conditionnement."
-        data_type: int64
+        data_type: float64
       - name: base_unit_quantity
         description: "Quantité brute saisie (real_quantity), avant application des coefficients."
-        data_type: int64
+        data_type: float64
       - name: product_unit_price_task
         description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
       - name: product_unit_price_latest
         description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
-        data_type: int64
+        data_type: float64
 
       # --- MESURES ---
       - name: load_quantity
         description: "Quantité chargée (ou retirée) en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
-        data_type: int64
+        data_type: float64
       - name: load_valuation
         description: "Valorisation du chargement en euros = load_quantity × prix d'achat unitaire. Mesure additive."
-        data_type: int64
+        data_type: float64
 
       # --- MÉTADONNÉES ---
       - name: updated_at
