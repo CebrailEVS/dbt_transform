@@ -1,1 +1,0 @@
-{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["mouvement_date","device_id","product_id"], model=get_where_subquery(ref('fct_lcdp__mouvement_produit'))) }}{{ config({"meta":{},"severity":"ERROR","tags":[]}) }}

@@ -75,6 +75,9 @@ chargement_tasks_scoped as (
     where
         c.device_id in (select dp.device_id from devices_perimeter as dp)
         and date(c.task_start_date) >= date('2025-01-01')
+        -- Tâches réalisées uniquement, comme les invendus et la télémétrie en amont :
+        -- l'intermediate chargement remonte aussi ANNULE et ANOMALIE.
+        and c.task_status_code in ('FAIT', 'VALIDE')
 ),
 
 chargement_weekly as (

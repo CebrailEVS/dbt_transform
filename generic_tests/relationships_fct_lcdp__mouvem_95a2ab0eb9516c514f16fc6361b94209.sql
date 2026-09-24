@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="resources_roadman_id", field="resources_id", model=get_where_subquery(ref('fct_lcdp__mouvement_produit')), to=ref('dim_lcdp__resource')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
