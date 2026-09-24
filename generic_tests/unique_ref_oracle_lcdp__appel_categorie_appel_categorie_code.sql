@@ -1,1 +1,0 @@
-{{ test_unique(column_name="appel_categorie_code", model=get_where_subquery(ref('ref_oracle_lcdp__appel_categorie'))) }}

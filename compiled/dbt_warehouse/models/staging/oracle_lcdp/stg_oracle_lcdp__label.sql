@@ -10,6 +10,7 @@ cleaned_data as (
         -- IDs convertis en BIGINT
         cast(idlabel as int64) as idlabel,
         cast(idlabel_family as int64) as idlabel_family,
+        cast(idstring as int64) as idstring,
 
         -- Colonnes texte
         code,

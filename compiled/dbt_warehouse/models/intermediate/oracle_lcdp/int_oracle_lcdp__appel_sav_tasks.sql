@@ -57,31 +57,59 @@ with base_task as (
 
 ),
 
+labels_fr as (
+
+    select
+        idstring,
+        trim(text) as text
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__string`
+    where langage_code = 'fr_FR'
+
+),
+
+task_labels as (
+
+    select
+        lht.idtask as task_id,
+        lf.code as family_code,
+        la.code as label_code,
+        lf_fr.text as family_text,
+        la_fr.text as label_text
+
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` as lht
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` as la
+        on lht.idlabel = la.idlabel
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_family` as lf
+        on la.idlabel_family = lf.idlabel_family
+    left join labels_fr as la_fr
+        on la.idstring = la_fr.idstring
+    left join labels_fr as lf_fr
+        on lf.idstring = lf_fr.idstring
+
+    where lf.code = 'FAPP01' or lf.code like 'SAPP%'
+
+),
+
+-- Catégorie = label de FAPP01. Sous-catégorie = famille SAPPxx, détail = son label.
+-- Un appel peut porter plusieurs sous-catégories : concaténées, même ordre partout.
 label_pivot as (
 
     select
-        t.idtask as task_id,
-        max(
-            case
-                when lf.code = 'FAPP01'
-                    then la.code
-            end
-        ) as appel_categorie_code
+        task_id,
+        max(case when family_code = 'FAPP01' then label_code end) as appel_categorie_code,
+        max(case when family_code = 'FAPP01' then label_text end) as appel_categorie_label,
+        string_agg(
+            case when family_code like 'SAPP%' then family_code end, ' / ' order by family_text
+        ) as appel_sous_categorie_code,
+        string_agg(
+            case when family_code like 'SAPP%' then family_text end, ' / ' order by family_text
+        ) as appel_sous_categorie_label,
+        string_agg(
+            case when family_code like 'SAPP%' then label_text end, ' / ' order by family_text
+        ) as appel_detail_label
 
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` as t
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` as lht
-        on t.idtask = lht.idtask
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` as la
-        on lht.idlabel = la.idlabel
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_family` as lf
-        on la.idlabel_family = lf.idlabel_family
-
-    where
-        1 = 1
-        and t.idtask_type = 130
-
-    group by
-        t.idtask
+    from task_labels
+    group by task_id
 
 ),
 
@@ -122,9 +150,12 @@ select
     bt.comments_peer,
     bt.task_status_code,
 
-    -- Label pivoté
+    -- Labels pivotés
     lp.appel_categorie_code,
-    cat.appel_categorie_label,
+    lp.appel_categorie_label,
+    lp.appel_sous_categorie_code,
+    lp.appel_sous_categorie_label,
+    lp.appel_detail_label,
 
     -- Dates métier
     bt.task_start_date,
@@ -138,5 +169,3 @@ select
 from deduped_task as bt
 left join label_pivot as lp
     on bt.task_id = lp.task_id
-left join `evs-datastack-prod`.`prod_reference`.`ref_oracle_lcdp__appel_categorie` as cat
-    on lp.appel_categorie_code = cat.appel_categorie_code

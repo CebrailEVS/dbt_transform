@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idstring", field="idstring", model=get_where_subquery(ref('stg_oracle_lcdp__label_family')), to=ref('stg_oracle_lcdp__string')) }}

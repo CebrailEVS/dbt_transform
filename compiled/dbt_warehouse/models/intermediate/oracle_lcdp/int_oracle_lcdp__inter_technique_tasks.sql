@@ -64,42 +64,56 @@ with base_task as (
 
 ),
 
+labels_fr as (
+
+    select
+        idstring,
+        trim(text) as text
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__string`
+    where langage_code = 'fr_FR'
+
+),
+
+task_labels as (
+
+    select
+        lht.idtask as task_id,
+        lf.code as family_code,
+        la.code as label_code,
+        la_fr.text as label_text
+
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` as lht
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` as la
+        on lht.idlabel = la.idlabel
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_family` as lf
+        on la.idlabel_family = lf.idlabel_family
+    left join labels_fr as la_fr
+        on la.idstring = la_fr.idstring
+
+    where lf.code in ('Statut inter', 'Objet intervent', 'DEVICE_CANCEL_REASON')
+
+),
+
+-- Deux statuts sur une même tâche : TERMINATED l'emporte.
 label_pivot as (
 
     select
-        t.idtask as task_id,
-        max(
-            case
-                when lf.code = 'Statut inter'
-                    then la.code
-            end
+        task_id,
+        coalesce(
+            max(case when family_code = 'Statut inter' and label_code = 'TERMINATED' then label_code end),
+            max(case when family_code = 'Statut inter' then label_code end)
         ) as statut_inter,
-        max(
-            case
-                when lf.code = 'Objet intervent'
-                    then la.code
-            end
-        ) as objet_intervent,
-        max(
-            case
-                when lf.code = 'DEVICE_CANCEL_REASON'
-                    then la.code
-            end
-        ) as device_cancel_reason
+        coalesce(
+            max(case when family_code = 'Statut inter' and label_code = 'TERMINATED' then label_text end),
+            max(case when family_code = 'Statut inter' then label_text end)
+        ) as statut_inter_label,
+        max(case when family_code = 'Objet intervent' then label_code end) as objet_intervent,
+        max(case when family_code = 'Objet intervent' then label_text end) as objet_intervent_label,
+        max(case when family_code = 'DEVICE_CANCEL_REASON' then label_code end) as device_cancel_reason,
+        max(case when family_code = 'DEVICE_CANCEL_REASON' then label_text end) as device_cancel_reason_label
 
-    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task` as t
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` as lht
-        on t.idtask = lht.idtask
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` as la
-        on lht.idlabel = la.idlabel
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_family` as lf
-        on la.idlabel_family = lf.idlabel_family
-
-    where
-        1 = 1
-
-    group by
-        t.idtask
+    from task_labels
+    group by task_id
 
 ),
 
@@ -144,8 +158,11 @@ select
 
     -- Labels pivotés
     lp.statut_inter,
+    lp.statut_inter_label,
     lp.objet_intervent,
+    lp.objet_intervent_label,
     lp.device_cancel_reason,
+    lp.device_cancel_reason_label,
 
     -- Timestamps techniques
     bt.updated_at,
