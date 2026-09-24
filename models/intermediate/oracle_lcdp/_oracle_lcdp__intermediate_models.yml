@@ -383,7 +383,7 @@ models:
       [COMMENT CONSTRUITE]
       stg_oracle_lcdp__task (idtask_type = 11 INVENDUS, statuts FAIT/VALIDE, code_status_record = '1',
       real_start_date renseignée) croisé avec task_has_product (grain ligne produit), enrichi
-      company/device/product/location. Quantité ramenée en unités de base ; valorisation = quantité ×
+      company/device/product/location et roadman (ressource PERSON de la tâche). Quantité ramenée en unités de base ; valorisation = quantité ×
       prix d'achat. Incrémental (merge sur task_product_id).
 
       [GRAIN]
@@ -423,6 +423,9 @@ models:
       - name: location_id
         description: "Localisation de la tâche. FK → stg_oracle_lcdp__location."
         data_type: int64
+      - name: roadman_id
+        description: "Roadman ayant réalisé le constat. FK → dim_lcdp__resource (idresources, type 2 = PERSON). En binôme, le plus petit idresources (même règle que int_oracle_lcdp__chargement_tasks)."
+        data_type: int64
 
       # --- CODES ---
       - name: company_code
@@ -433,6 +436,9 @@ models:
         data_type: string
       - name: product_code
         description: "Code métier du produit."
+        data_type: string
+      - name: roadman_code
+        description: "Code métier du roadman."
         data_type: string
       - name: task_status_code
         description: >
