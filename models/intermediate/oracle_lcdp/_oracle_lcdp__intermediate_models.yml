@@ -12,7 +12,9 @@ models:
       [COMMENT CONSTRUITE]
       stg_oracle_lcdp__task (idtask_type = 130, code_status_record = '1'), enrichi company / device /
       location et de l'agent (ressource type 2, jointure LEFT — tous les appels n'ont pas d'agent),
-      puis pivot du label EAV exclusif FAPP01 (appel_categorie_code). Déduplication sur task_id
+      puis pivot des labels EAV : catégorie = label de la famille FAPP01, sous-catégorie = famille
+      SAPPxx, détail = label de cette famille ; libellés fr_FR lus dans stg_oracle_lcdp__string
+      (via idstring). Déduplication sur task_id
       (priorité au plus petit resources_id). Matérialisé en table (volume faible, pas d'incrémental).
 
       [GRAIN]
@@ -20,8 +22,11 @@ models:
 
       [NOTES]
       Le type APPEL / COMMERCIALCALL (idtask_type 201) n'a aucune tâche en source et n'est pas inclus.
-      Les codes appel_categorie_code (APP01…APP08) ne sont pas traduits dans l'entrepôt (strings Oracle
-      non extraites) : libellé métier joint depuis le seed ref_oracle_lcdp__appel_categorie.
+      Un appel peut porter plusieurs sous-catégories (3 appels sur 334 au 2026-09-24) : elles sont
+      concaténées avec ' / ', dans le même ordre (libellé de sous-catégorie) pour les trois colonnes
+      appel_sous_categorie_*/appel_detail_label. Ex. 6002244 : "PROBLEME DISTRIBUTION OU ECOULEMENT
+      / VIDE" et "PROBLEME DISTRIBUTION OU ECOULEMENT / VIDE LAIT".
+      Quand la famille n'a qu'un label, le détail répète la sous-catégorie (AUTRE / AUTRE).
       Filtre code_status_record = '1' aligné sur la fratrie int_oracle_lcdp__*_tasks (écarte les
       enregistrements non actifs).
     columns:
@@ -62,16 +67,28 @@ models:
       - name: task_status_code
         description: "Code du statut de l'appel (décodé depuis task_status)."
 
-      # --- LABEL PIVOTÉ ---
+      # --- LABELS PIVOTÉS ---
       - name: appel_categorie_code
         description: >
-          Catégorie d'appel SAV (label EAV exclusif, famille FAPP01). Code APP01…APP08. NULL si
+          Catégorie d'appel SAV (label EAV exclusif, famille FAPP01). Code APP01…APP09. NULL si
           l'appel n'est pas encore catégorisé.
       - name: appel_categorie_label
         description: >
-          Libellé métier de la catégorie d'appel, joint depuis le seed ref_oracle_lcdp__appel_categorie
-          (ADV, COMMANDE / LOGISTIQUE, RH SERVICES GENERAUX, COMPTABILITE, QUALITE, COMMERCE, TECHNIQUE,
-          SAV APPRO). NULL si non catégorisé.
+          Libellé de la catégorie d'appel (string fr_FR), préfixé de son numéro : 01 ADV, 02 COMMANDE /
+          LOGISTIQUE, 03 RH SERVICES GENERAUX, 04 COMPTABILITE, 05 QUALITE, 06 COMMERCE, 07 TECHNIQUE,
+          08 APPROVISIONNEMENT, 09 BOUTIQUE. NULL si non catégorisé.
+      - name: appel_sous_categorie_code
+        description: >
+          Code de la famille de sous-catégorie (SAPP01…SAPP34). Concaténé avec ' / ' si plusieurs.
+      - name: appel_sous_categorie_label
+        description: >
+          Libellé de la sous-catégorie (string fr_FR de la famille SAPPxx), ex. PANNES, VIDE, AUTRE.
+          Concaténé avec ' / ' si plusieurs.
+      - name: appel_detail_label
+        description: >
+          Libellé du détail (string fr_FR du label choisi dans la famille SAPPxx), ex. NAYAX sous
+          PANNES, VIDE LAIT sous VIDE. Concaténé avec ' / ' si plusieurs, même ordre que la
+          sous-catégorie.
 
       # --- DATES ---
       - name: task_start_date
@@ -1744,8 +1761,9 @@ models:
       [COMMENT CONSTRUITE]
       stg_oracle_lcdp__task (idtask_type = 131, code_status_record = '1', avec une ressource
       technicien — resources type 2), enrichi company/device/location, puis pivot des labels EAV
-      (statut_inter, objet_intervent, device_cancel_reason). Déduplication sur task_id (priorité au
-      plus petit resources_id). Incrémental (merge sur task_id).
+      (statut_inter, objet_intervent, device_cancel_reason), avec leurs libellés fr_FR lus dans
+      stg_oracle_lcdp__string (via idstring). Déduplication sur task_id (priorité au plus petit
+      resources_id). Incrémental (merge sur task_id).
 
       [GRAIN]
       1 ligne par task_id (intervention). ~1 176 lignes, 393 distributeurs, depuis fin 2024.
@@ -1754,6 +1772,10 @@ models:
       Diffère de int_oracle_neshu__inter_techinique_tasks : ici pas de ligne produit, un technicien
       rattaché (resources_id), labels statut_inter / objet_intervent / device_cancel_reason (pas de
       dc04/mission_type), et **aucun filtre sur objet_intervent** (neshu filtrait OC04).
+      Une tâche peut porter deux statuts (1 cas au 2026-09-24, task 4190590 : TERMINATED + TOTECH) :
+      TERMINATED l'emporte.
+      L'incrémental filtre sur task.updated_at : un label modifié sans que la tâche le soit n'est
+      repris qu'au prochain --full-refresh.
     columns:
       # --- IDENTIFIANTS ---
       - name: task_id
@@ -1799,15 +1821,23 @@ models:
         description: >
           Statut de traitement de l'intervention (label 'Statut inter'). Valeurs : TERMINATED
           (traitée sur place, majoritaire), TOTECH (non résolue sur place → renvoyée à l'équipe
-          technique), NULL.
+          technique), NULL. Si les deux sont posés, TERMINATED l'emporte.
+      - name: statut_inter_label
+        description: "Libellé du statut (string fr_FR) : Terminé, Transmettre à la technique."
       - name: objet_intervent
         description: >
           Objet de l'intervention (label 'Objet intervent'). Majoritairement NULL ; quelques OC1 / OC2
           (référentiel métier, non filtré ici contrairement à neshu).
+      - name: objet_intervent_label
+        description: >
+          Libellé de l'objet (string fr_FR), ex. C1 - Problème de distribution ou d'écoulement,
+          C2 - Problème NAYAX.
       - name: device_cancel_reason
         description: >
           Raison d'annulation côté device (label 'DEVICE_CANCEL_REASON'). Majoritairement NULL ;
           valeur observée : OTHERS.
+      - name: device_cancel_reason_label
+        description: "Libellé de la raison d'annulation (string fr_FR), ex. Autres."
 
       # --- DATES ---
       - name: task_start_date
