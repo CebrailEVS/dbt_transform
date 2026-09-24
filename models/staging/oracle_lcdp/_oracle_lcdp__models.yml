@@ -276,6 +276,13 @@ models:
               arguments:
                 to: ref('stg_oracle_lcdp__label_family')
                 field: idlabel_family
+      - name: idstring
+        description: "Identifiant du libellé traduit (FK vers stg_oracle_lcdp__string)"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__string')
+                field: idstring
 
   - name: stg_oracle_lcdp__label_family
     description: "Familles de labels transformés et nettoyés depuis la base Oracle LCDP"
@@ -287,6 +294,13 @@ models:
           - not_null
       - name: code
         description: "Code de la famille de labels"
+      - name: idstring
+        description: "Identifiant du libellé traduit (FK vers stg_oracle_lcdp__string)"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__string')
+                field: idstring
 
   - name: stg_oracle_lcdp__string
     description: "Libellés traduits de l'ERP, nettoyés depuis la base Oracle LCDP. Résout les idstring en texte lisible."
