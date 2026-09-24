@@ -108,7 +108,7 @@ select
     created_at,
     updated_at,
     current_timestamp() as dbt_updated_at,
-    '01a0d2ec-bd40-7f33-8713-91927dd16d69' as dbt_invocation_id  -- noqa: TMP
+    '01a0d379-d139-7922-acd2-16bd4c61fa3e' as dbt_invocation_id  -- noqa: TMP
 
 from passage_appro
 -- Périmètre du rapport : PREVU / FAIT (ENCOURS déjà replié en FAIT) + ANOMALIE en flag.
