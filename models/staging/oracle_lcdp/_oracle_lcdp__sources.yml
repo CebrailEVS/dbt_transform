@@ -370,6 +370,22 @@ sources:
           - name: code
             description: "Code du label family"
 
+      - name: lcdp_string
+        description: "Libellés traduits de l'ERP - résout les idstring en texte lisible"
+        config:
+          freshness: null
+        columns:
+          - name: idstring
+            tests:
+              - not_null
+            description: "Identifiant du libellé - composante de la clé"
+          - name: langage_code
+            tests:
+              - not_null
+            description: "Code langue - composante de la clé (fr_FR, en_US, ...)"
+          - name: text
+            description: "Le libellé traduit"
+
       - name: lcdp_v_label_device
         description: "Vue aplatie device × label × label_family (1 ligne par iddevice/idlabel) — porte le code (l_code), la famille (lf_code) et le libellé FR (l_text_fr)"
         config:
