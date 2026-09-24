@@ -288,6 +288,26 @@ models:
       - name: code
         description: "Code de la famille de labels"
 
+  - name: stg_oracle_lcdp__string
+    description: "Libellés traduits de l'ERP, nettoyés depuis la base Oracle LCDP. Résout les idstring en texte lisible."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idstring
+              - langage_code
+    columns:
+      - name: idstring
+        description: "Identifiant du libellé - composante de la clé"
+        tests:
+          - not_null
+      - name: langage_code
+        description: "Code langue - composante de la clé (fr_FR, en_US, ...)"
+        tests:
+          - not_null
+      - name: text
+        description: "Le libellé traduit, à lire avec langage_code = 'fr_FR'"
+
   - name: stg_oracle_lcdp__label_device
     description: "Labels device nettoyés depuis la vue aplatie lcdp_v_label_device (1 ligne par device/label). Porte code, famille et libellé FR du label, prêt pour le pivot dans dim_lcdp__device."
     tests:
