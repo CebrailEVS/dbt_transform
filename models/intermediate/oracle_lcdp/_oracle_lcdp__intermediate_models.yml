@@ -1761,8 +1761,9 @@ models:
       [COMMENT CONSTRUITE]
       stg_oracle_lcdp__task (idtask_type = 131, code_status_record = '1', avec une ressource
       technicien — resources type 2), enrichi company/device/location, puis pivot des labels EAV
-      (statut_inter, objet_intervent, device_cancel_reason). Déduplication sur task_id (priorité au
-      plus petit resources_id). Incrémental (merge sur task_id).
+      (statut_inter, objet_intervent, device_cancel_reason), avec leurs libellés fr_FR lus dans
+      stg_oracle_lcdp__string (via idstring). Déduplication sur task_id (priorité au plus petit
+      resources_id). Incrémental (merge sur task_id).
 
       [GRAIN]
       1 ligne par task_id (intervention). ~1 176 lignes, 393 distributeurs, depuis fin 2024.
@@ -1771,6 +1772,10 @@ models:
       Diffère de int_oracle_neshu__inter_techinique_tasks : ici pas de ligne produit, un technicien
       rattaché (resources_id), labels statut_inter / objet_intervent / device_cancel_reason (pas de
       dc04/mission_type), et **aucun filtre sur objet_intervent** (neshu filtrait OC04).
+      Une tâche peut porter deux statuts (1 cas au 2026-09-24, task 4190590 : TERMINATED + TOTECH) :
+      TERMINATED l'emporte.
+      L'incrémental filtre sur task.updated_at : un label modifié sans que la tâche le soit n'est
+      repris qu'au prochain --full-refresh.
     columns:
       # --- IDENTIFIANTS ---
       - name: task_id
@@ -1816,15 +1821,23 @@ models:
         description: >
           Statut de traitement de l'intervention (label 'Statut inter'). Valeurs : TERMINATED
           (traitée sur place, majoritaire), TOTECH (non résolue sur place → renvoyée à l'équipe
-          technique), NULL.
+          technique), NULL. Si les deux sont posés, TERMINATED l'emporte.
+      - name: statut_inter_label
+        description: "Libellé du statut (string fr_FR) : Terminé, Transmettre à la technique."
       - name: objet_intervent
         description: >
           Objet de l'intervention (label 'Objet intervent'). Majoritairement NULL ; quelques OC1 / OC2
           (référentiel métier, non filtré ici contrairement à neshu).
+      - name: objet_intervent_label
+        description: >
+          Libellé de l'objet (string fr_FR), ex. C1 - Problème de distribution ou d'écoulement,
+          C2 - Problème NAYAX.
       - name: device_cancel_reason
         description: >
           Raison d'annulation côté device (label 'DEVICE_CANCEL_REASON'). Majoritairement NULL ;
           valeur observée : OTHERS.
+      - name: device_cancel_reason_label
+        description: "Libellé de la raison d'annulation (string fr_FR), ex. Autres."
 
       # --- DATES ---
       - name: task_start_date
