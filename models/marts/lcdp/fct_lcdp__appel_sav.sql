@@ -1,4 +1,5 @@
 {{ config(materialized='table') }}
+-- Test CI/CD live 2026-09-25 : commentaire sans effet sur les données, à retirer.
 
 with appels as (
     select * from {{ ref('int_oracle_lcdp__appel_sav_tasks') }}
