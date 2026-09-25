@@ -14,7 +14,7 @@ with base_task as (
         t.iddevice as device_id,
         t.idcontact as contact_id,
         t.idlocation as location_id,
-        thr.idresources as resources_id,
+        r.idresources as resources_id,
 
         -- Codes / noms
         t.document_number,
@@ -127,7 +127,7 @@ deduped_task as (
             bt.*,
             row_number() over (
                 partition by bt.task_id
-                order by bt.resources_id
+                order by bt.resources_id nulls last
             ) as rn
         from base_task as bt
     ) as ranked
