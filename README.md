@@ -153,15 +153,17 @@ dbt debug
 
 ### Environnements
 
-| Environnement | Projet GCP | Schemas | Usage |
-|---|---|---|---|
-| `dev` *(defaut)* | `evs-datastack-dev` | `dev_staging`, `dev_intermediate`, `dev_marts` | Developpement et tests |
-| `prod` | `evs-datastack-prod` | `prod_staging`, `prod_intermediate`, `prod_marts` | Cloud Workflows uniquement |
+Un seul projet GCP, `evs-datastack-prod`. L'isolation se fait par **dataset**, portee par
+l'IAM (`infra/dbt_environments.tf`) : aucune identite hors prod n'ecrit dans `prod_*`.
 
-> **Les deux cibles ecrivent dans des projets GCP differents** (isolation depuis PR #165).
-> Les sources restent lues dans `evs-datastack-prod.prod_raw` en cross-project via
-> `var('raw_project')` : aucune duplication de pipeline. Ne jamais lancer `--target prod`
-> en local.
+| Target | Dataset(s) | Identite | Usage |
+|---|---|---|---|
+| `dev` *(defaut)* | `dbt_<toi>` (un seul dataset, toutes couches) | SA `dbt-dev`, cle locale | Developpement, `--defer` vers la prod |
+| `ci` | `dbt_ci_pr_<N>` (cree puis supprime par la CI) | SA `dbt-ci`, WIF | `pr-check` |
+| `prod` | `prod_staging`, `prod_intermediate`, `prod_marts`, `prod_reference` | Cloud Run / SA `dbt-deployer` (WIF) | Cloud Workflows et job `cd` |
+
+> Les tables de `dbt_<toi>` et `dbt_ci_pr_<N>` **expirent seules** (14 j / 3 j sans rebuild).
+> Ne jamais lancer `--target prod` en local.
 
 ---
 

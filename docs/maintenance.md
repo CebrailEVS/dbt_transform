@@ -27,9 +27,7 @@ Les **snapshots sont reconnus** par le graph, donc protégés.
   --args '{schemas: ["prod_marts", "prod_staging", "prod_intermediate"], dry_run: true}' \
   --target prod
 
-# dev (target par défaut)
-./dbt_venv/bin/dbt run-operation dbt_orphan.cleanup_orphans \
-  --args '{schemas: ["dev_marts", "dev_staging", "dev_intermediate"], dry_run: true}'
+# dev : inutile — les tables de dbt_<toi> expirent seules après 14 jours sans rebuild
 ```
 
 ### 2. Vérifier avant de supprimer

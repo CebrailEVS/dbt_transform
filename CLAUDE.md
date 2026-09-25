@@ -12,24 +12,32 @@ Apache 2.0, **sans `dbt lint`**. Choix assumé le 2026-09-21.
 
 ## Local dev setup
 
-Required env vars (set in `.env`):
+Required env vars (set in `.env`, cf. `.env.example`):
 ```
-# prod target (Cloud Run runtime)
-DBT_BIGQUERY_PROJECT=evs-datastack-prod
+DBT_BIGQUERY_PROJECT=evs-datastack-prod        # projet UNIQUE, dev et prod
+DBT_TARGET=dev                                 # defaults to dev if not set
+
+# dev target (default) — un seul dataset personnel, toutes couches
+DBT_BIGQUERY_DATASET_DEV=dbt_cebrail
+DBT_BIGQUERY_KEYFILE_DEV=/opt/credentials/gcp-dbt-dev-prod-key.json  # SA dbt-dev@evs-datastack-prod
+DBT_DEFER=true                                 # ref() non construits -> prod_*
+DBT_STATE=state/                               # rempli par scripts/pull-state.sh
+
+# prod target (Cloud Run runtime, pas en local)
 DBT_BIGQUERY_KEYFILE=/path/to/prod-keyfile.json
-DBT_BIGQUERY_DATASET_PROD=prod_    # prefix — prod_staging, prod_intermediate, prod_marts
-
-# dev target (default) — isolated GCP project since PR #165
-DBT_BIGQUERY_PROJECT_DEV=evs-datastack-dev
-DBT_BIGQUERY_KEYFILE_DEV=/path/to/dbt-dev-keyfile.json   # SA dbt-dev (dev write + prod_raw read-only)
-DBT_BIGQUERY_DATASET_DEV=dev_      # prefix — dev_staging, dev_intermediate, dev_marts
-DBT_TARGET=dev                     # defaults to dev if not set
+DBT_BIGQUERY_DATASET_PROD=prod                 # prefix — prod_staging, prod_intermediate, prod_marts
 ```
 
-Default target is `dev`. **Dev builds write to a dedicated GCP project `evs-datastack-dev`**
-(not prod), authenticated with the `dbt-dev` service account. Sources are still read
-cross-project from `evs-datastack-prod` `prod_raw` via `var('raw_project')` — no pipeline
-duplication. Dev snapshots read from prod (PR #166).
+**Un seul projet GCP, isolation par dataset** (depuis 2026-09-25, `infra/dbt_environments.tf`) :
+- `dev` → `dbt_cebrail` : `generate_schema_name` met **tout** dans le dataset du target hors
+  prod (les préfixes rendent les noms uniques) ; tables expirées après 14 j sans rebuild.
+- `ci` → `dbt_ci_pr_<N>` : créé par `pr-check`, supprimé à la fermeture de la PR.
+- `prod` → `prod_<couche>` : comportement dbt par défaut, inchangé.
+- Frontière = **IAM** : `dbt-dev` et `dbt-ci` lisent `prod_*`, n'y écrivent jamais. La macro
+  refuse aussi un dataset `prod_*` hors prod à la compilation.
+- `--defer` par défaut : lancer `scripts/pull-state.sh` après un merge (manifest prod depuis
+  `gs://evs-datastack-dbt-state`). Incrémental à tester : `dbt clone -s <modele>` puis build.
+- Snapshots : jamais construits hors prod (`target_schema: snapshots`, lecture seule hors prod).
 Never run against `prod` target unless explicitly asked.
 
 ---
@@ -38,26 +46,30 @@ Never run against `prod` target unless explicitly asked.
 
 One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/**`, `tests/**`,
 `dbt_project.yml`, `profiles.yml`, `packages.yml`, `selectors.yml`, `Dockerfile`, `entrypoint.sh`,
-`requirements*.txt`, `.sqlfluff`. Three jobs:
+`requirements*.txt`, `.sqlfluff`. Four jobs:
 
 **`pr-check`** — runs on `pull_request` → master (model paths only; `models/exposures/**` excluded):
-- `dbt deps` + `dbt debug --target dev`
+- Auth **WIF**, SA `dbt-ci` (aucune clé dans GitHub) ; crée `dbt_ci_pr_<N>` (tables expirées à 3 j)
+- `dbt deps` + `dbt debug --target ci`
 - `dbt lint` on **changed** models only (git diff vs base ref)
-- `dbt parse --target dev` (warnings surfaced, non-blocking)
-- `dbt compile --static-analysis strict --target dev` — **bloquant**. Type-check le projet
+- `dbt parse --target ci` (warnings surfaced, non-blocking)
+- `dbt compile --static-analysis strict --target ci` — **bloquant**. Type-check le projet
   **entier** contre les schémas réels de BigQuery (~16 s). Portée globale voulue : une dérive
   de type vient du **raw**, pas d'une PR. Vert depuis le 2026-09-23.
 - Pulls prod `manifest.json` from the GCS state bucket, then a **deferred incremental** build:
-  `dbt build --target dev --select state:modified+ --defer --state state/ --exclude resource_type:snapshot`
-  → builds only modified+downstream in `evs-datastack-dev`; unbuilt refs & snapshots **defer to prod**.
-  (No manifest → full `dbt build --target dev`, snapshots included.)
+  `dbt build --target ci --select state:modified+ --defer --state state/ --exclude resource_type:snapshot`
+  → builds only modified+downstream in `dbt_ci_pr_<N>`; unbuilt refs & snapshots **defer to prod**.
+  (No manifest → full `dbt build --target ci`, snapshots excluded.)
+
+**`cleanup-ci-dataset`** — runs on `pull_request: closed` : drops `dbt_ci_pr_<N>`.
 
 **`cd`** — runs on `push` → master (**including direct pushes that bypass the PR rule**):
+- Auth **WIF**, SA `dbt-deployer` (master uniquement) ; target prod en `DBT_BIGQUERY_METHOD=oauth`
 - `dbt deps` + `dbt debug --target prod`
 - Pulls prod manifest, then **state-based incremental** build **directly in prod**:
   `dbt build --target prod --select state:modified+ --exclude resource_type:snapshot --state state/`
   (No manifest → full build, snapshots excluded.)
-- `dbt docs generate --target prod`, then **uploads `manifest.json` back to GCS** (state for next run)
+- `dbt docs generate --target prod`, then **uploads `manifest.json` to `gs://evs-datastack-dbt-state`** (versionné, state for next run)
 - Builds & pushes `dbt-runner:latest` to Artifact Registry
   (`europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner`)
 
@@ -93,13 +105,13 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
 
 | Layer | Schema | Materialization |
 |---|---|---|
-| `models/staging/` | `prod_staging` / `dev_staging` | table (one model = `incremental`) |
-| `models/intermediate/` | `prod_intermediate` / `dev_intermediate` | table |
-| `models/marts/` | `prod_marts` / `dev_marts` | table |
+| `models/staging/` | `prod_staging` / `dbt_<dev>` | table (one model = `incremental`) |
+| `models/intermediate/` | `prod_intermediate` / `dbt_<dev>` | table |
+| `models/marts/` | `prod_marts` / `dbt_<dev>` | table |
 
 **10 sources** in `prod_raw`: `oracle_neshu`, `oracle_lcdp`, `yuman`, `nesp_tech`, `nesp_co`, `mssql_sage`, `gac`, `yuman_evs_sftp`, `oracle_neshu_gcs`, `oracle_lcdp_gcs`
 
-Seeds are in `data/reference_data/<source>/` and land in `prod_reference` / `dev_reference`.
+Seeds are in `data/reference_data/<source>/` and land in `prod_reference` / `dbt_<dev>`.
 
 ---
 

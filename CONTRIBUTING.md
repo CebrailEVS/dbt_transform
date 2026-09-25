@@ -335,29 +335,38 @@ Quand un rapport Power BI est cree ou modifie, mettre a jour le fichier exposure
 
 ## Environnement de developpement
 
-### Les deux environnements
+### Les environnements
 
-Le projet dispose de deux environnements BigQuery dans le **meme projet GCP** :
+Tout vit dans le **meme projet GCP** (`evs-datastack-prod`), separe par dataset :
 
-| Environnement | Schemas | Qui ecrit dedans | Frequence de mise a jour |
-|---------------|---------|------------------|--------------------------|
-| `prod` | `prod_staging`, `prod_intermediate`, `prod_marts` | Cloud Workflows (automatique) | Chaque nuit en production |
-| `dev` | `dev_staging`, `dev_intermediate`, `dev_marts` | Toi (en local) + CI sur les PRs | Uniquement quand tu lances un build |
+| Environnement | Dataset | Qui ecrit dedans | Duree de vie des tables |
+|---------------|---------|------------------|-------------------------|
+| `prod` | `prod_staging`, `prod_intermediate`, `prod_marts` | Cloud Workflows (nuit) + job `cd` (merge) | permanente |
+| `dev` | `dbt_<toi>` — **un seul dataset** pour toutes les couches | Toi, en local | 14 jours sans rebuild |
+| `ci` | `dbt_ci_pr_<N>` | La CI, sur ta PR | supprime a la fermeture de la PR |
 
-> Les deux environnements lisent depuis la **meme source** : `prod_raw`. Seuls les schemas de destination changent.
+> Ton identite dev (`dbt-dev`) **lit** `prod_*` mais ne peut **pas** y ecrire : une erreur
+> de config echoue en 403 au lieu d'ecraser la prod.
 
 ---
 
-### Pourquoi les tables `dev_marts` peuvent sembler "vieilles" ?
+### Le principe : `--defer`
 
-C'est normal, et c'est voulu.
+Tu ne reconstruis que **ce que tu modifies**. Chaque `ref()` vers un modele que tu n'as pas
+construit pointe automatiquement vers sa version **prod**, toujours fraiche.
 
-`prod_marts` est reconstruit chaque nuit automatiquement par Cloud Workflows.
-`dev_marts`, lui, n'est reconstruit que dans deux cas :
-- quand la CI tourne sur une **Pull Request** (uniquement les modeles modifies)
-- quand **tu lances toi-meme** un `dbt build` en local
+Pour savoir ou se trouve chaque modele en prod, dbt lit le `manifest.json` de prod, depose par
+le job `cd` a chaque merge. On le recupere avec :
 
-Si personne n'a ouvert de PR ni lance de build depuis plusieurs jours, les tables `dev_*` contiennent les donnees telles qu'elles etaient au dernier build. Elles ne se rafraichissent pas automatiquement.
+```bash
+scripts/pull-state.sh   # a relancer apres un merge sur master
+```
+
+Avec `DBT_DEFER=true` et `DBT_STATE=state/` dans ton `.env`, le defer est actif par defaut.
+Si tu oublies le script, rien ne casse : dbt pointe vers une carte un peu ancienne.
+
+> Astuce : alias qui recupere le manifest puis lance dbt :
+> `dbtd() { scripts/pull-state.sh >/dev/null && ./dbt_venv/bin/dbt "$@"; }`
 
 ---
 
@@ -365,42 +374,51 @@ Si personne n'a ouvert de PR ni lance de build depuis plusieurs jours, les table
 
 | Ce que tu veux faire | Ou regarder |
 |----------------------|-------------|
-| Faire une analyse, un rapport, explorer les donnees | `prod_marts` — toujours frais, reconstruit chaque nuit |
-| Tester un modele que tu es en train de developper | `dev_marts` — mais tu dois d'abord lancer un build (voir ci-dessous) |
-| Verifier que ta PR ne casse rien | La CI s'en charge automatiquement quand tu ouvres la PR |
-
-> **Regle simple :** si tu ne developpes pas un modele dbt, tu n'as pas besoin de `dev_*`. Utilise `prod_marts`.
+| Faire une analyse, un rapport, explorer les donnees | `prod_marts` — toujours frais |
+| Tester un modele que tu es en train de developper | `dbt_<toi>` apres un `dbt build -s ton_modele` |
+| Verifier que ta PR ne casse rien | La CI s'en charge, dans `dbt_ci_pr_<N>` |
 
 ---
 
-### Comment rafraichir `dev_marts` quand tu developpes ?
-
-Tu n'as **pas besoin** de tout reconstruire. Lance uniquement le modele sur lequel tu travailles et ses dependances amont :
+### Developper un modele
 
 ```bash
-# Construire ton modele et tout ce dont il depend (staging + intermediate + mart)
-dbt build -s +nom_de_ton_modele --target dev
+# Seulement ton modele : les parents sont lus en prod (defer)
+dbt build -s fct_yuman__interventions
 
-# Exemple : tu travailles sur fct_yuman__interventions
-dbt build -s +fct_yuman__interventions --target dev
+# Ton modele et tout ce qui en depend en aval
+dbt build -s fct_yuman__interventions+
 ```
 
-Le `+` devant le nom du modele signifie "et tous ses parents". Sans ca, dbt ne reconstruirait que le modele final, sans s'assurer que les tables en amont sont a jour dans ton `dev_*`.
+Plus besoin du `+` en amont : les parents viennent de la prod.
 
-Apres ca, ta table `dev_marts.fct_yuman__interventions` est fraiche et reflete exactement ton code local.
+**Tester un modele incremental** sur des donnees reelles : clone la table prod dans ton
+dataset (instantane, gratuit), puis lance le build — c'est le vrai `MERGE` qui s'execute.
+
+```bash
+dbt clone -s stg_oracle_lcdp__task
+dbt build -s stg_oracle_lcdp__task
+```
 
 ---
 
 ### Configurer son environnement local
 
-Verifier que `DBT_TARGET=dev` est bien defini dans ton `.env` avant de lancer quoi que ce soit :
+Copier `.env.example` en `.env` et renseigner ton dataset et ta cle :
 
 ```bash
 # Dans .env
 DBT_TARGET=dev
+DBT_BIGQUERY_DATASET_DEV=dbt_<toi>          # cree par infra/dbt_environments.tf
+DBT_BIGQUERY_KEYFILE_DEV=/opt/credentials/gcp-dbt-dev-prod-key.json
+DBT_DEFER=true
+DBT_STATE=state/
 ```
 
-Cela garantit que tous tes builds locaux ecrivent dans `dev_*` et jamais dans `prod_*`.
+Nouveau developpeur : ajouter son nom a `local.dbt_developers` dans
+`infra/dbt_environments.tf` (une ligne), `terraform apply`, puis generer sa cle.
+Si `DBT_BIGQUERY_DATASET_DEV` pointe par erreur vers un `prod_*`, la compilation echoue
+avant toute ecriture.
 
 ---
 
