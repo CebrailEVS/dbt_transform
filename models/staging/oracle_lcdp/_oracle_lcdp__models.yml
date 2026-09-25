@@ -703,6 +703,8 @@ models:
         description: "nom de la table de la source (DEVICE / COMPANY etc)"
       - name: TYPE_PRODUCT_DESTINATION
         description: "nom de la table de la destination (DEVICE / COMPANY etc)"
+      - name: document_number
+        description: "N° de pièce affiché dans l'ERP (ex. ASAV280 pour un appel SAV)"
       - name: code_status_record
         description: "Code status de la tâche ( 1 = validé, 0 ou -1 = non validé)"
       - name: real_start_date

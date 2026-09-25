@@ -4,6 +4,7 @@
         unique_key='idtask',
         partition_by={'field': 'real_start_date', 'data_type': 'timestamp'},
         incremental_strategy='merge',
+        on_schema_change='append_new_columns',
         cluster_by=['idtask_type','idtask_status','idcompany_peer','iddevice'],
         description='Table de fait des tâches depuis la table lcdp_task'
     )
@@ -29,6 +30,7 @@ cleaned_data as (
         cast(idproduct_destination as int64) as idproduct_destination,
 
         -- Colonnes texte et types
+        cast(document_number as string) as document_number, -- n° de pièce affiché dans l'ERP (ex. ASAV280)
         type_product_source,
         type_product_destination,
         comments_self,

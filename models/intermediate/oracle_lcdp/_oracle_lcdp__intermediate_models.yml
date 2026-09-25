@@ -48,6 +48,11 @@ models:
         description: "Agent ayant traité l'appel. FK → dim_lcdp__resource (idresources, type 2 = PERSON). NULL si non renseigné."
 
       # --- CODES / NOMS ---
+      - name: document_number
+        description: "N° de pièce de l'appel affiché dans l'ERP (ex. ASAV280), colonne « N°Pièce » des exports."
+        tests:
+          - unique
+          - not_null
       - name: company_code
         description: "Code client de l'entreprise."
       - name: device_code
