@@ -1,4 +1,5 @@
 
+-- Test CI/CD live 2026-09-25 : commentaire sans effet sur les données, à retirer.
 
 with appels as (
     select * from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__appel_sav_tasks`
