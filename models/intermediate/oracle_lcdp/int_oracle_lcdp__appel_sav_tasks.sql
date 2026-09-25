@@ -17,6 +17,7 @@ with base_task as (
         thr.idresources as resources_id,
 
         -- Codes / noms
+        t.document_number,
         c.code as company_code,
         d.code as device_code,
         c.name as company_name,
@@ -144,6 +145,7 @@ select
     bt.resources_id,
 
     -- Codes / noms
+    bt.document_number,
     bt.company_code,
     bt.device_code,
     bt.company_name,
