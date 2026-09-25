@@ -28,7 +28,8 @@ DBT_BIGQUERY_KEYFILE=/path/to/prod-keyfile.json
 DBT_BIGQUERY_DATASET_PROD=prod                 # prefix — prod_staging, prod_intermediate, prod_marts
 ```
 
-**Un seul projet GCP, isolation par dataset** (depuis 2026-09-25, `infra/dbt_environments.tf`) :
+**Un seul projet GCP, isolation par dataset** (depuis 2026-09-25, `infra/dbt_environments.tf`).
+Référence complète : [`docs/environnements.md`](docs/environnements.md).
 - `dev` → `dbt_cebrail` : `generate_schema_name` met **tout** dans le dataset du target hors
   prod (les préfixes rendent les noms uniques) ; tables expirées après 14 j sans rebuild.
 - `ci` → `dbt_ci_pr_<N>` : créé par `pr-check`, supprimé à la fermeture de la PR.
@@ -136,8 +137,12 @@ Voir [`docs/conventions/marts.md`](docs/conventions/marts.md) § Nommage pour le
 ## Common commands
 
 ```bash
-# Build a specific model and its dependencies
-dbt build -s +dim_oracle_neshu__resources
+# Build one model (parents deferred to prod) / + downstream
+dbt build -s dim_neshu__resource
+dbt build -s dim_neshu__resource+
+
+# Test an incremental model on real data: clone prod, then run the real MERGE
+dbt clone -s stg_oracle_lcdp__task && dbt run -s stg_oracle_lcdp__task
 
 # Build all models for a source (by tag)
 dbt build --select tag:oracle_neshu
@@ -284,16 +289,17 @@ After any model creation, deletion, or convention change, update the relevant do
 | Change | README.md | CONTRIBUTING.md | CONVENTIONS.md | Autre |
 |---|---|---|---|---|
 | New model added | — | — | — | — |
-| New source added | Add row in Sources table | Add source to "Ajouter une nouvelle source" steps | — | — |
+| New source added | Add row in Sources table | Add source to § 4 "Une source" steps | — | — |
 | New BI report / exposure added | — | — | — | Update `models/exposures/<bu>.yml` |
 | New naming/column convention | — | — | Update relevant section | — |
 | New lint rule | — | — | Update lint rules table | — |
-| New materialization pattern | — | Update "Ajouter un nouveau modele" steps | Update Materialisation table | — |
+| New materialization pattern | — | Update § 4 "Ajouter…" steps | Update Materialisation table | — |
 | New mandatory test pattern | — | Update checklist | Update Tests section | Update `docs/conventions/marts.md` § 4 if marts test rule |
 | New marts modeling rule | — | — | — | Update `docs/conventions/marts.md` |
 | Workflow or PR process change | — | Update relevant section | — | — |
 | BigQuery config change (partition/cluster) | — | — | Add/update BigQuery section | — |
 | New BU / marts folder | — | — | — | Create `_<bu>__marts_models.yml` + exposure file; marts refacto by BU is DONE (no `docs/migration-marts/`) |
+| Environment / CI/CD / IAM change | CI/CD table if the flow changes | § 2-3 if the dev loop changes | — | **`docs/environnements.md`** (reference) |
 
 ### What to update in each doc
 
@@ -311,6 +317,8 @@ After any model creation, deletion, or convention change, update the relevant do
 - `intermediate.md` — source-aligned (not cross-source), ref-only, incremental, tests
 - `marts.md` — naming by BU, star schema, 4-block description trame, config hygiene, tests, anti-patterns, grain-first order
 - `seeds-snapshots.md` — CSV seeds (column_types, BigQuery types, BOM), SCD2 snapshots
+
+**`docs/environnements.md`** — reference for datasets, identities, defer, CI/CD flows, table lifetimes. README and CONTRIBUTING only summarise and link here.
 
 **`docs/freshness.md`** — source freshness authority: état par source (14 sources), méthodes A/B, seuils et leur justification, sources non couvertes. `CONVENTIONS.md § Source freshness` and `staging.md § 8` only point here.
 

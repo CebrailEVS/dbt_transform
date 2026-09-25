@@ -13,6 +13,7 @@ Ce fichier ne garde que le **transversal** (commun à toutes les couches).
 | un mart (`dim_*` / `fct_*`) | [`docs/conventions/marts.md`](docs/conventions/marts.md) |
 | un seed ou un snapshot | [`docs/conventions/seeds-snapshots.md`](docs/conventions/seeds-snapshots.md) |
 | la fraîcheur d'une source | [`docs/freshness.md`](docs/freshness.md) |
+| les environnements, la CI/CD, le defer | [`docs/environnements.md`](docs/environnements.md) |
 
 ---
 

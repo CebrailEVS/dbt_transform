@@ -1,466 +1,201 @@
-# Contributing - EVS dbt Project
+# Contribuer au projet dbt EVS
 
-Guide de collaboration pour le projet dbt EVS. A lire avant toute contribution.
+Guide pratique pour développer, tester et livrer un modèle. Les règles de nommage et de
+qualité sont dans [CONVENTIONS.md](CONVENTIONS.md). L'architecture dev / CI / prod est
+décrite dans [docs/environnements.md](docs/environnements.md).
 
 ---
 
-## Installation de l'environnement local
-
-### Premier démarrage
+## 1. Installer son poste
 
 ```bash
-# 1. Cloner le repo
-git clone https://github.com/CebrailEVS/dbt_transform.git
-cd dbt_transform
-
-# 2. Créer un environnement virtuel Python
-python3 -m venv dbt_venv
-source dbt_venv/bin/activate  # Windows : dbt_venv\Scripts\activate
-
-# 3. Installer les dépendances exactes
+git clone https://github.com/CebrailEVS/dbt_transform.git && cd dbt_transform
+python3 -m venv dbt_venv && source dbt_venv/bin/activate
 pip install -r requirements-lock.txt
 
-# 3 bis. Sur un clone qui tournait sur une version anterieure de dbt, vider
-#        target/ une fois : un artefact laisse par l'ancienne version peut
-#        faire echouer `dbt snapshot`. Sans effet en CI ni sur Cloud Run.
-rm -rf target/
+cp .env.example .env          # renseigner DBT_BIGQUERY_DATASET_DEV et la clé (voir ci-dessous)
+direnv allow                  # charge .env à chaque cd ; sans direnv : set -a && source .env && set +a
 
-# 4. Copier et remplir le fichier d'environnement
-cp .env.example .env  # puis remplir les variables avec le Data Engineer
+dbt deps && dbt debug
+scripts/pull-state.sh         # manifest prod pour le defer
 
-# 5. Installer direnv (charge .env automatiquement a chaque cd dans le repo)
-sudo apt install direnv                  # Linux
-# brew install direnv                    # macOS
-echo 'eval "$(direnv hook bash)"' >> ~/.bashrc && source ~/.bashrc
-direnv allow                             # a faire une seule fois dans le repo
-
-# 6. Vérifier que tout fonctionne
-dbt debug --target dev
-
-# 7. Installer les guardrails pre-commit (lint SQL au commit, dbt parse au push)
-pipx install pre-commit                      # isole, ne pollue pas dbt_venv
-pre-commit install                           # hooks de commit (dbt lint)
-pre-commit install --hook-type pre-push      # hooks de push (dbt parse)
+pipx install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
 ```
 
-> `direnv allow` est a executer une seule fois par machine/repo. Apres ca, les variables `.env` sont chargees automatiquement des que tu entres dans le dossier.
-> **Sans direnv**, charge les variables manuellement avant chaque session : `set -a && source .env && set +a`
+- **Dataset et clé** : le data engineer crée ton dataset `dbt_<toi>` et te remet la clé
+  `dbt-dev` (procédure : [docs/environnements.md § 6](docs/environnements.md#6-ajouter-un-développeur)).
+  La clé reste hors du repo.
+- **pre-commit** : `dbt lint` s'exécute au commit et `dbt parse` au push. Ce sont les mêmes
+  contrôles que la CI, rejoués en local.
+- **Dépendances** : toujours installer depuis `requirements-lock.txt`. Seul le data engineer
+  modifie `requirements*.txt`. Après un `git pull` qui les modifie :
+  `pip install -r requirements-lock.txt`.
 
-> **Guardrails pre-commit** : `.pre-commit-config.yaml` rejoue `dbt lint` (au commit) et `dbt parse` (au push) — les memes verifications que les hooks Claude Code. Elles tournent quel que soit l'auteur du code (humain ou IA), donc un commit non lint est bloque localement avant meme la CI.
+---
 
-### Comprendre les fichiers de dépendances
+## 2. Développer un modèle
 
-| Fichier | Rôle | Modifié par |
-|---------|------|-------------|
-| `requirements.txt` | Dépendances directes avec versions fixes (`dbt==2.0.6`) | Data Engineer uniquement |
-| `requirements-lock.txt` | Toutes les dépendances (y compris transitives) figées exactement | Généré automatiquement |
-
-**Règle simple :**
-- Tu installes toujours depuis `requirements-lock.txt` → environnement identique pour toute l'équipe
-- Tu ne modifies jamais ces fichiers toi-même → c'est le rôle du Data Engineer
-
-### Mettre à jour ses dépendances
-
-Si le Data Engineer a mis à jour les versions (dbt...) :
+Tu écris dans **ton** dataset `dbt_<toi>`. Tout ce que tu ne construis pas est lu en prod
+(**defer**), donc tu ne reconstruis jamais la chaîne amont.
 
 ```bash
-git pull
-pip install -r requirements-lock.txt
+scripts/pull-state.sh           # après chaque merge sur master
+dbt build -s mon_modele         # ton modèle et ses tests
+dbt build -s mon_modele+        # + tout l'aval, pour vérifier que rien ne casse
 ```
 
----
-
-## Workflow Git
-
-### Branches
-
-| Branche | Usage |
-|---------|-------|
-| `master` | Production. Deploiement automatique via CI/CD. |
-| `feature/<source>/<description>` | Nouvelle fonctionnalite ou ajout de modeles. |
-| `fix/<source>/<description>` | Correction de bug. |
-
-Exemples :
-- `feature/oracle_neshu/add-valorisation-parc`
-- `fix/yuman/workorder-deduplication`
-
-### Rester a jour avec le remote
-
-VS Code fetche automatiquement le remote toutes les 3 minutes (`git.autofetch: true` dans `.vscode/settings.json`).
-Surveille l'indicateur en bas a gauche de la fenetre, a cote du nom de branche :
-
-- Pas de chiffre → tu es a jour
-- `↓2` → 2 commits a recuperer : lance `git pull`
-- `↑1` → 1 commit local a pousser
-
-Clique sur l'icone pour synchroniser directement depuis VS Code.
-
-### Workflow quotidien
-
-```bash
-# 1. Toujours partir de master a jour
-git checkout master && git pull
-
-# 2. Creer une branche
-git checkout -b feature/oracle_neshu/add-kpi-livraison
-
-# 3. Developper et tester (build = run + test en ordre DAG)
-dbt build --select tag:oracle_neshu
-
-# 5. Linter le SQL
-dbt lint models/staging/oracle_neshu/
-dbt lint models/intermediate/oracle_neshu/
-
-# 6. Commiter
-git add models/staging/oracle_neshu/...
-git commit -m "feat(oracle_neshu): add KPI livraison model"
-
-# 7. Pousser et creer une PR
-git push -u origin feature/oracle_neshu/add-kpi-livraison
-```
-
-### Commits
-
-Format : `type(scope): description courte`
-
-| Type | Usage |
-|------|-------|
-| `feat` | Nouveau modele ou fonctionnalite |
-| `fix` | Correction de bug |
-| `refactor` | Restructuration sans changement fonctionnel |
-| `test` | Ajout ou modification de tests |
-| `docs` | Documentation uniquement |
-| `chore` | Maintenance (deps, config, seeds) |
-
-Exemples :
-- `feat(oracle_neshu): add int_oracle_neshu__pointage model`
-- `fix(yuman): deduplicate workorder_demands on id`
-- `test(mssql_sage): add row count expectations on f_ecriturea`
-- `docs: update README with new sources`
-
-### Mettre a jour sa branche avant une PR
-
-Si `master` a avance depuis la creation de ta branche, il faut rebaser avant d'ouvrir (ou de mettre a jour) ta PR. Cela evite les "Update branch" sur GitHub et garde un historique lineaire.
-
-```bash
-# 1. Mettre master a jour en local
-git checkout master
-git pull origin master
-
-# 2. Rebaser ta branche sur master
-git checkout ma_branche
-git rebase master
-
-# 3. Pousser (force necessaire apres un rebase)
-git push --force-with-lease
-```
-
-> `--force-with-lease` est plus sur que `--force` : il echoue si quelqu'un d'autre a pousse sur ta branche entre-temps.
-
-En cas de conflit pendant le rebase :
-```bash
-# Resoudre le conflit dans le fichier concerne, puis :
-git add fichier_en_conflit
-git rebase --continue
-```
-
----
-
-## Pull Requests
-
-### Avant de creer une PR
-
-1. **Tester localement** : `dbt build` sur les modeles concernes
-2. **Linter** : `dbt lint` sans violations bloquantes
-3. **Verifier les dependances** : `dbt build --select +mon_modele` (amont complet)
-4. **Verifier les warnings dbt** : `dbt parse` ne doit produire aucun `[WARNING]`
-5. **Pas de secrets** : ne jamais commiter `.env`, cles GCP, credentials
-
-> `dbt parse` valide la coherence de tous les fichiers YAML sans toucher BigQuery.
-> Les warnings apparaissent typiquement lors d'un copier-coller d'un bloc YAML avec
-> une syntaxe obsolete, un `ref()` mal ecrit, ou une colonne documentee qui n'existe
-> plus dans le modele. La CI les detecte automatiquement et les signale sur la PR —
-> mieux vaut les corriger avant.
->
-> ```bash
-> dbt parse --target dev
-> ```
-
-### Contenu de la PR
-
-- Titre clair avec le scope : `feat(yuman): add workorder pricing mart`
-- Description : quoi, pourquoi, et comment tester
-- Lister les modeles ajoutes ou modifies
-
-### Apres merge
-
-```bash
-git checkout master && git pull
-git branch -d feature/oracle_neshu/add-kpi-livraison  # supprimer la branche locale
-```
-
----
-
-## Ajouter un nouveau modele
-
-### Staging
-
-1. Creer le fichier SQL dans `models/staging/<source>/`
-2. Nommer : `stg_<source>__<table>.sql`
-3. Ajouter le modele dans `_<source>__models.yml` (description + tests)
-4. Verifier que la source existe dans `_<source>__sources.yml`
-5. Ajouter les tags dans `dbt_project.yml` si nouvelle source
-
-### Intermediate
-
-1. Creer dans `models/intermediate/<source>/`
-2. Nommer : `int_<source>__<description>.sql`
-3. Utiliser uniquement des `ref()` vers staging ou d'autres intermediate
-4. Documenter dans le YAML de la source correspondante
-
-### Marts
-
-#### Modele mono-source (cas standard)
-
-1. Creer dans `models/marts/<source>/`
-2. Nommer : `dim_<source>__<entite>.sql` ou `fct_<source>__<metrique>.sql`
-3. C'est la couche exposee a Power BI — veiller a la clarte des colonnes
-
-#### Modele cross-source (plusieurs sources de donnees)
-
-Un modele est cross-source s'il consomme des `ref()` provenant de sources differentes
-(ex : oracle_neshu + yuman, nesp_co + nesp_tech).
-
-1. Creer dans `models/marts/technique/` (ou le dossier BU correspondant, pas dans un dossier source)
-2. Nommer avec le prefixe BU : `fct_technique__<metrique>.sql`
-3. Ajouter la section **Sources** dans la description YAML du modele :
-   ```yaml
-   description: |
-     ...
-     **Sources :** nesp_tech (interventions) · yuman (workorders NESHU)
-   ```
-4. Pour les tests `relationships` sur des FK nullable (LEFT JOIN), ajouter un filtre :
-   ```yaml
-   - relationships:
-       arguments:
-         to: ref('stg_yuman__materials')
-         field: material_id
-       config:
-         where: "material_id is not null"
-   ```
-5. Ne pas creer d'intermediate dedie si le modele n'a qu'un seul consommateur — absorber la logique directement dans le mart
-
-> **Scheduling (Option C) :** un mart est reconstruit par CHAQUE pipeline EL dont il depend,
-> via le selecteur `source:<source>+`. Un mart cross-source se rebuild donc des qu'une de ses
-> sources atterrit — le graphe de lignage dbt gere le fan-out, aucune matrice a maintenir.
-> Voir `docs/pipeline-schedule.md` pour le detail.
-
-### Exposures (rapport Power BI)
-
-Les exposures declarent quels rapports Power BI consomment quels modeles dbt. Cela permet de :
-
-- **Visualiser la lignee complete** dans `dbt docs` — de la source raw jusqu'au rapport BI
-- **Mesurer l'impact d'un changement** : si on modifie `fct_neshu__appro`, on voit immediatement quels rapports sont affectes
-- **Cibler un rebuild** : `dbt build -s +exposure:reporting_appro` reconstruit uniquement les modeles qui alimentent ce rapport
-- **Documenter qui est responsable** de chaque rapport (owner) et son niveau de maturite
-
-Quand un rapport Power BI est cree ou modifie, mettre a jour le fichier exposure correspondant dans `models/exposures/`.
-
-- Un fichier par BU/partenaire : `neshu.yml`, `lcdp.yml`, etc.
-- Si le rapport est pour une nouvelle BU, creer un nouveau fichier dans `models/exposures/`
-- Chaque exposure doit lister tous les modeles dbt (`ref()`) et sources externes (`source()`) consommes par le rapport
-
-```yaml
-- name: nom_du_rapport          # slug CLI : dbt build -s +exposure:nom_du_rapport
-  label: "Nom Lisible"          # affiche dans dbt docs
-  type: dashboard
-  maturity: high | medium | low
-  description: >
-    Description metier du rapport.
-  owner:
-    name: Prenom Nom
-    email: prenom.nom@evs-pro.com
-  depends_on:
-    - ref('fct_source__modele')
-    - ref('dim_source__dimension')
-```
-
-> Si le rapport consomme une table alimentee par un pipeline externe (Cloud Run / Cloud Workflows),
-> utiliser `source('<source_externe>', '<table>')` et verifier que la source est declaree
-> dans le fichier `_<source>__marts_sources.yml` correspondant.
-
----
-
-## Ajouter un seed
-
-1. Placer le CSV dans `data/reference_data/<source>/` en respectant le nommage `ref_<source>__<entite>.csv`
-2. Sauvegarder en **UTF-8 sans BOM** (pas depuis Excel directement — utiliser LibreOffice ou un editeur de texte)
-3. Ajouter une entree dans `data/schema.yml` avec :
-   - `description` du seed
-   - `config: column_types:` pour **toutes les colonnes** (voir types autorises dans docs/conventions/seeds-snapshots.md)
-   - `columns:` avec description et tests pour chaque colonne
-4. **Verifier les types en regardant les donnees reelles**, pas seulement le nom de colonne :
-   ```bash
-   head -3 data/reference_data/<source>/ref_<source>__<entite>.csv
-   ```
-5. Tester : `dbt build -s ref_<source>__<entite>`
-6. Verifier que les modeles downstream compilent toujours : `dbt build -s ref_<source>__<entite>+`
-
-> Ne pas ajouter de `column_types` dans `dbt_project.yml` — tout se declare dans `data/schema.yml`.
-
----
-
-## Ajouter une nouvelle source
-
-1. Creer le dossier `models/staging/<nouvelle_source>/`
-2. Creer `_<source>__sources.yml` avec freshness et colonnes cles
-3. Creer `_<source>__models.yml` avec descriptions et tests
-4. Ajouter les tags dans `dbt_project.yml`
-5. Creer les modeles staging, puis intermediate, puis marts selon le besoin
-6. Mettre a jour le tableau des sources dans `README.md`
-
----
-
-## Checklist avant merge
-
-- [ ] `dbt build` passe sans erreur sur les modeles concernes (PASS ou WARN accepte, pas d'ERROR)
-- [ ] `dbt lint` sans violations sur les fichiers modifies
-- [ ] `dbt parse` sans `[WARNING]` — verifier les fichiers YAML modifies
-- [ ] Modeles documentes dans les fichiers YAML
-- [ ] Si le modele est consomme par un rapport Power BI : exposure mise a jour dans `models/exposures/`
-- [ ] Pas de secrets dans le commit
-- [ ] PR avec description claire
-
----
-
-## Environnement de developpement
-
-### Les environnements
-
-Tout vit dans le **meme projet GCP** (`evs-datastack-prod`), separe par dataset :
-
-| Environnement | Dataset | Qui ecrit dedans | Duree de vie des tables |
-|---------------|---------|------------------|-------------------------|
-| `prod` | `prod_staging`, `prod_intermediate`, `prod_marts` | Cloud Workflows (nuit) + job `cd` (merge) | permanente |
-| `dev` | `dbt_<toi>` — **un seul dataset** pour toutes les couches | Toi, en local | 14 jours sans rebuild |
-| `ci` | `dbt_ci_pr_<N>` | La CI, sur ta PR | supprime a la fermeture de la PR |
-
-> Ton identite dev (`dbt-dev`) **lit** `prod_*` mais ne peut **pas** y ecrire : une erreur
-> de config echoue en 403 au lieu d'ecraser la prod.
-
----
-
-### Le principe : `--defer`
-
-Tu ne reconstruis que **ce que tu modifies**. Chaque `ref()` vers un modele que tu n'as pas
-construit pointe automatiquement vers sa version **prod**, toujours fraiche.
-
-Pour savoir ou se trouve chaque modele en prod, dbt lit le `manifest.json` de prod, depose par
-le job `cd` a chaque merge. On le recupere avec :
-
-```bash
-scripts/pull-state.sh   # a relancer apres un merge sur master
-```
-
-Avec `DBT_DEFER=true` et `DBT_STATE=state/` dans ton `.env`, le defer est actif par defaut.
-Si tu oublies le script, rien ne casse : dbt pointe vers une carte un peu ancienne.
-
-> Astuce : alias qui recupere le manifest puis lance dbt :
-> `dbtd() { scripts/pull-state.sh >/dev/null && ./dbt_venv/bin/dbt "$@"; }`
-
----
-
-### Quelle table utiliser selon ce que tu fais ?
-
-| Ce que tu veux faire | Ou regarder |
-|----------------------|-------------|
-| Faire une analyse, un rapport, explorer les donnees | `prod_marts` — toujours frais |
-| Tester un modele que tu es en train de developper | `dbt_<toi>` apres un `dbt build -s ton_modele` |
-| Verifier que ta PR ne casse rien | La CI s'en charge, dans `dbt_ci_pr_<N>` |
-
----
-
-### Developper un modele
-
-```bash
-# Seulement ton modele : les parents sont lus en prod (defer)
-dbt build -s fct_yuman__interventions
-
-# Ton modele et tout ce qui en depend en aval
-dbt build -s fct_yuman__interventions+
-```
-
-Plus besoin du `+` en amont : les parents viennent de la prod.
-
-**Tester un modele incremental** sur des donnees reelles : clone la table prod dans ton
-dataset (instantane, gratuit), puis lance le build — c'est le vrai `MERGE` qui s'execute.
+**Modèle incrémental** : clone d'abord la table prod, puis lance le build. C'est alors le
+vrai `MERGE` qui s'exécute, pas une reconstruction complète.
 
 ```bash
 dbt clone -s stg_oracle_lcdp__task
-dbt build -s stg_oracle_lcdp__task
+dbt run   -s stg_oracle_lcdp__task
 ```
+
+**Comparer avec la prod** avant de livrer :
+
+```sql
+select 'dev' as env, count(*) from `evs-datastack-prod.dbt_<toi>.mon_modele`
+union all
+select 'prod', count(*) from `evs-datastack-prod.prod_marts.mon_modele`
+```
+
+| Tu veux… | Regarde |
+|---|---|
+| analyser, explorer, faire un rapport | `prod_marts` |
+| tester ce que tu développes | `dbt_<toi>` |
+| vérifier ta PR | `dbt_ci_pr_<N>`, construit par la CI |
+
+Les tables de `dbt_<toi>` expirent après 14 jours sans rebuild : pas de ménage à faire.
 
 ---
 
-### Configurer son environnement local
+## 3. Git et pull request
 
-Copier `.env.example` en `.env` et renseigner ton dataset et ta cle :
+### Branches et commits
+
+| Branche | Usage |
+|---|---|
+| `master` | Production. Tout push déclenche un déploiement. |
+| `feature/<scope>/<description>` | Nouveau modèle ou fonctionnalité |
+| `fix/<scope>/<description>` | Correction |
+
+Format de commit : `type(scope): description`, avec `feat`, `fix`, `refactor`, `test`, `docs`
+ou `chore`. Exemple : `feat(neshu): add fct_neshu__passage_appro`.
+
+### Cycle
 
 ```bash
-# Dans .env
-DBT_TARGET=dev
-DBT_BIGQUERY_DATASET_DEV=dbt_<toi>          # cree par infra/dbt_environments.tf
-DBT_BIGQUERY_KEYFILE_DEV=/opt/credentials/gcp-dbt-dev-prod-key.json
-DBT_DEFER=true
-DBT_STATE=state/
+git checkout master && git pull
+git checkout -b feature/neshu/kpi-livraison
+# ... développer, dbt build -s ..., dbt lint ...
+git commit -m "feat(neshu): add kpi livraison"
+git push -u origin feature/neshu/kpi-livraison     # puis ouvrir la PR sur GitHub
 ```
 
-Nouveau developpeur : ajouter son nom a `local.dbt_developers` dans
-`infra/dbt_environments.tf` (une ligne), `terraform apply`, puis generer sa cle.
-Si `DBT_BIGQUERY_DATASET_DEV` pointe par erreur vers un `prod_*`, la compilation echoue
-avant toute ecriture.
+Si `master` a avancé : `git rebase origin/master` puis `git push --force-with-lease`.
 
----
+### Ce que fait la CI sur ta PR
 
-## Roles et responsabilites
+Elle lance le lint des modèles modifiés, `dbt parse`, puis l'analyse statique stricte. Elle
+construit ensuite les modèles modifiés et leur aval dans `dbt_ci_pr_<N>`. Tu peux ouvrir ce
+dataset dans BigQuery pour contrôler le résultat. Il est supprimé à la fermeture de la PR.
 
-| Action | Data Engineer | Data Analyst |
-|--------|:---:|:---:|
-| Modifier `staging/` | Oui | Non |
-| Modifier `intermediate/` | Oui | Sur validation DE |
-| Creer/modifier `marts/` | Oui | Oui |
-| Ajouter des seeds (CSV) | Oui | Oui |
-| Modifier `snapshots/` | Oui | Non |
-| Modifier `dbt_project.yml` | Oui | Non |
-| Pousser directement sur `master` | Non | Non |
-| Creer une PR | Oui | Oui |
-| Reviewer une PR | Oui | - |
+Au merge, seuls les modèles modifiés et leur aval sont reconstruits en prod.
 
-> Toute contribution passe par une PR. Le Data Engineer review et merge.
-
----
-
-## Explorer le projet existant
-
-Avant de creer de nouveaux modeles, prendre le temps de comprendre ce qui existe :
+### Après le merge
 
 ```bash
-# Lister les modeles d'un domaine
-dbt ls --select tag:oracle_neshu
-
-# Voir les dependances amont d'un modele
-dbt ls --select +fct_oracle_neshu__conso_business_review
-
-# Voir les dependances aval d'un modele
-dbt ls --select fct_oracle_neshu__conso_business_review+
+git checkout master && git pull && git branch -d feature/neshu/kpi-livraison
+scripts/pull-state.sh
 ```
-
-La documentation generee est aussi disponible en ligne : [https://cebrailevs.github.io/dbt_transform/](https://cebrailevs.github.io/dbt_transform/)
 
 ---
 
-## Besoin d'aide ?
+## 4. Ajouter…
 
-- `dbt debug` pour verifier la configuration
-- Documentation en ligne (modeles, lineage, tests) : [https://cebrailevs.github.io/dbt_transform/](https://cebrailevs.github.io/dbt_transform/)
-- Consulter [CONVENTIONS.md](CONVENTIONS.md) pour les regles de nommage et qualite
+### Un modèle de staging (data engineer)
+1. `models/staging/<source>/stg_<source>__<table>.sql`, avec `description` dans le `config()`.
+2. Entrée dans `_<source>__models.yml` : description et tests.
+3. Source déclarée dans `_<source>__sources.yml`.
+
+Règles complètes : [docs/conventions/staging.md](docs/conventions/staging.md).
+
+### Un modèle intermediate
+1. `models/intermediate/<source>/int_<source>__<description>.sql`, uniquement des `ref()`.
+2. Documentation dans le YAML de la source.
+
+Il reste **aligné sur une source** : le croisement de sources se fait dans les marts.
+Règles : [docs/conventions/intermediate.md](docs/conventions/intermediate.md).
+
+### Un mart
+1. `models/marts/<bu>/dim_<bu>__<entite>.sql` ou `fct_<bu>__<entite>.sql`.
+2. Entrée dans `_<bu>__marts_models.yml`, avec une description en 4 blocs
+   (`[QUOI MÉTIER]`, `[COMMENT CONSTRUITE]`, `[GRAIN]`, `[NOTES]`) et les tests minimum.
+3. Schéma en étoile strict : un fait référence des dimensions, jamais un autre fait.
+
+Règles complètes et exemples : [docs/conventions/marts.md](docs/conventions/marts.md).
+
+### Une exposure (rapport Power BI)
+Dès qu'un rapport consomme un mart, le déclarer dans `models/exposures/<bu>.yml` :
+
+```yaml
+- name: nom_du_rapport            # dbt build -s +exposure:nom_du_rapport
+  label: "Nom lisible"
+  type: dashboard
+  maturity: high
+  owner:
+    name: Prénom Nom
+    email: prenom.nom@evs-pro.com
+  depends_on:
+    - ref('fct_<bu>__<entite>')
+```
+
+### Un seed
+1. CSV dans `data/reference_data/<source>/ref_<source>__<entite>.csv`, en **UTF-8 sans BOM**.
+   Ne pas l'enregistrer depuis Excel.
+2. Documentation et `column_types` (toutes les colonnes) dans `_<source>__seeds.yml`, dans le
+   même dossier.
+3. `dbt build -s ref_<source>__<entite>+`
+
+Types et pièges : [docs/conventions/seeds-snapshots.md](docs/conventions/seeds-snapshots.md).
+
+### Une source
+1. `models/staging/<source>/` avec `_<source>__sources.yml` (freshness) et `_<source>__models.yml`.
+2. Tags dans `dbt_project.yml`.
+3. Ligne dans le tableau des sources du [README](README.md).
+
+---
+
+## 5. Checklist avant merge
+
+- [ ] `dbt build -s mon_modele+` passe (PASS ou WARN, aucune ERROR)
+- [ ] `dbt lint` propre sur les fichiers modifiés
+- [ ] `dbt parse` sans `[WARNING]`
+- [ ] Modèles documentés en YAML (marts : 4 blocs + grain)
+- [ ] Exposure à jour si un rapport Power BI consomme le modèle
+- [ ] Aucun secret committé (`.env`, clés)
+- [ ] PR décrite : quoi, pourquoi, comment vérifier
+
+---
+
+## 6. Rôles
+
+| Action | Data engineer | Data analyst |
+|---|:---:|:---:|
+| `staging/`, snapshots, `dbt_project.yml` | Oui | Non |
+| `intermediate/` | Oui | Sur validation |
+| `marts/`, seeds, exposures | Oui | Oui |
+| Ouvrir une PR | Oui | Oui |
+| Relire et merger | Oui | — |
+
+Tout changement de code passe par une PR. Seule la documentation pure peut être poussée
+directement sur `master`, par le data engineer.
+
+---
+
+## Aide
+
+- `dbt debug` pour vérifier la configuration
+- `dbt ls -s +mon_modele` / `dbt ls -s mon_modele+` pour voir les dépendances amont et aval
+- [Documentation générée](https://cebrailevs.github.io/dbt_transform/) : modèles, lignage, tests
