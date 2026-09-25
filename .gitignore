@@ -43,3 +43,6 @@ models/_analysis/
 # il resout les packages dans son propre dossier et ajoute lui-meme cette ligne.
 # On la versionne pour que la veille v2 ne salisse pas l'arbre de travail.
 dbt_internal_packages/
+
+# Manifest de prod pour --defer (scripts/pull-state.sh), jamais versionné
+state/

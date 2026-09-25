@@ -2,6 +2,8 @@ name: dbt CI/CD
 
 on:
   pull_request:
+    # `closed` : suppression du dataset dbt_ci_pr_<N> (job cleanup-ci-dataset).
+    types: [opened, synchronize, reopened, closed]
     branches:
       - master
     paths:
@@ -52,12 +54,24 @@ permissions:
   pages: write
   id-token: write
 
+# Authentification GCP par Workload Identity Federation : aucune clé JSON dans
+# GitHub. dbt-ci (PR) n'écrit jamais dans prod_* ; dbt-deployer (master) si.
+# Cf. infra/dbt_environments.tf.
+env:
+  WIF_PROVIDER: projects/200066244815/locations/global/workloadIdentityPools/github-pool/providers/github
+  DBT_BIGQUERY_PROJECT: evs-datastack-prod
+  DBT_BIGQUERY_DATASET_PROD: prod
+  DBT_STATE_URI: gs://evs-datastack-dbt-state/dbt-state/manifest.json
+
 # ============================================================
 # PR CHECK — runs on every pull_request targeting master
 # ============================================================
 jobs:
   pr-check:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    env:
+      DBT_TARGET: ci
+      DBT_BIGQUERY_DATASET_CI: dbt_ci_pr_${{ github.event.number }}
     runs-on: ubuntu-latest
 
     steps:
@@ -74,35 +88,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-lock.txt
 
-      - name: Decode and write service account keyfile
-        run: echo "${{ secrets.DBT_BIGQUERY_KEYFILE }}" | base64 -d > $GITHUB_WORKSPACE/keyfile.json
-
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (WIF, dbt-ci)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.DBT_BIGQUERY_KEYFILE }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: dbt-ci@evs-datastack-prod.iam.gserviceaccount.com
 
       - name: Setup Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Decode and write dev service account keyfile
-        run: echo "${{ secrets.DBT_BIGQUERY_KEYFILE_DEV }}" | base64 -d > $GITHUB_WORKSPACE/keyfile_dev.json
-
-      - name: Export env variables for dbt
+      # Dataset éphémère de la PR. Expiration des tables à 3 jours : filet si le
+      # job cleanup-ci-dataset ne passe pas. Idempotent (re-run, nouveau push).
+      - name: Create PR dataset
         run: |
-          echo "DBT_BIGQUERY_PROJECT=${{ secrets.DBT_BIGQUERY_PROJECT }}" >> $GITHUB_ENV
-          echo "DBT_BIGQUERY_KEYFILE=$GITHUB_WORKSPACE/keyfile.json" >> $GITHUB_ENV
-          echo "DBT_BIGQUERY_DATASET_DEV=${{ secrets.DBT_BIGQUERY_DATASET_DEV }}" >> $GITHUB_ENV
-          echo "DBT_BIGQUERY_DATASET_PROD=${{ secrets.DBT_BIGQUERY_DATASET_PROD }}" >> $GITHUB_ENV
-          # Target dev → projet isolé evs-datastack-dev via la clé du SA dbt-dev.
-          # Les sources restent lues dans evs-datastack-prod (var raw_project).
-          echo "DBT_BIGQUERY_PROJECT_DEV=evs-datastack-dev" >> $GITHUB_ENV
-          echo "DBT_BIGQUERY_KEYFILE_DEV=$GITHUB_WORKSPACE/keyfile_dev.json" >> $GITHUB_ENV
+          bq --project_id="$DBT_BIGQUERY_PROJECT" show --dataset "$DBT_BIGQUERY_DATASET_CI" >/dev/null 2>&1 \
+            || bq --project_id="$DBT_BIGQUERY_PROJECT" mk --dataset --location=europe-west1 \
+                 --default_table_expiration=259200 --label=env:ci \
+                 --description="Build de la PR #${{ github.event.number }}, supprimé à sa fermeture" \
+                 "$DBT_BIGQUERY_DATASET_CI"
 
       - name: dbt deps + debug
         run: |
           dbt deps
-          dbt debug --target dev
+          dbt debug --target ci
 
       # `dbt lint` remplace SQLFluff, incompatible avec dbt v2. Il lit le meme
       # .sqlfluff (memes codes de regles, memes `-- noqa`) et ne se connecte pas
@@ -122,7 +130,7 @@ jobs:
 
       - name: dbt parse (check for warnings)
         run: |
-          dbt parse --target dev 2>&1 | tee dbt_parse_output.txt
+          dbt parse --target ci 2>&1 | tee dbt_parse_output.txt
           if grep -i "\[WARNING\]" dbt_parse_output.txt; then
             echo "::warning::dbt parse produced warnings — review the output above"
           fi
@@ -139,23 +147,25 @@ jobs:
       # Bloquant : le projet est vert au 2026-09-23 (12 ecarts corriges). Si ce
       # step devient bruyant, corriger la cause plutot que le desarmer.
       - name: dbt static analysis (strict)
-        run: dbt compile --static-analysis strict --target dev
+        run: dbt compile --static-analysis strict --target ci
 
       - name: Download manifest from GCS
         continue-on-error: true
         run: |
           mkdir -p state/
-          gsutil cp gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json state/manifest.json \
+          gcloud storage cp "$DBT_STATE_URI" state/manifest.json \
             || echo "No manifest found in GCS, will run full build"
 
       - name: dbt build
         run: |
           if [[ -f "state/manifest.json" ]]; then
             echo "SELECTIVE build (state:modified+) + --defer: snapshots & unbuilt refs resolve to PROD"
-            dbt build --target dev --select state:modified+ --defer --state state/ --exclude resource_type:snapshot
+            dbt build --target ci --select state:modified+ --defer --state state/ --exclude resource_type:snapshot
           else
-            echo "No prod manifest to defer to -> full standalone build (snapshots included)"
-            dbt build --target dev
+            # Snapshots exclus même ici : leur target_schema est `snapshots` (prod),
+            # où dbt-ci n'a que la lecture.
+            echo "No prod manifest to defer to -> full build in the PR dataset (snapshots excluded)"
+            dbt build --target ci --exclude resource_type:snapshot
           fi
 
 # ============================================================
@@ -179,23 +189,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-lock.txt
 
-      - name: Decode and write service account keyfile
-        run: echo "${{ secrets.DBT_BIGQUERY_KEYFILE }}" | base64 -d > $GITHUB_WORKSPACE/keyfile.json
-
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (WIF, dbt-deployer)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.DBT_BIGQUERY_KEYFILE }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: dbt-deployer@evs-datastack-prod.iam.gserviceaccount.com
 
       - name: Setup Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      # Target prod en ADC (identifiants WIF) ; Cloud Run garde la clé montée.
       - name: Export env variables for dbt
-        run: |
-          echo "DBT_BIGQUERY_PROJECT=${{ secrets.DBT_BIGQUERY_PROJECT }}" >> $GITHUB_ENV
-          echo "DBT_BIGQUERY_KEYFILE=$GITHUB_WORKSPACE/keyfile.json" >> $GITHUB_ENV
-          echo "DBT_BIGQUERY_DATASET_DEV=${{ secrets.DBT_BIGQUERY_DATASET_DEV }}" >> $GITHUB_ENV
-          echo "DBT_BIGQUERY_DATASET_PROD=${{ secrets.DBT_BIGQUERY_DATASET_PROD }}" >> $GITHUB_ENV
+        run: echo "DBT_BIGQUERY_METHOD=oauth" >> $GITHUB_ENV
 
       - name: dbt deps + debug
         run: |
@@ -206,7 +211,7 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p state/
-          gsutil cp gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json state/manifest.json \
+          gcloud storage cp "$DBT_STATE_URI" state/manifest.json \
             || echo "No manifest found in GCS, will run full build"
 
       - name: dbt build
@@ -223,7 +228,7 @@ jobs:
         run: dbt docs generate --target prod
 
       - name: Upload manifest to GCS
-        run: gsutil cp target/manifest.json gs://${{ secrets.DBT_STATE_BUCKET }}/dbt-state/manifest.json
+        run: gcloud storage cp target/manifest.json "$DBT_STATE_URI"
 
       - name: Authenticate to Artifact Registry
         run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
@@ -239,6 +244,30 @@ jobs:
           name: dbt-docs
           path: target/
           retention-days: 90
+
+# ============================================================
+# CLEANUP — supprime le dataset de la PR à sa fermeture (merge ou abandon)
+# ============================================================
+  cleanup-ci-dataset:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate to Google Cloud (WIF, dbt-ci)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: dbt-ci@evs-datastack-prod.iam.gserviceaccount.com
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # dbt-ci est OWNER des datasets qu'il a créés (bigquery.user), et de
+      # ceux-là seulement. Absent = PR sans build (paths non modèle) : pas d'erreur.
+      - name: Drop PR dataset
+        run: |
+          DS="dbt_ci_pr_${{ github.event.number }}"
+          case "$DS" in dbt_ci_pr_[0-9]*) ;; *) echo "refus: $DS"; exit 1 ;; esac
+          bq --project_id="$DBT_BIGQUERY_PROJECT" rm -r -f --dataset "$DS" || echo "$DS absent"
 
 # ============================================================
 # DEPLOY DOCS — runs after cd, deploys to GitHub Pages

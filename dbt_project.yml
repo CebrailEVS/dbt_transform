@@ -155,10 +155,10 @@ snapshots:
 
 # Vars
 vars:
-  # Projet GCP du data lake (prod_raw, historic…). Les sources le lisent via
-  # database: "{{ var('raw_project') }}" pour que `dbt --target dev` (projet
-  # evs-datastack-dev) lise le lac en cross-project read-only sans le dupliquer.
-  # Cf. infra/dev_project_isolation.tf.
+  # Projet GCP du data lake (prod_raw, historic…), lu par les sources via
+  # database: "{{ var('raw_project') }}". Tous les targets vivent désormais dans
+  # ce projet (infra/dbt_environments.tf) ; la var reste pour pouvoir pointer un
+  # build de test vers un autre lac sans toucher aux sources.
   raw_project: 'evs-datastack-prod'
   # Coût du paiement sans contact, en part du CA télémétrie. Le rapport finance
   # de Distrilog l'écrit en dur à 2 % ; aucune trace de ce taux en base, et aucun

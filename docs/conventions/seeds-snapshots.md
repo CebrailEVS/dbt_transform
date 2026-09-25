@@ -21,7 +21,7 @@ data/reference_data/
 └── general/            # ref_general__*.csv        + _general__seeds.yml
 ```
 
-- Nommage CSV : `ref_<source>__<entity>.csv`. Schéma de destination : `prod_reference` / `dev_reference`.
+- Nommage CSV : `ref_<source>__<entity>.csv`. Schéma de destination : `prod_reference` / `dbt_<dev>` (dev).
 - Nommage YAML : `_<source>__seeds.yml`, **un par source**, dans le dossier de la source.
   `seed-paths: ["data"]` → dbt découvre ces YAML automatiquement (pas de config à toucher).
   Il n'y a **plus** de `data/schema.yml` monolithique.
