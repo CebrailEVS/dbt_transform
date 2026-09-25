@@ -22,6 +22,8 @@ select
 
     -- Attributs d'affichage
     a.document_number as appel_numero,
+    a.task_start_date as appel_start_at,
+    a.task_end_date as appel_end_at,
     a.company_code,
     a.company_name,
     a.device_code,
@@ -40,9 +42,6 @@ select
     -- Commentaires
     a.comments_self,
     a.comments_peer,
-
-    -- Dates métier
-    a.task_start_date as appel_started_at,
 
     -- Métadonnées
     a.created_at,

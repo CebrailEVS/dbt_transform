@@ -927,7 +927,7 @@ models:
       1 ligne par task_id (1 appel SAV). ~340 lignes, surtout depuis juillet 2026.
 
       [NOTES]
-      appel_date = date(appel_started_at) sans conversion de fuseau : l'ERP stocke l'heure locale
+      appel_date = date(appel_start_at) sans conversion de fuseau : l'ERP stocke l'heure locale
       (Paris) étiquetée UTC ; l'heure affichée correspond à celle des exports ERP.
       resources_id est NULL quand aucune personne n'est affectée à l'appel (~25 %). L'écran ERP
       affiche alors un libellé dérivé de la catégorie (TECHNIQUE, MAGASIN, COMMERCE…) : ce n'est
@@ -936,10 +936,13 @@ models:
       Un appel peut porter plusieurs sous-catégories : concaténées avec ' / ' (cf. intermediate).
       Les colonnes de l'Excel de suivi calculées par mots-clés sur le commentaire (catégorie appro,
       type technique) ne sont volontairement pas reproduites.
-      Pas de date de fin : l'ERP enregistre la même valeur en début et en fin d'appel (aucune durée).
+      appel_end_at est aujourd'hui toujours égale à appel_start_at : l'ERP n'enregistre pas de durée
+      d'appel. Colonne conservée pour le jour où la fin sera saisie.
+      Les 5 appels antérieurs à juillet 2026 (ASAV2 à ASAV6, sans catégorie) sont gardés : ce sont
+      des saisies ERP réelles ; leur suppression éventuelle se fait dans l'ERP.
     columns:
       - name: appel_date
-        description: "Date de l'appel (date de appel_started_at, heure locale)."
+        description: "Date de l'appel (date de appel_start_at, heure locale)."
         tests:
           - not_null
       - name: task_id
@@ -979,6 +982,12 @@ models:
         tests:
           - unique
           - not_null
+      - name: appel_start_at
+        description: "Date et heure de début de l'appel (heure locale, cf. [NOTES])."
+        tests:
+          - not_null
+      - name: appel_end_at
+        description: "Date et heure de fin de l'appel. Aujourd'hui toujours égale à appel_start_at (cf. [NOTES])."
       - name: company_code
         description: "Code du client (aplati depuis company)."
       - name: company_name
@@ -1015,8 +1024,6 @@ models:
         description: "Commentaire interne saisi sur l'appel (colonne « Commentaire » des exports ERP)."
       - name: comments_peer
         description: "Commentaire côté client / partenaire. Rarement renseigné."
-      - name: appel_started_at
-        description: "Date et heure de début de l'appel (heure locale, cf. [NOTES])."
       - name: created_at
         description: "Date de création de la tâche dans l'ERP."
       - name: updated_at
