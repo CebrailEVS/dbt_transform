@@ -169,7 +169,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '01a0d392-865f-7952-9eac-362421ac9031' as dbt_invocation_id
+    '01a0d7fd-1309-78b0-a336-4dcd6737cfca' as dbt_invocation_id
 from assortiment_stock as ast
 left join reference_designation as rd
     on ast.reference = rd.reference

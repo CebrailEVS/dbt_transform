@@ -20,6 +20,7 @@ cleaned_data as (
         cast(idproduct_destination as int64) as idproduct_destination,
 
         -- Colonnes texte et types
+        cast(document_number as string) as document_number, -- n° de pièce affiché dans l'ERP (ex. ASAV280)
         type_product_source,
         type_product_destination,
         comments_self,

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="appel_categorie_code", model=get_where_subquery(ref('fct_lcdp__appel_sav')), values=["APP01","APP02","APP03","APP04","APP05","APP06","APP07","APP08","APP09"]) }}
