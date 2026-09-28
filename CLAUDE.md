@@ -388,6 +388,8 @@ et reprompt plus précis, plutôt que continuer dans un contexte pollué.
 
 ## Hard rules
 
+- **Où ranger** : brouillon, exports, rapports ponctuels → `tmp/` (ignoré) ; `scripts/` = scripts d'équipe versionnés uniquement ; jamais de clé ni de copie de clé dans le repo (cf. README § Organisation du repo).
+
 - **Snapshots strategy/columns inchangés** — gérés par GCP Cloud Workflows. **Exception** : mettre à jour les `ref()` à l'intérieur d'un snapshot est OK quand une dim référencée est renommée (cf. PR neshu : `snap_oracle_neshu__company` ref → `dim_neshu__company`). Ne jamais renommer le fichier snapshot ni sa table BQ (historique SCD2 perdu).
 - **Never delete or drop tables** unless explicitly asked
 - **Never run against prod target** unless explicitly asked

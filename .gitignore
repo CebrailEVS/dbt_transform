@@ -31,10 +31,9 @@ keyfile.json
 *-keyfile.json
 *-sa-key.json
 
-# Local working files (not versioned)… sauf les scripts d'équipe, listés ici.
-scripts/*
-!scripts/pull-state.sh
-docs/audits/
+# Brouillon local (tests, exports, rapports ponctuels) : tmp/, jamais versionné.
+# scripts/ ne contient QUE des scripts d'équipe, tous versionnés.
+tmp/
 
 # Modèles d'analyse ad hoc / jetables (comparaisons vs prod, dev-only).
 # Non versionnés : ils tournent en local à la demande, hors CI.
@@ -47,3 +46,6 @@ dbt_internal_packages/
 
 # Manifest de prod pour --defer (scripts/pull-state.sh), jamais versionné
 state/
+
+# Identifiant anonyme local de dbt
+.user.yml
