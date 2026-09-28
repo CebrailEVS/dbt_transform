@@ -541,3 +541,448 @@ models:
         description: "Date de dernière modification dans Sage"
       - name: extracted_at
         description: "Horodatage du run dlt qui a chargé la ligne"
+
+  - name: stg_mssql_sage__f_nomenclat
+    description: "Nomenclatures Nunshen — composition des articles fabriqués (composé → composants)."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - ar_ref
+              - no_ref_det
+              - ag_no1
+              - ag_no2
+              - no_operation
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK ligne)"
+        tests:
+          - unique
+          - not_null
+      - name: ar_ref
+        description: "Référence de l'article composé (produit fabriqué)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_article')
+                field: ar_ref
+              config:
+                severity: warn
+      - name: no_ref_det
+        description: "Référence de l'article composant (matière, emballage, sticker…)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_article')
+                field: ar_ref
+              config:
+                severity: warn
+      - name: ag_no1
+        description: "Gamme 1 du composé (0 partout : gammes non utilisées)"
+      - name: ag_no2
+        description: "Gamme 2 du composé (0 partout)"
+      - name: no_operation
+        description: "Opération de fabrication (vide partout)"
+      - name: no_qte
+        description: "Quantité de composant pour UNE unité de composé, dans l'unité du composant"
+        tests:
+          - not_null
+      - name: no_ordre
+        description: "Ordre d'affichage du composant dans la nomenclature"
+      - name: no_type
+        description: "Type de ligne de nomenclature (1 partout ; code Sage non documenté ici)"
+      - name: no_repartition
+        description: "Pourcentage de répartition du coût (non utilisé)"
+      - name: ag_no1_comp
+        description: "Gamme 1 du composant (0 partout)"
+      - name: ag_no2_comp
+        description: "Gamme 2 du composant (0 partout)"
+      - name: de_no
+        description: "Dépôt de prélèvement du composant (0 partout : pas de dépôt imposé)"
+      - name: no_sous_traitance
+        description: "Composant sous-traité (2 lignes sur 5 132)"
+      - name: no_commentaire
+        description: "Commentaire de ligne (vide partout)"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne"
+
+  - name: stg_mssql_sage__f_artfourniss
+    description: "Références et tarifs d'achat par article × fournisseur Nunshen."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - ar_ref
+              - ct_num
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK ligne)"
+        tests:
+          - unique
+          - not_null
+      - name: ar_ref
+        description: "Référence article"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_article')
+                field: ar_ref
+              config:
+                severity: warn
+          # Un seul fournisseur principal par article (vrai sur 1 669 / 1 669 au 2026-09-28)
+          - unique:
+              config:
+                where: "af_principal = 1"
+                severity: warn
+      - name: ct_num
+        description: "Compte fournisseur (tiers de type 1)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_comptet')
+                field: ct_num
+              config:
+                severity: warn
+      - name: af_principal
+        description: "1 = fournisseur principal de l'article"
+      - name: af_ref_fourniss
+        description: "Référence de l'article chez le fournisseur (renseignée sur 8 % des lignes)"
+      - name: af_code_barre
+        description: "Code-barres fournisseur (quasi jamais renseigné)"
+      - name: af_prix_ach
+        description: "Prix d'achat unitaire chez ce fournisseur"
+      - name: af_remise
+        description: "Remise fournisseur"
+      - name: af_type_rem
+        description: "Type de remise (montant ou pourcentage — code Sage)"
+      - name: af_prix_dev
+        description: "Prix d'achat en devise (0 partout)"
+      - name: af_devise
+        description: "Devise du prix (0 = euro)"
+      - name: af_prix_ach_nouv
+        description: "Nouveau prix d'achat, applicable à af_date_application"
+      - name: af_prix_dev_nouv
+        description: "Nouveau prix en devise"
+      - name: af_remise_nouv
+        description: "Nouvelle remise"
+      - name: af_date_application
+        description: "Date d'application du nouveau tarif. NULL si non renseignée (Sage : 1753-01-01) ; 3 lignes datées."
+      - name: af_unite
+        description: "Unité d'achat (constante)"
+      - name: af_conversion
+        description: "Coefficient de conversion unité d'achat → unité de stock (constant)"
+      - name: af_conv_div
+        description: "Diviseur de conversion (constant)"
+      - name: af_colisage
+        description: "Colisage (constant)"
+      - name: af_qte_mini
+        description: "Quantité minimale de commande"
+      - name: af_qte_mont
+        description: "Quantité minimale exprimée en montant (constante)"
+      - name: af_delai_appro
+        description: "Délai d'approvisionnement en jours (constant : non saisi)"
+      - name: af_garantie
+        description: "Durée de garantie (constante)"
+      - name: eg_champ
+        description: "Champ d'énumération de gamme (constant)"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne"
+
+  - name: stg_mssql_sage__f_docentete
+    description: "En-têtes de documents Nunshen (ventes, achats, stock, fabrication). Replace : un document transformé en disparaît."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - do_type
+              - do_piece
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK ligne)"
+        tests:
+          - unique
+          - not_null
+      - name: do_domaine
+        description: "Domaine Sage : 0 = vente, 1 = achat, 2 = stock"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2]
+                quote: false
+              config:
+                severity: warn
+      - name: do_type
+        description: "Type de document dans le domaine — vente : 0 devis, 1 commande, 2 préparation de livraison, 3 bon de livraison, 6 facture, 7 facture comptabilisée ; achat : 12 commande fournisseur, 13 réception ; stock : 20 entrée, 21 sortie, 23 virement de dépôt, 24 préparation de fabrication, 26 bon de fabrication. Numérotation Sage 100 standard, supposée."
+        tests:
+          - not_null
+      - name: do_piece
+        description: "Numéro de pièce (FN… facture, CF… commande fournisseur, BLF… réception…). Unique avec do_type."
+        tests:
+          - not_null
+      - name: do_doc_type
+        description: "Type de document « logique » Sage. Égal à do_type sauf pour la facture comptabilisée (do_type 7 → do_doc_type 6)."
+      - name: do_date
+        description: "Date du document (jamais 1753)"
+        tests:
+          - not_null
+      - name: do_heure
+        description: "Heure de saisie du document, chaîne Sage (format hhmmss préfixé)"
+      - name: do_statut
+        description: "Statut du document (0 ou 2 en vente, 2 en achat, 0 en stock ; code Sage)"
+      - name: do_valide
+        description: "Document validé (1 sur les factures comptabilisées)"
+      - name: do_provenance
+        description: "Provenance du document (0 = normale ; 1, 2 = autres provenances Sage : retour, avoir… — supposé)"
+      - name: do_ref
+        description: "Référence libre du document (vide sur la moitié)"
+      - name: do_piece_orig
+        description: "Numéro de la pièce d'origine"
+      - name: do_ref_externe
+        description: "Référence externe"
+      - name: do_no_web
+        description: "Numéro de commande web (site marchand), 11 % renseigné"
+      - name: do_guid
+        description: "GUID Sage du document (NULL partout)"
+      - name: do_imprim
+        description: "Document imprimé"
+      - name: do_attente
+        description: "Document en attente (0 partout)"
+      - name: do_conversion
+        description: "Indicateur de conversion Sage"
+      - name: do_exclure
+        description: "Document exclu (indicateur Sage)"
+      - name: do_tiers
+        description: "Tiers du document : client (vente) ou fournisseur (achat) → f_comptet.ct_num. En domaine stock : NUMÉRO DE DÉPÔT, pas un tiers."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_comptet')
+                field: ct_num
+              config:
+                where: "do_domaine in (0, 1)"
+                severity: warn
+      - name: ct_num_payeur
+        description: "Tiers payeur (NULL en domaine stock)"
+      - name: ct_num_centrale
+        description: "Centrale d'achat"
+      - name: co_no
+        description: "Collaborateur (représentant) → f_collaborateur.co_no"
+      - name: li_no
+        description: "Lieu de livraison du tiers"
+      - name: et_no
+        description: "Établissement (0 partout)"
+      - name: do_contact
+        description: "Contact (vide partout)"
+      - name: do_coord01
+        description: "Coordonnée libre 1 de l'en-tête"
+      - name: do_coord02
+        description: "Coordonnée libre 2 de l'en-tête"
+      - name: do_coord03
+        description: "Coordonnée libre 3 de l'en-tête"
+      - name: do_coord04
+        description: "Coordonnée libre 4 de l'en-tête"
+      - name: de_no
+        description: "Dépôt du document → f_depot.de_no. Vaut 0 (aucun dépôt) sur la plupart des documents de stock."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_depot')
+                field: de_no
+              config:
+                where: "de_no != 0"
+                severity: warn
+      - name: do_date_livr
+        description: "Date de livraison PRÉVUE. NULL si non renseignée (Sage : 1753-01-01, 97 % des en-têtes)."
+      - name: do_date_livr_realisee
+        description: "Date de livraison réalisée. NULL si non renseignée (47 %)."
+      - name: do_date_expedition
+        description: "Date d'expédition. NULL si non renseignée (100 % vide au 2026-09-28)."
+      - name: do_expedit
+        description: "Mode d'expédition"
+      - name: do_condition
+        description: "Condition de livraison"
+      - name: do_colisage
+        description: "Colisage"
+      - name: do_type_colis
+        description: "Type de colis"
+      - name: do_transaction
+        description: "Nature de transaction (DEB)"
+      - name: do_regime
+        description: "Régime (DEB / fiscal)"
+      - name: mr_no
+        description: "Modèle de règlement"
+      - name: do_code_service
+        description: "Code service (facturation électronique)"
+      - name: cg_num
+        description: "Compte général du document"
+      - name: ca_num
+        description: "Section analytique du document"
+      - name: ca_num_ifrs
+        description: "Section analytique IFRS"
+      - name: n_cat_compta
+        description: "Catégorie comptable"
+      - name: do_period
+        description: "Périodicité"
+      - name: do_devise
+        description: "Devise (0 = euro)"
+      - name: do_cours
+        description: "Cours de la devise"
+      - name: do_tarif
+        description: "Catégorie tarifaire"
+      - name: do_langue
+        description: "Langue (0 partout)"
+      - name: do_souche
+        description: "Souche de numérotation (0 partout)"
+      - name: do_ecart
+        description: "Écart de valorisation (0 partout)"
+      - name: do_ventile
+        description: "Ventilation analytique (0 partout)"
+      - name: do_maj_cpta
+        description: "Mise à jour comptable (0 partout)"
+      - name: do_transfere
+        description: "Document transféré (0 partout)"
+      - name: do_cloture
+        description: "Document clôturé (0 partout)"
+      - name: do_nb_facture
+        description: "Nombre d'exemplaires de facture"
+      - name: do_bl_fact
+        description: "Une facture par bon de livraison (0 partout)"
+      - name: do_reliquat
+        description: "Reliquat (0 partout)"
+      - name: do_tva_debit
+        description: "TVA sur les débits"
+      - name: do_type_calcul
+        description: "Type de calcul (HT / TTC)"
+      - name: do_clause_reserve
+        description: "Clause de réserve de propriété"
+      - name: do_escompte
+        description: "Escompte (0 partout)"
+      - name: do_tx_escompte
+        description: "Taux d'escompte (0 partout)"
+      - name: ab_no
+        description: "Abonnement lié"
+      - name: do_debut_abo
+        description: "Début d'abonnement (NULL partout)"
+      - name: do_fin_abo
+        description: "Fin d'abonnement (NULL partout)"
+      - name: do_debut_period
+        description: "Début de période (NULL partout)"
+      - name: do_fin_period
+        description: "Fin de période (NULL partout)"
+      - name: ca_no
+        description: "Caisse (0 partout)"
+      - name: co_no_caissier
+        description: "Caissier (0 partout)"
+      - name: do_type_frais
+        description: "Type de frais de port (0 partout)"
+      - name: do_val_frais
+        description: "Valeur des frais de port"
+      - name: do_type_ligne_frais
+        description: "Type de ligne des frais"
+      - name: do_type_franco
+        description: "Type de franco (0 partout)"
+      - name: do_val_franco
+        description: "Valeur du franco"
+      - name: do_type_ligne_franco
+        description: "Type de ligne du franco"
+      - name: do_taxe1
+        description: "Taux de taxe 1 (20 en général)"
+      - name: do_type_taux1
+        description: "Type de taux de la taxe 1"
+      - name: do_type_taxe1
+        description: "Type de la taxe 1"
+      - name: do_code_taxe1
+        description: "Code de la taxe 1 (C20, C00…)"
+      - name: do_taxe2
+        description: "Taux de taxe 2"
+      - name: do_type_taux2
+        description: "Type de taux de la taxe 2"
+      - name: do_type_taxe2
+        description: "Type de la taxe 2"
+      - name: do_code_taxe2
+        description: "Code de la taxe 2"
+      - name: do_taxe3
+        description: "Taux de taxe 3"
+      - name: do_type_taux3
+        description: "Type de taux de la taxe 3"
+      - name: do_type_taxe3
+        description: "Type de la taxe 3"
+      - name: do_code_taxe3
+        description: "Code de la taxe 3"
+      - name: do_total_ht
+        description: "Total HT du document"
+      - name: do_total_ht_net
+        description: "Total HT net (après remise pied)"
+      - name: do_total_ttc
+        description: "Total TTC"
+      - name: do_net_a_payer
+        description: "Net à payer"
+      - name: do_montant_regle
+        description: "Montant réglé (0 partout : règlements suivis en comptabilité)"
+      - name: do_ref_paiement
+        description: "Référence de paiement (NULL partout)"
+      - name: do_adresse_paiement
+        description: "Adresse de paiement"
+      - name: do_paiement_ligne
+        description: "Paiement en ligne (0 partout)"
+      - name: do_statut_bap
+        description: "Statut bon à payer (0 partout)"
+      - name: do_facture_elec
+        description: "Facture électronique (0 partout)"
+      - name: do_facture_frs
+        description: "Numéro de facture fournisseur"
+      - name: do_facture_file
+        description: "Fichier de la facture"
+      - name: do_type_transac
+        description: "Type de transaction (0 partout)"
+      - name: do_e_statut
+        description: "Statut électronique (0 partout)"
+      - name: do_demande_regul
+        description: "Demande de régularisation (0 partout)"
+      - name: do_coffre
+        description: "Archivé au coffre-fort (0 partout)"
+      - name: do_motif
+        description: "Motif (« AR-OK » ou vide)"
+      - name: do_motif_devis
+        description: "Motif de refus du devis"
+      - name: eb_no
+        description: "Identifiant Sage non documenté"
+      - name: cfar_no
+        description: "Identifiant Sage non documenté"
+      - name: fac_no
+        description: "Identifiant Sage non documenté"
+      - name: ref_chronopost
+        description: "Champ libre Nunshen : n° de suivi Chronopost / La Poste"
+      - name: poids
+        description: "Champ libre Nunshen : poids du colis, texte libre (« NA » possible)"
+      - name: canal_de_reception
+        description: "Champ libre Nunshen : canal de la commande (EVS, NUNSHEN, DIGITAL, FRONTAL B2B, SITE WEB, ATELIER, AGENTCO)"
+      - name: temp
+        description: "Champ libre Nunshen (vide partout)"
+      - name: b2_b_commentaire_client
+        description: "Champ libre Nunshen : commentaire client B2B"
+      - name: n_de_bl
+        description: "Champ libre Nunshen : numéro de BL externe"
+      - name: coi
+        description: "Champ libre Nunshen : référence libre (ex. facture fournisseur)"
+      - name: cmr_waybill
+        description: "Champ libre Nunshen : référence de lettre de voiture CMR"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne"
