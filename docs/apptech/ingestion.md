@@ -30,19 +30,23 @@ NDJSON dans `gs://evs-datastack-apptech/suivi_tech/`.
 
 ### Infra (`/mnt/data/infra`, master, appliqué)
 
-- `bigquery_external_tables.tf` : tables externes `prod_raw.ext_gcs_apptech__suivi_tech_pause`
-  et `_rw` — NDJSON, **schéma explicite** (pas d'autodetect), `ignore_unknown_values`,
-  URI glob `.../ingestion/<type>/*.ndjson` (traverse les dossiers mensuels).
-  Naming : `ext_gcs_apptech__suivi_tech_<type>`.
+- `bq_ext_apptech.tf` : 8 tables externes `prod_raw.ext_gcs_apptech__suivi_tech_<type>`
+  (les 8 types du bucket, cf. § 3) — NDJSON, **schéma explicite** (pas
+  d'autodetect), `ignore_unknown_values`, URI glob `.../ingestion/<type>/*.ndjson`
+  (traverse les dossiers mensuels).
 - `app_data_access.tf` : `locals.apptech_bucket_readers` → grant `storage.objectViewer`
-  sur le bucket pour `dbt_analysts`, `meltano_runner`, `dbt_dev` (BigQuery lit GCS
-  avec les droits du principal requêteur). **Déjà en place — rien à ajouter en IAM
-  pour un nouveau type.**
+  sur le bucket pour `dbt_analysts` et `meltano_runner` (BigQuery lit GCS avec
+  les droits du principal requêteur). Les SA `dbt-dev`/`dbt-ci`/`dbt-deployer`
+  lisent le même bucket via `locals.dbt_bucket_grants` dans
+  `infra/dbt_environments.tf`, pas via `apptech_bucket_readers`. **Déjà en
+  place — rien à ajouter en IAM pour un nouveau type.**
 
 ### dbt (ce repo)
 
 - `models/staging/apptech/` : `_apptech__sources.yml`, `_apptech__models.yml`,
-  `stg_apptech__suivi_tech_pause.sql`, `stg_apptech__suivi_tech_rw.sql`.
+  8 modèles `stg_apptech__suivi_tech_<type>.sql` (un par type du bucket).
+  Liste à jour : [dbt docs](https://cebrailevs.github.io/dbt_transform/)
+  (filtre `tag:apptech`).
 - Tag `apptech` hérité par dossier (`dbt_project.yml`) — un nouveau modèle dans le
   dossier est taggé automatiquement.
 - Validé : `dbt build --select tag:apptech --target dev` → 15/15 PASS.
@@ -99,7 +103,7 @@ Points d'attention :
 
 1. **Infra d'abord** (`/mnt/data/infra`, direct sur master — pas de branche) :
    ajouter `resource "google_bigquery_table" "ext_gcs_apptech_suivi_tech_<type>"`
-   dans `bigquery_external_tables.tf` (copier le bloc pause, adapter schéma + URI).
+   dans `bq_ext_apptech.tf` (copier le bloc pause, adapter schéma + URI).
    `terraform validate` → `plan` (ne doit montrer QUE les adds attendus) → `apply`.
    Sanity : `bq query 'select count(*), count(distinct _file_name) from prod_raw.ext_gcs_apptech__suivi_tech_<type>'`.
 2. **dbt** (branche feature depuis master) : entrée dans `_apptech__sources.yml`,

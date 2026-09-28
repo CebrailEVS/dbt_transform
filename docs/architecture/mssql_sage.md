@@ -7,7 +7,7 @@
 ## Vue d'ensemble
 
 Sage est l'ERP comptable et commercial du groupe. Ce pipeline extrait les
-données de la base **MSSQL Sage** via Meltano (cadencement quotidien) et les
+données de la base **MSSQL Sage** via le pipeline dlt `mssql_sage` et les
 rend disponibles dans BigQuery pour le **pilotage financier** (P&L par
 Business Unit) et l'analyse commerciale Nunshen.
 
@@ -37,11 +37,11 @@ Cas d'usage principal : le mart `fct_finance__pnl_bu` produit un
 ## Flux de données
 
 ```
-┌─────────────────┐    Meltano (tap-mssql) ┌──────────────────────┐
+┌─────────────────┐    pipeline dlt        ┌──────────────────────┐
 │   MSSQL Sage    │ ─────────────────────► │  prod_raw (BigQuery) │
-│   (on-prem)     │   daily full refresh   │  mssql_sage.dbo_*    │
-└─────────────────┘   (docligne incremental)└─────────┬───────────┘
-                                                     │ dbt staging
+│   (on-prem)     │   mssql_sage           │  mssql_sage.dbo_*    │
+└─────────────────┘   (cf. infra/          └─────────┬───────────┘
+                        workflows_el.tf)             │ dbt staging
                                                      ▼
                                        ┌──────────────────────────┐
                                        │  staging                 │
@@ -52,33 +52,35 @@ Cas d'usage principal : le mart `fct_finance__pnl_bu` produit un
                               + seeds + source historic
                                                   │
                                                   ▼
-                                       ┌──────────────────────────┐
-                                       │  intermediate            │
-                                       │  int_mssql_sage__pnl_bu  │
-                                       └──────────┬───────────────┘
+                                       ┌──────────────────────────────────────┐
+                                       │  intermediate                        │
+                                       │  int_mssql_sage__pnl_bu              │
+                                       │  int_mssql_sage__ecriture_non_       │
+                                       │     ventilee                        │
+                                       └──────────┬───────────────────────────┘
                                                   │
                               + seed ref_mssql_sage__pnl_budget
                                                   │
                                                   ▼
-                                       ┌──────────────────────────┐
-                                       │  marts                   │
-                                       │  fct_mssql_sage__         │
-                                       │     pnl_bu_kpis           │
-                                       └──────────────────────────┘
+                                       ┌──────────────────────────────────┐
+                                       │  marts                            │
+                                       │  fct_finance__pnl_bu              │
+                                       │  fct_finance__ecriture_non_       │
+                                       │     ventilee                     │
+                                       └──────────────────────────────────┘
 ```
 
 **Ce que fait chaque couche :**
 
 | Couche | Rôle | Localisation |
 |---|---|---|
-| `prod_raw` | Données brutes Sage. Trois tables sont stockées **en colonne JSON** (`data`) — voir gotchas | `evs-datastack-prod.prod_raw` |
-| `staging` | Cast des types, extraction des JSON, gestion du placeholder de date Sage `1753-01-01`, harmonisation des timestamps | `evs-datastack-prod.prod_staging` |
-| `intermediate` | Jointure écritures comptable ↔ analytique + résolution de la BU via seeds + fallback regex + override historique 2024 | `evs-datastack-prod.prod_intermediate` |
-| `marts` | KPIs P&L mensuels avec budget, YTD, N-1, écarts et scénarios (avec/sans provisions CP) | `evs-datastack-prod.prod_marts` |
+| `prod_raw` | Données brutes Sage, telles que reçues du pipeline dlt | `evs-datastack-prod.prod_raw` |
+| `staging` | Cast des types, gestion du placeholder de date Sage `1753-01-01`, harmonisation des timestamps | `evs-datastack-prod.prod_staging` |
+| `intermediate` | Jointure écritures comptable ↔ analytique + résolution de la BU via seeds + fallback regex + override historique 2024 ; écritures non ventilées isolées | `evs-datastack-prod.prod_intermediate` |
+| `marts` | KPIs P&L mensuels avec budget, YTD, N-1, écarts et scénarios (avec/sans provisions CP) ; écritures sans ventilation analytique | `evs-datastack-prod.prod_marts` |
 
-**Fraîcheur (source freshness)** : tier *Standard* — warn 26h / error 36h sur
-`_sdc_extracted_at` (sauf `f_ecriturea` et `f_ecriturec` qui utilisent
-`_sdc_received_at`).
+**Fraîcheur (source freshness)** : tier *Standard* — warn 26h / error 48h sur
+`_extracted_at`, uniforme sur toutes les tables de la source.
 
 ---
 
@@ -195,9 +197,9 @@ erDiagram
 
 | Table | Ce qu'elle contient | Lignes (~) |
 |---|---|---|
-| `stg_mssql_sage__f_comptet` | Comptes clients Nunshen. Source raw stockée **en JSON** (colonne `data`). | 12 156 |
-| `stg_mssql_sage__f_collaborateur` | Commerciaux Nunshen. Source raw stockée **en JSON**. | 166 |
-| `stg_mssql_sage__f_docligne` | Lignes de documents Sage (ventes + achats + stock). Filtrer `do_domaine = 0` pour les ventes pures. Source raw stockée **en JSON**. Partitionné sur `do_date`. Matérialisé en `table` (full refresh). | 326 910 |
+| `stg_mssql_sage__f_comptet` | Comptes clients Nunshen. | 12 156 |
+| `stg_mssql_sage__f_collaborateur` | Commerciaux Nunshen. | 166 |
+| `stg_mssql_sage__f_docligne` | Lignes de documents Sage (ventes + achats + stock). Filtrer `do_domaine = 0` pour les ventes pures. Partitionné sur `do_date`. Matérialisé en `table` (full refresh). | 326 910 |
 
 ---
 
@@ -255,16 +257,11 @@ where scenario = 'AVEC_PROVISIONS_CP'
 
 ## Points d'attention
 
-### 3 tables sont stockées en JSON brut côté Sage
-`dbo_f_comptet`, `dbo_f_collaborateur` et `dbo_f_docligne` arrivent dans
-`prod_raw` avec **une seule colonne `data`** (string JSON) au lieu d'un
-schéma tabulaire. Le staging extrait chaque champ via `json_value(data, '$.XXX')`.
-Conséquences :
-- Pas de typage à la source — tout est cast explicitement en staging.
-- Pour ajouter un champ, modifier le staging (pas de colonne à exposer
-  côté source).
-- Les noms de propriétés JSON respectent la casse Sage (`CT_Num`, `cbCO_No`,
-  `cbCreation`, etc.) avec parfois des espaces (`"CATEGORISATION NIV 1"`).
+### `dbo_f_comptet`, `dbo_f_collaborateur`, `dbo_f_docligne` sont désormais en colonnes plates
+Ces trois tables arrivaient auparavant dans `prod_raw` avec une seule colonne
+`data` (string JSON à parser via `json_value`). Le nouvel extracteur dlt les
+expose en **colonnes plates**, cast explicitement en staging comme le reste
+de la source. Pas de blob JSON à gérer sur ce pipeline aujourd'hui.
 
 ### Placeholder de date Sage : `1753-01-01`
 Sage utilise `1753-01-01` (date minimale SQL Server) comme placeholder
@@ -427,9 +424,14 @@ exploiter avec prudence, leur sémantique n'a pas été validée par l'éditeur.
 
 ## Couche intermediate
 
-Un seul modèle intermediate : `int_mssql_sage__pnl_bu`. Il consolide
-écritures comptable + analytique, applique le mapping BU + le mapping
-catégorie comptable, et calcule le montant analytique signé.
+Deux modèles intermediate :
+- `int_mssql_sage__pnl_bu` consolide écritures comptable + analytique,
+  applique le mapping BU + le mapping catégorie comptable, et calcule le
+  montant analytique signé.
+- `int_mssql_sage__ecriture_non_ventilee` (éphémère) isole les écritures
+  classes 6/7 qui n'ont **aucune** ventilation analytique correspondante
+  dans `f_ecriturea` — le symétrique de `is_missing_analytical` mais au
+  niveau écriture plutôt qu'éclatement.
 
 ### Diagramme de flux
 
@@ -472,6 +474,7 @@ flowchart TB
 | Modèle | Grain | Source | Rôle |
 |---|---|---|---|
 | `int_mssql_sage__pnl_bu` | 1 ligne par éclatement analytique (ou 1 ligne par écriture comptable orpheline) | `f_ecriturec` (filtré classes 6/7) `LEFT JOIN` `f_ecriturea` + 2 seeds + override historic 2024 | Fondation du P&L : montant signé, BU résolue, catégorie comptable mappée, drapeaux `is_missing_*` pour la qualité de données |
+| `int_mssql_sage__ecriture_non_ventilee` | 1 ligne par écriture comptable classes 6/7 sans ventilation analytique | `f_ecriturec` filtré classes 6/7, exclusion anti-jointure sur `f_ecriturea` | Isole les écritures orphelines de toute ventilation, alimente `fct_finance__ecriture_non_ventilee` |
 
 ### Choix de modélisation
 
@@ -491,6 +494,7 @@ flowchart TB
 | Mart | Rôle BI |
 |---|---|
 | `fct_finance__pnl_bu` | P&L mensuel par BU avec budget, YTD, N-1 et écarts. Deux scénarios : `AVEC_PROVISIONS_CP` et `SANS_PROVISIONS_CP` (ce dernier exclut les comptes `645800` et `641200`). 6 KPIs : CA, CONSOMMATION_MP_SSTT, MASSE_SALARIALE, FRAIS_DIRECTS_AMORTISSEMENTS, MARGE_BRUTE, MARGE_NETTE. Filtré `annee >= 2024`. |
+| `fct_finance__ecriture_non_ventilee` | Liste des écritures comptables (classes 6/7) sans ventilation analytique — filet de qualité de données pour l'équipe finance. |
 
 ### Seeds & sources auxiliaires
 

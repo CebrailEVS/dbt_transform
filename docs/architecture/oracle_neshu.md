@@ -12,9 +12,9 @@ boissons déployées chez les clients : livraisons de consommables, passages
 roadman (appro), interventions techniques, mouvements de stock, télémétrie,
 pointages.
 
-Ce pipeline extrait les données d'**Oracle (via Meltano tap-oracle)** vers
-BigQuery `prod_raw` (mix full / incremental selon les tables) et les transforme
-en dimensions et faits BI-ready pour Power BI.
+Ce pipeline extrait les données d'**Oracle (via le pipeline dlt `oracle_neshu`)**
+vers BigQuery `prod_raw` (mix full / incremental selon les tables) et les
+transforme en dimensions et faits BI-ready pour Power BI.
 
 Données clés exposées :
 - **Tâches** (`evs_task`) — table de fait centrale, tous les événements opérationnels
@@ -31,17 +31,19 @@ Données clés exposées :
 ## Flux de données
 
 ```
-┌─────────────────┐    Meltano tap-oracle     ┌──────────────────────┐
+┌─────────────────┐    pipeline dlt           ┌──────────────────────┐
 │  Oracle Neshu   │ ─────────────────────►    │  prod_raw (BigQuery) │
-│  (ERP)          │   mix full / incremental  │  oracle_neshu.evs_*  │
-└─────────────────┘                           └──────────┬───────────┘
+│  (ERP)          │   oracle_neshu            │  oracle_neshu.evs_*  │
+└─────────────────┘   (mix full / incremental)└──────────┬───────────┘
                                                          │ dbt staging
                                                          ▼
                                            ┌──────────────────────────┐
                                            │  staging                 │
                                            │  stg_oracle_neshu__*     │
-                                           │  table (1 incremental :  │
-                                           │  stg_oracle_neshu__task) │
+                                           │  table (4 incrementaux : │
+                                           │  task, task_has_product, │
+                                           │  task_has_amount,        │
+                                           │  label_has_thp)          │
                                            └──────────┬───────────────┘
                                                       │ dbt intermediate
                                                       ▼
@@ -71,7 +73,7 @@ Données clés exposées :
 | `marts` | Dims pivotées (labels → colonnes), facts BI-ready | `evs-datastack-prod.prod_marts` |
 
 **Fraîcheur (source freshness)** : tier *Critique* — warn 26h / error 36h sur
-`_sdc_extracted_at`. Source par défaut pour toutes les tables `evs_*`.
+`_extracted_at`. Source par défaut pour toutes les tables `evs_*`.
 
 **Snapshots SCD2** (gérés par Cloud Workflows, exclus du CI) :
 - `snap_oracle_neshu__company` — historique nom / statut actif
@@ -424,13 +426,14 @@ sont **filtrées dès le staging**. En aval, considérer que toutes les lignes
 visibles sont des tâches validées. Pour réintégrer les non-validées (cas rare —
 audit qualité), il faut relire la source brute.
 
-### `stg_oracle_neshu__task` est incrémental — fenêtre de 7 jours
-Seul modèle staging incrémental (volume trop important pour un full refresh).
-Stratégie `merge` sur `idtask`, condition d'incrément :
+### 4 modèles staging incrémentaux — fenêtre de 7 jours
+`stg_oracle_neshu__task`, `stg_oracle_neshu__task_has_product`,
+`stg_oracle_neshu__task_has_amount` et `stg_oracle_neshu__label_has_thp` sont
+incrémentaux (volume trop important pour un full refresh). Stratégie `merge`
+sur la PK, condition d'incrément commune :
 `updated_at > max(updated_at) ou updated_at >= now() - 7 jours`. Cette fenêtre
 de 7 jours rattrape les rares mises à jour rétroactives dans Oracle. Si un
 backfill plus profond est nécessaire, lancer un `--full-refresh` sur le modèle.
-`stg_oracle_neshu__task_has_product` suit le même pattern.
 
 ### Le système de labels (EAV) — ne jamais joindre directement dans un mart
 Oracle Neshu utilise un modèle Entity-Attribute-Value pour les attributs
@@ -444,8 +447,9 @@ le bloc `max(case when label_family_code = ...)` de la dim correspondante.
 ### `resources` mélange personnes et véhicules
 Le même table contient roadmen et camions, distingués par `idresources_type`
 (2=personne, 3=véhicule). Pour analyser uniquement les roadmen ou uniquement
-les véhicules, **filtrer explicitement**. La dim helper `dim_neshu__vehicule_roadman`
-fournit déjà la jointure véhicule ↔ roadman (via le code GEA) si besoin.
+les véhicules, **filtrer explicitement**. `dim_neshu__resource` joint déjà le
+code GEA (via le seed `ref_oracle_neshu__roadman_gea`) si besoin de relier
+véhicule et roadman — la dim `dim_neshu__vehicule_roadman` a été supprimée.
 
 ### Coefficients d'unité — toujours travailler en `quantite_ajustee` dans les marts
 Certains produits sont stockés en unité d'emballage (ex. « GOBELET RAME 50 » =
@@ -473,8 +477,11 @@ ré-extraites pendant plusieurs jours sans que cela soit une anomalie.
 
 ## Couche intermediate
 
-Un modèle intermediate par **type de tâche** (filtre `idtask_type`) +
-deux modèles transverses non liés à `evs_task`. Tous matérialisés en `table`.
+Un modèle intermediate par **type de tâche** (filtre `idtask_type`) + des
+modèles transverses non liés directement à `evs_task` (valorisation de parc,
+CA, coûts, contrats…). Tous matérialisés en `table`. Liste à jour des
+modèles : [dbt docs](https://cebrailevs.github.io/dbt_transform/) (filtre
+`tag:oracle_neshu`).
 
 ### Par type de tâche
 
@@ -482,7 +489,10 @@ deux modèles transverses non liés à `evs_task`. Tous matérialisés en `table
 |---|---|---|
 | `int_oracle_neshu__telemetry_tasks` | 3 | Lecture compteur machine |
 | `int_oracle_neshu__chargement_tasks` | 13 | Chargement de produits dans une machine sur site |
+| `int_oracle_neshu__invendus_tasks` | 11 | Redistribution d'invendus |
+| `int_oracle_neshu__appro_tasks` | 32 | Passage roadman sur une machine |
 | `int_oracle_neshu__livraison_tasks` | 101 | Livraison consommables chez le client |
+| `int_oracle_neshu__commande_fournisseur_tasks` | 120 | Commande fournisseur |
 | `int_oracle_neshu__reception_tasks` | 121 | Réception stock fournisseur |
 | `int_oracle_neshu__inter_techinique_tasks` | 131 | Maintenance / réparation / détartrage |
 | `int_oracle_neshu__commande_interne_tasks` | 132 | Mouvement entre zones internes |
@@ -490,8 +500,6 @@ deux modèles transverses non liés à `evs_task`. Tous matérialisés en `table
 | `int_oracle_neshu__inventaire_tasks` | 162 | Comptage de stock |
 | `int_oracle_neshu__ecart_inventaire_tasks` | 163 | Enregistrement d'écart de stock |
 | `int_oracle_neshu__pointage_tasks` | 194 | Pointage début/fin de journée roadman |
-| `int_oracle_neshu__appro_tasks` | 32 | Passage roadman sur une machine |
-| `int_oracle_neshu__invendus_tasks` | 11 | Redistribution d'invendus |
 
 Chaque modèle applique le même pattern :
 1. Filtre `stg_oracle_neshu__task` sur l'`idtask_type` concerné
@@ -502,37 +510,40 @@ Chaque modèle applique le même pattern :
 
 ### Modèles transverses
 
-| Modèle | Rôle |
-|---|---|
-| `int_oracle_neshu__valorisation_parc_machines` | Agrège #machines + valeur totale par modèle/groupe (alimente le snapshot mensuel) |
-| `int_oracle_neshu__appro_machine_context` | Contexte machine pour les passages appro |
-| `int_oracle_neshu__appro_tasks_enriched` | Vue enrichie des passages appro (chaînage entre passages, KPI durée…) |
+En plus des passages appro enrichis (`int_oracle_neshu__appro_tasks_enriched`,
+`__appro_machine_context`) et de la valorisation de parc
+(`int_oracle_neshu__valorisation_parc_machines`, qui alimente le snapshot
+mensuel), la couche intermediate porte désormais des modèles finance/CA
+(`ca_client_mensuel`, `ca_telemetrie`, `charges_sociales`, `contrat_client`,
+`cout_produits_mensuel`, `demande_mensuelle`, `facturation_tasks`,
+`amortissement_machines`, `telemetrie_parc`, `temps_appro_mensuel`). Détail
+des rôles : [dbt docs](https://cebrailevs.github.io/dbt_transform/) (filtre
+`tag:oracle_neshu`).
 
 ---
 
 ## Marts consommateurs
 
 Les modèles oracle_neshu alimentent principalement `marts/neshu/` et
-`marts/supply_chain/` (post-refacto BU 2026-05).
+`marts/supply_chain/` (post-refacto BU 2026-05). Liste à jour des marts et de
+leur rôle : [dbt docs](https://cebrailevs.github.io/dbt_transform/) (filtre
+`tag:neshu` ou `tag:supply_chain`).
 
-### `marts/neshu/`
-
-| Modèle | Type | Rôle |
-|---|---|---|
-| `dim_neshu__company` | dim | Sociétés avec région, secteur, statut client, KA, tranche collab, adresse — labels pivotés |
-| `dim_neshu__device` | dim | Machines avec marque, gamme, catégorie, modèle économique, is_active |
-| `dim_neshu__product` | dim | Produits avec marque, famille, groupe, type produit standardisé, is_active |
-| `dim_neshu__contract` | dim | Contrats actifs par société + engagement nettoyé |
-| `dim_neshu__resource` | dim | Roadmen + véhicules (avec code GEA, société, coût, dates) |
-| `dim_neshu__vehicule_roadman` | dim helper | Mapping véhicule ↔ roadman pour analyse par véhicule |
-| `fct_neshu__consommation` | fact | Consommation consolidée 3 sources (télémétrie / chargement / livraison). Partitionné `consumption_date` |
-| `fct_neshu__appro` | fact | Passages appro détaillés + durée + classement journalier + heures de travail. Partitionné `task_start_date` |
-| `fct_neshu__chargement_consommation` | fact | Comparaison chargement vs. télémétrie par machine/produit/fenêtre |
-| `fct_neshu__chargement_quinzaine` | fact | Totaux chargement bi-hebdo par type produit / société |
-| `fct_neshu__machine_appro_intervention` | fact | Croisement appro × intervention par machine (post-refacto) |
-| `fct_neshu__maintenance_preventive` | fact | Maintenance préventive (s'appuie aussi sur yuman) |
-| `fct_neshu__workorder_delai` | fact | Délais workorder (croise yuman + neshu) |
+Points structurants à connaître avant de lire ces marts :
+- `dim_neshu__resource` (roadmen + véhicules, code GEA) a remplacé la dim
+  helper `dim_neshu__vehicule_roadman`, supprimée.
+- `fct_neshu__passage_appro` (ex-`fct_neshu__appro`) reste le fait pivot des
+  passages appro — durée, classement journalier, heures de travail,
+  partitionné `task_start_date`.
+- `fct_neshu__consommation` reste le fait pivot de consommation, consolidant
+  3 sources (télémétrie / chargement / livraison), partitionné
+  `consumption_date`.
 
 ### `marts/supply_chain/`
 
-- `fct_supply_chain__flux_neshu` — flux supply chain mensuel (stocks + réceptions + tous types de mouvements consolidés). Partitionné `mois_date`.
+Chaîne prévision/réappro NESHU (stock, flux, classification article,
+prévision de demande, erreur de prévision, couverture, point de commande) —
+`fct_supply_chain__flux_neshu` reste le fait mensuel consolidant stocks,
+réceptions et tous types de mouvements, partitionné `mois_date`. Liste
+complète : [dbt docs](https://cebrailevs.github.io/dbt_transform/) (filtre
+`tag:supply_chain`).

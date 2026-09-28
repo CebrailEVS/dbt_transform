@@ -1,93 +1,77 @@
-# Conventions — Seeds & Snapshots
+# Conventions — Seeds & snapshots
 
-> Ces deux types de ressources ne sont pas des couches du DAG mais ont leurs
-> propres règles. Transversal : [`../../CONVENTIONS.md`](../../CONVENTIONS.md).
+Règles transversales : [CONVENTIONS.md](../../CONVENTIONS.md).
 
-## Seeds (`data/reference_data/`)
+## Seeds
 
-Fichiers CSV chargés via `dbt seed`. Données de référence statiques (mappings,
-paramètres). Organisés par domaine source, **un fichier YAML de doc par source**
-co-localisé avec ses CSV (comme staging/marts) :
+Les seeds sont des CSV de référence statiques (mappings, paramètres), chargés par `dbt seed` dans
+`prod_reference`, ou dans `dbt_<dev>` en dev.
 
 ```
-data/reference_data/
-├── yuman/              # ref_yuman__*.csv          + _yuman__seeds.yml
-├── oracle_neshu/       # ref_oracle_neshu__*.csv   + _oracle_neshu__seeds.yml
-├── oracle_lcdp/        # ref_oracle_lcdp__*.csv     + _oracle_lcdp__seeds.yml
-├── mssql_sage/         # ref_mssql_sage__*.csv     + _mssql_sage__seeds.yml
-├── nesp_tech/          # ref_nesp_tech__*.csv      + _nesp_tech__seeds.yml
-├── nesp_co/            # ref_nesp_co__*.csv        + _nesp_co__seeds.yml
-├── zoho_desk/          # ref_zoho_desk__*.csv      (doc YAML à créer)
-└── general/            # ref_general__*.csv        + _general__seeds.yml
+data/reference_data/<source>/
+├── ref_<source>__<entite>.csv
+└── _<source>__seeds.yml        # doc + tests + column_types, un fichier par source
 ```
 
-- Nommage CSV : `ref_<source>__<entity>.csv`. Schéma de destination : `prod_reference` / `dbt_<dev>` (dev).
-- Nommage YAML : `_<source>__seeds.yml`, **un par source**, dans le dossier de la source.
-  `seed-paths: ["data"]` → dbt découvre ces YAML automatiquement (pas de config à toucher).
-  Il n'y a **plus** de `data/schema.yml` monolithique.
+Sources actuelles : `general`, `mssql_sage`, `nesp_co`, `nesp_tech`, `oracle_lcdp`,
+`oracle_neshu`, `yuman`, `zoho_desk`.
 
-### Déclaration des types de colonnes
+> Dette connue : `zoho_desk` n'a pas encore son `_zoho_desk__seeds.yml`.
 
-Types déclarés **dans `_<source>__seeds.yml`** sous chaque seed, via `config: column_types:`.
-Ne pas utiliser `dbt_project.yml` pour les types par colonne.
+### Types des colonnes
+
+On les déclare **dans `_<source>__seeds.yml`**, avec `config: column_types`, pour **toutes** les
+colonnes. Jamais dans `dbt_project.yml`.
 
 ```yaml
-- name: ref_nesp_tech__key_facturation
-  description: "Cle de facturation des interventions techniques"
+- name: ref_<source>__<entite>
+  description: "Ce que contient la table, et son grain."
   config:
     column_types:
-      type_code: STRING
-      prod_factu: INT64
-      tarif_factu: FLOAT64
+      code: STRING
+      libelle: STRING
+      tarif: FLOAT64
       valid_from: DATE
   columns:
-    - name: type_code
-      ...
+    - name: code
+      description: "Code métier."
+      tests: [not_null]
 ```
 
-### Types BigQuery à utiliser
+Types à utiliser : `STRING`, `INT64`, `FLOAT64`, `DATE`, `TIMESTAMP`, `BOOLEAN`.
 
-| Type | Utiliser | Ne pas utiliser |
-|------|----------|-----------------|
-| Texte | `STRING` | `string`, `str`, `VARCHAR` |
-| Entier | `INT64` | `int`, `integer`, `INTEGER` |
-| Décimal | `FLOAT64` | `float`, `FLOAT`, `NUMERIC` |
-| Date | `DATE` | `date` |
-| Timestamp | `TIMESTAMP` | `timestamp`, `DATETIME` |
-| Booléen | `BOOLEAN` | `bool`, `BOOL` |
+**Choisir le type d'après les valeurs réelles, pas d'après le nom de la colonne.** Un code
+postal `38000` inféré en `INT64` et retypé en `STRING` casse les jointures existantes :
+`head -3 <fichier>.csv` avant de décider.
 
-> **Règle critique** : toujours vérifier les valeurs réelles du CSV avant
-> d'assigner un type. Un code postal sans zéro initial (`38000`) sera inféré
-> `INT64` par BigQuery — le typer `STRING` casserait les joins existants. Ne pas
-> se fier au nom de la colonne seul.
+### Encodage
 
-### Colonnes dans `_<source>__seeds.yml`
-
-Chaque colonne du CSV doit avoir une entrée dans `columns:` avec une description.
-Les colonnes importantes doivent avoir des tests (`not_null`, `unique`, `relationships`).
-
-### BOM dans les fichiers CSV
-
-Ne pas sauvegarder les CSV depuis Excel en UTF-8 avec BOM. Si un fichier contient
-un BOM (visible via `head -c 3 fichier.csv | xxd`), le supprimer avec :
+UTF-8 **sans BOM**. Ne pas enregistrer depuis Excel. Pour retirer un BOM :
 
 ```bash
 sed -i '1s/^\xef\xbb\xbf//' data/reference_data/<source>/<fichier>.csv
 ```
 
-## Snapshots (`snapshots/`)
+Tester : `dbt build -s ref_<source>__<entite>+` (le seed et tout son aval).
 
-Suivi historique SCD Type 2 sur les entités qui évoluent :
+## Snapshots
 
-| Snapshot | Entité | Stratégie |
-|----------|--------|-----------|
-| `snap_oracle_neshu__company` | Clients | timestamp |
-| `snap_oracle_neshu__device` | Machines | timestamp |
-| `snap_oracle_neshu__valo_parc_machines` | Parc machines | timestamp |
+Les snapshots gardent l'historique **SCD2** des entités qui évoluent. Ils sont construits
+**uniquement en prod**, par un workflow Cloud Workflows dédié (`dbt snapshot`), et sont exclus
+de la CI/CD et des builds de dev. Le dev les lit en prod grâce au defer.
 
-Commande : `dbt snapshot`.
+| Snapshot | Construit à partir de | Stratégie |
+|---|---|---|
+| `snap_oracle_neshu__company` | `dim_neshu__company` | `check` |
+| `snap_oracle_neshu__device` | `dim_neshu__device` | `check` |
+| `snap_oracle_neshu__valo_parc_machines` | `int_oracle_neshu__valorisation_parc_machines` | `timestamp` |
+| `snap_lcdp__device` | `dim_lcdp__device` | `check` |
+| `snap_yuman__storehouses` | `stg_yuman__storehouses` | `check` |
+| `snap_yuman__users` | `stg_yuman__users` | `check` |
 
-> **Hard rule** : stratégie/colonnes des snapshots inchangées (gérés par GCP Cloud
-> Workflows). Ne jamais renommer le fichier snapshot ni sa table BQ (historique
-> SCD2 perdu). **Exception** : mettre à jour les `ref()` internes quand une dim
-> référencée est renommée est OK.
+Ils sont exposés en marts sous forme de dimension `_history` (cf. [marts.md § 3](marts.md#3-modélisation--schéma-en-étoile-strict)).
+
+**Règles strictes**
+- Ne jamais changer la stratégie ni les colonnes suivies d'un snapshot.
+- Ne jamais renommer le fichier ni la table BigQuery : l'historique SCD2 serait perdu.
+- Seule exception autorisée : mettre à jour un `ref()` interne quand la dimension source est renommée.

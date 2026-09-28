@@ -20,8 +20,9 @@ Données clés :
   consommables utilisés : 1 ligne = 1 article sur 1 intervention
 
 > Source ingérée par un **Cloud Run dédié** (`ingest-nesp-tech`) qui appelle
-> l'API Arbiter Nomad Repair et dépose un fichier Excel sur GCS, lu ensuite
-> via external table BigQuery.
+> l'API Arbiter Nomad Repair et dépose des fichiers **CSV** sur GCS
+> (`gs://.../nespresso/technique/{interventions,articles}/*.csv`), lus
+> ensuite via external table BigQuery.
 
 ---
 
@@ -30,7 +31,7 @@ Données clés :
 ```
 ┌──────────────────────┐  Cloud Run dédié    ┌────────────────────────────┐
 │  API Arbiter         │ ──────────────────► │  GCS bucket                │
-│  (Nomad Repair)      │  ingest-nesp-tech   │  *.xlsx                    │
+│  (Nomad Repair)      │  ingest-nesp-tech   │  *.csv                     │
 └──────────────────────┘                     └──────────┬─────────────────┘
                                                         │ external table
                                                         ▼
@@ -205,8 +206,8 @@ left join {{ ref('int_nesp_tech__articles_dedup') }}   as art
 
 ## Points d'attention
 
-### Source Excel → sentinels pandas `'nan'`, `'nat'`, `'01/01/0001'`
-Le Cloud Run d'ingestion sérialise un DataFrame pandas en Excel : les valeurs
+### Source CSV → sentinels pandas `'nan'`, `'nat'`, `'01/01/0001'`
+Le Cloud Run d'ingestion sérialise un DataFrame pandas en CSV : les valeurs
 manquantes arrivent sous forme de chaînes **`'nan'`** (texte), **`'nat'`**
 (timestamps), ou **`'01/01/0001'`** (dates par défaut). Toutes les colonnes
 du staging filtrent ces trois sentinels. **Toujours utiliser le staging**,
@@ -229,7 +230,7 @@ descendant doit utiliser la casse minuscule (`'terminée signée'`,
 de Nomad Repair.
 
 ### `code_postal_site` — re-padding du 0 manquant
-Excel/pandas stocke les codes postaux comme nombres et coupe le `0` initial
+Pandas stocke les codes postaux comme nombres et coupe le `0` initial
 (`75001` → `75001` OK, mais `01000` → `1000`). Le staging détecte les codes
 à 4 chiffres et préfixe un `0` :
 ```sql
@@ -267,7 +268,7 @@ Si ce traitement échoue, la valeur passe en NULL — surveiller via
 | `int_nesp_tech__delais_interventions` | Calcule les délais effectifs (jours ouvrés, hors fériés via `ref_general__feries_metropole`) entre `creation_date`/`pickup_date` et `date_heure_debut`. Filtre IDF (`agency in ('evs idf', 'evs', 'evs paris', 'evs paris 2')`) + statuts `terminée signée` / `signature différée`. |
 | `int_nesp_tech__facturation_interventions` | Construit la **clé de facturation** par typologie d'intervention, machine, présence d'article `miniprev`, et zone montagne (via département du code postal). Inclut aussi `mise en échec` pour la facturation forfait. |
 
-> Les noms `dedup` reflètent la nature défensive : la source Excel rejoue
+> Les noms `dedup` reflètent la nature défensive : la source CSV rejoue
 > régulièrement des lignes (full refresh par fichier). Les `dedup` neutralisent
 > ce comportement.
 
@@ -282,6 +283,9 @@ Si ce traitement échoue, la valeur passe en NULL — surveiller via
 | `fct_technique__intervention` | Fait pivot du domaine technique — interventions enrichies avec délais facturation, type machine, zone géographique. Partitionné `date_heure_fin`. |
 | `fct_technique__piece_detachee_pricing_nespresso` | Valorisation des pièces détachées Nespresso consommées sur les interventions. |
 | `fct_technique__alerting_consommation_aguila` | Alerting consommation machine Aguila (modèle spécifique) — détection de pics ou anomalies de consommation pièces. |
+| `fct_technique__consommation_article_nespresso` | Consommation d'articles (pièces, consommables) sur les interventions Nespresso — pendant Nespresso de `fct_technique__consommation_article_yuman`. |
+| `fct_technique__intervention_retraitee` | `fct_technique__intervention` enrichie des décisions de retraitement saisies dans l'app Suivi Tech (facturation forcée, primes) — cf. `docs/apptech/`. |
+| `fct_technique__credit_repair_warranty` | Avoirs Repair Warranty à déduire de la facturation mensuelle NESPRESSO. |
 
 ### `marts/commerce/`
 

@@ -11,9 +11,9 @@ pour le périmètre **LCDP** (entité métier dédiée), distincte de l'instance
 principale `oracle_neshu`.
 
 **Le schéma source, les conventions et les patterns dbt sont identiques à
-`oracle_neshu`** : mêmes tables (`evs_task`, `evs_company`, `evs_device`,
-`evs_product`, `evs_resources`, `evs_contract`, etc.), mêmes systèmes EAV
-de labels, mêmes types de tâches.
+`oracle_neshu`** : mêmes tables (`task`, `company`, `device`, `product`,
+`resources`, `contract`, etc., préfixées `lcdp_` en raw — contre `evs_` côté
+Neshu), mêmes systèmes EAV de labels, mêmes types de tâches.
 
 > **Voir `docs/architecture/oracle_neshu.md`** pour le détail complet :
 > ERD, système EAV, jointures, points d'attention génériques (filtre
@@ -42,47 +42,40 @@ Périmètre nettement plus petit que Neshu :
 
 ### Couche staging
 
-Identique à Neshu — 25 modèles, mêmes noms (préfixe `stg_oracle_lcdp__`),
-mêmes patterns (cast IDs, harmonisation timestamps, filtre
-`code_status_record = '1'`, `stg_oracle_lcdp__task` en incrémental
-partitionné sur `real_start_date`).
+Même préfixe (`stg_oracle_lcdp__`), mêmes patterns qu'oracle_neshu (cast IDs,
+harmonisation timestamps, filtre `code_status_record = '1'`,
+`stg_oracle_lcdp__task` en incrémental partitionné sur `real_start_date`).
+Liste à jour des modèles : [dbt docs](https://cebrailevs.github.io/dbt_transform/)
+(filtre `tag:oracle_lcdp`).
 
-### Couche intermediate — 11 modèles par type de tâche
+### Couche intermediate — un modèle par type de tâche
 
-Même découpage que Neshu, **avec des différences** :
+Même découpage que Neshu, **avec un périmètre de types de tâche plus large**
+côté LCDP : en plus des types communs (appro `32`, chargement `13`, commande
+interne `132`, écart inventaire `163`, inter technique `131`, inventaire
+`162`, invendus `11`, livraison `101`, livraison interne `161`, pointage
+`194`, réception `121`/commande fournisseur `120`, télémétrie `3`), LCDP a des
+types spécifiques à son activité de fabrication/distribution : appel SAV
+(`130`), comptage (`30`), entrée fabrication (`296`), sortie fabrication
+(`297`). `__appro_tasks_enriched` (vue enrichie des passages appro) existe
+aussi côté LCDP. Absents côté LCDP : `__appro_machine_context`,
+`__valorisation_parc_machines`.
 
-| Présent dans LCDP | Absent côté LCDP (vs Neshu) |
-|---|---|
-| `int_oracle_lcdp__appro_tasks` (32) | `__invendus_tasks` (11) |
-| `int_oracle_lcdp__chargement_tasks` (13) | `__appro_machine_context` |
-| `int_oracle_lcdp__commande_interne_tasks` (132) | `__appro_tasks_enriched` |
-| `int_oracle_lcdp__ecart_inventaire_tasks` (163) | `__valorisation_parc_machines` |
-| `int_oracle_lcdp__inter_technique_tasks` (131) | |
-| `int_oracle_lcdp__inventaire_tasks` (162) | |
-| `int_oracle_lcdp__livraison_interne_tasks` (161) | |
-| `int_oracle_lcdp__livraison_tasks` (101) | |
-| `int_oracle_lcdp__pointage_tasks` (194) | |
-| `int_oracle_lcdp__reception_tasks` (121) | |
-| `int_oracle_lcdp__telemetry_tasks` (3) | |
+Liste à jour des modèles : [dbt docs](https://cebrailevs.github.io/dbt_transform/)
+(filtre `tag:oracle_lcdp`).
 
 > Note : `inter_technique` (vs `inter_techinique` côté Neshu — typo
 > historique côté Neshu qui n'a pas été reproduite ici).
 
-### Couche marts — 3 dimensions seulement
+### Couche marts
 
-| Modèle | Rôle |
-|---|---|
-| `dim_lcdp__company` | Sociétés LCDP avec labels pivotés (région, secteur, statut client, ISACTIVE…) |
-| `dim_lcdp__device` | Machines LCDP avec marque, gamme, catégorie, modèle économique |
-| `dim_lcdp__product` | Produits LCDP avec marque, famille, groupe |
-
-**Pas de facts LCDP en dbt aujourd'hui** — la BU LCDP ne consomme que les
-dims + la table externe de monitoring (cf. section suivante). Pas de
-`dim_lcdp__contract`, `dim_lcdp__resource`, ni `fct_lcdp__*` à ce stade.
+Les marts LCDP vivent dans `models/marts/lcdp/` (dimensions company, device, product,
+resource et faits d'activité) ; il n'y a pas de dimension contrat. Liste à jour et rôle de
+chaque modèle : [dbt docs](https://cebrailevs.github.io/dbt_transform/) (filtre `tag:lcdp`).
 
 ### Snapshots
 
-**Aucun snapshot LCDP** aujourd'hui (vs Neshu qui en a 3 :
+Un snapshot LCDP : `snap_lcdp__device` (vs Neshu qui en a 3 :
 `snap_oracle_neshu__company`, `snap_oracle_neshu__device`,
 `snap_oracle_neshu__valo_parc_machines`).
 
@@ -90,5 +83,6 @@ dims + la table externe de monitoring (cf. section suivante). Pas de
 
 ## Marts consommateurs
 
-Domaine `marts/lcdp/` uniquement. Pas de croisement avec d'autres sources
-aujourd'hui (LCDP est un périmètre métier isolé).
+Domaine `marts/lcdp/` principalement, mais LCDP alimente aussi deux facts
+`marts/supply_chain/` : `fct_supply_chain__stock_lcdp` et
+`fct_supply_chain__disponibilite_article_lcdp_depot_mensuel`.

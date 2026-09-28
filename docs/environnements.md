@@ -108,18 +108,53 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
 - **Snapshots** : toujours exclus de la CI et de la CD.
 - **Manifest versionné** : on peut revenir à un état antérieur.
 
-## 6. Ajouter un développeur
+## 6. Travailler à plusieurs
 
-1. Ajouter son nom à `local.dbt_developers` dans `infra/dbt_environments.tf`, puis
-   `terraform plan` et `terraform apply`. Cela crée `dbt_<nom>`.
-2. Générer sa clé :
+Chaque développeur a **son dataset** (`dbt_<nom>`) et lit **la même prod** par le defer : deux
+personnes peuvent modifier le même modèle en même temps sans se gêner. Chaque PR a son propre
+dataset de CI, et les déploiements passent un par un.
+
+### Arrivée d'un développeur
+
+**Côté data engineer**, environ 15 minutes :
+
+1. **Identité.** Aujourd'hui, un seul SA `dbt-dev` écrit dans tous les datasets de dev. Dès le
+   deuxième développeur, passer à **un SA par personne** (`dbt-dev-<nom>`), avec un droit
+   d'écriture sur son seul dataset. C'est ce qui rend l'audit lisible et évite qu'une personne
+   écrase le dataset d'une autre. Dans `infra/dbt_environments.tf`, `local.dbt_developers` doit
+   alors créer le SA **et** le dataset de chaque entrée ; le SA actuel migre par un bloc `moved {}`.
+2. **Dataset.** Ajouter le nom à `local.dbt_developers`, puis `terraform plan` et
+   `terraform apply`. Cela crée `dbt_<nom>`, dont les tables expirent après 14 jours.
+3. **Clé.** Générer la clé de son SA :
    ```bash
-   gcloud iam service-accounts keys create /opt/credentials/gcp-dbt-dev-prod-key.json \
-     --iam-account=dbt-dev@evs-datastack-prod.iam.gserviceaccount.com
-   chmod 600 /opt/credentials/gcp-dbt-dev-prod-key.json
+   gcloud iam service-accounts keys create /opt/credentials/gcp-dbt-dev-<nom>-key.json \
+     --iam-account=dbt-dev-<nom>@evs-datastack-prod.iam.gserviceaccount.com
    ```
-3. Dans son `.env` (modèle : `.env.example`), renseigner
-   `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>`.
+   La lui transmettre par un **canal sécurisé**, jamais par mail ou messagerie en clair. Côté
+   poste : `chmod 600`, hors de tout repo.
+4. **GitHub.** Accès en écriture au repo. La protection de `master` impose déjà la PR.
+5. **DSI.** Le prévenir de l'ouverture d'un accès GCP.
+
+**Côté nouveau développeur**, environ 20 minutes : suivre [CONTRIBUTING § 1](../CONTRIBUTING.md#1-installer-son-poste),
+avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. Vérifier avec
+`dbt debug`, puis `scripts/pull-state.sh`.
+
+### Au quotidien
+
+- Tu développes dans ton dataset ; tes collègues dans le leur.
+- Après un merge d'un collègue : `git pull`, `git rebase origin/master` sur ta branche, puis
+  `scripts/pull-state.sh`. Un conflit git n'apparaît que si vous avez touché le **même fichier**.
+- Chaque PR est relue par une autre personne avant le merge.
+- Sans rebase, rien ne casse en prod : la CI de ta PR reconstruit aussi les modèles de ton
+  collègue, dans leur version antérieure et dans ton dataset de PR. Le résultat est juste moins
+  lisible.
+
+### Départ d'un développeur
+
+1. Supprimer sa clé, puis son SA.
+2. Retirer son nom de `local.dbt_developers`, puis `terraform apply`. Terraform refuse de
+   supprimer un dataset qui contient des tables : le vider avant.
+3. Retirer son accès GitHub.
 
 ## 7. Où c'est défini
 
@@ -131,4 +166,5 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
 | Routage des datasets | `macros/generate_schema_name.sql` |
 | CI/CD | `.github/workflows/dbt-ci.yml` |
 | Variables locales | `.env.example` |
+| Liste des développeurs | `infra/dbt_environments.tf` (`local.dbt_developers`) |
 | Récupération du manifest | `scripts/pull-state.sh` |

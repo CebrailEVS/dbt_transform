@@ -8,9 +8,9 @@
 
 Yuman est l'outil de gestion des interventions terrain (workorders) et des
 demandes d'intervention pour les techniciens EVS. Ce pipeline extrait les
-données de l'**API Yuman** (extraction quotidienne, full refresh via Meltano)
-et les rend disponibles dans BigQuery pour la facturation, le pilotage du SAV
-et le suivi des partenaires.
+données de l'**API Yuman** (extraction quotidienne, full refresh via le
+pipeline dlt `yuman_evs`) et les rend disponibles dans BigQuery pour la
+facturation, le pilotage du SAV et le suivi des partenaires.
 
 Données clés exposées :
 - **Workorders** (interventions) — base de la facturation
@@ -23,10 +23,10 @@ Données clés exposées :
 ## Flux de données
 
 ```
-┌─────────────────┐    Meltano (Singer)   ┌──────────────────────┐
+┌─────────────────┐    pipeline dlt       ┌──────────────────────┐
 │   API Yuman     │ ──────────────────►   │  prod_raw (BigQuery) │
-│                 │   full refresh / day  │  yuman_*             │
-└─────────────────┘                       └──────────┬───────────┘
+│                 │   yuman_evs           │  yuman_evs_*         │
+└─────────────────┘   full refresh / day  └──────────┬───────────┘
                                                      │ dbt staging
                                                      ▼
                                        ┌──────────────────────────┐
@@ -61,9 +61,10 @@ Données clés exposées :
 | `marts` | Dimensions et faits BI-ready (modèle en étoile) | `evs-datastack-prod.prod_marts` |
 
 **Fraîcheur (source freshness)** : tier *Standard* — warn 26h / error 48h sur
-`_sdc_extracted_at`. Les tables référentielles stables (`products`,
-`material_categories`, `workorder_categories`, `storehouses`) ont la freshness
-désactivée.
+`_extracted_at` (source dbt `yuman_api`). Les tables référentielles stables
+(`yuman_evs_products`, `yuman_evs_materials_categories`,
+`yuman_evs_workorders_categories`, `yuman_evs_workorder_demands_categories`,
+`yuman_evs_products_storehouses`) ont la freshness désactivée.
 
 ---
 
@@ -249,9 +250,9 @@ erDiagram
 
 | Table | Ce qu'elle contient | Lignes (~) |
 |---|---|---|
-| `stg_yuman__workorders` | **Table centrale** — un workorder par ligne, avec ses dates clés (`date_planned`, `date_started`, `date_done`) et tous les champs custom EVS extraits du JSON `_embed_fields` (motif non-intervention, raison mise en pause, etc.) | 17 538 |
+| `stg_yuman__workorders` | **Table centrale** — un workorder par ligne, avec ses dates clés (`date_planned`, `date_started`, `date_done`) et tous les champs custom EVS extraits du chemin `$.fields` du JSON `_embed` (motif non-intervention, raison mise en pause, etc.) | 17 538 |
 | `stg_yuman__workorder_demands` | Demandes d'intervention. Une demande peut être convertie ou non en workorder (`workorder_id` nullable) | 17 954 |
-| `stg_yuman__workorder_products` | Produits / pièces consommés lors de chaque intervention. Une ligne = 1 produit utilisé sur 1 workorder. Issu du JSON `_embed_products` de `yuman_workorders` | 15 441 |
+| `stg_yuman__workorder_products` | Produits / pièces consommés lors de chaque intervention. Une ligne = 1 produit utilisé sur 1 workorder. Issu du chemin `$.products` du JSON `_embed` de `yuman_evs_workorders` | 15 441 |
 | `stg_yuman__purchase_orders` | Bons de commande **dépliés** — une ligne = 1 commande + 1 article (le JSON `lines` est unnested) | 7 172 |
 
 ---
@@ -352,11 +353,12 @@ correspondante (créés manuellement par un technicien). Pour cette raison, le
 modèle intermediate `int_yuman__demands_workorders_enriched` utilise un
 `FULL JOIN` entre demandes et workorders.
 
-### Les champs custom EVS sont extraits du JSON `_embed_fields`
-Yuman stocke les champs personnalisés dans un tableau JSON (`_embed_fields`)
-sur les tables `workorders`, `clients`, `materials`, `users` et `sites`. Le
-staging extrait les valeurs par `name` via `json_extract_array` +
-`json_extract_scalar`. Exemples :
+### Les champs custom EVS sont extraits du JSON `_embed`
+Yuman stocke les champs personnalisés dans un tableau JSON, sous le chemin
+`$.fields` de la colonne brute `_embed`, sur les tables `workorders`,
+`clients`, `materials`, `users` et `sites`. Le staging isole ce tableau via
+`json_query`/`json_query_array(_embed, '$.fields')`, puis extrait chaque
+valeur par `name` via `json_extract_scalar`/`json_value`. Exemples :
 - `workorders` : `DATE DE CREATION`, `MOTIF DE NON INTERVENTION`,
   `RAISON MISE EN PAUSE`, `NECESSITE D'INTERVENIR`, etc.
 - `clients` : `CATEGORIE CLIENT EVS` (OR / ARGENT / BRONZE)
@@ -373,8 +375,9 @@ Ces deux modèles staging "explosent" un JSON array de la source :
   Les champs entête de commande sont dupliqués sur chaque ligne. La PK est
   `purchase_order_line_id`, pas `purchase_order_id`.
 - `workorder_products` : 1 ligne = 1 produit utilisé sur 1 workorder, issu
-  de `_embed_products` dans `yuman_workorders`. Cela évite d'avoir à
-  re-parser le JSON dans chaque mart consommateur.
+  du chemin `$.products` de la colonne `_embed` dans `yuman_evs_workorders`
+  (via `json_query_array`). Cela évite d'avoir à re-parser le JSON dans
+  chaque mart consommateur.
 
 ### `storehouses_id` est identique au `user_id` du propriétaire
 Un storehouse Yuman représente l'entrepôt mobile (stock embarqué) d'un
@@ -406,10 +409,17 @@ audit qualité.
 
 ## Couche intermediate
 
-Yuman dispose actuellement d'**un seul modèle intermediate** :
-`int_yuman__demands_workorders_enriched`. Il consolide en une vue large
-(« fat row ») la jointure demande ↔ workorder + tous les référentiels
-associés, et sert de base aux marts technique / commerce.
+Yuman dispose de **deux modèles intermediate** :
+- `int_yuman__demands_workorders_enriched` consolide en une vue large
+  (« fat row ») la jointure demande ↔ workorder + tous les référentiels
+  associés, et sert de base aux marts technique / commerce.
+- `int_yuman__interventions` fusionne ce qui était auparavant éclaté en deux
+  facts chaînés (`fct_technique__workorder_pricing`, désormais supprimé,
+  puis `fct_neshu__workorder_delai`) pour couper la dépendance fait→fait :
+  normalisation type/machine/métropole, tarification automatique, délai de
+  traitement en jours ouvrés, qualification métier de l'intervention
+  (`intervention_state` + flags). Périmètre : exclut les workorders sans
+  demande rattachée.
 
 ### Diagramme de flux
 
@@ -472,7 +482,7 @@ Les modèles Yuman alimentent deux familles de marts (post-refacto BU 2026-05) :
 
 | Dossier | Marts | Usage BI |
 |---|---|---|
-| `marts/technique/` | 5 dims conformed (`dim_technique__client/site/material/parc_machine/technician`) + facts transverses (`fct_technique__workorder_pricing`, `fct_technique__suivi_partenaire`, `fct_technique__intervention`) | Pilotage technique transverse (tous partenaires Yuman) |
+| `marts/technique/` | dims conformes (`dim_technique__*` : client, site, material, parc_machine, technician, product) + facts transverses (`fct_technique__suivi_partenaire`, `fct_technique__intervention`) — `fct_technique__workorder_pricing` a été retiré, remplacé par `int_yuman__interventions` | Pilotage technique transverse (tous partenaires Yuman) |
 | `marts/neshu/` | `fct_neshu__workorder_delai`, `fct_neshu__maintenance_preventive` | Logique métier Neshu-specific sur données Yuman |
 
 > Note : `marts/commerce/fct_commerce__machine_intervention` ne

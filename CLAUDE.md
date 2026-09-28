@@ -129,7 +129,7 @@ Seeds are in `data/reference_data/<source>/` and land in `prod_reference` / `dbt
 - Seeds: `ref_<source>__<entity>.csv` (no monolithic `data/schema.yml` — doc lives in the per-source `_<source>__seeds.yml`)
 - Columns: snake_case · IDs as `id<entity>` in staging, `<entity>_id` in marts
 - Booleans: `is_` / `has_` prefix · timestamps: `_at` suffix · dates: `_date` suffix
-- Every staging model exposes: `created_at`, `updated_at`, `extracted_at`, `deleted_at`
+- Staging system columns: `extracted_at` **mandatory** (from dlt `_extracted_at`); `created_at` / `updated_at` when the source has them. **`deleted_at` is gone** (Meltano-only, always NULL) — don't add it. Debt: `zoho_desk` still exposes raw `_extracted_at`.
 
 Voir [`docs/conventions/marts.md`](docs/conventions/marts.md) § Nommage pour les règles complètes (suffixe de grain, suffixe de source si collision, etc.).
 
@@ -191,7 +191,7 @@ For each new model, create the SQL and its YAML entry in the same PR:
 
 ### Staging pattern
 ```sql
-{{ config(materialized='table') }}
+{{ config(materialized='table', description='<quoi + source>') }}
 with source_data as (select * from {{ source('...', '...') }}),
 cleaned_data as (
     select
@@ -199,8 +199,7 @@ cleaned_data as (
         ...
         timestamp(creation_date) as created_at,
         timestamp(coalesce(modification_date, creation_date)) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        timestamp(_extracted_at) as extracted_at
     from source_data
 )
 select * from cleaned_data

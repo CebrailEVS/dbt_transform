@@ -23,7 +23,7 @@ pipx install pre-commit && pre-commit install && pre-commit install --hook-type 
 ```
 
 - **Dataset et clé** : le data engineer crée ton dataset `dbt_<toi>` et te remet la clé
-  `dbt-dev` (procédure : [docs/environnements.md § 6](docs/environnements.md#6-ajouter-un-développeur)).
+  `dbt-dev` (procédure : [docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs)).
   La clé reste hors du repo.
 - **pre-commit** : `dbt lint` s'exécute au commit et `dbt parse` au push. Ce sont les mêmes
   contrôles que la CI, rejoués en local.
@@ -102,6 +102,12 @@ construit ensuite les modèles modifiés et leur aval dans `dbt_ci_pr_<N>`. Tu p
 dataset dans BigQuery pour contrôler le résultat. Il est supprimé à la fermeture de la PR.
 
 Au merge, seuls les modèles modifiés et leur aval sont reconstruits en prod.
+
+### À plusieurs
+
+Chacun développe dans son dataset, et les PR sont relues par une autre personne. Après le merge
+d'un collègue : `git rebase origin/master` sur ta branche, puis `scripts/pull-state.sh`.
+Arrivée et départ d'un développeur : [docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs).
 
 ### Après le merge
 

@@ -22,7 +22,7 @@ scripts/pull-state.sh         # manifest prod, pour le --defer
 ```
 
 Python 3.11+ est requis : dbt v2 est un moteur Rust distribué comme extension CPython.
-Pour obtenir ta clé et ton dataset, voir [docs/environnements.md § 6](docs/environnements.md#6-ajouter-un-développeur).
+Pour obtenir ta clé et ton dataset, voir [docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs).
 
 ---
 

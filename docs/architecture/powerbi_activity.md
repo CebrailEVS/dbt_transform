@@ -1,8 +1,8 @@
 # Architecture — Power BI activity (`powerbi_activity`)
 
 > Dernière mise à jour : 2026-09-03
-> **État : source en production. Staging construit (4 modèles) le 2026-09-03 ;
-> intermediate/marts à faire, et l'étape dbt reste à ajouter au workflow infra.**
+> **État : source en production.** Staging (4 modèles) et marts BU `bi`
+> construits le 2026-09-03 ; l'étape dbt est intégrée au workflow infra.
 
 ---
 
@@ -251,10 +251,10 @@ S'il en trouve 75 et 149, les filtres ne sont pas appliqués.
    Aucune `exposure` créée : aucun rapport Power BI ne consomme encore ces
    marts. À créer (`models/exposures/bi.yml`) le jour où le tableau de bord de
    gouvernance existe.
-4. **Ajouter l'étape dbt au workflow.** `infra/workflows/pipeline-powerbi-activity.yaml`
-   n'a **qu'une étape EL** aujourd'hui : le staging existe mais **rien ne le
-   construit en prod**. Conformément à l'architecture Option C, y ajouter
-   `dbt build source:powerbi_activity+` sur le modèle de
+4. ~~**Ajouter l'étape dbt au workflow.**~~ — **FAIT.**
+   `infra/workflows/pipeline-powerbi-activity.yaml` enchaîne désormais l'EL
+   (`elt-powerbi-activity`) et un `dbt build` (job `dbt-runner`,
+   `DBT_SOURCE_SELECTOR`/`DBT_TAG_SELECTOR`), sur le modèle de
    `pipeline-yuman-evs.yaml`.
 
 ---
