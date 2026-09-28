@@ -13,7 +13,7 @@ Référence unique du monitoring de fraîcheur. **14 sources, 115 tables déclar
 | `oracle_neshu` | 20 / 30 | Critique | A · source | `_extracted_at` | 26h / 36h |
 | `oracle_lcdp` | 17 / 28 | Critique | A · source | `_extracted_at` | 26h / 36h |
 | `yuman_api` | 8 / 13 | Standard | A · source | `_extracted_at` | 26h / 48h |
-| `mssql_sage` | 8 / 8 | Standard | A · source | `_extracted_at` | 26h / 48h |
+| `mssql_sage` | 15 / 15 | Standard | A · source | `_extracted_at` | 26h / 48h |
 | `powerbi_activity` | 4 / 4 | Standard | A · source | `_extracted_at` | 26h / 48h |
 | `gac` | 2 / 2 | Relaxe | A · source | `_extracted_at` | 7j / 14j |
 | `yuman_evs_sftp` | 1 / 1 | Quotidien 7j/7 | A · source | `timestamp(export_date)` | 36h / 48h |
