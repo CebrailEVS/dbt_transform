@@ -36,8 +36,8 @@ Référence complète : [`docs/environnements.md`](docs/environnements.md).
 - `prod` → `prod_<couche>` : comportement dbt par défaut, inchangé.
 - Frontière = **IAM** : `dbt-dev` et `dbt-ci` lisent `prod_*`, n'y écrivent jamais. La macro
   refuse aussi un dataset `prod_*` hors prod à la compilation.
-- `--defer` par défaut : lancer `scripts/pull-state.sh` après un merge (manifest prod depuis
-  `gs://evs-datastack-dbt-state`). Incrémental à tester : `dbt clone -s <modele>` puis build.
+- `--defer` par défaut : le manifest prod est tenu à jour par un hook git (`post-merge`, `post-checkout`) qui lance `scripts/pull-state.sh` (téléchargement seulement si la prod a changé ; à la main : `--force`), depuis
+  `gs://evs-datastack-dbt-state`. Incrémental à tester : `dbt clone -s <modele>` puis build.
 - Snapshots : jamais construits hors prod (`target_schema: snapshots`, lecture seule hors prod).
 Never run against `prod` target unless explicitly asked.
 

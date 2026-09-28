@@ -17,16 +17,26 @@ cp .env.example .env          # renseigner DBT_BIGQUERY_DATASET_DEV et la clé (
 direnv allow                  # charge .env à chaque cd ; sans direnv : set -a && source .env && set +a
 
 dbt deps && dbt debug
-scripts/pull-state.sh         # manifest prod pour le defer
 
-pipx install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
+pipx install pre-commit && pre-commit install   # hooks git (voir ci-dessous)
+scripts/pull-state.sh         # premier manifest prod ; ensuite, c'est automatique
 ```
 
 - **Dataset et clé** : le data engineer crée ton dataset `dbt_<toi>` et te remet la clé
   `dbt-dev` (procédure : [docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs)).
   La clé reste hors du repo.
-- **pre-commit** : `dbt lint` s'exécute au commit et `dbt parse` au push. Ce sont les mêmes
-  contrôles que la CI, rejoués en local.
+- **Hooks git** (`pre-commit install`, une fois par clone) : des scripts que git lance tout seul
+  à certains moments. Ils sont versionnés dans `.pre-commit-config.yaml`, donc identiques pour
+  toute l'équipe.
+
+  | Quand | Ce qui tourne | Si ça échoue |
+  |---|---|---|
+  | `git commit` | `dbt lint` sur les `.sql` modifiés | le commit est refusé |
+  | `git push` | `dbt parse` du projet | le push est refusé |
+  | `git pull`, changement de branche | mise à jour du manifest prod (`scripts/pull-state.sh`) | un avertissement, **git continue** |
+
+  Le manifest n'est téléchargé que si la prod a changé (environ 1 s sinon). À la main, en cas de doute :
+  `scripts/pull-state.sh`, ou `--force` pour retélécharger.
 - **Dépendances** : toujours installer depuis `requirements-lock.txt`. Seul le data engineer
   modifie `requirements*.txt`. Après un `git pull` qui les modifie :
   `pip install -r requirements-lock.txt`.
@@ -36,10 +46,10 @@ pipx install pre-commit && pre-commit install && pre-commit install --hook-type 
 ## 2. Développer un modèle
 
 Tu écris dans **ton** dataset `dbt_<toi>`. Tout ce que tu ne construis pas est lu en prod
-(**defer**), donc tu ne reconstruis jamais la chaîne amont.
+(**defer**), donc tu ne reconstruis jamais la chaîne amont. Le defer s'appuie sur le manifest de
+prod, que les hooks git tiennent à jour à chaque `git pull`.
 
 ```bash
-scripts/pull-state.sh           # après chaque merge sur master
 dbt build -s mon_modele         # ton modèle et ses tests
 dbt build -s mon_modele+        # + tout l'aval, pour vérifier que rien ne casse
 ```
@@ -106,15 +116,17 @@ Au merge, seuls les modèles modifiés et leur aval sont reconstruits en prod.
 ### À plusieurs
 
 Chacun développe dans son dataset, et les PR sont relues par une autre personne. Après le merge
-d'un collègue : `git rebase origin/master` sur ta branche, puis `scripts/pull-state.sh`.
+d'un collègue : `git pull` sur `master` (le manifest suit tout seul), puis `git rebase origin/master`
+sur ta branche.
 Arrivée et départ d'un développeur : [docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs).
 
 ### Après le merge
 
 ```bash
 git checkout master && git pull && git branch -d feature/neshu/kpi-livraison
-scripts/pull-state.sh
 ```
+
+Le `git pull` met aussi à jour le manifest prod.
 
 ---
 

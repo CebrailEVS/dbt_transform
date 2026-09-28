@@ -31,8 +31,9 @@ keyfile.json
 *-keyfile.json
 *-sa-key.json
 
-# Local working files (not versioned)
-scripts/
+# Local working files (not versioned)… sauf les scripts d'équipe, listés ici.
+scripts/*
+!scripts/pull-state.sh
 docs/audits/
 
 # Modèles d'analyse ad hoc / jetables (comparaisons vs prod, dev-only).
