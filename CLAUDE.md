@@ -2,7 +2,7 @@
 
 ## Project overview
 ELT data warehouse for EVS Professionnelle France.
-**Stack:** Meltano + Cloud Run jobs (extract) → BigQuery `prod_raw` (lake) → dbt (transform) → GCP Cloud Workflows (orchestrate) → Power BI (viz)
+**Stack:** dlt sur Cloud Run jobs (extract, repo `ingestion`) → BigQuery `prod_raw` (lake) → dbt (transform) → GCP Cloud Workflows (orchestrate) → Power BI (viz)
 **dbt version:** 2.0.6 — paquet `dbt` (moteur Rust, adaptateur BigQuery inclus). Distribution
 gratuite mais **propriétaire** (dbt Product Licensing Agreement) ; `dbt-oss` est l'équivalent
 Apache 2.0, **sans `dbt lint`**. Choix assumé le 2026-09-21.
@@ -87,8 +87,8 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
   GCS, `--defer` et `state:modified+` fonctionnent **dans les deux sens**, donc un rollback vers
   1.12 ne demande qu'un revert du `Dockerfile` + un `cd` (l'image est re-résolue par exécution).
 - **v2 exige `roles/bigquery.readSessionUser`** : il lit via la BigQuery Storage Read API. Sans
-  ce rôle → `[DbDriverFailed (dbt1308)]`. Accordé au SA `dbt-dev` sur le projet dev
-  (`infra/dev.tf`) ; la prod passe via le `roles/owner` de `meltano-service`.
+  ce rôle → `[DbDriverFailed (dbt1308)]`. Accordé à `dbt-dev`, `dbt-ci`, `dbt-deployer`
+  (`infra/dbt_environments.tf`) et à `meltano-runner` (`infra/iam.tf`), l'identité de Cloud Run.
 - **SQLFluff est retiré** : incompatible v2, remplacé par `dbt lint` (natif, lit le même
   `.sqlfluff`, mêmes codes de règles, mêmes `-- noqa`, pas de connexion BigQuery). La parité
   n'est pas garantie règle pour règle — layout/indentation (LT02) est la divergence connue.
@@ -110,7 +110,7 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
 | `models/intermediate/` | `prod_intermediate` / `dbt_<dev>` | table |
 | `models/marts/` | `prod_marts` / `dbt_<dev>` | table |
 
-**10 sources** in `prod_raw`: `oracle_neshu`, `oracle_lcdp`, `yuman`, `nesp_tech`, `nesp_co`, `mssql_sage`, `gac`, `yuman_evs_sftp`, `oracle_neshu_gcs`, `oracle_lcdp_gcs`
+Sources : voir le tableau du [README](README.md#sources-de-donnees) (14 sources, dont `historic`), autorité de fraîcheur dans [`docs/freshness.md`](docs/freshness.md).
 
 Seeds are in `data/reference_data/<source>/` and land in `prod_reference` / `dbt_<dev>`.
 
