@@ -213,7 +213,7 @@ models:
 
   # TABLE DOCLIGNE NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_docligne
-    description: "Table des docligne Nunshen nettoyée et transformée depuis la table source dbo_f_docligne de MSSQL Sage"
+    description: "Lignes de documents Nunshen (ventes, achats, stock, fabrication). Merge sans purge : ~1 900 lignes au 2026-09-28 n'ont plus d'en-tête dans f_docentete (documents transformés ou supprimés dans Sage) — pas de test de relation vers f_docentete, c'est attendu."
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK)"
@@ -252,6 +252,14 @@ models:
           Pour do_domaine = 2 (stock interne), ct_num est un code
           d'entrepôt / dépôt numérique et ne correspond PAS à un client
           de f_comptet.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_comptet')
+                field: ct_num
+              config:
+                where: "do_domaine in (0, 1)"
+                severity: warn
       - name: do_piece
         description: "Pièce associée à la ventes"
       - name: dl_design
@@ -273,6 +281,183 @@ models:
         description: "Montant TTC de la vente"
       - name: dl_prix_unitaire
         description: "Prix unitaire du produit"
+      - name: dl_ligne
+        description: "Numéro d'ordre de la ligne dans le document (pas de 1 000 en 1 000)"
+      - name: old_dl_no
+        description: "Ancien numéro de ligne (texte, avant renumérotation Sage)"
+      - name: do_doc_type
+        description: "Type de document « logique » Sage (cf. f_docentete.do_doc_type)"
+      - name: do_ref
+        description: "Référence libre du document"
+      - name: co_no
+        description: "Collaborateur (représentant) — même valeur que cbco_no"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_collaborateur')
+                field: co_no
+              config:
+                where: "co_no != 0"
+                severity: warn
+      - name: dl_piece_bc
+        description: "Numéro du document d'origine recopié à la transformation : commande fournisseur (CF…) sur une réception, PF d'origine sur un bon de fabrication, commande client côté vente"
+      - name: dl_date_bc
+        description: "Date du document d'origine (dl_piece_bc). NULL si non renseignée (Sage : 1753-01-01)."
+      - name: dl_qte_bc
+        description: "Quantité du document d'origine (quantité commandée sur une réception ; 0 sur un bon de fabrication)"
+      - name: dl_piece_bl
+        description: "Numéro du bon de livraison d'origine"
+      - name: dl_date_bl
+        description: "Date du bon de livraison d'origine. NULL si 1753-01-01."
+      - name: dl_qte_bl
+        description: "Quantité livrée"
+      - name: dl_piece_pl
+        description: "Numéro de la préparation de livraison d'origine"
+      - name: dl_date_pl
+        description: "Date de la préparation de livraison. NULL si 1753-01-01."
+      - name: dl_qte_pl
+        description: "Quantité préparée"
+      - name: dl_type_pl
+        description: "Type de ligne de préparation (code Sage)"
+      - name: dl_piece_de
+        description: "Numéro du devis d'origine"
+      - name: dl_date_de
+        description: "Date du devis d'origine. NULL si 1753-01-01."
+      - name: dl_qte_de
+        description: "Quantité du devis"
+      - name: do_date_livr
+        description: "Date de livraison PRÉVUE, recopiée de la commande. NULL si non renseignée (Sage : 1753-01-01, 96 % des lignes)."
+      - name: dl_piece_of_prod
+        description: "Pièce d'ordre de fabrication (0 partout)"
+      - name: ar_ref_compose
+        description: "Article composé (kit / nomenclature) dont la ligne est un composant → f_article.ar_ref"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_article')
+                field: ar_ref
+              config:
+                severity: warn
+      - name: dl_t_nomencl
+        description: "1 = ligne issue d'une nomenclature"
+      - name: ag_no1
+        description: "Gamme 1 (0 partout)"
+      - name: ag_no2
+        description: "Gamme 2 (0 partout)"
+      - name: af_ref_fourniss
+        description: "Référence de l'article chez le fournisseur"
+      - name: ac_ref_client
+        description: "Référence de l'article chez le client (vide partout)"
+      - name: ancien_code_article
+        description: "Ancien code article (reprise d'historique)"
+      - name: eu_enumere
+        description: "Conditionnement / unité énumérée de la ligne"
+      - name: eu_qte
+        description: "Quantité dans le conditionnement énuméré"
+      - name: dl_poids_net
+        description: "Poids net de la ligne"
+      - name: dl_poids_brut
+        description: "Poids brut de la ligne"
+      - name: de_no
+        description: "Dépôt de la ligne → f_depot.de_no. 0 = aucun dépôt (lignes sans mouvement de stock : commentaires…)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_depot')
+                field: de_no
+              config:
+                where: "de_no != 0"
+                severity: warn
+      - name: dl_mvt_stock
+        description: "Mouvement de stock : 1 = entrée, 3 = sortie, 0 = sans mouvement"
+      - name: dl_cmup
+        description: "Coût moyen unitaire pondéré de l'article au moment de la ligne"
+      - name: dl_prix_ru
+        description: "Prix de revient unitaire"
+      - name: dl_valorise
+        description: "1 = ligne valorisée (comptée dans les totaux du document)"
+      - name: dl_non_livre
+        description: "Ligne non livrée (0 partout)"
+      - name: dl_no_colis
+        description: "Numéro de colis (vide partout)"
+      - name: dl_no_ref
+        description: "Numéro de référence de ligne (code Sage)"
+      - name: dl_no_link
+        description: "Ligne liée (0 partout)"
+      - name: dl_no_sous_total
+        description: "Ligne de sous-total rattachée (0 partout)"
+      - name: dl_pubc
+        description: "Prix unitaire du bon de commande"
+      - name: dl_pu_devise
+        description: "Prix unitaire en devise"
+      - name: dl_puttc
+        description: "Prix unitaire TTC"
+      - name: dl_ttc
+        description: "1 = prix saisi TTC"
+      - name: dl_remise01_rem_valeur
+        description: "Remise 1 : valeur"
+      - name: dl_remise01_rem_type
+        description: "Remise 1 : type (0 = montant, 1 = pourcentage — supposé)"
+      - name: dl_remise02_rem_valeur
+        description: "Remise 2 : valeur"
+      - name: dl_remise02_rem_type
+        description: "Remise 2 : type"
+      - name: dl_remise03_rem_valeur
+        description: "Remise 3 : valeur (0 partout)"
+      - name: dl_remise03_rem_type
+        description: "Remise 3 : type"
+      - name: dl_t_rem_pied
+        description: "Remise de pied appliquée (0 partout)"
+      - name: dl_t_rem_exep
+        description: "Remise exceptionnelle"
+      - name: dl_escompte
+        description: "Ligne soumise à l'escompte"
+      - name: dl_frais
+        description: "Frais de la ligne (0 partout)"
+      - name: dl_fact_poids
+        description: "Facturation au poids (0 partout)"
+      - name: dl_taxe1
+        description: "Taux de taxe 1"
+      - name: dl_type_taux1
+        description: "Type de taux de la taxe 1"
+      - name: dl_type_taxe1
+        description: "Type de la taxe 1"
+      - name: dl_code_taxe1
+        description: "Code de la taxe 1 (C5, C20, C00…)"
+      - name: dl_taxe2
+        description: "Taux de taxe 2"
+      - name: dl_type_taux2
+        description: "Type de taux de la taxe 2"
+      - name: dl_type_taxe2
+        description: "Type de la taxe 2"
+      - name: dl_code_taxe2
+        description: "Code de la taxe 2"
+      - name: dl_taxe3
+        description: "Taux de taxe 3"
+      - name: dl_type_taux3
+        description: "Type de taux de la taxe 3"
+      - name: dl_type_taxe3
+        description: "Type de la taxe 3"
+      - name: dl_code_taxe3
+        description: "Code de la taxe 3"
+      - name: ca_num
+        description: "Section analytique de la ligne"
+      - name: ca_no
+        description: "Caisse (0 partout)"
+      - name: dt_no
+        description: "Identifiant Sage non documenté (0 partout)"
+      - name: rp_code
+        description: "Ressource de production (NULL partout)"
+      - name: dl_qte_ressource
+        description: "Quantité de ressource (0 partout)"
+      - name: dl_date_avancement
+        description: "Date d'avancement. NULL si 1753-01-01 (100 % au 2026-09-28)."
+      - name: pf_num
+        description: "Numéro de plan de fabrication (vide partout)"
+      - name: dl_operation
+        description: "Opération de fabrication (vide partout)"
+      - name: dl_ref_externe
+        description: "Référence externe (vide partout)"
       - name: created_at
         description: "Date de création de la ligne document (cb_creation)"
       - name: updated_at
