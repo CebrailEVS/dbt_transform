@@ -1062,3 +1062,87 @@ models:
         description: "Horodatage du run dlt : identifie la photo (une valeur par photo)"
         tests:
           - not_null
+
+  - name: stg_mssql_sage__f_lotserie
+    description: "Lots et numéros de série Nunshen — mouvements d'entrée et de sortie par lot. Sans aval tant que Sage n'est pas corrigé."
+    tests:
+      # Clé observée, pas déclarée par Sage (aucun index UNIQUE) : warn
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - dl_no_in
+              - dl_no_out
+              - ls_no_serie
+          config:
+            severity: warn
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK ligne)"
+        tests:
+          - unique
+          - not_null
+      - name: ar_ref
+        description: "Référence article"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_article')
+                field: ar_ref
+              config:
+                severity: warn
+      - name: ls_no_serie
+        description: "Numéro de lot ou de série"
+        tests:
+          - not_null
+      - name: de_no
+        description: "Dépôt du lot"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_depot')
+                field: de_no
+              config:
+                severity: warn
+      - name: dl_no_in
+        description: "Ligne de document d'entrée du lot (→ f_docligne.dl_no)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_docligne')
+                field: dl_no
+              config:
+                severity: warn
+      - name: dl_no_out
+        description: "Ligne de document de sortie du lot (→ f_docligne.dl_no). 0 = lot pas encore sorti."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_docligne')
+                field: dl_no
+              config:
+                where: "dl_no_out != 0"
+                severity: warn
+      - name: ls_mvt_stock
+        description: "Sens du mouvement : 1 = entrée, 3 = sortie"
+      - name: ls_qte
+        description: "Quantité du mouvement de lot"
+      - name: ls_qte_restant
+        description: "Quantité restante du lot (sur les lignes d'entrée)"
+      - name: ls_qte_res
+        description: "Quantité réservée (0 partout)"
+      - name: ls_lot_epuise
+        description: "1 = lot épuisé"
+      - name: ls_fabrication
+        description: "Date de fabrication. NULL si non renseignée (Sage : 1753-01-01)."
+      - name: ls_peremption
+        description: "Date de péremption. NULL si non renseignée (Sage : 1753-01-01). 5 lignes aberrantes en 2923 (lot 170TLP200), laissées telles quelles."
+      - name: ls_complement
+        description: "Complément libre du lot"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne"
