@@ -368,3 +368,176 @@ models:
         description: "Date de dernière modification dans Sage"
       - name: extracted_at
         description: "Horodatage du run dlt qui a chargé la ligne"
+
+  - name: stg_mssql_sage__f_depot
+    description: "Dépôts de stock Nunshen — dimension du stock et des lignes de documents."
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK ligne)"
+        tests:
+          - unique
+          - not_null
+      - name: de_no
+        description: "Numéro de dépôt — clé métier"
+        tests:
+          - unique
+          - not_null
+      - name: de_intitule
+        description: "Libellé du dépôt (NUNSHEN, SITI, CONTROLE & QUALITE…)"
+        tests:
+          - not_null
+      - name: de_code
+        description: "Code court du dépôt, renseigné sur 5 dépôts seulement"
+      - name: de_principal
+        description: "1 = dépôt principal (NUNSHEN, de_no 1)"
+      - name: de_cat_compta
+        description: "Catégorie comptable du dépôt"
+      - name: de_exclure
+        description: "Indicateur Sage d'exclusion du dépôt"
+      - name: dp_no_defaut
+        description: "Emplacement par défaut du dépôt"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne"
+
+  - name: stg_mssql_sage__f_famille
+    description: "Familles d'articles Nunshen — dimension de classement des articles."
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage (PK ligne)"
+        tests:
+          - unique
+          - not_null
+      - name: fa_code_famille
+        description: "Code de la famille — clé métier (unique tant que fa_type vaut 0)"
+        tests:
+          - unique
+          - not_null
+      - name: fa_type
+        description: "Type de famille Sage : 0 = détail (seule valeur présente)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0]
+                quote: false
+              config:
+                severity: warn
+      - name: fa_intitule
+        description: "Libellé de la famille"
+      - name: fa_suivi_stock
+        description: "Mode de suivi de stock par défaut (0 = aucun, 2 = CMUP, 5 = par lot — numérotation Sage 100, supposée)"
+      - name: fa_nature
+        description: "Nature par défaut des articles de la famille (0 ou 2 ; code Sage non documenté ici)"
+      - name: fa_unite_ven
+        description: "Unité de vente par défaut"
+      - name: fa_publie
+        description: "Famille publiée sur le site marchand"
+      - name: fa_unite_poids
+        description: "Unité de poids par défaut"
+      - name: fa_coef
+        description: "Coefficient de calcul du prix de vente (0 sur toutes les familles)"
+      - name: fa_garantie
+        description: "Durée de garantie par défaut"
+      - name: fa_delai
+        description: "Délai de livraison par défaut"
+      - name: fa_escompte
+        description: "Famille soumise à l'escompte"
+      - name: fa_hors_stat
+        description: "Famille exclue des statistiques"
+      - name: fa_vte_debit
+        description: "Vente au débit (TVA sur les débits)"
+      - name: fa_not_imp
+        description: "Articles non imprimés sur les documents"
+      - name: fa_contremarque
+        description: "Articles gérés en contremarque"
+      - name: fa_fact_poids
+        description: "Facturation au poids"
+      - name: fa_fact_forfait
+        description: "Facturation forfaitaire"
+      - name: fa_nb_colis
+        description: "Nombre de colis par défaut"
+      - name: fa_sous_traitance
+        description: "Articles sous-traités"
+      - name: fa_fictif
+        description: "Famille fictive"
+      - name: fa_criticite
+        description: "Niveau de criticité"
+      - name: fa_central
+        description: "Famille centralisatrice de rattachement (vide partout)"
+      - name: fa_stat01
+        description: "Statistique libre 1 (vide partout)"
+      - name: fa_stat02
+        description: "Statistique libre 2 (vide partout)"
+      - name: fa_stat03
+        description: "Statistique libre 3 (vide partout)"
+      - name: fa_stat04
+        description: "Statistique libre 4 (vide partout)"
+      - name: fa_stat05
+        description: "Statistique libre 5 (vide partout)"
+      - name: fa_code_fiscal
+        description: "Code fiscal (vide partout)"
+      - name: fa_pays
+        description: "Pays d'origine (vide partout)"
+      - name: fa_racine_ref
+        description: "Racine de codification des références articles (vide partout)"
+      - name: fa_racine_cb
+        description: "Racine de codification des codes-barres"
+      - name: cl_no1
+        description: "Catalogue niveau 1"
+      - name: cl_no2
+        description: "Catalogue niveau 2"
+      - name: cl_no3
+        description: "Catalogue niveau 3"
+      - name: cl_no4
+        description: "Catalogue niveau 4"
+      - name: fa_frais01_fr_denomination
+        description: "Libellé du frais d'approche 1"
+      - name: fa_frais01_fr_rem01_rem_valeur
+        description: "Frais d'approche 1, composante 1 : valeur"
+      - name: fa_frais01_fr_rem01_rem_type
+        description: "Frais d'approche 1, composante 1 : type (montant, pourcentage…)"
+      - name: fa_frais01_fr_rem02_rem_valeur
+        description: "Frais d'approche 1, composante 2 : valeur"
+      - name: fa_frais01_fr_rem02_rem_type
+        description: "Frais d'approche 1, composante 2 : type (montant, pourcentage…)"
+      - name: fa_frais01_fr_rem03_rem_valeur
+        description: "Frais d'approche 1, composante 3 : valeur"
+      - name: fa_frais01_fr_rem03_rem_type
+        description: "Frais d'approche 1, composante 3 : type (montant, pourcentage…)"
+      - name: fa_frais02_fr_denomination
+        description: "Libellé du frais d'approche 2"
+      - name: fa_frais02_fr_rem01_rem_valeur
+        description: "Frais d'approche 2, composante 1 : valeur"
+      - name: fa_frais02_fr_rem01_rem_type
+        description: "Frais d'approche 2, composante 1 : type (montant, pourcentage…)"
+      - name: fa_frais02_fr_rem02_rem_valeur
+        description: "Frais d'approche 2, composante 2 : valeur"
+      - name: fa_frais02_fr_rem02_rem_type
+        description: "Frais d'approche 2, composante 2 : type (montant, pourcentage…)"
+      - name: fa_frais02_fr_rem03_rem_valeur
+        description: "Frais d'approche 2, composante 3 : valeur"
+      - name: fa_frais02_fr_rem03_rem_type
+        description: "Frais d'approche 2, composante 3 : type (montant, pourcentage…)"
+      - name: fa_frais03_fr_denomination
+        description: "Libellé du frais d'approche 3"
+      - name: fa_frais03_fr_rem01_rem_valeur
+        description: "Frais d'approche 3, composante 1 : valeur"
+      - name: fa_frais03_fr_rem01_rem_type
+        description: "Frais d'approche 3, composante 1 : type (montant, pourcentage…)"
+      - name: fa_frais03_fr_rem02_rem_valeur
+        description: "Frais d'approche 3, composante 2 : valeur"
+      - name: fa_frais03_fr_rem02_rem_type
+        description: "Frais d'approche 3, composante 2 : type (montant, pourcentage…)"
+      - name: fa_frais03_fr_rem03_rem_valeur
+        description: "Frais d'approche 3, composante 3 : valeur"
+      - name: fa_frais03_fr_rem03_rem_type
+        description: "Frais d'approche 3, composante 3 : type (montant, pourcentage…)"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne"
