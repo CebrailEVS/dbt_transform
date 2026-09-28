@@ -1,83 +1,55 @@
-# Conventions — couche Staging
+# Conventions — Staging
 
-> Doc de référence pour écrire un modèle `stg_*`. Règles transversales (format de
-> nommage, lint, tags) : voir [`../../CONVENTIONS.md`](../../CONVENTIONS.md).
-> Pattern marts : [`marts.md`](marts.md) · Intermediate : [`intermediate.md`](intermediate.md).
+Écrire un modèle `stg_*`. Règles transversales : [CONVENTIONS.md](../../CONVENTIONS.md).
 
-## 1. Rôle de la couche
+## 1. Rôle
 
-Nettoyer et normaliser **une table source** : renommer, caster, harmoniser les
-timestamps, exposer tous les champs utiles. **Une source de staging = une table
-source.** Pas de logique métier, pas de jointure cross-source (ça vit en
-intermediate/marts). Le staging est la seule couche qui lit `source()`.
+Nettoyer et typer **une table source**, sans logique métier. Le staging est la **seule** couche
+qui lit `source()`.
+
+- Une table source = un modèle de staging.
+- Pas de jointure, pas d'agrégation, pas de déduplication métier (elle se fait en intermediate).
 
 ## 2. Nommage
 
-- Fichier : `stg_<source>__<entity>.sql` (`__` sépare source et entité).
-- YAML : `_<source>__models.yml` (doc + tests) et `_<source>__sources.yml`
-  (déclaration source + freshness), dans le dossier de la source.
-- Entité en snake_case, au plus proche de la table source.
+| Élément | Règle | Exemple |
+|---|---|---|
+| Fichier | `stg_<source>__<table>.sql` | `stg_oracle_neshu__company.sql` |
+| Doc + tests | `_<source>__models.yml` | `_oracle_neshu__models.yml` |
+| Déclaration des sources | `_<source>__sources.yml` | `_oracle_neshu__sources.yml` |
 
 ## 3. Colonnes
 
-### Colonnes système — obligatoires sur tout staging
+**Passthrough** : on garde les noms de la source. Seuls trois renommages sont admis :
 
-Chaque `stg_*` expose ces 4 colonnes harmonisées :
+1. les colonnes système ci-dessous ;
+2. un `id` nu → `<entite>_id` (`id` → `ticket_id`) ;
+3. le préfixe par entité des noms génériques (`name`, `code`, `address`), **uniquement** si la
+   source réutilise ces noms sur des entités jointes en aval. C'est le cas de Yuman
+   (`client_name`, `site_address`) : `int_yuman__demands_workorders_enriched` joint 9 entités
+   aux colonnes homonymes.
 
-| Colonne | Type | Construction |
+### Colonnes système
+
+| Colonne | Règle | Construction |
 |---|---|---|
-| `created_at` | TIMESTAMP | `timestamp(<date_creation_source>)` |
-| `updated_at` | TIMESTAMP | `timestamp(coalesce(<date_modif>, <date_creation>))` |
-| `extracted_at` | TIMESTAMP | `timestamp(_sdc_extracted_at)` (ou cast `safe.parse_timestamp` si STRING) |
-| `deleted_at` | TIMESTAMP | `timestamp(_sdc_deleted_at)` |
+| `extracted_at` | **obligatoire** : sert à la fraîcheur | `timestamp(_extracted_at)` (colonne posée par dlt) |
+| `created_at` | si la source a une date de création | `timestamp(<date_creation>)` |
+| `updated_at` | si la source a une date de modification | `timestamp(coalesce(<date_modif>, <date_creation>))` |
 
-### Nommage des colonnes — passthrough par défaut
+`deleted_at` n'existe plus : dlt ne réplique pas les suppressions, la colonne venait de Meltano
+et était toujours `NULL`. Ne pas l'ajouter.
 
-**Règle : raw → staging ne renomme pas les colonnes.** On conserve les noms de la
-source. Seules **trois** transformations de nom sont autorisées :
+> Dette connue : `zoho_desk` expose encore `_extracted_at` sans le renommer.
 
-1. **Harmonisation des 4 colonnes système** (`creation_date`→`created_at`,
-   `_sdc_extracted_at`→`extracted_at`, etc. — cf. colonnes système ci-dessus).
-2. **Nettoyage d'un nom ambigu / non parlant**, typiquement un `id` nu →
-   `<entity>_id`.
-3. **Préfixage par l'entité** des colonnes **génériques** (`name`, `address`,
-   `code`, `category`) → `client_name`, `site_address`… — **uniquement** quand la
-   source expose ces noms passe-partout sur des entités qui sont **co-jointes en
-   aval** (sinon, passthrough simple).
-
-Vérifié sur les données (diff colonnes raw vs staging) :
-
-| Source | Passthrough | Renommages |
-|---|---|---|
-| Oracle / company | 9/13 | uniquement les 4 colonnes système |
-| Zoho / tickets | 42/43 | uniquement `id` → `ticket_id` |
-
-> La normalisation complète en `<entity>_id` pour **toutes** les sources se fait
-> au plus tard en marts. En staging, on reste fidèle à la source.
-
-> **Cas du préfixage par entité — Yuman (pattern justifié).** Les `stg_yuman__*`
-> préfixent les colonnes métier (`name`→`client_name`, `address`→`site_address`,
-> `code`→`material_code`). Ce n'est **pas** une déviation : `int_yuman__demands_workorders_enriched`
-> joint **9 entités Yuman** qui partagent toutes des noms génériques — sans préfixe,
-> chaque jointure aval devrait désambiguïser à la main (≈190 références). Le préfixe
-> est donc **load-bearing**. Règle : préfixer en staging **si et seulement si** la
-> source a des noms génériques co-joints (cas Yuman) ; sinon, passthrough strict
-> (cas Oracle, Zoho).
-
-### Autres colonnes
-
-- snake_case partout.
-- Booléens : préfixe `is_` / `has_`.
-- Dates : `_at` (timestamp) / `_date` (date).
+Autres colonnes : snake_case, booléens `is_` / `has_`, timestamps `_at`, dates `_date`.
 
 ## 4. Pattern SQL
-
-CTE en 2-3 étapes (`source_data` → `cleaned_data` → `select` final) :
 
 ```sql
 {{ config(
     materialized='table',
-    description='<une ligne : quoi + source>'
+    description='Sociétés clientes NESHU (Oracle evs_company).'
 ) }}
 
 with source_data as (
@@ -86,103 +58,71 @@ with source_data as (
 
 cleaned_data as (
     select
-        cast(idcompany as int64) as idcompany,   -- IDs castés
-        code,
-        name,                                     -- colonnes texte
-        timestamp(creation_date) as created_at,   -- timestamps harmonisés
+        cast(idcompany as int64) as idcompany,
+        nullif(trim(code), '') as code,
+        name,
+        timestamp(creation_date) as created_at,
         timestamp(coalesce(modification_date, creation_date)) as updated_at,
-        timestamp(_sdc_extracted_at) as extracted_at,
-        timestamp(_sdc_deleted_at) as deleted_at
+        timestamp(_extracted_at) as extracted_at
     from source_data
 )
 
 select * from cleaned_data
 ```
 
-- **Casting** : `cast(x as int64/float64)`, `timestamp(x)`. Utiliser `safe_cast` /
-  `safe.parse_timestamp` / `safe.parse_date` quand la source est STRING ou sujette
-  au drift (fichiers GCS, taps custom).
-- **Nettoyage** : `nullif(trim(x), '')` pour vider les chaînes vides.
-- **Déduplication** (quand la source a des doublons) : 3ᵉ CTE `deduplicated_data`
-  avec `row_number() over (...)` + `qualify row_number() = 1`.
+- **Cast explicite de chaque colonne** qui traverse un modèle incrémental : sans cast, elle hérite
+  du type du raw, et le `MERGE` casse au premier changement de type (incident `spantime`, juillet 2026).
+- `safe_cast` / `safe.parse_timestamp` quand la source est en `STRING` ou instable (fichiers, API).
+- `nullif(trim(x), '')` pour vider les chaînes vides.
 
 ## 5. Matérialisation
 
-- **`table`** par défaut.
-- **`incremental`** (stratégie `merge`) réservé aux grosses tables événementielles
-  à PK stable — aujourd'hui les `task` Oracle (`stg_oracle_neshu__task`,
-  `stg_oracle_lcdp__task`, `*_has_product`). `unique_key` obligatoire,
-  `partition_by` sur la colonne du filtre incrémental. Clause :
+- `table` par défaut.
+- `incremental` (`merge`, `unique_key` obligatoire) pour les grosses tables de tâches Oracle, soit
+  6 modèles aujourd'hui (`stg_oracle_neshu__task`, `stg_oracle_lcdp__task`, `*_task_has_*`…) :
 
-  ```sql
-  {% if is_incremental() %}
-      where updated_at > (select max(updated_at) from {{ this }})
-         or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
-  {% endif %}
-  ```
-- `partition_by` / `cluster_by` : voir [`../../CONVENTIONS.md`](../../CONVENTIONS.md) (règles BigQuery) — cluster sur les FK les plus jointes en aval.
+```sql
+{% if is_incremental() %}
+    where updated_at > (select max(updated_at) from {{ this }})
+       or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
+{% endif %}
+```
+
+Pour tester un changement sur un incrémental : `dbt clone -s <modele>` puis `dbt run -s <modele>`.
+C'est le vrai `MERGE` qui s'exécute, pas un `--full-refresh`.
 
 ## 6. Description
 
-- **Obligatoire dans le `{{ config() }}`** (`description='...'`, 1 ligne) — règle
-  historique du projet, présente sur 100% des staging.
-- YAML : description complémentaire (contexte métier) tolérée mais **non
-  obligatoire** ; ne pas dupliquer mot pour mot la ligne du config.
+**Obligatoire dans le `config()`** (une ligne : quoi + source). Une description YAML
+complémentaire est tolérée, mais ne doit pas répéter celle du `config()`.
 
 ## 7. Tests minimum
 
-Syntaxe dbt ≥ 1.11 : arguments sous `arguments:`, severity sous `config:`.
-
-### Obligatoire (severity `error` par défaut)
-
 ```yaml
 columns:
-  - name: <pk>                 # idcompany, ticket_id...
+  - name: idcompany               # PK
     tests: [unique, not_null]
-  - name: <fk_obligatoire>
+  - name: idcompany_type          # FK obligatoire
     tests:
       - not_null
       - relationships:
-          arguments: {to: "ref('stg_<source>__<parent>')", field: <pk_parent>}
+          arguments:
+            to: ref('stg_oracle_neshu__company_type')
+            field: idcompany_type
 ```
 
-- PK composite → `dbt_utils.unique_combination_of_columns` (sous `tests:` model-level).
+- PK composite → `dbt_utils.unique_combination_of_columns` au niveau du modèle.
+- Recommandé : `accepted_values` sur les statuts et les types.
 
-### Recommandé fort
+## 8. Fraîcheur
 
-- `accepted_values` sur les colonnes à liste fermée (statuts, types) — **peu
-  répandu aujourd'hui (0/93), à généraliser** : un drift = un nouveau code à
-  connaître.
-- Pour les sources à timestamp STRING (pas de freshness native), test de
-  fraîcheur **méthode B** : `dbt_expectations.expect_row_values_to_have_recent_data`
-  sur `extracted_at` (cf. § 8).
+Méthode et seuils par source : [docs/freshness.md](../freshness.md), la seule référence.
 
-## 8. Freshness
+## 9. Checklist
 
-Deux mécanismes selon le type de timestamp source — **détail et état par source :
-[`../freshness.md`](../freshness.md)** (autorité unique, ne pas redupliquer ici).
-
-- **Méthode A** (`dbt source freshness`) : source avec TIMESTAMP/DATE natif →
-  `loaded_at_field` + seuils dans `_<source>__sources.yml`.
-- **Méthode B** (test `dbt_expectations` sur le staging) : source à timestamp
-  STRING → test de récence sur la colonne castée du `stg_*`.
-
-## 9. Anti-patterns
-
-| Anti-pattern | À faire à la place |
-|---|---|
-| Jointure cross-source en staging | Rester sur 1 table source ; joindre en intermediate/marts |
-| Logique métier / agrégation en staging | Pousser en intermediate |
-| `source()` en intermediate/marts | `source()` **uniquement** en staging ; `ref()` ensuite |
-| Oublier une des 4 colonnes système | Les exposer toutes (même `deleted_at` null) |
-| `description` seulement en YAML | Obligatoire dans le `config()` pour le staging |
-| Caster une source STRING fragile en `cast` dur | `safe_cast` / `safe.parse_*` |
-
-## 10. Checklist avant PR
-
-- [ ] Fichier `stg_<source>__<entity>.sql` + entrée dans `_<source>__models.yml`
-- [ ] 4 colonnes système exposées et harmonisées
-- [ ] `description='...'` dans le `config()`
-- [ ] PK testée `unique` + `not_null` ; FK testées `relationships`
-- [ ] Freshness configurée (méthode A ou B) si la table porte des événements
+- [ ] `stg_<source>__<table>.sql` + entrée dans `_<source>__models.yml`
+- [ ] `description` dans le `config()`
+- [ ] `extracted_at` exposé ; `created_at` / `updated_at` si la source les porte
+- [ ] Colonnes castées explicitement (surtout en incrémental)
+- [ ] PK `unique` + `not_null`, FK `relationships`
 - [ ] `dbt lint` OK

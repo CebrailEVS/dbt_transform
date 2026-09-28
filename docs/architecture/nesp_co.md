@@ -15,10 +15,12 @@ Professionnelle France pour le pilotage de l'activité de vente :
 
 À la différence des sources API/ERP, **les trois tables proviennent de
 fichiers Excel/CSV** déposés sur SFTP :
-- `nespresso_commerce_activite` et `nespresso_commerce_opportunite` arrivent
-  via GCS (external table BigQuery)
-- `nespresso_base_client` arrive via un tap Singer `tap-spreadsheets-anywhere`
-  → BigQuery direct, livraison manuelle
+- `nesp_co_activite` et `nesp_co_opportunite` sont chargées par le pipeline
+  dlt `nesp_co` depuis les classeurs du SFTP (depuis le 2026-08-06 — elles
+  arrivaient auparavant via une external table BigQuery adossée à des CSV
+  dans GCS)
+- `nespresso_base_client` arrive par le pipeline dlt `nesp_client`, workflow
+  manuel (pas de scheduler — livraison déclenchée à la main)
 
 > Orchestration et régime de cadence : `docs/pipeline-schedule.md`.
 > L'horaire exact vit dans `infra/workflows_el.tf`.
@@ -31,21 +33,21 @@ fichiers Excel/CSV** déposés sur SFTP :
 ## Flux de données
 
 ```
-┌──────────────────────┐   SFTP / GCS       ┌─────────────────────────────┐
-│  Nespresso C4C       │ ─────────────────► │  GCS bucket                 │
-│  (CRM)               │                    │  *.csv (activite, opp)      │
+┌──────────────────────┐   SFTP              ┌─────────────────────────────┐
+│  Nespresso C4C       │ ─────────────────► │  pipeline dlt nesp_co        │
+│  (CRM)               │                    │                             │
 └──────────────────────┘                    └──────────┬──────────────────┘
                                                        │
 ┌──────────────────────┐   SFTP EVS         ┌─────────────────────────────┐
-│  Base clients EVS    │ ─────────────────► │  Singer tap (Meltano)       │
-│  (référentiel third) │                    │                             │
+│  Base clients EVS    │ ─────────────────► │  pipeline dlt nesp_client    │
+│  (référentiel third) │                    │  (workflow manuel)          │
 └──────────────────────┘                    └──────────┬──────────────────┘
                                                        │
                                                        ▼
                                        ┌──────────────────────────────────┐
                                        │  prod_raw                        │
-                                       │  nespresso_commerce_activite     │
-                                       │  nespresso_commerce_opportunite  │
+                                       │  nesp_co_activite                │
+                                       │  nesp_co_opportunite             │
                                        │  nespresso_base_client           │
                                        └──────────┬───────────────────────┘
                                                   │ dbt staging
@@ -68,6 +70,9 @@ fichiers Excel/CSV** déposés sur SFTP :
                                                   ▼
                                        ┌──────────────────────────────────┐
                                        │  marts/commerce/                 │
+                                       │  dim_commerce__client            │
+                                       │  fct_commerce__activite          │
+                                       │  fct_commerce__opportunite       │
                                        │  fct_commerce__machine_          │
                                        │  intervention                    │
                                        └──────────────────────────────────┘
@@ -284,11 +289,6 @@ Le CSV brut contient des lignes de total avec `opportunity = 'Result'`. Le
 staging les filtre explicitement (`where opportunity != 'Result' or
 opportunity is null`).
 
-### Régression colonne `_caps_n_ytd` (préfixe `_` parasite)
-La colonne CSV source `caps_n_ytd` arrive avec un underscore parasite
-(`_caps_n_ytd`) dans `stg_nesp_co__client`. Le staging la renomme correctement
-en `caps_n_ytd`. Si l'export change, surveiller un cast qui échoue.
-
 ### `int_nesp_co__clients_enrichis` — déduction `c4c_id` par UNION
 Pour récupérer le `c4c_id` d'un client EVS (qui n'existe pas nativement dans
 `stg_nesp_co__client`), l'intermediate fait :
@@ -333,8 +333,7 @@ pour exposer un ratio 0-1.
 
 | Mart | Famille | Rôle |
 |---|---|---|
+| `dim_commerce__client` | `marts/commerce/` | Référentiel client EVS enrichi (segmentation, `c4c_id` déduit). |
+| `fct_commerce__activite` | `marts/commerce/` | Activités commerciales (appels, RDV, tâches) unifiées et traduites. |
+| `fct_commerce__opportunite` | `marts/commerce/` | Pipeline commercial (opportunités) avec KPI. |
 | `fct_commerce__machine_intervention` | `marts/commerce/` | Croisement opportunités Nespresso × interventions terrain (côté `nesp_tech`). Mart pivot du domaine commerce. |
-
-Pas de dimension dédiée `dim_commerce__client` aujourd'hui — la BU `commerce`
-est encore à constituer (cf. memory : refacto by BU, commerce restant). Les
-modèles `int_nesp_co__*` jouent un rôle de dim/fact provisoire en attendant.

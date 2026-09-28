@@ -1,146 +1,79 @@
-# Marts — pattern complet
+# Conventions — Marts
 
-> Doc de référence pour écrire un mart (`dim_*` / `fct_*`) : nommage, modélisation,
-> description, config, tests. Règles transversales : [`../../CONVENTIONS.md`](../../CONVENTIONS.md).
-> Staging : [`staging.md`](staging.md) · Intermediate : [`intermediate.md`](intermediate.md).
+Écrire un mart (`dim_*` / `fct_*`), la couche exposée à Power BI. Règles transversales :
+[CONVENTIONS.md](../../CONVENTIONS.md).
 
-## Nommage des marts — convention by BU
+## 1. Nommage
 
-Les marts sont organisés par **BU/domaine** (folder = BU), pas par source. Le nom
-reflète la BU et l'entité métier, pas l'implémentation source.
+Les marts sont rangés **par BU**, pas par source : `models/marts/<bu>/`.
 
 | Élément | Règle |
-|---------|-------|
+|---|---|
 | Préfixe | `dim_` (dimension) ou `fct_` (fait) |
-| Clé BU/domaine | nom exact du folder : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi` |
-| Séparateur | `__` entre BU et entité |
-| Entité | singulier, snake_case, nom métier (pas le nom source, pas le nom du rapport BI) |
-| Suffixe de grain | uniquement si agrégé au-dessus du grain naturel (`_quinzaine`, `_mensuel`) |
-| Suffixe de source | uniquement en cas de collision dans le même folder (ex. `fct_supply_chain__stock_neshu` vs `fct_supply_chain__stock_yuman`) |
-| Nom du rapport BI | jamais dans le nom du mart — va dans l'`exposure` |
+| BU | le nom du dossier : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi` |
+| Entité | au singulier, en snake_case, avec un nom **métier** (ni le nom de la source, ni celui du rapport) |
+| Suffixe de grain | seulement si le fait est agrégé au-dessus de son grain naturel : `_mensuel`, `_quinzaine` |
+| Suffixe de source | seulement en cas de collision dans une même BU : `fct_supply_chain__stock_neshu` / `_stock_yuman` |
+| YAML | `_<bu>__marts_models.yml` ; `_<bu>__marts_sources.yml` pour les tables externes Cloud Run |
 
-Exemples (avant → après) :
+Exemples : `dim_neshu__company`, `fct_neshu__consommation`, `fct_neshu__chargement_quinzaine`,
+`dim_technique__material`. Le nom du rapport Power BI va dans l'**exposure**, jamais dans le mart.
 
-| Avant | Après | Pourquoi |
-|-------|-------|----------|
-| `fct_oracle_neshu__conso_business_review` | `fct_neshu__consommation` | source droppée, nom de rapport BI déplacé vers exposure |
-| `fct_mssql_sage__pnl_bu_kpis` | `fct_finance__pnl_bu` | `_kpis` implicite dans un fait |
-| `dim_yuman__materials` | `dim_technique__material` | singulier, pas de source |
-| `fct_oracle_neshu__chargement_par_quinzaine` | `fct_neshu__chargement_quinzaine` | suffixe de grain conservé |
+## 2. Description en 4 blocs
 
-YAML : `_<bu>__marts_models.yml` (modèles) · `_<bu>__marts_sources.yml` (tables externes Cloud Run).
-
-## 1. Principes de modelisation
-
-Les marts suivent **strictement un modele en etoile** : un fait au centre,
-des dimensions autour, jointures via `<entite>_id`. Pas de snowflake.
-Pas de One Big Table.
-
-- **Faits** (`fct_*`) : evenements ou mesures, pointent vers les dims via FK.
-  Un fait **peut** en referencer un autre dans deux cas seulement :
-  - (a) **fait agrege / rollup** a un grain plus grossier via `GROUP BY`
-    (ex. `fct_supply_chain__disponibilite_article_neshu_depot_mensuel`, rollup
-    mensuel de `fct_supply_chain__stock_neshu`) ;
-  - (b) **fait derive / extension** a grain strictement identique 1:1 (ajout
-    de colonnes calculees, grain inchange).
-
-  **Interdit** : joindre deux faits sur leurs cles de dimension pour combiner
-  leurs mesures — la dimension partagee cree un fan-out many-to-many qui
-  double compte les mesures additives. Pour combiner deux faits, faire un
-  drill-across (pre-agreger chacun au grain commun, *puis* joindre), dans
-  l'intermediate ou dans la couche Power BI. Le critere de decision est
-  **grain + cardinalite de jointure**, jamais l'appartenance BU : un
-  fait-a-fait meme BU peut double compter, un agregat cross-BU peut etre sain.
-- **Dimensions** (`dim_*`) : par defaut **Type 1** (etat courant), 1 ligne par
-  entite metier (ticket, compte, agent, machine, contrat...).
-  - **SCD Type 2 (dimension historisee)** : pour conserver l'historique des
-    attributs et permettre une jointure « etat a la date » (point-in-time),
-    le grain est **1 ligne par entite x periode de validite** (et non 1 ligne
-    par entite). Conventions : PK = surrogate de version
-    (`<entite>_version_key`), bornes `valid_from`/`valid_to` + flag
-    `is_current`, suffixe **`_history`**. Elle coexiste avec la Type 1
-    (ex. `dim_neshu__device` courant + `dim_neshu__device_history` versionnee).
-    Construite a partir d'un snapshot dbt (`ref('snap_*')`) ; bornes
-    semi-ouvertes `[valid_from, valid_to)` en timestamp, les faits y accedent
-    en point-in-time join (`event_ts >= valid_from and event_ts < valid_to`).
-    **Exception de nommage** : les bornes gardent les noms standard SCD2
-    `valid_from`/`valid_to` (convention universelle Kimball/dbt), meme si ce
-    sont des timestamps — on ne leur applique pas le suffixe `_at`, qui reste
-    reserve aux timestamps metier (evenements/etats).
-  - **Aplatir uniquement les attributs d'affichage du parent direct** (1-3
-    colonnes max) pour eviter une jointure cote consommateur. Ex :
-    `dim_neshu__device` contient `company_name` pour les tooltips
-    et libelles, mais reste rattache a `dim_neshu__company` via `company_id`.
-  - **Ne JAMAIS aplatir une dim parente entiere** (toutes ses colonnes :
-    adresse, code postal, telephone, etc.) dans la dim enfant : c'est de
-    l'OBT (One Big Table) deguise. Garder les dims separees et conformes,
-    croiser via FK + relationships PBI ou SQL custom dans Power Query.
-    Pattern hybride accepte : "star schema dbt + flatten en PBI quand besoin,
-    promotion en mart si duplique 3+ fois".
-- **Cles** : FKs en `<entite>_id` dans les faits. Cles surrogates via
-  `dbt_utils.generate_surrogate_key` quand l'entite n'a pas de PK naturelle.
-- **Conformed dimensions** : une meme dim sert plusieurs faits, voire
-  plusieurs BU. Un fact `fct_neshu__workorder_delai` peut referencer
-  `dim_technique__client` sans probleme — c'est exactement le pattern
-  Kimball.
-- **Grain explicite** : chaque fait declare son grain dans la description
-  YAML. Pilier Kimball : "si tu ne sais pas le grain, tu ne sais pas le mart".
-
-## 2. Trame de description (YAML)
-
-Toute description de mart (dim ou fact) suit une trame en 4 blocs.
-Separes par une ligne vide pour la lisibilite dans dbt docs.
+Toute description de mart suit cette trame. Le **grain est obligatoire**.
 
 ```yaml
 - name: fct_neshu__chargement_consommation
   description: >
-    [QUOI METIER]
-    Table de faits des chargements et consommations telemetrie par passage APPRO.
+    [QUOI MÉTIER]
+    Chargements et consommations télémétrie, par passage d'appro.
 
     [COMMENT CONSTRUITE]
-    Croise les passages appro avec les telemetries via reconstruction
-    d'intervalles entre 2 passages successifs (LAG sur task_start_date).
-    Filtre sur taches statut FAIT depuis 2024.
+    Croise les passages appro et la télémétrie en reconstruisant l'intervalle
+    entre deux passages successifs (LAG sur task_start_date). Tâches FAIT depuis 2024.
 
     [GRAIN]
-    1 ligne par (device, passage_appro, product). ~1.4M lignes.
+    1 ligne par (device, passage_appro, product). ~1,4 M lignes.
 
     [NOTES]
-    Ne contient pas les livraisons (voir fct_neshu__consommation pour la
-    vue consolidee multi-sources).
+    Hors livraisons : voir fct_neshu__consommation pour la vue consolidée.
 ```
 
-Pour une dim, meme structure mais souvent plus courte :
+- Pas de nom de rapport dans la description.
+- `[NOTES]` est facultatif : exclusions, pièges, renvois vers d'autres marts.
 
-```yaml
-- name: dim_neshu__company
-  description: >
-    [QUOI METIER]
-    Dimension client Neshu — societes enrichies des labels EAV
-    (region, secteur, statut, KA, teletravail, etc.).
+## 3. Modélisation : schéma en étoile strict
 
-    [COMMENT CONSTRUITE]
-    Pivot des labels via int_oracle_neshu__company_labels.
-    Une ligne par societe active (label ISACTIVE='yes').
+**Faits** (`fct_*`) : des événements ou des mesures, rattachés aux dimensions par des FK
+`<entite>_id`. Un fait ne peut s'appuyer sur un autre que dans deux cas :
+- un **agrégat** à un grain plus grossier (`GROUP BY`), par exemple
+  `fct_supply_chain__disponibilite_article_neshu_depot_mensuel` sur `fct_supply_chain__stock_neshu` ;
+- une **extension** à grain strictement identique (1:1), qui ajoute des colonnes calculées.
 
-    [GRAIN]
-    1 ligne par company_id (PK).
-```
+**Interdit** : joindre deux faits sur une dimension partagée pour combiner leurs mesures. Le
+many-to-many double-compte. Pour croiser deux faits, pré-agréger chacun au grain commun, *puis*
+joindre. Le critère est **le grain et la cardinalité**, jamais la BU.
 
-**Regles** :
-- **Grain obligatoire** sur faits ET dims (1 ligne par X).
-- **Pas de nom de rapport BI** dans la description — ca vit dans l'`exposure`.
-- **[NOTES] facultatif** mais utile pour exclusions / pieges courants /
-  references croisees vers d'autres marts.
+**Dimensions** (`dim_*`) : Type 1 (état courant) par défaut, 1 ligne par entité.
+- **Attributs d'affichage du parent direct** : 1 à 3 colonnes au maximum (`company_name` dans
+  `dim_neshu__device`), la dim restant reliée au parent par `company_id`. Jamais la dim parente entière :
+  ce serait de l'OBT déguisée.
+- **Dimension conforme** : une même dim sert plusieurs faits, et même plusieurs BU
+  (`fct_neshu__workorder_delai` → `dim_technique__client`).
+- **SCD2 historisée** : suffixe `_history`, construite depuis un `snap_*`. Grain = 1 ligne par
+  entité × période ; PK `<entite>_version_key` ; bornes `valid_from` / `valid_to` semi-ouvertes et
+  `is_current`. Les bornes gardent leurs noms standard, sans suffixe `_at`. Jointure point-in-time :
+  `event_ts >= valid_from and event_ts < valid_to`. Exemple : `dim_neshu__device_history`, à côté de
+  `dim_neshu__device`.
 
-## 3. Config block hygiene
+**Clés** : quand l'entité n'a pas de PK naturelle, surrogate par `dbt_utils.generate_surrogate_key`.
 
-Le `{{ config() }}` SQL gere uniquement la **materialisation**. La
-**description** vit dans le YAML uniquement (single source of truth).
-`persist_docs` est active dans `dbt_project.yml` — la description YAML
-est automatiquement poussee vers BigQuery.
+## 4. Config
 
-**Bon** :
+Le `config()` ne porte **que** la matérialisation. La description vit en YAML (`persist_docs` la
+pousse dans BigQuery), et les tags dans `dbt_project.yml`.
+
 ```sql
 {{ config(
     materialized='table',
@@ -149,218 +82,93 @@ est automatiquement poussee vers BigQuery.
 ) }}
 ```
 
-**Anti-pattern (eviter)** :
-```sql
-{{ config(
-    materialized='table',
-    description='...'   -- doublon avec le YAML, source de drift
-) }}
-```
+Partition sur la date filtrée dans Power BI ; cluster sur les FK les plus jointes (4 au maximum).
+Pas de partition sur les petites dimensions.
 
-Pas non plus de `tags=[...]` dans le `{{ config() }}` — les tags sont
-geres au niveau folder via `dbt_project.yml`. Exception : `cross_post_*`
-si pertinent (cf. `docs/pipeline-schedule.md`).
+## 5. Ordre des colonnes (grain-first)
 
-## 4. Tests minimum par layer
+1. **Grain** : dimension temporelle → PK → FK du grain
+2. FK restantes
+3. Attributs texte (`*_name`, `*_code`, `*_status`)
+4. Dates secondaires
+5. Booléens (`is_*`, `has_*`)
+6. Mesures
+7. Métadonnées (`created_at`, `updated_at`, `extracted_at`)
 
-Deux niveaux d'exigence : **obligatoire** (severity `error` par defaut)
-et **recommande fort** (severity `warn` pour catcher les drifts silencieux).
+Le grain en tête et les métadonnées en queue sont systématiques. Le reste est indicatif : on peut
+coller `x_code` et `x_name` à leur FK si c'est plus lisible.
 
-### Dim — obligatoire
+## 6. Nommage des mesures
 
-```yaml
-columns:
-  - name: <pk>                    # company_id, device_id, etc.
-    tests:
-      - unique
-      - not_null
-```
+Le préfixe dit **comment la mesure se calcule** :
 
-### Dim — recommande fort
-
-```yaml
-columns:
-  - name: <date_col>              # created_at, updated_at, etc.
-    tests:
-      - dbt_expectations.expect_column_values_to_be_between:
-          arguments:
-            min_value: "timestamp('2010-01-01')"
-            max_value: "current_timestamp()"
-          config:
-            severity: warn
-
-  - name: <statut_col>            # is_active, status_code, etc.
-    tests:
-      - accepted_values:
-          arguments:
-            values: ['ACTIF', 'INACTIF']
-
-tests:
-  - dbt_expectations.expect_table_row_count_to_be_between:
-      arguments:
-        min_value: 100
-        max_value: 50000
-      config:
-        severity: warn
-```
-
-### Fact — obligatoire
-
-```yaml
-columns:
-  - name: <fk>                    # company_id, device_id
-    tests:
-      - not_null
-      - relationships:
-          arguments:
-            to: ref('dim_neshu__company')
-            field: company_id
-          config:
-            severity: warn
-
-  - name: <partition_date>        # consumption_date, task_start_date
-    tests:
-      - not_null
-```
-
-### Fact — recommande fort
-
-```yaml
-columns:
-  - name: <numeric_invariant>     # quantity, montant, etc.
-    tests:
-      - dbt_expectations.expect_column_values_to_be_between:
-          arguments:
-            min_value: 0
-          config:
-            severity: warn
-
-tests:
-  - dbt_utils.unique_combination_of_columns:    # cle composite
-      arguments:
-        combination_of_columns: [device_id, date, product_id]
-
-  - dbt_expectations.expect_table_row_count_to_be_between:
-      arguments:
-        min_value: 1000
-        max_value: 10000000
-      config:
-        severity: warn
-```
-
-### Severity strategy
-
-| Test | Severity | Raison |
-|------|----------|--------|
-| PK `unique` + `not_null` sur dim | `error` | Casse les jointures sinon |
-| `not_null` sur FK obligatoire | `error` | Orphelin = bug data |
-| `relationships` sur FK | `warn` | Detecte les drifts sans bloquer le build |
-| `accepted_values` | `error` | Liste fermee — drift = nouveau code a connaitre |
-| Plages dates / numeriques | `warn` | Informatif, ne pas bloquer la prod |
-| `expect_table_row_count_to_be_between` | `warn` | Alerte de volume anormal |
-
-## 5. Anti-patterns a refuser
-
-| Anti-pattern | Pourquoi c'est interdit | A faire a la place |
-|--------------|------------------------|-------------------|
-| Jointure fait-a-fait dans Power BI | Explosion cartesienne, mesures fausses | Croiser au niveau intermediate ou via dim partagee |
-| Dim qui pointe vers une autre dim (`device → company`) | Snowflake, requetes plus lentes, complexite Power BI | Aplatir les attributs d'affichage parents dans la dim enfant (1-3 colonnes max) |
-| Mart "OBT" 1 modele = 1 rapport, tout deja joint | Duplication, perte de reutilisabilite, refresh long | Star schema + mesures Power BI |
-| FK manquante dans un fait | Ligne orpheline silencieuse | Test `relationships` sur la FK (severity warn ou error) |
-| Nom de rapport BI dans la description du mart | La doc rote quand le rapport est renomme / supprime | Referencer le mart dans l'`exposure` du rapport |
-| `description='...'` dans `{{ config() }}` ET dans YAML | Drift garanti | Description en YAML uniquement |
-| `tags=[...]` au niveau model | Casse l'organisation par folder | Tags via `dbt_project.yml` (sauf exceptions `cross_post_*`) |
-| Pas de grain dans la description | "Mart en aveugle", impossible a auditer | Ligne `[GRAIN]` explicite |
-
-## 6. Pattern type SQL (squelette)
-
-```sql
--- fct_<bu>__<event>.sql
-{{ config(
-    materialized='table',
-    partition_by={'field': 'event_date', 'data_type': 'date'},
-    cluster_by=['ticket_id']
-) }}
-
-with events as (
-    select * from {{ ref('int_<source>__<event>') }}
-)
-
-select
-    ticket_id,         -- FK vers dim_<bu>__ticket
-    account_id,        -- FK vers dim_<bu>__account
-    agent_id,          -- FK vers dim_<bu>__agent
-    event_date,
-    event_type,
-    duration_minutes   -- mesures additives uniquement
-from events
-```
-
-Description et tests vivent dans `_<bu>__marts_models.yml` (voir §2 et §4).
-
-## 7. Ordre des colonnes du `select` final
-
-Convention **indicative** (non verifiee par `dbt lint`, mais attendue en review).
-Regle dite **grain-first** : les colonnes du grain ouvrent le `select`, puis on
-reprend un tri par role. Objectif : lire « de quoi parle la ligne » (cles →
-contexte → quand) avant « combien » (mesures).
-
-1. **Grain** — la/les colonne(s) qui definissent le grain, dans l'ordre
-   `dimension temporelle → cle primaire → cles etrangeres`. Sur un fait agrege
-   a grain temporel, la date de grain (`mois`, `event_date`) vient donc **en
-   premier** (ex. `fct_supply_chain__disponibilite_article_neshu_depot_mensuel`
-   ouvre sur `mois`, puis `company_id`, puis `product_code`).
-2. **Cles etrangeres** restantes (`<entity>_id`) non incluses dans le grain.
-3. **Attributs / dimensions** texte ou categoriels (`*_name`, `*_code`,
-   `*_type`, `*_status`).
-4. **Dates / timestamps metier** secondaires (hors date de grain).
-5. **Booleens / flags** (`is_*`, `has_*`) — ils qualifient la ligne.
-6. **Mesures** numeriques additives — toujours regroupees en fin de fait.
-7. **Metadonnees / audit** (`created_at`, `updated_at`, `extracted_at`,
-   `deleted_at`) — toujours en dernier.
-
-> Regle, pas dogme : si un regroupement metier est plus lisible (ex. coller
-> `entity_code`/`entity_name` juste apres leur FK), c'est tolere. Le grain en
-> tete et les metadonnees en queue, en revanche, sont systematiques.
-
-## 8. Nommage des mesures
-
-Le nom d'une mesure doit dire **sa nature** (donc son calcul) avant son sujet
-metier. On lit `qty_chargee` et on sait qu'on somme des quantites ; `nb_ventes`
-et on sait qu'on compte des evenements.
-
-**Prefixe = nature de la mesure :**
-
-| Prefixe | Nature | Calcul typique | Exemples |
+| Préfixe | Nature | Calcul | Exemple |
 |---|---|---|---|
-| `qty_` | quantite physique en unites de base | `sum(...)` (peut etre fractionnaire / negative) | `qty_chargee`, `qty_retiree`, `qty_invendus` |
-| `nb_` | compte d'evenements / lignes | `count(*)` (entier par construction) | `nb_ventes`, `nb_passages` |
-| `ca_` / `montant_` | euros | `sum(... * prix)` | `ca_cash_eur`, `montant_ht` |
-| `taux_` / `pct_` | ratio (NON additif) | `safe_divide(a, b)` | `taux_ecoulement_volume_4wk` |
+| `qty_` | quantité physique | `sum` | `qty_chargee` |
+| `nb_` | nombre d'événements | `count` | `nb_ventes` |
+| `ca_` / `montant_` | euros | `sum(... * prix)` | `ca_cash_eur` |
+| `taux_` / `pct_` | ratio, **non additif** | `safe_divide` | `taux_ecoulement_volume_4wk` |
 
-**Regles :**
+- Un périmètre commun à tout le mart se documente au niveau du modèle, pas dans chaque nom de
+  colonne : `qty_chargee`, pas `qty_vendable_chargee`.
+- Préférer le mot métier (`ventes`, `invendus`) au mot technique (`entree`, `sortie`).
+- Indiquer « additif / non additif » dans la description de chaque mesure.
+- Suffixe de fenêtre glissante en fin de nom : `_4wk`, `_ytd`.
 
-1. **Le perimetre transverse au modele est un invariant** documente au niveau
-   modele (`[COMMENT CONSTRUITE]`), **pas repete dans chaque colonne**. Ex. si
-   tout le mart est restreint aux produits vendables, la colonne est `qty_chargee`,
-   **pas** `qty_vendable_chargee`.
-2. **Privilegier le nom metier** de l'evenement (`ventes`, `chargee`, `invendus`)
-   plutot qu'un mot de tuyauterie generique (`entree`, `sortie`).
-3. **Documenter la commensurabilite** quand un ratio melange deux unites ou deux
-   systemes de mesure (ex. « 1 event Nayax = 1 unite vendue » qui valide
-   `nb_ventes / qty_chargee` — un `count` declare comparable a une `qty` mesuree).
-4. **Indiquer additif / non-additif** dans la description de chaque mesure (les
-   `taux_`/`pct_` ne se somment jamais ; utile en BI et pour le semantic layer).
-5. Suffixe de fenetre en fin de nom quand c'est un cumul glissant (`_4wk`, `_ytd`).
+## 7. Tests minimum
 
-## 9. Checklist avant PR
+| Test | Dim | Fait | Sévérité |
+|---|---|---|---|
+| PK `unique` + `not_null` | obligatoire | — | `error` |
+| FK `not_null` | — | obligatoire | `error` |
+| FK `relationships` vers la dim | — | obligatoire | `warn` |
+| Clé composite `dbt_utils.unique_combination_of_columns` | — | obligatoire | `error` |
+| `accepted_values` sur les statuts | recommandé | recommandé | `error` |
+| Invariants (`expression_is_true`, bornes ≥ 0) | — | recommandé | `warn` |
+| Volume (`expect_table_row_count_to_be_between`) | recommandé | recommandé | `warn` |
 
-- [ ] Fichier `<dim|fct>_<bu>__<entity>.sql` dans `models/marts/<bu>/` + entrée dans `_<bu>__marts_models.yml`
-- [ ] Description YAML en 4 blocs (`[QUOI MÉTIER]`/`[COMMENT CONSTRUITE]`/`[GRAIN]`/`[NOTES]`), **grain obligatoire**
-- [ ] Star schema : FK `<entity>_id` only, pas de jointure fait-à-fait, pas de snowflake, pas d'OBT
-- [ ] Tests minimum (Dim : PK `unique`+`not_null` ; Fact : FK `relationships` + clé composite + invariants)
-- [ ] `{{ config() }}` = matérialisation only (pas de `description`, pas de `tags`)
-- [ ] Nommage des mesures (`qty_`/`nb_`/`ca_`/`taux_`, périmètre invariant non répété, additif/non-additif documenté)
-- [ ] Ordre des colonnes grain-first
-- [ ] `exposure` mise à jour si un rapport Power BI consomme le mart
-- [ ] `dbt lint` OK
+```yaml
+- name: fct_<bu>__<entite>
+  tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns: [event_date, device_id, product_id]
+  columns:
+    - name: device_id
+      tests:
+        - not_null
+        - relationships:
+            arguments:
+              to: ref('dim_<bu>__device')
+              field: device_id
+            config:
+              severity: warn
+```
+
+Une FK légitimement NULL (ex. `device_id` des livraisons dans `fct_neshu__consommation`) garde
+son `relationships`, mais son `not_null` devient un `expression_is_true` qui décrit l'exception.
+
+Explorer la source avant de fixer les valeurs (MCP BigQuery) : `select distinct` pour
+`accepted_values`, `count(*)` pour les bornes de volume.
+
+## 8. Anti-patterns
+
+| À refuser | À la place |
+|---|---|
+| Jointure fait-à-fait pour combiner des mesures | pré-agréger au grain commun, puis joindre |
+| Dim qui pointe vers une autre dim (snowflake) | aplatir 1 à 3 attributs d'affichage du parent |
+| Un mart = un rapport, tout déjà joint (OBT) | schéma en étoile + mesures dans Power BI |
+| `description=` ou `tags=` dans le `config()` | YAML / `dbt_project.yml` |
+| Description sans grain | bloc `[GRAIN]` |
+| Nom de rapport dans le nom ou la description | l'exposure |
+
+## 9. Checklist
+
+- [ ] `models/marts/<bu>/<dim|fct>_<bu>__<entite>.sql` + entrée dans `_<bu>__marts_models.yml`
+- [ ] Description en 4 blocs, avec le grain
+- [ ] Schéma en étoile : FK `<entite>_id`, pas de fait-à-fait, pas de snowflake
+- [ ] Tests minimum (§ 7)
+- [ ] `config()` = matérialisation uniquement
+- [ ] Mesures nommées par nature ; colonnes dans l'ordre grain-first
+- [ ] Exposure à jour si un rapport consomme le mart
+- [ ] Revue par l'agent `mart-reviewer`, puis `dbt lint` OK

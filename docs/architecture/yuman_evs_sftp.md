@@ -15,9 +15,9 @@ Le fournisseur dépose chaque nuit un **CSV** sur son SFTP. Le pipeline dlt
 
 > **Migration du 2026-08-02.** Auparavant Meltano déposait le fichier sur GCS
 > et une external table (`ext_gcs_yuman__stock_theorique`) servait de source.
-> Ce chemin **existe toujours** : le job `elt-yuman` continue d'alimenter
-> l'archive GCS, seule trace fichier d'une source non rétroactive. Mais plus
-> rien dans dbt ne la lit.
+> Le job `elt-yuman` a été **supprimé le 2026-08-03** : l'archive GCS est
+> désormais figée, seule trace fichier d'une source non rétroactive (reprise
+> possible via `reprise_archive.py`). Plus rien dans dbt ne la lit.
 
 > Pourquoi un second pipeline pour Yuman ? L'API Yuman expose les mouvements
 > et catalogues (workorders, materials, purchase_orders) mais **pas la photo
@@ -28,25 +28,25 @@ Le fournisseur dépose chaque nuit un **CSV** sur son SFTP. Le pipeline dlt
 ## Flux de données
 
 ```
-┌──────────────────────┐                  ┌──────────────────────────────┐
-│  SFTP fournisseur    │ ───── dlt ─────► │  prod_raw                    │
-│  /stocks/stocks.csv  │   30 6 * * *     │  sftp_yuman_evs_stock_       │
-│  CSV ; latin-1       │                  │  theorique (part. export_date)│
-└──────────┬───────────┘                  └──────────┬───────────────────┘
-           │                                         │ dbt staging
-           │ Meltano (elt-yuman, 0 6 * * 1-6)        ▼
-           │                              ┌──────────────────────────────┐
-           ▼                              │  prod_staging                │
-┌──────────────────────┐                  │  stg_yuman_evs_sftp__        │
-│  GCS — archive       │                  │  stock_theorique (table)     │
-│  export_date=…/*.jsonl│                 └──────────┬───────────────────┘
-│  PLUS LUE PAR DBT    │                             │ dbt marts (direct)
+┌──────────────────────┐                   ┌───────────────────────────────┐
+│  SFTP fournisseur    │ ───── dlt ──────► │  prod_raw                     │
+│  /stocks/stocks.csv  │   30 6 * * *      │  sftp_yuman_evs_stock_        │
+│  CSV ; latin-1       │                   │  theorique (part. export_date)│
+└──────────┬───────────┘                   └──────────┬────────────────────┘
+           │ [historique — job elt-yuman              │ dbt staging
+           │  (Meltano), supprimé 2026-08-03]          ▼
+           ▼                              ┌───────────────────────────────┐
+┌──────────────────────┐                  │  prod_staging                 │
+│  GCS — archive       │                  │  stg_yuman_evs_sftp__         │
+│  export_date=…/*.jsonl│                 │  stock_theorique (table)      │
+│  FIGÉE, PLUS LUE PAR │                  └──────────┬────────────────────┘
+│  DBT                 │                             │ dbt marts (direct)
 └──────────────────────┘                             ▼
-                                       ┌──────────────────────────────────┐
-                                       │  marts/supply_chain/             │
-                                       │  fct_supply_chain__stock_yuman   │
-                                       │  fct_supply_chain__rupture_depot │
-                                       └──────────────────────────────────┘
+                                      ┌────────────────────────────────────────┐
+                                      │  marts/supply_chain/                   │
+                                      │  fct_supply_chain__stock_yuman         │
+                                      │  fct_supply_chain__rupture_depot_yuman │
+                                      └────────────────────────────────────────┘
 ```
 
 **Fraîcheur** : tier *Quotidien 7j/7* — warn 36h / error 48h. Resserré à la
@@ -92,7 +92,7 @@ des techniciens** (équivalent des `storehouses` Yuman — cf. `docs/architectur
 |---|---|---|
 | `reference` | string | `trim(r_f_rence)` — référence article |
 | `designation` | string | `trim(d_signation)` — libellé article |
-| `quantite` | float64 | `cast(replace(quantit_, ',', '.') as float64)` — gestion virgule décimale FR |
+| `quantite` | float64 | `cast(replace(quantitx, ',', '.') as float64)` — gestion virgule décimale FR |
 | `nom_du_stock` | string | `nullif(trim(nom_du_stock), '')` — entrepôt / stock |
 | `export_date` | date | Date de **modification du fichier** sur le SFTP, non date du run |
 | `_dlt_id` | string | Identifiant de ligne dlt — seule clé disponible |
@@ -118,10 +118,12 @@ précédente au chargement, le doublon ne peut plus atteindre dbt.
 | `fct_supply_chain__stock_yuman` | Photo stock par entrepôt × article × jour |
 | `fct_supply_chain__rupture_depot_yuman` | Rupture reconstruite par dépôt × référence × jour |
 
-Pas de jointure directe avec `dim_*` Yuman aujourd'hui — la table fonctionne
-en standalone. Si un cross-référencement est nécessaire avec
-`stg_yuman__products`, joindre sur `reference = product_reference`
-(attention : pas de FK technique, jointure textuelle).
+`fct_supply_chain__rupture_depot_yuman` joint `dim_technique__technician`
+ainsi que les facts `fct_technique__consommation_article_yuman` (et
+`_nespresso`) — ce n'est plus une table standalone. Pour un
+cross-référencement avec le catalogue Yuman (`stg_yuman__products`), joindre
+sur `reference = product_reference` (attention : pas de FK technique,
+jointure textuelle).
 
 ---
 

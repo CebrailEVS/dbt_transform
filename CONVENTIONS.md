@@ -1,162 +1,125 @@
-# Conventions - EVS dbt Project
+# Conventions
 
-Index des conventions du projet. **Les règles détaillées vivent dans les docs par
-couche** ci-dessous — c'est le premier endroit où regarder pour écrire un modèle.
-Ce fichier ne garde que le **transversal** (commun à toutes les couches).
+Index des règles du projet. Ce fichier ne contient que ce qui est **commun à toutes les couches** ;
+le détail vit dans une page par couche.
 
-## Où trouver quoi
-
-| Tu écris / modifies… | Doc de référence |
+| Tu écris… | Référence |
 |---|---|
-| un modèle staging (`stg_*`) | [`docs/conventions/staging.md`](docs/conventions/staging.md) |
-| un modèle intermediate (`int_*`) | [`docs/conventions/intermediate.md`](docs/conventions/intermediate.md) |
-| un mart (`dim_*` / `fct_*`) | [`docs/conventions/marts.md`](docs/conventions/marts.md) |
-| un seed ou un snapshot | [`docs/conventions/seeds-snapshots.md`](docs/conventions/seeds-snapshots.md) |
-| la fraîcheur d'une source | [`docs/freshness.md`](docs/freshness.md) |
-| les environnements, la CI/CD, le defer | [`docs/environnements.md`](docs/environnements.md) |
+| un staging `stg_*` | [docs/conventions/staging.md](docs/conventions/staging.md) |
+| un intermediate `int_*` | [docs/conventions/intermediate.md](docs/conventions/intermediate.md) |
+| un mart `dim_*` / `fct_*` | [docs/conventions/marts.md](docs/conventions/marts.md) |
+| un seed ou un snapshot | [docs/conventions/seeds-snapshots.md](docs/conventions/seeds-snapshots.md) |
+| un test de fraîcheur | [docs/freshness.md](docs/freshness.md) |
+| rien, tu veux comprendre dev / CI / prod | [docs/environnements.md](docs/environnements.md) |
 
 ---
 
-## Nommage (transversal)
+## Nommage
 
-### Format des modèles
+`<prefixe>_<source ou BU>__<entite>` : le double underscore sépare le périmètre de l'entité.
 
-```
-<couche>_<source>__<entite>.sql
-```
+| Couche | Préfixe | Périmètre | Exemple |
+|---|---|---|---|
+| Staging | `stg_` | source | `stg_oracle_neshu__company` |
+| Intermediate | `int_` | source | `int_oracle_lcdp__appro_tasks` |
+| Dimension | `dim_` | **BU** | `dim_neshu__company` |
+| Fait | `fct_` | **BU** | `fct_neshu__consommation` |
+| Snapshot | `snap_` | source | `snap_oracle_neshu__device` |
+| Seed | `ref_` | source | `ref_nesp_tech__key_facturation` |
 
-Le double underscore `__` sépare la source (ou la BU pour les marts) de l'entité.
-
-| Couche | Préfixe | Exemple |
-|--------|---------|---------|
-| Staging | `stg_` | `stg_oracle_neshu__company` |
-| Intermediate | `int_` | `int_oracle_neshu__appro_tasks` |
-| Marts - Dimension | `dim_` | `dim_neshu__company` |
-| Marts - Fact | `fct_` | `fct_neshu__consommation` |
-| Snapshot | `snap_` | `snap_oracle_neshu__device` |
-
-> Staging/intermediate sont nommés **par source** ; les marts **par BU/domaine**
-> (détail : [`docs/conventions/marts.md`](docs/conventions/marts.md) § Nommage).
-
-### Fichiers YAML
-
-| Fichier | Contenu |
-|---------|---------|
-| `_<source>__sources.yml` | Déclaration sources, freshness, colonnes brutes |
-| `_<source>__models.yml` | Doc + tests des staging |
-| `_<source>__intermediate_models.yml` | Doc + tests des intermediate |
-| `_<bu>__marts_models.yml` / `_<bu>__marts_sources.yml` | Doc/tests des marts / tables externes Cloud Run |
-| `_<source>__seeds.yml` | Doc + tests + `column_types` des seeds (un par source, dans `data/reference_data/<source>/`) |
+| Fichier YAML | Contenu |
+|---|---|
+| `_<source>__sources.yml` | déclaration des sources et fraîcheur |
+| `_<source>__models.yml` | doc et tests du staging |
+| `_<source>__intermediate_models.yml` | doc et tests de l'intermediate |
+| `_<bu>__marts_models.yml` | doc et tests des marts |
+| `_<bu>__marts_sources.yml` | tables externes écrites par Cloud Run |
+| `_<source>__seeds.yml` | doc, tests et `column_types` des seeds |
 
 ### Colonnes
 
 | Règle | Exemple |
-|-------|---------|
-| snake_case | `company_name`, `postal_code` |
-| IDs : conserver le nom source en staging | `idcompany` (Oracle), `ticket_id` (Zoho) |
-| IDs : `<entite>_id` en marts | `company_id`, `task_id` |
-| Booléens : `is_` / `has_` | `is_active`, `has_contract` |
-| Timestamps : suffixe `_at` | `created_at`, `updated_at` |
-| Dates : suffixe `_date` | `start_date`, `end_date` |
-
-> Détail du nommage des IDs par couche : staging (passthrough) →
-> [`staging.md`](docs/conventions/staging.md) § 3 ; marts (`<entite>_id`) →
-> [`marts.md`](docs/conventions/marts.md).
+|---|---|
+| snake_case | `company_name` |
+| IDs : nom source en staging, `<entite>_id` en marts | `idcompany` → `company_id` |
+| Booléens : `is_` / `has_` | `is_active` |
+| Timestamps : `_at` · dates : `_date` | `created_at`, `start_date` |
+| Mesures : préfixe de nature | `qty_`, `nb_`, `ca_`, `taux_` ([marts.md § 6](docs/conventions/marts.md#6-nommage-des-mesures)) |
 
 ---
 
-## Matérialisation (résumé)
+## Matérialisation
 
 | Couche | Défaut | Exception |
-|--------|--------|-----------|
-| Staging | `table` | `incremental` (merge) pour les grosses tables événementielles (tâches Oracle) |
-| Intermediate | `table` | `incremental` (merge) pour les gros volumes (tâches, P&L) |
+|---|---|---|
+| Staging | `table` | `incremental` (`merge`) : 6 tables de tâches Oracle |
+| Intermediate | `table` | `incremental` (`merge`) : 10 modèles à gros volume |
 | Marts | `table` | — |
-| Snapshots | `timestamp` (SCD2) | — |
 
-Règles partition/cluster : partition sur la date filtre principale (Power BI /
-incrémental), cluster sur les FK les plus jointes (≤ 4 colonnes). Détail dans
-chaque doc de couche.
+Partition sur la date filtrée (Power BI ou incrémental), cluster sur les FK les plus jointes
+(4 au maximum). Pas de partition sur les petites dimensions.
 
 ---
 
-## Tests & sévérité (transversal)
+## Tests
 
-> **Syntaxe obligatoire (dbt ≥ 1.11)** : tout test générique paramétré
-> (`accepted_values`, `relationships`, `unique_combination_of_columns`,
-> `expression_is_true`, tous les `dbt_expectations.*`) imbrique ses arguments sous
-> `arguments:` et la severity sous `config:`. La forme à plat est **dépréciée**
-> (warning aujourd'hui, erreur en 1.12). Le CI ne bloque pas dessus → vérifier en
-> relecture de PR.
+Les arguments d'un test générique s'écrivent sous `arguments:`, la sévérité sous `config:` :
 
-| Sévérité | Usage |
-|----------|-------|
-| `error` (défaut) | Unicité + not_null sur clés primaires, `accepted_values` |
-| `warn` | Plages dates/numériques, volumes, `relationships`, fraîcheur |
-
-Tests minimum **par couche** : voir le § Tests de chaque doc de couche.
-Packages : `dbt_utils` (`unique_combination_of_columns`, `expression_is_true`,
-`generate_surrogate_key`), `dbt_expectations` (row counts, plages, regex, recence).
-
----
-
-## Lint SQL (`dbt lint`)
-
-`dbt lint`, natif à dbt v2. Il lit la configuration `.sqlfluff` existante — mêmes codes de
-règles, mêmes `-- noqa` — mais **ne se connecte pas à BigQuery** : il n'y a plus de templater
-à choisir. SQLFluff est retiré du projet (incompatible v2).
-
-| Règle | Paramètre |
-|-------|-----------|
-| Mots-clés / fonctions / types | `lowercase` |
-| Alias tables & colonnes | explicites (`as`) |
-| Virgule trailing | interdite |
-| Indentation | 4 espaces |
-| Longueur de ligne | 120 max |
-
-```bash
-dbt lint models/path/             # analyser
-dbt lint models/path/ --fix       # corriger, puis vérifier avec git diff
-dbt lint --changed                # seulement ce que le working tree a modifié
+```yaml
+- relationships:
+    arguments:
+      to: ref('dim_neshu__company')
+      field: company_id
+    config:
+      severity: warn
 ```
 
-Désactiver une règle ponctuellement : `-- noqa: RF02` en fin de ligne.
+| Sévérité | Pour |
+|---|---|
+| `error` (défaut) | PK `unique` + `not_null`, FK obligatoires, `accepted_values`, clés composites |
+| `warn` | `relationships`, plages de valeurs, volumes |
 
-> **Piège de configuration** : `capitalisation.functions` et `capitalisation.types` attendent
-> `extended_capitalisation_policy`. `capitalisation_policy` n'est valide que pour `keywords` et
-> `literals` ; sur les deux autres, la clé est ignorée et la règle retombe silencieusement sur
-> `consistent`. Ce sont deux règles mortes sans le moindre message. Constaté le 2026-09-21 :
-> 168 violations passaient la CI.
+Minimum par couche : voir la page de chaque couche. Paquets : `dbt_utils`, `dbt_expectations`.
 
-> **Parité** : `dbt lint` vise une couverture élevée de SQLFluff sans la garantir règle pour
-> règle. Les règles de layout/indentation (LT02) sont la divergence connue.
+---
+
+## Lint SQL
+
+`dbt lint`, intégré à dbt v2, lit `.sqlfluff`. Il ne se connecte pas à BigQuery.
+
+| Règle | Valeur |
+|---|---|
+| Mots-clés, fonctions, types | minuscules |
+| Alias | explicites (`as`) |
+| Indentation | 4 espaces |
+| Longueur de ligne | 120 |
+| Virgule finale | interdite |
+
+```bash
+dbt lint models/chemin/            # analyser
+dbt lint models/chemin/ --fix      # corriger, puis relire le git diff
+dbt lint --changed                 # seulement les fichiers modifiés
+```
+
+Exception ponctuelle : `-- noqa: RF02` en fin de ligne.
+
+> Dans `.sqlfluff`, `capitalisation.functions` et `capitalisation.types` prennent
+> `extended_capitalisation_policy`. Avec `capitalisation_policy`, la règle est ignorée sans message.
 
 ---
 
 ## Tags
 
-Chaque modèle est taggé par source (et par couche) pour l'exécution sélective,
-via `dbt_project.yml` (hérité par dossier — pas de `tags=[...]` au niveau modèle) :
+Posés par dossier dans `dbt_project.yml` (couche + source), **jamais** dans un `config()` :
 
 ```bash
-dbt build --select tag:oracle_neshu   # toute la chaîne d'une source
-dbt build --select tag:staging        # toute une couche
+dbt build -s tag:oracle_neshu     # toute une source
+dbt build -s tag:marts            # toute une couche
 ```
 
 ---
 
-## Source freshness
+## Power BI
 
-Tiers, mécanismes de monitoring (méthode A native / méthode B `dbt_expectations`)
-et état par source : **[`docs/freshness.md`](docs/freshness.md)** (autorité
-unique). Le placement du test côté staging est décrit dans
-[`docs/conventions/staging.md`](docs/conventions/staging.md) § 8.
-
----
-
-## Exposition Power BI
-
-Les marts (`dim_*` / `fct_*`) sont la couche exposée à Power BI (`prod_marts`),
-jointes via les colonnes `<entite>_id`. Déclarer chaque rapport consommateur dans
-l'`exposure` de la BU (`models/exposures/<bu>.yml`). Détail :
-[`docs/conventions/marts.md`](docs/conventions/marts.md).
+Le compte de service `powerbi` n'a accès qu'à `prod_marts` ; les rapports joignent les tables sur `<entite>_id`. Chaque rapport
+consommateur est déclaré dans `models/exposures/<bu>.yml`.

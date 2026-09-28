@@ -12,13 +12,15 @@ sinistres déclarés sur les véhicules d'entreprise : circonstances, expertise,
 réparation, coûts (assureur / franchise / global / facturé client),
 collaborateur impliqué.
 
-Donnée clé exposée :
-- **Sinistres** (`gac_suivi_sinistres_sg`) — 1 ligne = 1 sinistre, identifié
-  soit par `n_de_sinistre` (interne GAC) soit par `reference_gac`
+Données clés exposées :
+- **Sinistres** (`gac_sinistre`) — 1 ligne = 1 sinistre dans 1 snapshot daté,
+  identifié soit par `n_de_sinistre` (interne GAC) soit par `reference_gac`
+- **Parc véhicule** (`gac_parc_vehicule`) — export statique du parc, 1 ligne =
+  1 période de contrat type (déclaration AEN)
 
-Source mono-table, alimentée par un **fichier déposé sur le SFTP EVS** par
-GAC, ingéré via Singer (`tap-sftp-gac-sinistre`). Volume faible (~240 lignes
-courant 2026).
+Source alimentée par des **fichiers déposés sur le SFTP EVS** par GAC, ingérés
+via le pipeline dlt `gac`. Volume faible (~240 lignes de sinistres courant
+2026).
 
 > Orchestration et régime de cadence : `docs/pipeline-schedule.md`.
 > L'horaire exact vit dans `infra/workflows_el.tf`.
@@ -30,25 +32,29 @@ courant 2026).
 ```
 ┌──────────────────────┐  SFTP EVS         ┌─────────────────────────────┐
 │  GAC                 │ ────────────────► │  prod_raw                   │
-│  (assureur flotte)   │  tap-sftp-gac-    │  gac_suivi_sinistres_sg     │
-│                      │  sinistre         │                             │
+│  (assureur flotte)   │  pipeline dlt     │  gac_sinistre                │
+│                      │  gac              │  gac_parc_vehicule          │
 └──────────────────────┘                   └──────────┬──────────────────┘
                                                       │ dbt staging
                                                       ▼
                                        ┌──────────────────────────────────┐
                                        │  prod_staging                    │
                                        │  stg_gac__sinistres              │
+                                       │  stg_gac__vehicule               │
                                        └──────────┬───────────────────────┘
-                                                  │ dbt marts (direct)
-                                                  ▼
-                                       ┌──────────────────────────────────┐
-                                       │  marts/services_generaux/        │
-                                       │  fct_services_generaux__sinistre │
-                                       └──────────────────────────────────┘
+                                                  │
+                        ┌─────────────────────────┴───────────────────────┐
+                        │ dbt marts (direct)                 │ dbt intermediate
+                        ▼                                     ▼
+             ┌──────────────────────────────────┐  ┌────────────────────────────────────┐
+             │  marts/services_generaux/         │  │  prod_intermediate                  │
+             │  fct_services_generaux__sinistre  │  │  int_gac__vehicule_code_analytique  │
+             └──────────────────────────────────┘  └────────────────────────────────────┘
 ```
 
-**Pas de couche intermediate** — le staging est consommé directement par
-l'unique mart `fct_services_generaux__sinistre`.
+Le staging sinistres est consommé directement par l'unique mart
+`fct_services_generaux__sinistre`. Le staging véhicule alimente une couche
+intermediate (`int_gac__vehicule_code_analytique`).
 
 ---
 
@@ -74,7 +80,7 @@ Grain : **1 ligne par sinistre**.
 | **Véhicule** | `immat`, `genre_fiscal` |
 | **Coûts** (float64) | `cout_assureur`, `auto_assurance`, `franchise`, `cout_global`, `cout_client` |
 | **Dates expertise / réparation** | `date_passage_expert`, `date_reception_constat`, `date_envoie_constat_assureur`, `date_debut_reparation`, `date_fin_reparation`, `date_remise_vehicule_collaborateur` |
-| **Méta Meltano** | `_sdc_source_file`, `_sdc_source_lineno`, `_sdc_received_at`, `_sdc_batched_at`, `_sdc_sequence` |
+| **Méta dlt** | `snapshot_date` (clé de merge, dérivée du nom de fichier), `_extracted_at` |
 
 Configuration :
 ```sql
@@ -100,13 +106,13 @@ source).
 ### Source CSV avec noms de colonnes corrompus
 Le fichier GAC arrive avec des accents et caractères spéciaux dans les
 en-têtes (ex. `coût global`, `clôturé`, `référence GAC`, `Immat.`,
-`expert téléphone`). Le normalisateur Meltano les remplace par des
-underscores, d'où des colonnes brutes type `co_t_global`, `cl_tur_`,
-`r_f_rence_gac`, `immat_`, `expert_t_l_phone`, `co_t_assureur`,
-`co_t_client`, `pr_nom`, `centre_de_co_ts`, `date_de_cr_ation`,
-`date_de_cl_ture_du_sinistre`, etc. Le staging les **renomme proprement**
-(`cout_global`, `cloture`, `reference_gac`, `immat`, `prenom`,
-`centre_de_couts`, `date_de_creation`, `date_cloture_sinistre`…).
+`expert téléphone`). Le normaliseur dlt les remplace par des
+underscores (ou un suffixe `x` en fin de nom), d'où des colonnes brutes type
+`co_t_global`, `cl_turx`, `r_f_rence_gac`, `immatx`, `expert_t_l_phone`,
+`co_t_assureur`, `co_t_client`, `pr_nom`, `centre_de_co_ts`,
+`date_de_cr_ation`, `date_de_cl_ture_du_sinistre`, etc. Le staging les
+**renomme proprement** (`cout_global`, `cloture`, `reference_gac`, `immat`,
+`prenom`, `centre_de_couts`, `date_de_creation`, `date_cloture_sinistre`…).
 **Toujours partir du staging**, jamais de la source brute.
 
 ### Déduplication par PK alternative (`n_de_sinistre` ou `reference_gac`)
@@ -118,7 +124,7 @@ partition by case
     when n_de_sinistre is not null then n_de_sinistre
     when reference_gac is not null then reference_gac
 end
-order by _sdc_received_at desc
+order by snapshot_date desc, _extracted_at desc
 ```
 **Implication** : les marts ne doivent jamais utiliser `n_de_sinistre` seul
 comme PK. Pour relier deux sources sur le sinistre, préférer
@@ -147,7 +153,7 @@ Pas de partition ni cluster configurés sur le staging — inutile à cette
 ajout d'autres prestataires assurance), envisager une partition sur
 `date_sinistre`.
 
-### Pas de freshness configurée (`freshness: null`)
-`_gac__sources.yml` désactive explicitement la freshness (`freshness: null`).
-Cohérent avec le tier *Relaxe* (7j / 14j) de cette source — `dbt source
-freshness` n'alerte pas dessus.
+### Freshness active — tier *Relaxe*
+`_gac__sources.yml` déclare `loaded_at_field: _extracted_at` avec warn 7j /
+error 14j (tier *Relaxe* — cf. `docs/freshness.md`), cohérent avec un dépôt
+peu fréquent.
