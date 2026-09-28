@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="dl_no_in", field="dl_no", model=get_where_subquery(ref('stg_mssql_sage__f_lotserie')), to=ref('stg_mssql_sage__f_docligne')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

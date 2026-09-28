@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="no_ref_det", field="ar_ref", model=get_where_subquery(ref('stg_mssql_sage__f_nomenclat')), to=ref('stg_mssql_sage__f_article')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

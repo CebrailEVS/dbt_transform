@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="de_no", model=get_where_subquery(source('mssql_sage', 'dbo_f_depot'))) }}

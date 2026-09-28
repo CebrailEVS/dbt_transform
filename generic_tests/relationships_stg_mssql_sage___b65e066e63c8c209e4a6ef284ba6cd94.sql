@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="fa_code_famille", field="fa_code_famille", model=get_where_subquery(ref('stg_mssql_sage__f_article')), to=ref('stg_mssql_sage__f_famille')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["_dlt_load_id","ar_ref","de_no"], model=get_where_subquery(source('mssql_sage', 'dbo_f_artstock'))) }}

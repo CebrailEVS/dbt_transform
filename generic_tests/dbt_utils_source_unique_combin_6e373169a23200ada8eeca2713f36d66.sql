@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["fa_code_famille","fa_type"], model=get_where_subquery(source('mssql_sage', 'dbo_f_famille'))) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="no_ref_det", model=get_where_subquery(ref('stg_mssql_sage__f_nomenclat'))) }}

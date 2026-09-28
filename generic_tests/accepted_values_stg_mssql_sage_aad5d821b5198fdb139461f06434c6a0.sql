@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="do_domaine", model=get_where_subquery(ref('stg_mssql_sage__f_docentete')), quote=false, values=[0,1,2]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

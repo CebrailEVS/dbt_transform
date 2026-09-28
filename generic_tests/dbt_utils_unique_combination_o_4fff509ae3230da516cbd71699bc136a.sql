@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["extracted_at","ar_ref","de_no"], model=get_where_subquery(ref('stg_mssql_sage__f_artstock'))) }}

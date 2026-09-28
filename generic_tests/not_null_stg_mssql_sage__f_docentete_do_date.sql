@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="do_date", model=get_where_subquery(ref('stg_mssql_sage__f_docentete'))) }}

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["do_type","do_piece"], model=get_where_subquery(ref('stg_mssql_sage__f_docentete'))) }}

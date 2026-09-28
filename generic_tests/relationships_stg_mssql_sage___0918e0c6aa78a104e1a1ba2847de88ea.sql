@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="ct_num", field="ct_num", model=get_where_subquery(ref('stg_mssql_sage__f_docligne')), to=ref('stg_mssql_sage__f_comptet')) }}{{ config({"meta":{},"severity":"WARN","tags":[],"where":"do_domaine in (0, 1)"}) }}

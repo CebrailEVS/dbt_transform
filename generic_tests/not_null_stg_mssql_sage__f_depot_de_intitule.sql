@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="de_intitule", model=get_where_subquery(ref('stg_mssql_sage__f_depot'))) }}

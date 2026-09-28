@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["dl_no_in","dl_no_out","ls_no_serie"], model=get_where_subquery(ref('stg_mssql_sage__f_lotserie'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

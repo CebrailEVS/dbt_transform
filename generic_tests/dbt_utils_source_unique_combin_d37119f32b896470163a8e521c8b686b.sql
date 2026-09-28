@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["ar_ref","ct_num"], model=get_where_subquery(source('mssql_sage', 'dbo_f_artfourniss'))) }}

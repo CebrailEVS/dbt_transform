@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="de_no", field="de_no", model=get_where_subquery(ref('stg_mssql_sage__f_artstock')), to=ref('stg_mssql_sage__f_depot')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

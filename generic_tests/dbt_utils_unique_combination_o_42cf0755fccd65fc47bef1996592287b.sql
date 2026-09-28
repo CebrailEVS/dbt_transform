@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["ar_ref","no_ref_det","ag_no1","ag_no2","no_operation"], model=get_where_subquery(ref('stg_mssql_sage__f_nomenclat'))) }}

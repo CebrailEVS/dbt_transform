@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="fa_type", model=get_where_subquery(ref('stg_mssql_sage__f_famille')), quote=false, values=[0]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

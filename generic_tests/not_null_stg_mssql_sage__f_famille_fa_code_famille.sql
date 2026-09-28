@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="fa_code_famille", model=get_where_subquery(ref('stg_mssql_sage__f_famille'))) }}
