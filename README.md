@@ -18,7 +18,8 @@ pip install -r requirements-lock.txt
 cp .env.example .env          # dataset dbt_<toi> + chemin de ta clé dbt-dev
 direnv allow                  # ou : set -a && source .env && set +a
 dbt deps && dbt debug
-scripts/pull-state.sh         # manifest prod, pour le --defer
+pipx install pre-commit && pre-commit install   # hooks git : lint, parse, manifest prod
+scripts/pull-state.sh         # premier manifest prod (ensuite : automatique à chaque git pull)
 ```
 
 Python 3.11+ est requis : dbt v2 est un moteur Rust distribué comme extension CPython.
@@ -95,6 +96,23 @@ le data analyst contribue aux `marts/`.
 
 ---
 
+## Organisation du repo
+
+| Dossier | Contenu | Versionné |
+|---|---|---|
+| `models/`, `macros/`, `snapshots/`, `data/`, `tests/` | le projet dbt | ✅ |
+| `docs/` | documentation durable (conventions, environnements, architecture par source) | ✅ |
+| `scripts/` | scripts d'**équipe** uniquement (aujourd'hui : `pull-state.sh`) | ✅ |
+| `.github/`, `Dockerfile`, `entrypoint.sh` | CI/CD et image `dbt-runner` | ✅ |
+| `tmp/` | **ton brouillon** : tests, exports, rapports ponctuels | ❌ |
+| `models/_analysis/` | modèles d'analyse jetables, dev uniquement | ❌ |
+| `.claude/notes/` | notes de travail avec l'IA | ❌ |
+| `state/`, `target/`, `logs/`, `dbt_packages/` | générés par dbt ou les scripts | ❌ |
+
+Un script ponctuel va dans `tmp/`. Il ne passe dans `scripts/` que s'il sert à toute l'équipe.
+
+---
+
 ## Commandes courantes
 
 ```bash
@@ -150,7 +168,7 @@ CLAUDE.md         contexte projet et règles strictes
 └── hooks/        dbt lint et dbt parse après édition, helpers d'auth MCP
 ```
 
-`.pre-commit-config.yaml` rejoue les mêmes contrôles hors IA.
+Les hooks git de `.pre-commit-config.yaml` rejouent les mêmes contrôles pour les humains (cf. CONTRIBUTING § 1).
 
 ---
 
@@ -159,7 +177,7 @@ CLAUDE.md         contexte projet et règles strictes
 ```bash
 dbt debug                          # configuration et connexion
 set -a && source .env && set +a    # variables non chargées (sans direnv)
-scripts/pull-state.sh              # defer qui pointe vers un modèle absent de la prod
+scripts/pull-state.sh --force      # defer qui pointe vers un modèle absent : retélécharger le manifest
 rm -rf target/                     # artefacts d'une ancienne version de dbt
 ```
 

@@ -4,11 +4,16 @@
 #
 # Install once per clone (isolated, ne pollue pas dbt_venv) :
 #   pipx install pre-commit
-#   pre-commit install              # commit-stage hooks (dbt lint)
-#   pre-commit install --hook-type pre-push   # pre-push hooks (dbt parse)
+#   pre-commit install        # installe TOUS les hooks ci-dessous (cf. default_install_hook_types)
 #
 # Hooks call ./dbt_venv/bin/* directly — single source of truth for tool versions
 # (dbt pinned in requirements.txt). No duplicated tool install here.
+
+# Un seul `pre-commit install` pose les quatre types de hooks git.
+default_install_hook_types: [pre-commit, pre-push, post-merge, post-checkout]
+# Un hook sans `stages:` ne tourne qu'au commit (sinon dbt lint s'afficherait aussi à chaque
+# changement de branche).
+default_stages: [pre-commit]
 
 repos:
   - repo: local
@@ -32,3 +37,16 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-push]
+
+      # --- post-merge / post-checkout : manifest prod pour le --defer ---
+      # Après un `git pull` ou un changement de branche, met state/manifest.json au
+      # niveau de la prod (téléchargement seulement si la prod a changé). Ne bloque
+      # jamais git : en cas de problème, un avertissement et c'est tout.
+      - id: pull-dbt-state
+        name: manifest prod (defer)
+        language: system
+        entry: scripts/pull-state.sh --hook
+        pass_filenames: false
+        always_run: true
+        verbose: true   # affiche « mis à jour » ou l'avertissement, même quand le hook passe
+        stages: [post-merge, post-checkout]

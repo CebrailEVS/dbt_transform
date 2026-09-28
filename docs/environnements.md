@@ -52,7 +52,7 @@ dbt sait où se trouve chaque modèle en prod grâce au **`manifest.json` de pro
 ```
 merge → cd produit manifest.json → gs://evs-datastack-dbt-state/dbt-state/  (versionné, 10 versions)
                                      ├─► pr-check     (state:modified + defer)
-                                     ├─► toi          (scripts/pull-state.sh + defer)
+                                     ├─► toi          (hook git à chaque git pull + defer)
                                      └─► cd suivant   (state:modified)
 ```
 
@@ -71,7 +71,7 @@ dans [`pipeline-schedule.md`](pipeline-schedule.md).
 
 ### Développement local
 ```bash
-scripts/pull-state.sh                  # manifest prod → state/ (après chaque merge)
+git pull                               # le hook git met aussi state/manifest.json à jour
 dbt build -s mon_modele                # écrit dbt_<toi>.mon_modele, parents lus en prod
 dbt build -s mon_modele+               # + tout l'aval
 dbt clone -s mon_incremental           # copie de la table prod (instantanée, gratuite)
@@ -137,13 +137,13 @@ dataset de CI, et les déploiements passent un par un.
 
 **Côté nouveau développeur**, environ 20 minutes : suivre [CONTRIBUTING § 1](../CONTRIBUTING.md#1-installer-son-poste),
 avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. Vérifier avec
-`dbt debug`, puis `scripts/pull-state.sh`.
+`dbt debug`, `pre-commit install`, puis `scripts/pull-state.sh` pour le premier manifest.
 
 ### Au quotidien
 
 - Tu développes dans ton dataset ; tes collègues dans le leur.
-- Après un merge d'un collègue : `git pull`, `git rebase origin/master` sur ta branche, puis
-  `scripts/pull-state.sh`. Un conflit git n'apparaît que si vous avez touché le **même fichier**.
+- Après un merge d'un collègue : `git pull` (le manifest suit), puis `git rebase origin/master`
+  sur ta branche. Un conflit git n'apparaît que si vous avez touché le **même fichier**.
 - Chaque PR est relue par une autre personne avant le merge.
 - Sans rebase, rien ne casse en prod : la CI de ta PR reconstruit aussi les modèles de ton
   collègue, dans leur version antérieure et dans ton dataset de PR. Le résultat est juste moins
@@ -167,4 +167,4 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
 | CI/CD | `.github/workflows/dbt-ci.yml` |
 | Variables locales | `.env.example` |
 | Liste des développeurs | `infra/dbt_environments.tf` (`local.dbt_developers`) |
-| Récupération du manifest | `scripts/pull-state.sh` |
+| Récupération du manifest | `scripts/pull-state.sh`, lancé par les hooks git (`.pre-commit-config.yaml`) |
