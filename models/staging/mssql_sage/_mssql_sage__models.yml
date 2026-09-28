@@ -344,7 +344,7 @@ models:
         description: "Horodatage du run dlt qui a chargé la ligne"
 
   - name: stg_mssql_sage__f_article
-    description: "Référentiel articles — dimension des lignes de documents commerciaux."
+    description: "Référentiel articles Nunshen — dimension des lignes de documents, du stock et des nomenclatures."
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK ligne)"
@@ -357,18 +357,256 @@ models:
           - unique
           - not_null
       - name: ar_design
-        description: "Désignation de l'article"
+        description: "Désignation de l'article. Le « É » saisi en CP850 (U+0090) est corrigé ; quelques autres accents mal encodés (‚tirable, Nø) restent tels quels."
+      - name: ar_raccourci
+        description: "Raccourci de saisie"
+      - name: ar_substitut
+        description: "Article de substitution (→ ar_ref)"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_article')
+                field: ar_ref
+              config:
+                severity: warn
+      - name: ar_langue1
+        description: "Désignation en langue étrangère 1"
+      - name: ar_langue2
+        description: "Désignation en langue étrangère 2"
+      - name: ar_photo
+        description: "Chemin de la photo de l'article"
       - name: fa_code_famille
-        description: "Code de la famille d'articles"
+        description: "Code de la famille d'articles (→ f_famille)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_famille')
+                field: fa_code_famille
+              config:
+                severity: warn
+      - name: ar_type
+        description: "Type d'article (code Sage : standard, gamme…)"
+      - name: ar_nature
+        description: "Nature de l'article (code Sage : produit fini, matière première, emballage… — valeurs non documentées ici)"
+      - name: ar_stat01
+        description: "Statistique libre 1"
+      - name: ar_stat02
+        description: "Statistique libre 2"
+      - name: ar_stat03
+        description: "Statistique libre 3"
+      - name: ar_stat04
+        description: "Statistique libre 4"
+      - name: ar_stat05
+        description: "Statistique libre 5"
+      - name: cl_no1
+        description: "Catalogue niveau 1"
+      - name: cl_no2
+        description: "Catalogue niveau 2"
+      - name: cl_no3
+        description: "Catalogue niveau 3"
+      - name: cl_no4
+        description: "Catalogue niveau 4"
+      - name: co_no
+        description: "Collaborateur rattaché (0 partout)"
+      - name: ar_code_barre
+        description: "Code-barres (EAN)"
+      - name: ar_edi_code
+        description: "Code EDI"
+      - name: ar_code_fiscal
+        description: "Code fiscal / nomenclature douanière"
+      - name: ar_pays
+        description: "Pays d'origine"
+      - name: ar_prix_ach
+        description: "Prix d'achat"
+      - name: ar_coef
+        description: "Coefficient prix de vente / prix d'achat"
+      - name: ar_prix_ven
+        description: "Prix de vente"
+      - name: ar_prix_ttc
+        description: "1 = prix de vente exprimé TTC"
+      - name: ar_pu_net
+        description: "Prix unitaire net"
+      - name: ar_cout_std
+        description: "Coût standard"
+      - name: ar_prix_ach_nouv
+        description: "Nouveau prix d'achat (à ar_date_application)"
+      - name: ar_coef_nouv
+        description: "Nouveau coefficient"
+      - name: ar_prix_ven_nouv
+        description: "Nouveau prix de vente"
+      - name: ar_date_application
+        description: "Date d'application des nouveaux prix. NULL si non renseignée (Sage : 1753-01-01)."
+      - name: ar_escompte
+        description: "Article soumis à l'escompte"
+      - name: ar_vte_debit
+        description: "Vente au débit (TVA sur les débits)"
+      - name: ar_unite_ven
+        description: "Unité de vente (code Sage)"
+      - name: ar_unite_poids
+        description: "Unité de poids (code Sage)"
+      - name: ar_poids_net
+        description: "Poids net"
+      - name: ar_poids_brut
+        description: "Poids brut"
+      - name: ar_nb_colis
+        description: "Nombre de colis"
+      - name: ar_condition
+        description: "Conditionnement (code Sage)"
+      - name: ar_fact_poids
+        description: "Facturation au poids"
+      - name: ar_fact_forfait
+        description: "Facturation forfaitaire"
+      - name: ar_saisie_var
+        description: "Saisie de variables (code Sage)"
+      - name: ar_suivi_stock
+        description: "Mode de suivi de stock (0 = aucun, 2 = CMUP, 5 = par lot — numérotation Sage 100, supposée)"
+      - name: ar_nomencl
+        description: "Type de nomenclature (0 = aucune ; autres codes Sage : fabrication, commerciale…)"
+      - name: ar_gamme1
+        description: "Gamme 1"
+      - name: ar_gamme2
+        description: "Gamme 2"
+      - name: ar_qte_comp
+        description: "Quantité de composition"
+      - name: ar_qte_operatoire
+        description: "Quantité opératoire (lot de fabrication)"
+      - name: ar_prevision
+        description: "Article géré en prévision"
+      - name: rp_code_defaut
+        description: "Code de ressource de production par défaut"
+      - name: ar_delai
+        description: "Délai de livraison"
+      - name: ar_delai_fabrication
+        description: "Délai de fabrication"
+      - name: ar_delai_peremption
+        description: "Délai de péremption"
+      - name: ar_delai_securite
+        description: "Délai de sécurité"
+      - name: ar_type_lancement
+        description: "Type de lancement en fabrication (code Sage)"
+      - name: ar_cycle
+        description: "Cycle de fabrication"
+      - name: ar_criticite
+        description: "Niveau de criticité"
+      - name: ar_fictif
+        description: "Article fictif"
+      - name: ar_sous_traitance
+        description: "Article sous-traité"
+      - name: ar_contremarque
+        description: "Article géré en contremarque"
+      - name: ar_garantie
+        description: "Durée de garantie"
       - name: ar_sommeil
         description: "Article mis en sommeil (inactif)"
+      - name: ar_publie
+        description: "Article publié sur le site marchand"
+      - name: ar_hors_stat
+        description: "Article exclu des statistiques"
+      - name: ar_not_imp
+        description: "Article non imprimé sur les documents"
+      - name: ar_transfere
+        description: "Article transféré (indicateur Sage)"
+      - name: ar_interdire_commande
+        description: "Commande interdite sur l'article"
+      - name: ar_exclure
+        description: "Article exclu (indicateur Sage)"
+      - name: ar_date_modif
+        description: "Date de dernière modification de la fiche article (champ Sage). NULL si 1753-01-01."
+      - name: ar_frais01_fr_denomination
+        description: "Libellé du frais d'approche 1"
+      - name: ar_frais01_fr_rem01_rem_valeur
+        description: "Frais d'approche 1, composante 1 : valeur"
+      - name: ar_frais01_fr_rem01_rem_type
+        description: "Frais d'approche 1, composante 1 : type (montant, pourcentage…)"
+      - name: ar_frais01_fr_rem02_rem_valeur
+        description: "Frais d'approche 1, composante 2 : valeur"
+      - name: ar_frais01_fr_rem02_rem_type
+        description: "Frais d'approche 1, composante 2 : type (montant, pourcentage…)"
+      - name: ar_frais01_fr_rem03_rem_valeur
+        description: "Frais d'approche 1, composante 3 : valeur"
+      - name: ar_frais01_fr_rem03_rem_type
+        description: "Frais d'approche 1, composante 3 : type (montant, pourcentage…)"
+      - name: ar_frais02_fr_denomination
+        description: "Libellé du frais d'approche 2"
+      - name: ar_frais02_fr_rem01_rem_valeur
+        description: "Frais d'approche 2, composante 1 : valeur"
+      - name: ar_frais02_fr_rem01_rem_type
+        description: "Frais d'approche 2, composante 1 : type (montant, pourcentage…)"
+      - name: ar_frais02_fr_rem02_rem_valeur
+        description: "Frais d'approche 2, composante 2 : valeur"
+      - name: ar_frais02_fr_rem02_rem_type
+        description: "Frais d'approche 2, composante 2 : type (montant, pourcentage…)"
+      - name: ar_frais02_fr_rem03_rem_valeur
+        description: "Frais d'approche 2, composante 3 : valeur"
+      - name: ar_frais02_fr_rem03_rem_type
+        description: "Frais d'approche 2, composante 3 : type (montant, pourcentage…)"
+      - name: ar_frais03_fr_denomination
+        description: "Libellé du frais d'approche 3"
+      - name: ar_frais03_fr_rem01_rem_valeur
+        description: "Frais d'approche 3, composante 1 : valeur"
+      - name: ar_frais03_fr_rem01_rem_type
+        description: "Frais d'approche 3, composante 1 : type (montant, pourcentage…)"
+      - name: ar_frais03_fr_rem02_rem_valeur
+        description: "Frais d'approche 3, composante 2 : valeur"
+      - name: ar_frais03_fr_rem02_rem_type
+        description: "Frais d'approche 3, composante 2 : type (montant, pourcentage…)"
+      - name: ar_frais03_fr_rem03_rem_valeur
+        description: "Frais d'approche 3, composante 3 : valeur"
+      - name: ar_frais03_fr_rem03_rem_type
+        description: "Frais d'approche 3, composante 3 : type (montant, pourcentage…)"
+      - name: certification_bio
+        description: "Champ libre Nunshen : certification bio (OUI / NON, texte)"
+      - name: autre_certification
+        description: "Champ libre Nunshen : autre certification (OUI / NON)"
+      - name: fabrication_interne
+        description: "Champ libre Nunshen : fabriqué en interne (OUI / NON)"
+      - name: source_en_direct
+        description: "Champ libre Nunshen : sourcé en direct (OUI / NON)"
+      - name: signature_exclusivite_client
+        description: "Champ libre Nunshen : signature / exclusivité client (OUI / NON)"
+      - name: exclusivite_boutique
+        description: "Champ libre Nunshen : exclusivité boutique (OUI / NON)"
+      - name: produit_sur_demande
+        description: "Champ libre Nunshen : produit sur demande (apparu le 2026-09-28, vide à cette date)"
+      - name: prime
+        description: "Champ libre Nunshen : article primé (OUI / NON)"
+      - name: allergene
+        description: "Champ libre Nunshen : contient un allergène (OUI / NON)"
+      - name: provenance
+        description: "Champ libre Nunshen : pays / région de provenance"
+      - name: blend_name_2
+        description: "Champ libre Nunshen : nom du blend / de la récolte"
+      - name: selection_3
+        description: "Champ libre Nunshen : sélection (UNIQUE, MASTER SELECTION LIMITÉE…). Le « É » saisi en CP850 (U+0090) est corrigé en staging."
+      - name: vente_par_selection
+        description: "Champ libre Nunshen : sélection de vente. Le « É » saisi en CP850 (U+0090) est corrigé en staging."
+      - name: type_de_the_4
+        description: "Champ libre Nunshen : type de thé (THÉ OOLONG…)"
+      - name: type_de_the_5
+        description: "Champ libre Nunshen : type de thé (second champ)"
+      - name: densite_du_the
+        description: "Champ libre Nunshen : densité du thé"
+      - name: note_olfactive
+        description: "Champ libre Nunshen : note olfactive"
+      - name: ambiance
+        description: "Champ libre Nunshen : ambiance (BOOST, GOURMANDE, BIEN-ETRE, DETOX, ZEN, REPOS)"
+      - name: grs_tasse
+        description: "Champ libre Nunshen : grammes par tasse (texte)"
+      - name: prix_ttc_tasse
+        description: "Champ libre Nunshen : prix TTC par tasse (texte, ex. « 0,32€ »)"
+      - name: dimensions_du_produit
+        description: "Champ libre Nunshen : dimensions du produit"
+      - name: bin_code
+        description: "Champ libre Nunshen : code d'emplacement (bin)"
+      - name: emplacement_entrepot
+        description: "Champ libre Nunshen : emplacement en entrepôt"
       - name: created_at
         description: "Date de création de la ligne dans Sage"
       - name: updated_at
         description: "Date de dernière modification dans Sage"
       - name: extracted_at
         description: "Horodatage du run dlt qui a chargé la ligne"
-
   - name: stg_mssql_sage__f_depot
     description: "Dépôts de stock Nunshen — dimension du stock et des lignes de documents."
     columns:
