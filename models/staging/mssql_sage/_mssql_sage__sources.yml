@@ -407,3 +407,233 @@ sources:
             description: "Horodatage du run dlt qui a chargé la ligne"
           - name: _dlt_load_id
             description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+
+      # ---------------------------------------------------------------------
+      # NUNSHEN — VENTES, STOCK, ACHATS, PRODUCTION
+      #
+      # Ajoutées le 2026-09-28 (brief de passation ingestion). Seule
+      # f_docentete est en `replace` POUR PURGER les documents transformés :
+      # f_docligne étant en merge sans purge, une ligne de type 12 (commande
+      # fournisseur) ou 24 (préparation de fabrication) n'est ouverte que si
+      # son en-tête existe ici.
+      # ---------------------------------------------------------------------
+      - name: dbo_f_docentete
+        description: "En-têtes de documents commerciaux (f_docentete) — un document par (do_type, do_piece). Chargement replace : ne contient que les documents existant dans Sage au dernier run ; un document transformé (commande → réception, PF → bon de fabrication) en disparaît."
+
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns:
+                  - do_type
+                  - do_piece
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par le replace du loader."
+            tests:
+              - unique
+              - not_null
+          - name: do_domaine
+            description: "Domaine Sage : 0 = vente, 1 = achat, 2 = stock"
+          - name: do_type
+            description: "Type de document dans le domaine (7 = facture comptabilisée, 12 = commande fournisseur, 13 = réception, 24 = préparation de fabrication, 26 = bon de fabrication…). Numérotation Sage 100 standard, supposée."
+          - name: do_piece
+            description: "Numéro de pièce. Unique avec do_type (index UNIQUE Sage)."
+          - name: do_date
+            description: "Date du document"
+          - name: do_tiers
+            description: "Tiers du document (client, fournisseur ou dépôt selon le domaine)"
+          - name: de_no
+            description: "Dépôt du document (FK vers f_depot)"
+          - name: do_date_livr
+            description: "Date de livraison prévue. Sage écrit 1753-01-01 quand elle est vide."
+          - name: do_total_ht
+            description: "Total HT du document"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+
+      - name: dbo_f_artstock
+        description: "Stock par article × dépôt (f_artstock). Chargement APPEND : chaque run ajoute une photo complète, identifiée par _dlt_load_id. Pas de photo le week-end ; un run manuel en journée en ajoute une seconde le même jour. Historique disponible depuis le 2026-09-24."
+
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns:
+                  - _dlt_load_id
+                  - ar_ref
+                  - de_no
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage. Unique DANS une photo seulement : la même ligne revient à chaque run."
+            tests:
+              - not_null
+          - name: ar_ref
+            description: "Référence article (FK vers f_article)"
+          - name: de_no
+            description: "Numéro de dépôt (FK vers f_depot)"
+          - name: as_qte_sto
+            description: "Quantité en stock, dans l'unité de l'article"
+          - name: as_mont_sto
+            description: "Valeur du stock. CMUP = as_mont_sto / as_qte_sto."
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt : date de la photo"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — identifie la photo"
+
+      - name: dbo_f_nomenclat
+        description: "Nomenclatures (f_nomenclat) — une ligne par composé → composant. Clé Sage composite (ar_ref, no_ref_det, gammes, no_operation)."
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne). Unicité garantie par le replace du loader."
+            tests:
+              - unique
+              - not_null
+          - name: ar_ref
+            description: "Référence de l'article composé (FK vers f_article)"
+          - name: no_ref_det
+            description: "Référence du composant (FK vers f_article)"
+          - name: no_qte
+            description: "Quantité de composant pour une unité de composé"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+
+      - name: dbo_f_depot
+        description: "Dépôts de stock (f_depot) — un dépôt par ligne. 12 lignes."
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne)"
+            tests:
+              - unique
+              - not_null
+          - name: de_no
+            description: "Numéro de dépôt. Clé métier, unique."
+            tests:
+              - unique
+              - not_null
+          - name: de_intitule
+            description: "Libellé du dépôt"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+
+      - name: dbo_f_famille
+        description: "Familles d'articles (f_famille) — une famille par (fa_code_famille, fa_type). 110 lignes."
+
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns:
+                  - fa_code_famille
+                  - fa_type
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne)"
+            tests:
+              - unique
+              - not_null
+          - name: fa_code_famille
+            description: "Code de la famille"
+          - name: fa_type
+            description: "Type de famille (détail, total, centralisateur…)"
+          - name: fa_intitule
+            description: "Libellé de la famille"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+
+      - name: dbo_f_artfourniss
+        description: "Références article par fournisseur (f_artfourniss) — une ligne par (ar_ref, ct_num)."
+
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns:
+                  - ar_ref
+                  - ct_num
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne)"
+            tests:
+              - unique
+              - not_null
+          - name: ar_ref
+            description: "Référence article (FK vers f_article)"
+          - name: ct_num
+            description: "Compte fournisseur (FK vers f_comptet)"
+          - name: af_ref_fourniss
+            description: "Référence de l'article chez le fournisseur"
+          - name: af_prix_ach
+            description: "Prix d'achat fournisseur"
+          - name: af_delai_appro
+            description: "Délai d'approvisionnement"
+          - name: af_principal
+            description: "Fournisseur principal de l'article"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+
+      - name: dbo_f_lotserie
+        description: "Lots et numéros de série (f_lotserie). AUCUNE clé métier unique. Données incohérentes depuis l'inventaire du 2026-09-27 (lots ouverts ≫ stock) : ne rien construire en aval avant correction côté Sage."
+
+        columns:
+          - name: cb_marq
+            description: "Identifiant technique Sage (PK ligne)"
+            tests:
+              - unique
+              - not_null
+          - name: ar_ref
+            description: "Référence article (FK vers f_article)"
+          - name: ls_no_serie
+            description: "Numéro de lot ou de série"
+          - name: ls_peremption
+            description: "Date de péremption. Sage écrit 1753-01-01 quand elle est vide."
+          - name: ls_fabrication
+            description: "Date de fabrication. Sage écrit 1753-01-01 quand elle est vide."
+          - name: ls_qte_restant
+            description: "Quantité restante du lot"
+          - name: de_no
+            description: "Dépôt (FK vers f_depot)"
+          - name: cb_creation
+            description: "Horodatage de création de la ligne"
+          - name: cb_modification
+            description: "Horodatage de dernière modification"
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne"
+          - name: _dlt_load_id
+            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
