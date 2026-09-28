@@ -64,7 +64,8 @@ One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/*
 
 **`cleanup-ci-dataset`** — runs on `pull_request: closed` : drops `dbt_ci_pr_<N>`.
 
-**`cd`** — runs on `push` → master (**including direct pushes that bypass the PR rule**):
+**`cd`** — runs on `push` → master (**including direct pushes that bypass the PR rule**).
+Verrou `concurrency: dbt-cd-prod` : un seul `cd` à la fois, jamais annulé en cours de build.
 - Auth **WIF**, SA `dbt-deployer` (master uniquement) ; target prod en `DBT_BIGQUERY_METHOD=oauth`
 - `dbt deps` + `dbt debug --target prod`
 - Pulls prod manifest, then **state-based incremental** build **directly in prod**:

@@ -93,6 +93,10 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
    exécution.
 
 > Tout push sur `master` déclenche `cd`, **y compris un push direct sans PR**.
+> Les `cd` passent **un par un**, dans l'ordre des push (verrou `concurrency`). Si
+> plusieurs merges s'empilent, GitHub ne garde que le dernier en attente : il se
+> compare au dernier manifest déposé, donc il reconstruit aussi les changements
+> des runs annulés.
 > Dans les logs, `dbt docs generate` affiche une ligne « Succeeded model » par nœud : il lit
 > seulement les métadonnées, il ne reconstruit rien.
 
