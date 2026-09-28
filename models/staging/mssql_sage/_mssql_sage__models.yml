@@ -986,3 +986,79 @@ models:
         description: "Date de dernière modification dans Sage"
       - name: extracted_at
         description: "Horodatage du run dlt qui a chargé la ligne"
+
+  - name: stg_mssql_sage__f_artstock
+    description: "Photos du stock Nunshen par article × dépôt — une photo complète par run dlt (extracted_at)."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - extracted_at
+              - ar_ref
+              - de_no
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - extracted_at
+              - cb_marq
+    columns:
+      - name: cb_marq
+        description: "Identifiant technique Sage. Unique dans une photo, répété d'une photo à l'autre."
+        tests:
+          - not_null
+      - name: ar_ref
+        description: "Référence article"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_article')
+                field: ar_ref
+              config:
+                severity: warn
+      - name: de_no
+        description: "Numéro de dépôt"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_depot')
+                field: de_no
+              config:
+                severity: warn
+      - name: as_principal
+        description: "1 = dépôt principal de l'article"
+      - name: as_qte_sto
+        description: "Quantité en stock, dans l'unité de l'article (non additionnable entre références)"
+      - name: as_qte_res
+        description: "Quantité réservée (commandes clients)"
+      - name: as_qte_com
+        description: "Quantité commandée (commandes fournisseurs)"
+      - name: as_qte_res_cm
+        description: "Quantité réservée en contremarque (0 partout)"
+      - name: as_qte_com_cm
+        description: "Quantité commandée en contremarque (0 partout)"
+      - name: as_qte_prepa
+        description: "Quantité en préparation"
+      - name: as_qte_a_controler
+        description: "Quantité à contrôler (0 partout)"
+      - name: as_qte_mini
+        description: "Stock minimum"
+      - name: as_qte_maxi
+        description: "Stock maximum"
+      - name: as_mont_sto
+        description: "Valeur du stock. Peut être non nulle avec as_qte_sto = 0 (3,4 % des lignes au 2026-09-28) : diviser avec safe_divide pour le CMUP."
+      - name: dp_no_principal
+        description: "Emplacement principal (0 partout)"
+      - name: dp_no_controle
+        description: "Emplacement de contrôle (0 partout)"
+      - name: as_mouvemente
+        description: "1 = l'article a déjà été mouvementé dans ce dépôt"
+      - name: created_at
+        description: "Date de création de la ligne dans Sage"
+      - name: updated_at
+        description: "Date de dernière modification dans Sage"
+      - name: extracted_at
+        description: "Horodatage du run dlt : identifie la photo (une valeur par photo)"
+        tests:
+          - not_null
