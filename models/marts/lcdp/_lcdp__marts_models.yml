@@ -1015,11 +1015,11 @@ models:
       - name: appel_detail_label
         description: "Libellé du détail choisi dans la sous-catégorie (ex. NAYAX sous PANNES, VIDE LAIT sous VIDE)."
       - name: task_status_code
-        description: "Statut de l'appel dans l'ERP : VALIDE (traité) ou PREVU."
+        description: "Statut de l'appel dans l'ERP : VALIDE (traité), FAIT (réalisé) ou PREVU."
         tests:
           - accepted_values:
               arguments:
-                values: ['VALIDE', 'PREVU']
+                values: ['VALIDE', 'FAIT', 'PREVU']
       - name: comments_self
         description: "Commentaire interne saisi sur l'appel (colonne « Commentaire » des exports ERP)."
       - name: comments_peer
