@@ -609,13 +609,19 @@ sources:
             description: "Identifiant du paquet de chargement dlt — sert à l’audit"
 
       - name: dbo_f_lotserie
-        description: "Lots et numéros de série (f_lotserie). AUCUNE clé métier unique. Données incohérentes depuis l'inventaire du 2026-09-27 (lots ouverts ≫ stock) : ne rien construire en aval avant correction côté Sage."
+        description: "Lots et numéros de série (f_lotserie). Chargement APPEND depuis le 2026-10-01 : chaque run ajoute une photo complète, identifiée par _dlt_load_id. Avant, replace : la première photo est celle du 2026-09-30 22:30. AUCUNE clé métier unique déclarée par Sage."
+
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns:
+                  - _dlt_load_id
+                  - cb_marq
 
         columns:
           - name: cb_marq
-            description: "Identifiant technique Sage (PK ligne)"
+            description: "Identifiant technique Sage. Unique DANS une photo seulement."
             tests:
-              - unique
               - not_null
           - name: ar_ref
             description: "Référence article (FK vers f_article)"
@@ -634,6 +640,6 @@ sources:
           - name: cb_modification
             description: "Horodatage de dernière modification"
           - name: _extracted_at
-            description: "Horodatage du run dlt qui a chargé la ligne"
+            description: "Horodatage du run dlt : date de la photo"
           - name: _dlt_load_id
-            description: "Identifiant du paquet de chargement dlt — sert à l’audit"
+            description: "Identifiant du paquet de chargement dlt — identifie la photo"
