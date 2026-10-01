@@ -1,7 +1,13 @@
 {{
     config(
         materialized='table',
-        description="Lots et numéros de série Sage Nunshen (dbo_f_lotserie) : une ligne par mouvement de lot — l'entrée du lot (dl_no_in) et, une fois sorti, la ligne de sortie (dl_no_out, 0 tant que le lot n'est pas sorti). Sage ne déclare aucune clé unique ; (dl_no_in, dl_no_out, ls_no_serie) l'est en pratique. Sage écrit 1753-01-01 pour une date vide : convertie en NULL. ATTENTION : données incohérentes depuis l'inventaire du 2026-09-27 (lots ouverts ≫ stock) — aucun modèle aval avant correction côté Sage."
+        partition_by={
+            "field": "extracted_at",
+            "data_type": "timestamp",
+            "granularity": "day"
+        },
+        cluster_by=['ar_ref', 'de_no'],
+        description="Photos des lots et numéros de série Sage Nunshen (dbo_f_lotserie). Chargement append depuis le 2026-10-01 : chaque run dlt ajoute une photo complète, identifiée par extracted_at ; la première est celle du 2026-09-30. Toutes les photos sont gardées, la sélection d'une photo par jour se fait en aval. Dans une photo, une ligne par mouvement de lot : l'entrée (dl_no_in) et, une fois sorti, la sortie (dl_no_out, 0 tant que le lot n'est pas sorti). Sage ne déclare aucune clé unique. Sage écrit 1753-01-01 pour une date vide : convertie en NULL."
     )
 }}
 

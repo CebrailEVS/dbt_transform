@@ -1487,22 +1487,27 @@ models:
           - not_null
 
   - name: stg_mssql_sage__f_lotserie
-    description: "Lots et numéros de série Nunshen — mouvements d'entrée et de sortie par lot. Sans aval tant que Sage n'est pas corrigé."
+    description: "Photos des lots et numéros de série Nunshen — une photo complète par run dlt (extracted_at), mouvements d'entrée et de sortie par lot."
     tests:
       # Clé observée, pas déclarée par Sage (aucun index UNIQUE) : warn
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
+              - extracted_at
               - dl_no_in
               - dl_no_out
               - ls_no_serie
           config:
             severity: warn
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - extracted_at
+              - cb_marq
     columns:
       - name: cb_marq
-        description: "Identifiant technique Sage (PK ligne)"
+        description: "Identifiant technique Sage. Unique dans une photo, répété d'une photo à l'autre."
         tests:
-          - unique
           - not_null
       - name: ar_ref
         description: "Référence article"
@@ -1568,4 +1573,6 @@ models:
       - name: updated_at
         description: "Date de dernière modification dans Sage"
       - name: extracted_at
-        description: "Horodatage du run dlt qui a chargé la ligne"
+        description: "Horodatage du run dlt : identifie la photo (une valeur par photo)"
+        tests:
+          - not_null
