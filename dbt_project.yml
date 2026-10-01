@@ -170,11 +170,19 @@ vars:
   # Plancher de date des écritures à ventiler (fct_finance__ecriture_non_ventilee).
   ecriture_non_ventilee_floor: '2025-01-01'
   # Plafond de surstock du point de commande NESHU (fct_supply_chain__point_commande_neshu) :
-  # stock_max = point de commande + N semaines de demande. 8 = choix logistique du 2026-10-01
-  # pour démarrer, à resserrer à 6 une fois les premiers articles traités.
-  surstock_semaines: 8
-  # Exceptions par famille produit (dim_neshu__product.product_family), ex. DLUO courte :
-  # {'LAIT': 4} — valeur ENTIÈRE, sans guillemets (sinon CASE STRING/INT64 refusé par BigQuery).
-  # Vide = la valeur par défaut ci-dessus pour toutes les familles.
-  surstock_semaines_par_famille: {}
+  # stock_max = point de commande + N semaines de demande. Règle logistique du 2026-10-01 : les
+  # fournisseurs livrent avec au moins un mois de DLUO, donc au-delà de 4 semaines de stock le
+  # risque de périmés devient réel -> 4 par défaut (toute famille non listée, y compris une
+  # nouvelle famille : on reste prudent).
+  surstock_semaines: 4
+  # Exceptions : café, thé et non périssables gardent 8 semaines. Valeur ENTIÈRE, sans
+  # guillemets (sinon CASE STRING/INT64 refusé par BigQuery). Clé = dim_neshu__product.product_family.
+  surstock_semaines_par_famille:
+    'CAFE CAPSULES': 8
+    'CAFE CAPSULES PREMIUM': 8
+    'CAFE GRAIN': 8
+    'CAFE LYOPHILISE': 8
+    'THE': 8
+    'GOBELETS': 8
+    'MELANGEURS': 8
     

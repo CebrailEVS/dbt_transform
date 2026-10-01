@@ -204,10 +204,10 @@ assemble as (
             {%- for famille, semaines in surstock_par_famille.items() %}
             when '{{ famille }}' then {{ semaines }}
             {%- endfor %}
-            else {{ var('surstock_semaines', 8) }}
+            else {{ var('surstock_semaines', 4) }}
         end
         {%- else -%}
-        {{ var('surstock_semaines', 8) }}
+        {{ var('surstock_semaines', 4) }}
         {%- endif %} as semaines_surstock_max,
         prod.product_family,
         -- Conditionnement de commande (unité d'achat, cf. dim) : coeff = nb d'unités par carton/pack.
