@@ -104,7 +104,7 @@ delai_article as (
     from {{ ref('int_oracle_neshu__reception_tasks') }}
     where
         is_lead_time_valid
-        and date(task_start_date) >= date_sub(current_date(), interval 365 day)
+        and date(task_start_date) >= date_sub(current_date('Europe/Paris'), interval 365 day)
     group by product_id
 
 ),
@@ -116,7 +116,7 @@ delai_global as (
     from {{ ref('int_oracle_neshu__reception_tasks') }}
     where
         is_lead_time_valid
-        and date(task_start_date) >= date_sub(current_date(), interval 365 day)
+        and date(task_start_date) >= date_sub(current_date('Europe/Paris'), interval 365 day)
 
 ),
 
@@ -165,7 +165,7 @@ encours as (
     where
         task_status_code in ('FAIT', 'VALIDE')
         and delivery_status_code = 'EN_ATTENTE'
-        and date(task_start_date) >= date_sub(current_date(), interval {{ var('encours_max_jours', 60) }} day)
+        and date(task_start_date) >= date_sub(current_date('Europe/Paris'), interval {{ var('encours_max_jours', 60) }} day)
     group by company_id, product_id
 
 ),
@@ -312,7 +312,7 @@ suggestion as (
 )
 
 select
-    current_date() as date_calcul,
+    current_date('Europe/Paris') as date_calcul,
     company_id,
     product_id,
     company_code,
