@@ -222,7 +222,16 @@ assemble as (
         end as z_service,
         -- Plafond de surstock en semaines de demande : défaut global, exceptions par famille
         -- (ex. DLUO courte -> plafond plus bas).
-        8 as semaines_surstock_max,
+        case prod.product_family
+            when 'CAFE CAPSULES' then 8
+            when 'CAFE CAPSULES PREMIUM' then 8
+            when 'CAFE GRAIN' then 8
+            when 'CAFE LYOPHILISE' then 8
+            when 'GOBELETS' then 8
+            when 'MELANGEURS' then 8
+            when 'THE' then 8
+            else 4
+        end as semaines_surstock_max,
         prod.product_family,
         -- Conditionnement de commande (unité d'achat, cf. dim) : coeff = nb d'unités par carton/pack.
         prod.purchase_unit_coeff,
