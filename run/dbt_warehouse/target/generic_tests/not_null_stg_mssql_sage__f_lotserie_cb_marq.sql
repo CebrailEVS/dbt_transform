@@ -13,9 +13,9 @@
 
 
 
-select appel_numero
-from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__appel_sav`
-where appel_numero is null
+select cb_marq
+from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_lotserie`
+where cb_marq is null
 
 
 

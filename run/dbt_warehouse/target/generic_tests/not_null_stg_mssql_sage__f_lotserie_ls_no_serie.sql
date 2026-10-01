@@ -13,9 +13,9 @@
 
 
 
-select task_id
-from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__appel_sav`
-where task_id is null
+select ls_no_serie
+from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_lotserie`
+where ls_no_serie is null
 
 
 

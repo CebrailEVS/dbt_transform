@@ -12,14 +12,14 @@
     
 
 with child as (
-    select company_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__appel_sav`
-    where company_id is not null
+    select de_no as from_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_lotserie`
+    where de_no is not null
 ),
 
 parent as (
-    select company_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__company`
+    select de_no as to_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_depot`
 )
 
 select

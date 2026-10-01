@@ -7,9 +7,9 @@
 with validation_errors as (
 
     select
-        dl_no_in, dl_no_out, ls_no_serie
+        extracted_at, cb_marq
     from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_lotserie`
-    group by dl_no_in, dl_no_out, ls_no_serie
+    group by extracted_at, cb_marq
     having count(*) > 1
 
 )

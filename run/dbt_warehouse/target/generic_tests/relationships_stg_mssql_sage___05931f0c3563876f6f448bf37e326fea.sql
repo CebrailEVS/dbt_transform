@@ -12,14 +12,14 @@
     
 
 with child as (
-    select device_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__appel_sav`
-    where device_id is not null
+    select dl_no_in as from_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_lotserie`
+    where dl_no_in is not null
 ),
 
 parent as (
-    select device_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__device`
+    select dl_no as to_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne`
 )
 
 select

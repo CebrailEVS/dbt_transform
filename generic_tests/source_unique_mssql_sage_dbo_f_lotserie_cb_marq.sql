@@ -1,1 +1,0 @@
-{{ test_unique(column_name="cb_marq", model=get_where_subquery(source('mssql_sage', 'dbo_f_lotserie'))) }}
