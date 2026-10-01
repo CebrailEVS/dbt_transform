@@ -46,12 +46,12 @@ stats as (
         sum(quantite_demandee) as demande_totale,
         sum(
             if(
-                demande_mois >= date_sub(date_trunc(current_date(), month), interval 12 month),
+                demande_mois >= date_sub(date_trunc(current_date('Europe/Paris'), month), interval 12 month),
                 quantite_demandee, 0
             )
         ) as demande_12m,
         date_diff(max(demande_mois), min(demande_mois), month) + 1 as span_actif_mois,
-        date_diff(date_trunc(current_date(), month), max(demande_mois), month) as mois_inactif,
+        date_diff(date_trunc(current_date('Europe/Paris'), month), max(demande_mois), month) as mois_inactif,
         round(safe_divide(date_diff(max(demande_mois), min(demande_mois), month) + 1, count(*)), 2) as adi,
         round(pow(safe_divide(stddev_samp(quantite_demandee), avg(quantite_demandee)), 2), 2) as cv2
     from demande
@@ -71,7 +71,7 @@ part_ete as (
             sum(quantite_demandee)
         ) as part_volume_ete
     from demande
-    where demande_mois >= date_sub(date_trunc(current_date(), month), interval 24 month)
+    where demande_mois >= date_sub(date_trunc(current_date('Europe/Paris'), month), interval 24 month)
     group by product_id
 
 ),
@@ -138,7 +138,7 @@ saison_courante as (
     -- Saison de la semaine ISO en cours (été / hiver), depuis le calendrier logistique.
     select saison
     from {{ ref('ref_general__calendrier_saison') }}
-    where numero_semaine = extract(isoweek from current_date())
+    where numero_semaine = extract(isoweek from current_date('Europe/Paris'))
 
 ),
 
@@ -161,7 +161,7 @@ saisonnalite as (
         end as saison_produit,
         (a.product_planoete = 'OUI' and sc.saison = 'ete')
         or (a.product_planohiver = 'OUI' and sc.saison = 'hiver') as en_saison,
-        date_diff(date_trunc(current_date(), month), a.premiere_sortie, month) as mois_depuis_premiere,
+        date_diff(date_trunc(current_date('Europe/Paris'), month), a.premiere_sortie, month) as mois_depuis_premiere,
         pe.part_volume_ete
     from abc as a
     cross join saison_courante as sc
@@ -220,7 +220,7 @@ classifie as (
 )
 
 select
-    current_date() as date_calcul,
+    current_date('Europe/Paris') as date_calcul,
     company_id,
     product_id,
     company_code,
