@@ -43,9 +43,9 @@ demande_fenetre as (
             c.company_id = s.company_id
             and c.product_id = s.product_id
             and s.demande_mois >= date_sub(
-                date_trunc(current_date(), month), interval 3 month
+                date_trunc(current_date('Europe/Paris'), month), interval 3 month
             )
-            and s.demande_mois < date_trunc(current_date(), month)
+            and s.demande_mois < date_trunc(current_date('Europe/Paris'), month)
     group by c.company_id, c.product_id
 
 ),
@@ -65,8 +65,8 @@ demande_n1_saison as (
             c.company_id = s.company_id
             and c.product_id = s.product_id
             and s.demande_mois between
-            date_sub(date_trunc(current_date(), month), interval 12 month)
-            and date_sub(date_trunc(current_date(), month), interval 10 month)
+            date_sub(date_trunc(current_date('Europe/Paris'), month), interval 12 month)
+            and date_sub(date_trunc(current_date('Europe/Paris'), month), interval 10 month)
     group by c.company_id, c.product_id
 
 ),
@@ -101,7 +101,7 @@ prevision as (
 )
 
 select
-    current_date() as date_calcul,
+    current_date('Europe/Paris') as date_calcul,
     company_id,
     product_id,
     company_code,

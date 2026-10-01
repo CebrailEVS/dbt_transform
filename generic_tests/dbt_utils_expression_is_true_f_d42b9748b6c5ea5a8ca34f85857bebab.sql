@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="(quantite_excedentaire > 0) = (statut_reappro = 'surstock')", model=get_where_subquery(ref('fct_supply_chain__point_commande_neshu'))) }}
