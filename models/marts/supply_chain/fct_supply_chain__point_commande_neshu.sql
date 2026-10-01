@@ -29,14 +29,20 @@
 --                     source='erreur' ; le biais négatif (sur-prévision) n'est PAS retranché (prudence)
 --   point_commande  = demande_retenue_journaliere × horizon + stock_securite
 --   qte_a_commander = greatest(0, point_commande − position_stock)
---   statut          = rupture (position ≤ sécurité) / a_commander (≤ point de commande) / ok / exclu
+--   stock_max       = point_commande + N semaines × demande_retenue_journaliere (plafond de surstock,
+--                     N = var surstock_semaines, exceptions par famille via surstock_semaines_par_famille)
+--   statut          = rupture (position ≤ sécurité) / a_commander (≤ point de commande) /
+--                     surstock (> stock_max) / ok / exclu
 --
 -- Grain : 1 ligne par (dépôt, article), aligné sur la classification ② et la prévision ③.
 -- Périmètre encours : commande fournisseur FAIT/VALIDE + livraison EN_ATTENTE, < 60 j (règle métier, var).
 -- NOTE : périmètre = 3 dépôts qui commandent au fournisseur (Rungis, Lyon, Marseille). Strasbourg est
 -- réapprovisionné DEPUIS Lyon → sa demande, son stock et son (rare) encours remontent sur Lyon via la
 -- macro neshu_depot_reappro. Bordeaux commande indépendamment (Distrilog) → exclu du pilotage.
--- Paramètres métier en var() dbt : z_service_a/b/c, encours_max_jours, revue_jours, sigma_erreur_min_mois.
+-- Paramètres métier en var() dbt : z_service_a/b/c, encours_max_jours, revue_jours, sigma_erreur_min_mois,
+-- surstock_semaines, surstock_semaines_par_famille.
+
+{%- set surstock_par_famille = var('surstock_semaines_par_famille', {}) %}
 
 with prevision as (
 
@@ -191,6 +197,19 @@ assemble as (
             when 'B' then {{ var('z_service_b', 1.645) }}
             else {{ var('z_service_c', 1.28) }}
         end as z_service,
+        -- Plafond de surstock en semaines de demande : défaut global, exceptions par famille
+        -- (ex. DLUO courte -> plafond plus bas).
+        {% if surstock_par_famille -%}
+        case prod.product_family
+            {%- for famille, semaines in surstock_par_famille.items() %}
+            when '{{ famille }}' then {{ semaines }}
+            {%- endfor %}
+            else {{ var('surstock_semaines', 8) }}
+        end
+        {%- else -%}
+        {{ var('surstock_semaines', 8) }}
+        {%- endif %} as semaines_surstock_max,
+        prod.product_family,
         -- Conditionnement de commande (unité d'achat, cf. dim) : coeff = nb d'unités par carton/pack.
         prod.purchase_unit_coeff,
         prod.purchase_unit_code
@@ -251,7 +270,13 @@ final as (
         round(z_service * sigma_lead_time, 2) as stock_securite,
         round(
             demande_retenue_journaliere * horizon_jours + z_service * sigma_lead_time, 2
-        ) as point_commande
+        ) as point_commande,
+        -- Plafond : au-delà, la position dépasse de plus de N semaines de demande ce que la méthode
+        -- aurait commandé (elle remonte la position au seul point de commande).
+        round(
+            demande_retenue_journaliere * (horizon_jours + 7 * semaines_surstock_max)
+            + z_service * sigma_lead_time, 2
+        ) as stock_max
     from securite
 
 ),
@@ -265,8 +290,18 @@ suggestion as (
             when methode_prevision = 'exclu' then 'exclu'
             when position_stock <= stock_securite then 'rupture'
             when position_stock <= point_commande then 'a_commander'
+            when position_stock > stock_max then 'surstock'
             else 'ok'
         end as statut_reappro,
+        -- Excès au-delà du plafond (0 si sous le plafond ou exclu).
+        case
+            when methode_prevision = 'exclu' then 0
+            else greatest(0, round(position_stock - stock_max, 2))
+        end as quantite_excedentaire,
+        -- Article arrêté (label exploit = NON) dont il reste du stock ou de l'encours au dépôt.
+        -- Volontairement limité aux arrêtés : les inactifs (sans demande, label OUI) relèvent du
+        -- « stock dormant » du cockpit Supply, notion distincte.
+        coalesce(statut_vie = 'arrete' and position_stock > 0, false) as is_article_arrete_avec_stock,
         -- Quantité suggérée en unités : combler l'écart jusqu'au point de commande (0 si couvert/exclu).
         case
             when methode_prevision = 'exclu' then 0
@@ -284,6 +319,7 @@ select
     company_name,
     product_code,
     product_name,
+    product_family,
     statut_vie,
     classe_abc,
     methode_prevision,
@@ -304,7 +340,11 @@ select
     round(position_stock, 2) as position_stock,
     stock_securite,
     point_commande,
+    semaines_surstock_max,
+    stock_max,
     statut_reappro,
+    is_article_arrete_avec_stock,
+    quantite_excedentaire,
     coalesce(purchase_unit_coeff, 1) as coeff_conditionnement,
     quantite_a_commander,
     -- Reconditionnement : quantité arrondie au conditionnement de commande supérieur (carton/pack).
