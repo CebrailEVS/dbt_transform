@@ -45,7 +45,31 @@ du run. **Aucune clé n'est stockée dans GitHub.**
 ## 3. Le defer
 
 `--defer` fait pointer chaque `ref()` vers un modèle **non construit dans ce run** vers sa
-version prod. Tu ne construis que ce que tu modifies ; les parents sont lus en prod, à jour.
+version prod, **sauf si ce modèle existe déjà dans ton dataset dev** : dbt prend alors ta
+version dev, même ancienne. Tu ne construis que ce que tu modifies ; les parents absents de
+ton dataset sont lus en prod, à jour.
+
+### `--favor-state` : forcer les parents en prod
+
+`--favor-state` supprime cette exception : tout modèle non construit dans le run est lu en
+prod, même s'il existe en dev.
+
+| Situation | Option |
+|---|---|
+| Tu développes une chaîne en plusieurs commandes (`stg_x`, puis `int_x` qui doit lire **ton** `stg_x`) | `--defer` seul (défaut) |
+| **Recette dev ↔ prod** : tu modifies un modèle et compares ses chiffres à la prod | `--favor-state` |
+| Ton dataset contient des tables d'un autre chantier, sans rapport | `--favor-state` |
+
+Ne pas l'activer par défaut : dans le premier cas, il ferait lire le `stg_x` de prod et
+masquerait ta modification, sans erreur.
+
+**Piège vécu (2026-10-05)** : une recette de `int_mssql_sage__pnl_bu` a lu des stagings Sage
+restés dans `dbt_cebrail` depuis 7 jours (les tables n'expirent qu'après 14 j). Résultat :
+292 lignes d'écart dev/prod sans rapport avec le changement testé. Réflexe avant d'interpréter
+un écart : **vérifier que dev et prod ont le même nombre de lignes**.
+
+Construire toute la chaîne modifiée en **une seule commande** (`-s stg_x+`) évite aussi le
+problème : ce qui est construit dans le run est toujours lu en dev.
 
 dbt sait où se trouve chaque modèle en prod grâce au **`manifest.json` de prod** :
 
@@ -58,6 +82,16 @@ merge → cd produit manifest.json → gs://evs-datastack-dbt-state/dbt-state/  
 
 `state:modified+` compare le code au manifest et ne sélectionne que les nœuds modifiés,
 plus leur aval.
+
+**Mise à jour du manifest local** : automatique. Les hooks git `post-merge` (`git pull`) et
+`post-checkout` (changement de branche) lancent `scripts/pull-state.sh`, qui ne télécharge que si
+la prod a changé (~0,5 s). Seul cas manuel : un collègue a mergé et tu es resté sur ta branche
+sans pull ni checkout.
+
+```bash
+scripts/pull-state.sh          # met à jour si besoin
+scripts/pull-state.sh --force  # retélécharge quoi qu'il arrive
+```
 
 ## 4. Les quatre flux
 

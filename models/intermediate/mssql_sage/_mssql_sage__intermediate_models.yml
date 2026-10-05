@@ -87,12 +87,18 @@ models:
 
       # --- MESURES ---
       - name: montant_analytique
-        description: Montant (€) ventilé sur la section analytique, en valeur absolue (non signé).
+        description: >
+          Montant (€) ventilé sur la section analytique, tel que saisi dans Sage (ea_montant),
+          dans le sens de l'écriture. Généralement positif ; négatif quand le comptable
+          réaffecte un montant entre sections (la section porteuse du négatif cède le montant).
+          La somme des lignes d'une écriture redonne son montant général (ec_montant).
       - name: montant_analytique_signe
         description: >
-          Montant signé (€) à sommer pour le P&L : positif au crédit (sens_ecriture = 1,
-          typiquement les produits / chiffre d'affaires), négatif au débit (sens_ecriture = 0,
-          typiquement les charges). C'est **la** mesure du résultat par BU.
+          Montant signé (€) à sommer pour le P&L : montant_analytique au crédit (sens_ecriture = 1,
+          typiquement les produits / chiffre d'affaires), son opposé au débit (sens_ecriture = 0,
+          typiquement les charges). Le signe saisi dans Sage est conservé : un débit négatif
+          (réaffectation) réduit la charge de la section. C'est **la** mesure du résultat par BU.
+          Contrôlé par tests/intermediate/assert_mssql_sage__pnl_bu_equilibre_ecriture.sql.
 
       # --- DATES ---
       - name: date_facturation
