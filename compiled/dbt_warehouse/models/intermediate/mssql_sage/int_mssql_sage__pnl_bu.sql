@@ -139,15 +139,11 @@ select
     sens_ecriture,
     montant_analytique,
 
+    -- Pas de abs() : un montant analytique négatif est une réaffectation entre sections
+    -- (la section cède le montant), son signe doit inverser le sens. Avec abs(), la somme
+    -- des lignes ne redonnait plus le montant de l'écriture générale.
     case
-        when left(cast(numero_compte_general as string), 1) = '6' and sens_ecriture = 0
-            then -abs(montant_analytique)
-        when left(cast(numero_compte_general as string), 1) = '6' and sens_ecriture = 1
-            then abs(montant_analytique)
-        when left(cast(numero_compte_general as string), 1) = '7' and sens_ecriture = 0
-            then -abs(montant_analytique)
-        when left(cast(numero_compte_general as string), 1) = '7' and sens_ecriture = 1
-            then abs(montant_analytique)
+        when sens_ecriture = 0 then -montant_analytique
         else montant_analytique
     end as montant_analytique_signe,
 
