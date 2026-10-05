@@ -13,9 +13,9 @@
 
 
 
-select product_code
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__point_commande_neshu`
-where product_code is null
+select date_facturation
+from `evs-datastack-prod`.`prod_intermediate`.`int_mssql_sage__pnl_bu`
+where date_facturation is null
 
 
 

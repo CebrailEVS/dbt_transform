@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        source_sigma as value_field,
+        kpi as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__point_commande_neshu`
-    group by source_sigma
+    from `evs-datastack-prod`.`prod_marts`.`fct_finance__pnl_bu`
+    group by kpi
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'erreur','demande_fallback'
+    'CA','CONSOMMATION_MP_SSTT','MASSE_SALARIALE','FRAIS_DIRECTS_AMORTISSEMENTS','MARGE_BRUTE','MARGE_NETTE'
 )
 
 

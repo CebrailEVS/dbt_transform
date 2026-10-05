@@ -13,9 +13,9 @@
 
 
 
-select product_id
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__point_commande_neshu`
-where product_id is null
+select scenario
+from `evs-datastack-prod`.`prod_marts`.`fct_finance__pnl_bu`
+where scenario is null
 
 
 

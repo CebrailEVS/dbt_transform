@@ -8,14 +8,15 @@
       
     
   
+    
+    
 
 
 
-select
-    1
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__point_commande_neshu`
+select bu
+from `evs-datastack-prod`.`prod_marts`.`fct_finance__pnl_bu`
+where bu is null
 
-where not((quantite_excedentaire > 0) = (statut_reappro = 'surstock'))
 
 
   

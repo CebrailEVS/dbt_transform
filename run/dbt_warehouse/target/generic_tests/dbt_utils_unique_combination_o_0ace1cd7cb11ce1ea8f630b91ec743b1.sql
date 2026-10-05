@@ -16,9 +16,9 @@
 with validation_errors as (
 
     select
-        company_id, product_id
-    from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__point_commande_neshu`
-    group by company_id, product_id
+        numero_ecriture_comptable, numero_plan_analytique, numero_ligne_analytique
+    from `evs-datastack-prod`.`prod_intermediate`.`int_mssql_sage__pnl_bu`
+    group by numero_ecriture_comptable, numero_plan_analytique, numero_ligne_analytique
     having count(*) > 1
 
 )

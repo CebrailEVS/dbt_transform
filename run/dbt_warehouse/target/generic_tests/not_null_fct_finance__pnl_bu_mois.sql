@@ -8,14 +8,15 @@
       
     
   
+    
+    
 
 
 
-select
-    1
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__point_commande_neshu`
+select mois
+from `evs-datastack-prod`.`prod_marts`.`fct_finance__pnl_bu`
+where mois is null
 
-where not(stock_max >= point_commande - 0.01)
 
 
   

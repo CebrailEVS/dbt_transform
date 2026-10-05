@@ -13,9 +13,9 @@
 
 
 
-select company_code
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__point_commande_neshu`
-where company_code is null
+select categorie_pnl_bu
+from `evs-datastack-prod`.`prod_reference`.`ref_mssql_sage__code_comptable_bu`
+where categorie_pnl_bu is null
 
 
 

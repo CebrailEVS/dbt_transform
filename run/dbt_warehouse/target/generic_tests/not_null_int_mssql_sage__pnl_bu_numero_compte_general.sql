@@ -13,9 +13,9 @@
 
 
 
-select quantite_a_commander_conditionnee
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__point_commande_neshu`
-where quantite_a_commander_conditionnee is null
+select numero_compte_general
+from `evs-datastack-prod`.`prod_intermediate`.`int_mssql_sage__pnl_bu`
+where numero_compte_general is null
 
 
 
