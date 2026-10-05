@@ -21,6 +21,7 @@ seeds:
       column_types:
         code_comptable: STRING
         designation_compte: STRING
+        categorie_pnl_bu: STRING
         macro_categorie_pnl_bu: STRING
     columns:
       - name: code_comptable
@@ -30,6 +31,10 @@ seeds:
           - unique
       - name: designation_compte
         description: "Désignation du compte comptable"
+      - name: categorie_pnl_bu
+        description: "Catégorie P&L BU associée au compte comptable, niveau fin sous macro_categorie_pnl_bu"
+        tests:
+          - not_null
       - name: macro_categorie_pnl_bu
         description: "Macro catégorie P&L BU associée au compte comptable"
 
