@@ -13,9 +13,9 @@
 
 
 
-select date_facturation
-from `evs-datastack-prod`.`prod_intermediate`.`int_mssql_sage__pnl_bu`
-where date_facturation is null
+select task_id
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__chargement_tasks`
+where task_id is null
 
 
 

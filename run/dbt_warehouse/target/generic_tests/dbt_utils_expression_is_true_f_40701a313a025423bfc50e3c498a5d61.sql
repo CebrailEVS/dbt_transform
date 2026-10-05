@@ -8,15 +8,14 @@
       
     
   
-    
-    
 
 
 
-select bu
-from `evs-datastack-prod`.`prod_marts`.`fct_finance__pnl_bu`
-where bu is null
+select
+    1
+from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__chargement_sortie`
 
+where not(qty_retiree >= 0)
 
 
   

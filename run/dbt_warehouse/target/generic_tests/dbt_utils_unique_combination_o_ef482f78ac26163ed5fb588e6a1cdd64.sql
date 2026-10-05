@@ -16,9 +16,9 @@
 with validation_errors as (
 
     select
-        numero_ecriture_comptable, numero_plan_analytique, numero_ligne_analytique
-    from `evs-datastack-prod`.`prod_intermediate`.`int_mssql_sage__pnl_bu`
-    group by numero_ecriture_comptable, numero_plan_analytique, numero_ligne_analytique
+        device_id, week_start_date
+    from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__chargement_sortie`
+    group by device_id, week_start_date
     having count(*) > 1
 
 )

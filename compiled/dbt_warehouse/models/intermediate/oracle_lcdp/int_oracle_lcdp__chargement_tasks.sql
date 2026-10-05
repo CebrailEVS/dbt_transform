@@ -1,6 +1,19 @@
 
 
-with chargement_base as (
+-- Sens de chargement porté par le label de la famille TYPE_LOADED (LOADING / REMOVING).
+-- Le filtre sur la famille est indispensable : une tâche porte d'autres labels
+-- (INTEGRATION_TYPE = EASYUPLOAD / WORKER depuis le 2026-10-04) qui dupliqueraient le grain.
+with task_load_type as (
+    select
+        lht.idtask,
+        la.code
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` as lht
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` as la on lht.idlabel = la.idlabel
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_family` as lf on la.idlabel_family = lf.idlabel_family
+    where lf.code = 'TYPE_LOADED'
+),
+
+chargement_base as (
 
     select
         -- Identifiants
@@ -48,8 +61,7 @@ with chargement_base as (
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__device` as d on t.iddevice = d.iddevice
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__product` as p on thp.idproduct = p.idproduct
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__location` as l on t.idlocation = l.idlocation
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label_has_task` as lht on t.idtask = lht.idtask
-    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__label` as la on lht.idlabel = la.idlabel
+    left join task_load_type as la on t.idtask = la.idtask
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_status` as ts on t.idtask_status = ts.idtask_status
 
     where

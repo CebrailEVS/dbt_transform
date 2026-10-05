@@ -13,9 +13,9 @@
 
 
 
-select annee
-from `evs-datastack-prod`.`prod_marts`.`fct_finance__pnl_bu`
-where annee is null
+select nb_ventes
+from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__chargement_sortie`
+where nb_ventes is null
 
 
 
