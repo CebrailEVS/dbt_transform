@@ -137,7 +137,7 @@ code_comptable,designation_compte,categorie_pnl_bu,macro_categorie_pnl_bu
 649200,,Charges Patronales,Masse Salariale
 649300,,Résultat Exceptionnel,Frais Directs & Amortissements
 651000,REDEVENCE CESSION BREVET,Royalties neshu x nunshen,Frais Directs & Amortissements
-654000,Pertes/cr‚ances irr‚couvrables,Résultat Exceptionnel,Frais Directs & Amortissements
+654000,Pertes/créances irrécouvrables,Résultat Exceptionnel,Frais Directs & Amortissements
 656000,PERTES DE CHANGE,Résultat Financier,Frais Directs & Amortissements
 658000,CHARGES DIV.GEST.COURANTE,Résultat Exceptionnel,Frais Directs & Amortissements
 661100,INTERETS D'EMPRUNT,Résultat Financier,Frais Directs & Amortissements
@@ -217,7 +217,7 @@ code_comptable,designation_compte,categorie_pnl_bu,macro_categorie_pnl_bu
 762400,PRODUITS FIN. REVENUS DES PRETS,Résultat Financier,Frais Directs & Amortissements
 768000,AUTRES PRODUITS FINANCIERS,Résultat Financier,Frais Directs & Amortissements
 771800,PROD.EXCEPT./OPER.GESTION,Résultat Exceptionnel,Frais Directs & Amortissements
-771810,Produits exceptionnels soumis … TVA,Résultat Exceptionnel,Frais Directs & Amortissements
+771810,Produits exceptionnels soumis à TVA,Résultat Exceptionnel,Frais Directs & Amortissements
 772000,PRODUITS EXCEP./EXO ANTERIEUR,Résultat Exceptionnel,Frais Directs & Amortissements
 775200,Produits cessions soumis TVA,Résultat Exceptionnel,Frais Directs & Amortissements
 775201,Produits cessions exo TVA,Résultat Exceptionnel,Frais Directs & Amortissements
