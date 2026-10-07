@@ -213,7 +213,7 @@ models:
 
   # TABLE DOCLIGNE NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_docligne
-    description: "Lignes de documents Nunshen (ventes, achats, stock, fabrication). Merge sans purge : ~1 900 lignes au 2026-09-28 n'ont plus d'en-tête dans f_docentete (documents transformés ou supprimés dans Sage) — pas de test de relation vers f_docentete, c'est attendu."
+    description: "Lignes de documents Nunshen (ventes, achats, stock, fabrication). Chargement replace depuis le 2026-10-07 : ne contient que les lignes existant dans Sage. Avant, en merge sans purge, ~1 900 lignes n'avaient plus d'en-tête dans f_docentete ; zéro mesuré sur dev_raw après le passage en replace."
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK)"

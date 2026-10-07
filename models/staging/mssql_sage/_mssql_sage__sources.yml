@@ -411,11 +411,10 @@ sources:
       # ---------------------------------------------------------------------
       # NUNSHEN — VENTES, STOCK, ACHATS, PRODUCTION
       #
-      # Ajoutées le 2026-09-28 (brief de passation ingestion). Seule
-      # f_docentete est en `replace` POUR PURGER les documents transformés :
-      # f_docligne étant en merge sans purge, une ligne de type 12 (commande
-      # fournisseur) ou 24 (préparation de fabrication) n'est ouverte que si
-      # son en-tête existe ici.
+      # Ajoutées le 2026-09-28 (brief de passation ingestion). f_docentete et,
+      # depuis le 2026-10-07, f_docligne sont en `replace` : un document ou une
+      # ligne supprimés dans Sage (transformation, réception partielle)
+      # disparaissent du raw au run suivant.
       # ---------------------------------------------------------------------
       - name: dbo_f_docentete
         description: "En-têtes de documents commerciaux (f_docentete) — un document par (do_type, do_piece). Chargement replace : ne contient que les documents existant dans Sage au dernier run ; un document transformé (commande → réception, PF → bon de fabrication) en disparaît."
