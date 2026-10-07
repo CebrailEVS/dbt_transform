@@ -12,14 +12,14 @@
     
 
 with child as (
-    select company_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__mouvement_produit`
-    where company_id is not null
+    select ct_num as from_field
+    from (select * from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne` where do_domaine in (0, 1)) dbt_subquery
+    where ct_num is not null
 ),
 
 parent as (
-    select company_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__company`
+    select ct_num as to_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_comptet`
 )
 
 select

@@ -12,14 +12,14 @@
     
 
 with child as (
-    select device_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__chargement_sortie`
-    where device_id is not null
+    select de_no as from_field
+    from (select * from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne` where de_no != 0) dbt_subquery
+    where de_no is not null
 ),
 
 parent as (
-    select device_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__device`
+    select de_no as to_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_depot`
 )
 
 select

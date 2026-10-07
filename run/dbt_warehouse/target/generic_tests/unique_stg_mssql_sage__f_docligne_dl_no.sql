@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select task_product_id as unique_field
-  from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__chargement_tasks`
-  where task_product_id is not null
+  select dl_no as unique_field
+  from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne`
+  where dl_no is not null
 
 )
 

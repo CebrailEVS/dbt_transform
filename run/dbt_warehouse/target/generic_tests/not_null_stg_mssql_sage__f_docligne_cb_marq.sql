@@ -13,9 +13,9 @@
 
 
 
-select task_id
-from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__chargement_tasks`
-where task_id is null
+select cb_marq
+from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne`
+where cb_marq is null
 
 
 

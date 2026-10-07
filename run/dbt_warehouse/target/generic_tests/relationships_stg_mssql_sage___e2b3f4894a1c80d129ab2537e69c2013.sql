@@ -12,14 +12,14 @@
     
 
 with child as (
-    select product_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__mouvement_produit`
-    where product_id is not null
+    select ar_ref_compose as from_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne`
+    where ar_ref_compose is not null
 ),
 
 parent as (
-    select product_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__product`
+    select ar_ref as to_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_article`
 )
 
 select

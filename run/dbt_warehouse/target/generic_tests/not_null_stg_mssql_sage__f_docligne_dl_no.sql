@@ -13,9 +13,9 @@
 
 
 
-select mouvement_date
-from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__mouvement_produit`
-where mouvement_date is null
+select dl_no
+from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne`
+where dl_no is null
 
 
 

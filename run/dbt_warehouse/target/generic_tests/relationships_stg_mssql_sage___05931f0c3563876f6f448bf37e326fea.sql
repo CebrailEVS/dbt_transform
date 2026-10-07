@@ -12,14 +12,14 @@
     
 
 with child as (
-    select resources_roadman_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_lcdp__mouvement_produit`
-    where resources_roadman_id is not null
+    select dl_no_in as from_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_lotserie`
+    where dl_no_in is not null
 ),
 
 parent as (
-    select resources_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_lcdp__resource`
+    select dl_no as to_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne`
 )
 
 select
