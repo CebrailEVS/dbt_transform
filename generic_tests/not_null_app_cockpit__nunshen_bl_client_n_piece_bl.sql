@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="n_piece_bl", model=get_where_subquery(ref('app_cockpit__nunshen_bl_client'))) }}

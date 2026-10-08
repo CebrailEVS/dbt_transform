@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["annee","mois","reference"], model=get_where_subquery(ref('app_cockpit__nunshen_vente_mensuelle'))) }}

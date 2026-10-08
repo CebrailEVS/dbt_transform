@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="stock_date", model=get_where_subquery(ref('app_cockpit__nunshen_stock_photo'))) }}

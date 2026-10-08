@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["depot_id","reference","n_serie"], model=get_where_subquery(ref('app_cockpit__nunshen_stock_lot'))) }}

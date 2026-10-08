@@ -1,0 +1,11 @@
+
+    
+    
+
+
+
+select n_piece
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nunshen_bl_client`
+where n_piece is null
+
+

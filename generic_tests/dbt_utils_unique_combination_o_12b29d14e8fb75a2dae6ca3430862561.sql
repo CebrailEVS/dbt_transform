@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["date_inventaire","depot_id"], model=get_where_subquery(ref('app_cockpit__nunshen_inventaire'))) }}

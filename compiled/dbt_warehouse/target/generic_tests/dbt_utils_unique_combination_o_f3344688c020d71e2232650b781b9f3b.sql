@@ -1,0 +1,20 @@
+
+
+
+
+
+
+with validation_errors as (
+
+    select
+        n_piece, date_document, reference
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nunshen_fabrication`
+    group by n_piece, date_document, reference
+    having count(*) > 1
+
+)
+
+select *
+from validation_errors
+
+
