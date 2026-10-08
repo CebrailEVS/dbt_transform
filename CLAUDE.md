@@ -110,6 +110,7 @@ Verrou `concurrency: dbt-cd-prod` : un seul `cd` à la fois, jamais annulé en c
 | `models/staging/` | `prod_staging` / `dbt_<dev>` | table (one model = `incremental`) |
 | `models/intermediate/` | `prod_intermediate` / `dbt_<dev>` | table |
 | `models/marts/` | `prod_marts` / `dbt_<dev>` | table |
+| `models/apps/<application>/` | `prod_app_<application>` / `dbt_<dev>` | explicite (cf. [`docs/conventions/apps.md`](docs/conventions/apps.md)) |
 
 Sources : voir le tableau du [README](README.md#sources-de-donnees) (14 sources, dont `historic`), autorité de fraîcheur dans [`docs/freshness.md`](docs/freshness.md).
 
@@ -247,6 +248,7 @@ Always follow [`docs/conventions/marts.md`](docs/conventions/marts.md) (§ Marts
 Exposures declare which Power BI reports consume which dbt models. One file per BU dans `models/exposures/` :
 - `neshu.yml` · `lcdp.yml` · `finance.yml` · `services_generaux.yml` · `supply_chain.yml`
 - `technique.yml`, `commerce.yml` à créer quand des rapports y seront affectés
+- `cockpit_supply.yml` : exposure `type: application` de l'app Cockpit Supply (couche `apps`, cf. [`docs/conventions/apps.md`](docs/conventions/apps.md)) — à tenir à jour dès que l'app lit un nouveau modèle
 
 Update l'exposure correspondante dès qu'un mart est créé/modifié et consommé par un rapport BI. `ref()` pour dbt models.
 
