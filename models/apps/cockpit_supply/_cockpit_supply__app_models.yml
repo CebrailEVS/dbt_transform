@@ -392,3 +392,379 @@ models:
         tests:
           - not_null
           - unique
+
+  - name: app_cockpit__neshu_produit
+    description: |
+      [QUOI MÉTIER] Référentiel des articles Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de dim_neshu__product.
+      [GRAIN] 1 ligne par product_id.
+      [NOTES] Lue par l'app via get_dim_products, get_produits_actifs ; 37 route(s) API, écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, lcdp_distrib, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, nunshen_partenaires, supply, technique_partenaires, v2_nav, v2_system (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__neshu_societe
+    description: |
+      [QUOI MÉTIER] Référentiel des sociétés Neshu (clients, fournisseurs, dépôts), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de dim_neshu__company.
+      [GRAIN] 1 ligne par company_id.
+      [NOTES] Lue par l'app via get_commande_fournisseur, get_dim_company, get_livraison, get_reception ; 32 route(s) API, écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, lcdp_distrib, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, nunshen_partenaires, supply, technique_partenaires, v2_nav, v2_system (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: company_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__neshu_machine
+    description: |
+      [QUOI MÉTIER] Référentiel des machines (distributeurs) Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de dim_neshu__device.
+      [GRAIN] 1 ligne par device_id.
+      [NOTES] Lue par l'app via get_dim_devices_neshu ; 2 route(s) API, écrans : technique_terrain (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: device_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__neshu_couverture_stock
+    description: |
+      [QUOI MÉTIER] Couverture de stock des dépôts Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_supply_chain__couverture_stock_neshu.
+      [GRAIN] 1 ligne par (date_calcul, company_id, product_code).
+      [NOTES] Lue par l'app via get_couverture ; 10 route(s) API, écrans : _conformite, _pilotage, accueil, groupe, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, supply, v2_nav, v2_system (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['date_calcul', 'company_id', 'product_code']
+
+  - name: app_cockpit__neshu_disponibilite_depot_mensuel
+    description: |
+      [QUOI MÉTIER] Disponibilité mensuelle des articles dans les dépôts Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_supply_chain__disponibilite_article_neshu_depot_mensuel.
+      [GRAIN] 1 ligne par (mois, dépôt, article).
+      [NOTES] Lue par l'app via get_disponibilite ; 9 route(s) API, écrans : _conformite, accueil, groupe, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, supply, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['mois', 'company_id', 'product_code']
+
+  - name: app_cockpit__neshu_disponibilite_vehicule_mensuel
+    description: |
+      [QUOI MÉTIER] Disponibilité mensuelle des articles dans les véhicules Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_supply_chain__disponibilite_article_neshu_vehicule_mensuel.
+      [GRAIN] 1 ligne par (mois, véhicule, article).
+      [NOTES] Lue par l'app via get_disponibilite_vehicule ; 3 route(s) API, écrans : neshu_terrain (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['mois', 'resources_id', 'product_code']
+
+  - name: app_cockpit__neshu_point_commande
+    description: |
+      [QUOI MÉTIER] Point de commande Neshu (« Commandes à passer »), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_supply_chain__point_commande_neshu.
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build, aligné sur la classification ② et la prévision ③.
+      [NOTES] Lue par l'app via get_articles_arretes_avec_stock_neshu, get_point_commande_neshu ; 16 route(s) API, écrans : _conformite, _pilotage, _planappro, accueil, groupe, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, supply, v2_nav, v2_system (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['company_id', 'product_id']
+
+  - name: app_cockpit__neshu_classification_article
+    description: |
+      [QUOI MÉTIER] Classification ABC/XYZ des articles Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_supply_chain__classification_article_neshu.
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
+      [NOTES] Lue par l'app via get_point_commande_neshu ; 16 route(s) API, écrans : _conformite, _pilotage, _planappro, accueil, groupe, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, supply, v2_nav, v2_system (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['company_id', 'product_id']
+
+  - name: app_cockpit__neshu_erreur_prevision
+    description: |
+      [QUOI MÉTIER] Erreur de prévision mensuelle des articles Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_supply_chain__erreur_prevision_neshu.
+      [GRAIN] 1 ligne par (mois_cible, company_id, product_id) — full rebuild quotidien, ~10 000 lignes.
+      [NOTES] Lue par l'app via get_erreur_prevision_neshu ; 4 route(s) API, écrans : _conformite, groupe, neshu_prevision, supply, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['mois_cible', 'company_id', 'product_id']
+
+  - name: app_cockpit__neshu_livraison_interne
+    description: |
+      [QUOI MÉTIER] Livraisons internes Neshu (dépôt → véhicule, entre dépôts), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_neshu__livraison_interne_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'un mouvement interne). ~94k lignes (~9 048 tâches), depuis début 2023.
+      [NOTES] Lue par l'app via get_livraison_interne ; 16 route(s) API, écrans : _flux, neshu_prevision, neshu_stocks, neshu_terrain, supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__neshu_livraison
+    description: |
+      [QUOI MÉTIER] Livraisons Neshu (bons de livraison), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_neshu__livraison_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'un bon de livraison). ~3 962 lignes (~718 bons), depuis fin 2022.
+      [NOTES] Lue par l'app via get_livraison ; 9 route(s) API, écrans : _flux, neshu_stocks, neshu_terrain, supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__neshu_reception
+    description: |
+      [QUOI MÉTIER] Réceptions fournisseurs Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_neshu__reception_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'un bon de réception). ~9 563 lignes (~1 693 bons), depuis 2022.
+      [NOTES] Lue par l'app via get_reception ; 20 route(s) API, écrans : _conformite, _flux, accueil, groupe, lcdp_distrib, neshu_conformite, neshu_partenaires, neshu_pilotage, neshu_stocks, neshu_terrain, nunshen_partenaires, supply, technique_partenaires, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__neshu_commande_fournisseur
+    description: |
+      [QUOI MÉTIER] Commandes fournisseurs Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_neshu__commande_fournisseur_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'une commande fournisseur). ~7 760 lignes (~1 670 tâches), depuis 2022.
+      [NOTES] Lue par l'app via get_commande_fournisseur ; 18 route(s) API, écrans : _conformite, _pilotage, _planappro, accueil, groupe, lcdp_distrib, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, nunshen_partenaires, supply, technique_partenaires, v2_nav, v2_system (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__neshu_invendu
+    description: |
+      [QUOI MÉTIER] Retraits d'invendus Neshu (retours machine), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_neshu__invendus_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'un retrait d'invendus). ~5 344 lignes (~3 852 tâches), depuis 2022.
+      [NOTES] Lue par l'app via get_invendus ; 8 route(s) API, écrans : _flux, neshu_stocks, neshu_terrain, supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__neshu_valorisation_parc_machine
+    description: |
+      [QUOI MÉTIER] Valorisation du parc de machines Neshu, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_neshu__valorisation_parc_machines sans les colonnes techniques de chargement (dbt_updated_at, dbt_invocation_id).
+      [GRAIN] 1 ligne par (device_name, device_group). ~27 lignes (9 groupes), couvrant ~970 machines actives pour ~101 k€ de stock théorique total.
+      [NOTES] Lue par l'app via get_parc_machines ; 3 route(s) API, écrans : neshu_pilotage, neshu_stocks (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['device_name', 'device_group']
+
+  - name: app_cockpit__lcdp_produit
+    description: |
+      [QUOI MÉTIER] Référentiel des articles Cafés du Phare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de dim_lcdp__product.
+      [GRAIN] 1 ligne par product_id.
+      [NOTES] Lue par l'app via get_dim_products_lcdp, get_produits_actifs_lcdp ; 33 route(s) API, écrans : _flux, _pilotage, accueil, lcdp_distrib, lcdp_pilotage, lcdp_torrefaction, neshu_partenaires, nunshen_partenaires, supply, technique_partenaires (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_machine
+    description: |
+      [QUOI MÉTIER] Référentiel des machines Cafés du Phare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de dim_lcdp__device.
+      [GRAIN] 1 ligne par device_id.
+      [NOTES] Lue par l'app via get_dim_devices_lcdp ; 1 route(s) API, écrans : lcdp_pilotage (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: device_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_ressource
+    description: |
+      [QUOI MÉTIER] Référentiel des ressources Cafés du Phare (véhicules, personnes), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de dim_lcdp__resource.
+      [GRAIN] 1 ligne par resources_id.
+      [NOTES] Lue par l'app via get_dim_resources_lcdp ; 13 route(s) API, écrans : _flux, lcdp_distrib, lcdp_torrefaction, supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: resources_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_societe
+    description: |
+      [QUOI MÉTIER] Référentiel des sociétés Cafés du Phare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de dim_lcdp__company.
+      [GRAIN] 1 ligne par company_id.
+      [NOTES] Lue par l'app via get_livraison_lcdp, get_reception_lcdp ; 33 route(s) API, écrans : _conformite, _flux, _pilotage, accueil, groupe, lcdp_distrib, lcdp_pilotage, lcdp_torrefaction, neshu_partenaires, nunshen_partenaires, supply, technique_partenaires, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: company_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_disponibilite_depot_mensuel
+    description: |
+      [QUOI MÉTIER] Disponibilité mensuelle des articles dans les dépôts Cafés du Phare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_supply_chain__disponibilite_article_lcdp_depot_mensuel.
+      [GRAIN] 1 ligne par (mois, dépôt, article).
+      [NOTES] Lue par l'app via get_disponibilite_lcdp ; 2 route(s) API, écrans : supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['mois', 'company_id', 'product_code']
+
+  - name: app_cockpit__lcdp_appro_passage
+    description: |
+      [QUOI MÉTIER] Passages des approvisionneurs Cafés du Phare Distribution Auto, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_lcdp__appro_tasks_enriched.
+      [GRAIN] 1 ligne par task_id (PK), uniquement les passages avec roadman.
+      [NOTES] Lue par l'app via get_appro_tasks_enriched_lcdp ; 1 route(s) API, écrans : lcdp_distrib (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_livraison_interne
+    description: |
+      [QUOI MÉTIER] Livraisons internes Cafés du Phare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_lcdp__livraison_interne_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'un mouvement interne). ~55,6k lignes (~4 162 tâches), depuis fin 2024.
+      [NOTES] Lue par l'app via get_livraison_interne_lcdp ; 22 route(s) API, écrans : _flux, _pilotage, accueil, lcdp_distrib, lcdp_torrefaction, supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_livraison
+    description: |
+      [QUOI MÉTIER] Livraisons Cafés du Phare (bons de livraison), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_lcdp__livraison_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'un bon de livraison). ~8,4k lignes (~3,3k bons), depuis fin 2024.
+      [NOTES] Lue par l'app via get_livraison_lcdp ; 21 route(s) API, écrans : _flux, _pilotage, accueil, lcdp_distrib, lcdp_torrefaction, supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_reception
+    description: |
+      [QUOI MÉTIER] Réceptions fournisseurs Cafés du Phare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_lcdp__reception_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'un bon de réception). ~8,7k lignes (~636 bons), depuis début 2025.
+      [NOTES] Lue par l'app via get_reception_lcdp ; 23 route(s) API, écrans : _conformite, _flux, accueil, groupe, lcdp_distrib, lcdp_pilotage, lcdp_torrefaction, neshu_partenaires, nunshen_partenaires, supply, technique_partenaires, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_invendu
+    description: |
+      [QUOI MÉTIER] Retraits d'invendus Cafés du Phare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_lcdp__invendus_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'une tâche invendus). ~4,9k lignes (~2k tâches), 185 distributeurs, depuis décembre 2024.
+      [NOTES] Lue par l'app via get_invendus_lcdp ; 7 route(s) API, écrans : _flux, lcdp_distrib, supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_entree_fabrication
+    description: |
+      [QUOI MÉTIER] Entrées en fabrication (torréfaction) Cafés du Phare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_lcdp__entree_fabrication_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'une entrée en fabrication). ~1 380 lignes (~208 tâches, 39 cafés verts), depuis janvier 2025.
+      [NOTES] Lue par l'app via get_mouvements_fabrication_lcdp ; 14 route(s) API, écrans : _flux, lcdp_pilotage, lcdp_torrefaction, supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__lcdp_sortie_fabrication
+    description: |
+      [QUOI MÉTIER] Sorties de fabrication (torréfaction) Cafés du Phare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_oracle_lcdp__sortie_fabrication_tasks sans les colonnes techniques de chargement (extracted_at).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'une sortie de fabrication). ~2 300 lignes (~347 tâches, 47 produits), depuis janvier 2025.
+      [NOTES] Lue par l'app via get_mouvements_fabrication_lcdp ; 14 route(s) API, écrans : _flux, lcdp_pilotage, lcdp_torrefaction, supply (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__technique_consommation_nespresso
+    description: |
+      [QUOI MÉTIER] Pièces Nespresso consommées par les techniciens (système Nomad), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_technique__consommation_article_nespresso sans les colonnes techniques de chargement (dbt_updated_at, dbt_invocation_id).
+      [GRAIN] 1 ligne par (n_planning, code_article). ~168k lignes depuis nov. 2023.
+      [NOTES] Lue par l'app via _get_conso_nespresso_raw_gcp ; 32 route(s) API, écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['n_planning', 'code_article']
+
+  - name: app_cockpit__technique_technicien
+    description: |
+      [QUOI MÉTIER] Référentiel des techniciens TechCare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de dim_technique__technician.
+      [GRAIN] 1 ligne par `user_id` (PK Yuman du technicien).
+      [NOTES] Lue par l'app via get_dim_technicians ; 35 route(s) API, écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__technique_rupture_depot
+    description: |
+      [QUOI MÉTIER] Ruptures quotidiennes des dépôts TechCare (stock Yuman), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_supply_chain__rupture_depot_yuman sans les colonnes techniques de chargement (dbt_updated_at, dbt_invocation_id).
+      [GRAIN] 1 ligne par (stock_date, depot, reference) — tout l'assortiment, en stock ou non.
+      [NOTES] Lue par l'app via _get_rupture_depot_yuman_raw ; 9 route(s) API, écrans : _conformite, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['stock_date', 'depot', 'reference']
+
+  - name: app_cockpit__technique_intervention
+    description: |
+      [QUOI MÉTIER] Interventions des techniciens TechCare (Yuman), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de int_yuman__interventions.
+      [GRAIN] 1 ligne par couple (demand_id, workorder_id). ~18,9k lignes (18 872). Inclut les demandes sans bon de travail (workorder_id NULL → DEMANDE_OUVERTE / DEMANDE_REJETEE) ; dédupliqué via qualify (le fan-out de l'enriched est tranché ici).
+      [NOTES] Lue par l'app via get_yuman_interventions ; 4 route(s) API, écrans : neshu_partenaires, technique_terrain (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+
+  - name: app_cockpit__technique_prix_nespresso
+    description: |
+      [QUOI MÉTIER] Prix des pièces Nespresso par intervention, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de fct_technique__piece_detachee_pricing_nespresso sans les colonnes techniques de chargement (dbt_updated_at, dbt_invocation_id).
+      [GRAIN] 1 ligne par (intervention `n_planning`, article consommé).
+      [NOTES] Lue par l'app via _load_prix_nespresso_gcp ; 37 route(s) API, écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+
+  - name: app_cockpit__technique_produit
+    description: |
+      [QUOI MÉTIER] Référentiel des articles TechCare, tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Copie de dim_technique__product.
+      [GRAIN] 1 ligne par `product_id` (PK).
+      [NOTES] Lue par l'app via _get_dim_technique_product ; 27 route(s) API, écrans : _conformite, _flux, _planappro, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav (relevé du 2026-10-08, tools/audit/carte_donnees.py de l'app). Reprise telle quelle : l'app y applique ses propres filtres (statuts, périodes). Réservé à l'application.
+    columns:
+      - name: product_id
+        tests:
+          - not_null
+          - unique
