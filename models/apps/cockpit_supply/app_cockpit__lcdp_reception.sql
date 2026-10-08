@@ -1,7 +1,18 @@
 {{ config(materialized='table') }}
 
--- Réceptions fournisseurs Cafés du Phare : copie pour Cockpit Supply de int_oracle_lcdp__reception_tasks
--- (colonnes techniques de chargement exclues). L'app ne lit plus que son
--- dataset ; ses règles restent appliquées par l'app.
-select * except (extracted_at)
+-- Réceptions fournisseurs Cafés du Phare, pour Cockpit Supply : seules les colonnes lues par l'app,
+-- tâches validées seulement (FAIT, VALIDE), comme l'app.
+select
+    task_product_id,
+    task_id,
+    company_id,
+    destination_code,
+    product_code,
+    task_status_code,
+    task_start_date,
+    delivery_lead_time_days,
+    is_lead_time_valid,
+    quantity,
+    valuation
 from {{ ref('int_oracle_lcdp__reception_tasks') }}
+where task_status_code in ('FAIT', 'VALIDE')

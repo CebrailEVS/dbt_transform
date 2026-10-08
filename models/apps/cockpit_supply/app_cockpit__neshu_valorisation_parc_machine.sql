@@ -1,7 +1,9 @@
 {{ config(materialized='table') }}
 
--- Valorisation du parc de machines Neshu : copie pour Cockpit Supply de int_oracle_neshu__valorisation_parc_machines
--- (colonnes techniques de chargement exclues). L'app ne lit plus que son
--- dataset ; ses règles restent appliquées par l'app.
-select * except (dbt_updated_at, dbt_invocation_id)
+-- Valorisation du parc de machines Neshu, pour Cockpit Supply : seules les colonnes lues par l'app.
+select
+    device_group,
+    device_name,
+    nombre_machines,
+    valorisation_totale_machine
 from {{ ref('int_oracle_neshu__valorisation_parc_machines') }}

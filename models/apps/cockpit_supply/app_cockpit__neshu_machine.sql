@@ -1,7 +1,9 @@
 {{ config(materialized='table') }}
 
--- Référentiel des machines (distributeurs) Neshu : copie pour Cockpit Supply de dim_neshu__device
--- (colonnes techniques de chargement exclues). L'app ne lit plus que son
--- dataset ; ses règles restent appliquées par l'app.
-select *
+-- Référentiel des machines Neshu (actives ou non, pour les préventives TechCare), pour Cockpit Supply : seules les colonnes lues par l'app.
+select
+    device_id,
+    device_code,
+    is_active,
+    company_name
 from {{ ref('dim_neshu__device') }}

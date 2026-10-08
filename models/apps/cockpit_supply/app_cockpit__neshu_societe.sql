@@ -1,7 +1,9 @@
 {{ config(materialized='table') }}
 
--- Référentiel des sociétés Neshu (clients, fournisseurs, dépôts) : copie pour Cockpit Supply de dim_neshu__company
--- (colonnes techniques de chargement exclues). L'app ne lit plus que son
--- dataset ; ses règles restent appliquées par l'app.
-select *
+-- Référentiel des sociétés Neshu (clients, fournisseurs, dépôts), pour Cockpit Supply : seules les colonnes lues par l'app.
+select
+    company_id,
+    company_code,
+    company_name,
+    is_depot
 from {{ ref('dim_neshu__company') }}

@@ -1,7 +1,15 @@
 {{ config(materialized='table') }}
 
--- Classification ABC/XYZ des articles Neshu : copie pour Cockpit Supply de fct_supply_chain__classification_article_neshu
--- (colonnes techniques de chargement exclues). L'app ne lit plus que son
--- dataset ; ses règles restent appliquées par l'app.
-select *
+-- Classification de la demande des articles Neshu (ADI / CV², saisonnalité), pour Cockpit Supply : seules les colonnes lues par l'app.
+select
+    company_id,
+    product_id,
+    classe_demande,
+    alerte_exploit,
+    alerte_saison,
+    saison_produit,
+    en_saison,
+    adi,
+    cv2,
+    valeur_12m
 from {{ ref('fct_supply_chain__classification_article_neshu') }}

@@ -1,7 +1,9 @@
 {{ config(materialized='table') }}
 
--- Référentiel des ressources Cafés du Phare (véhicules, personnes) : copie pour Cockpit Supply de dim_lcdp__resource
--- (colonnes techniques de chargement exclues). L'app ne lit plus que son
--- dataset ; ses règles restent appliquées par l'app.
-select *
+-- Référentiel des ressources Cafés du Phare (véhicules), pour Cockpit Supply : seules les colonnes lues par l'app.
+select
+    resources_id,
+    resources_code,
+    resources_name,
+    resources_type
 from {{ ref('dim_lcdp__resource') }}
