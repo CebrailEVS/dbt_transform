@@ -1,0 +1,162 @@
+version: 2
+
+# ============================================================
+# Couche de service — application Cockpit Supply (https://supply.evs-pro.com)
+# Dataset prod : prod_app_cockpit_supply. Conventions : docs/conventions/apps.md
+# Exposure : models/exposures/cockpit_supply.yml
+# ============================================================
+
+models:
+  - name: app_cockpit__neshu_stock_photo
+    description: |
+      [QUOI MÉTIER] Photos de stock Neshu dont l'application Cockpit Supply a besoin : la dernière photo de chaque mois (stock de fin de mois), la première photo de chaque mois (repli de l'app quand la photo de fin de mois manque) et donc la photo courante (dernière du mois en cours).
+      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_neshu restreint aux jours de référence (min et max de snapshot_date par mois). Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
+      [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code), comme la table source, sur environ 2 jours par mois.
+      [NOTES] Remplace dans l'app la lecture de tout l'historique journalier (~1 M lignes → ~70 k). L'app applique elle-même ses règles de fin de mois (api, stock_snapshot_fin_mois) : ce modèle ne fait que lui fournir les jours nécessaires, d'où des chiffres strictement identiques. date_system tombe toujours le jour de snapshot_date (vérifié le 2026-10-08 sur 984 416 lignes). Les véhicules inactifs ne sont pas filtrés (l'app applique son propre filtre). Réservé à l'application : ne pas brancher de rapport Power BI dessus.
+    columns:
+      - name: snapshot_date
+        description: "Jour métier de la photo (DATE), colonne de partition"
+        tests:
+          - not_null
+      - name: entity_type
+        description: "Type d'entité : company (dépôt) ou resource (véhicule). Fait partie du grain (identifiants de séquences distinctes)"
+        tests:
+          - not_null
+      - name: id_entity
+        description: "Identifiant de l'entité, unique au sein d'un entity_type"
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code article Neshu"
+        tests:
+          - not_null
+      - name: entity_code
+        description: "Code du dépôt ou du véhicule"
+      - name: entity_name
+        description: "Nom de l'entité (minuscules)"
+      - name: product_name
+        description: "Libellé article"
+      - name: date_inventaire
+        description: "Date du dernier inventaire physique de l'article dans l'entité"
+      - name: date_system
+        description: "Horodatage du batch de stock (même jour que snapshot_date)"
+      - name: is_vehicle_active
+        description: "Véhicule actif selon dim_neshu__resource (état COURANT, non historisé) ; NULL pour les dépôts"
+      - name: is_derniere_photo_mois
+        description: "Vrai si snapshot_date est la dernière photo disponible du mois (stock de fin de mois, ou photo courante pour le mois en cours)"
+      - name: is_premiere_photo_mois
+        description: "Vrai si snapshot_date est la première photo disponible du mois"
+      - name: is_photo_courante
+        description: "Vrai pour la photo la plus récente de la table"
+      - name: stock_at_date
+        description: "Stock théorique à la date (peut être négatif)"
+      - name: stock_inventaire
+        description: "Quantité comptée au dernier inventaire"
+      - name: plus
+        description: "Cumul des entrées depuis le dernier inventaire"
+      - name: moins
+        description: "Cumul des sorties depuis le dernier inventaire"
+      - name: dpa
+        description: "Dernier prix d'achat (repli sur purchase_price dans la source)"
+      - name: purchase_price
+        description: "Prix d'achat de la fiche article"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['snapshot_date', 'entity_type', 'id_entity', 'product_code']
+
+  - name: app_cockpit__lcdp_stock_photo
+    description: |
+      [QUOI MÉTIER] Photos de stock Cafés du Phare dont l'application Cockpit Supply a besoin : dernière et première photo de chaque mois, donc la photo courante.
+      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_lcdp restreint aux jours de référence (min et max de snapshot_date par mois). Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
+      [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code), sur environ 2 jours par mois.
+      [NOTES] Remplace dans l'app la lecture de tout l'historique journalier (~250 k lignes → ~19 k). Règles de fin de mois, prix effectif et kg appliqués par l'app (api/lcdp.py). date_system tombe toujours le jour de snapshot_date (vérifié le 2026-10-08). Réservé à l'application.
+    columns:
+      - name: snapshot_date
+        description: "Jour métier de la photo (DATE), colonne de partition"
+        tests:
+          - not_null
+      - name: entity_type
+        description: "Type d'entité (company ou resource), fait partie du grain"
+        tests:
+          - not_null
+      - name: id_entity
+        description: "Identifiant de l'entité, unique au sein d'un entity_type"
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code article Cafés du Phare"
+        tests:
+          - not_null
+      - name: entity_code
+        description: "Code du dépôt (LOG, VERT, FABRICATION, TORREFIEVRAC…) ou du véhicule"
+      - name: entity_name
+        description: "Nom de l'entité"
+      - name: product_name
+        description: "Libellé article"
+      - name: date_inventaire
+        description: "Date du dernier inventaire physique"
+      - name: date_system
+        description: "Horodatage du batch de stock (même jour que snapshot_date)"
+      - name: is_vehicle_active
+        description: "Véhicule actif (état courant) ; NULL pour les dépôts"
+      - name: is_derniere_photo_mois
+        description: "Vrai si dernière photo disponible du mois"
+      - name: is_premiere_photo_mois
+        description: "Vrai si première photo disponible du mois"
+      - name: is_photo_courante
+        description: "Vrai pour la photo la plus récente de la table"
+      - name: stock_at_date
+        description: "Stock théorique à la date"
+      - name: stock_inventaire
+        description: "Quantité comptée au dernier inventaire"
+      - name: plus
+        description: "Cumul des entrées depuis le dernier inventaire"
+      - name: moins
+        description: "Cumul des sorties depuis le dernier inventaire"
+      - name: dpa
+        description: "Dernier prix d'achat"
+      - name: purchase_price
+        description: "Prix d'achat de la fiche article"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['snapshot_date', 'entity_type', 'id_entity', 'product_code']
+
+  - name: app_cockpit__neshu_inventaire_transition
+    description: |
+      [QUOI MÉTIER] Changements de date d'inventaire par entité Neshu et par article : chaque nouvel inventaire physique, avec le stock théorique de la veille. Alimente les indicateurs ISO « fréquence des inventaires » et « fiabilité des stocks » de Cockpit Supply.
+      [COMMENT CONSTRUITE] Historique journalier de fct_supply_chain__stock_neshu (lignes à date_inventaire et date_system renseignées, véhicules marqués inactifs exclus comme dans l'app), ordonné par date_system au sein de (entity_code, product_code) ; on garde la première ligne de chaque série et chaque ligne où date_inventaire change, avec la date d'inventaire et le stock théorique de la ligne précédente (LAG).
+      [GRAIN] 1 ligne par (entity_code, product_code, date_system), restreinte aux premières lignes et aux changements de date d'inventaire.
+      [NOTES] Reproduit exactement le calcul pandas de l'app (api/processus.py) qui exigeait tout l'historique journalier en mémoire : fréquence = nombre de dates d'inventaire distinctes par entité et par mois ; fiabilité = écart entre stock_at_date_precedent et stock_inventaire sur les lignes où is_premiere_ligne est faux. Liste des véhicules hors motif ^V\d+ (ARKEMA, STRASBOURG, RATP) reprise de la config de l'app (DESTINATIONS_VEHICULES_EXTRA). Réservé à l'application.
+    columns:
+      - name: date_system
+        description: "Horodatage de la photo où la nouvelle date d'inventaire apparaît"
+        tests:
+          - not_null
+      - name: entity_code
+        description: "Code du dépôt ou du véhicule"
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code article Neshu"
+        tests:
+          - not_null
+      - name: date_inventaire
+        description: "Date d'inventaire portée par la ligne"
+        tests:
+          - not_null
+      - name: date_inventaire_precedente
+        description: "Date d'inventaire de la ligne précédente (NULL pour la première ligne)"
+      - name: is_premiere_ligne
+        description: "Vrai pour la première ligne de la série (pas de ligne précédente) : non comptée comme transition"
+      - name: stock_at_date_precedent
+        description: "Stock théorique de la ligne précédente (la veille de l'inventaire)"
+      - name: stock_inventaire
+        description: "Quantité comptée à l'inventaire"
+      - name: stock_at_date
+        description: "Stock théorique de la ligne"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['entity_code', 'product_code', 'date_system']

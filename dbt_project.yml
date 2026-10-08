@@ -139,6 +139,16 @@ models:
       bi:
         +tags: ['marts', 'bi']
 
+    # Couche de service des APPLICATIONS (2026-10-08, cf. docs/conventions/apps.md) :
+    # modèles taillés pour une seule application, lus tels quels par elle. Hors
+    # schéma en étoile (règles marts non applicables), un dataset par application.
+    apps:
+      +tags: ['apps']
+
+      cockpit_supply:
+        +schema: app_cockpit_supply   # prod -> prod_app_cockpit_supply ; dev/ci -> dataset du target
+        +tags: ['apps', 'cockpit_supply']
+
 seeds:
   dbt_warehouse:
     +schema: reference

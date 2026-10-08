@@ -15,6 +15,7 @@ par l'**IAM** : aucune identité hors prod ne peut écrire dans `prod_*`.
 | Lac | `prod_raw`, `historic` | pipelines dlt (repo `ingestion`) | permanente |
 | Prod | `prod_staging`, `prod_intermediate`, `prod_marts`, `prod_reference` | Cloud Run (nuit), job `cd` (merge) | permanente |
 | Snapshots | `snapshots` | Cloud Workflows uniquement | permanente |
+| Applications | `prod_app_<application>` (ex. `prod_app_cockpit_supply`) | Cloud Run (nuit), job `cd` (merge) ; lu par le seul compte de l'application | permanente |
 | Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | 14 jours sans rebuild |
 | CI | `dbt_ci_pr_<N>` | job `pr-check` | supprimé à la fermeture de la PR (filet : 3 jours) |
 | Ingestion de test | `dev_raw`, `dev_raw_staging` | `dlt --target dev` | permanente (dlt garde son état dans `_dlt_version`) |

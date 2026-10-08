@@ -11,6 +11,7 @@ on:
       - 'models/staging/**'
       - 'models/intermediate/**'
       - 'models/marts/**'
+      - 'models/apps/**'
       - 'data/**'
       - 'snapshots/**'
       - 'macros/**'

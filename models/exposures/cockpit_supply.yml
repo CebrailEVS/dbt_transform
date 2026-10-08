@@ -1,0 +1,74 @@
+version: 2
+
+# ============================================================
+# EXPOSURE — application Cockpit Supply
+# ============================================================
+# Application web interne (FastAPI, Cloud Run cockpit-supply, accès Entra ID)
+# de pilotage supply des BU Neshu, TechCare, Cafés du Phare et Nunshen.
+# Code : dépôt COCKPIT-SUPPLY. Lecture par le compte evs-cockpit-supply.
+#
+# Liste COMPLÈTE de ce que l'app lit dans BigQuery : couche de service
+# (prod_app_cockpit_supply) + marts et intermédiaires encore lus en direct
+# pendant la migration (cf. docs/conventions/apps.md). Un changement sur l'un
+# de ces modèles a un impact sur l'app : `dbt ls -s +exposure:cockpit_supply`.
+# ============================================================
+
+exposures:
+
+  - name: cockpit_supply
+    label: "Cockpit Supply"
+    type: application
+    maturity: medium
+    url: https://supply.evs-pro.com
+    description: >
+      Application de pilotage supply (stocks, flux des dépôts, prévisions, fournisseurs,
+      ISO, CODIR) des BU Neshu, TechCare, Cafés du Phare et Nunshen. Lit la couche de
+      service prod_app_cockpit_supply et, pendant la migration vers cette couche, des
+      marts et intermédiaires en direct.
+    owner:
+      name: Cébrail Aksoy
+      email: cebrail.aksoy@evs-pro.com
+    depends_on:
+      # Couche de service
+      - ref('app_cockpit__neshu_stock_photo')
+      - ref('app_cockpit__lcdp_stock_photo')
+      - ref('app_cockpit__neshu_inventaire_transition')
+      # Marts lus en direct
+      - ref('dim_neshu__product')
+      - ref('dim_neshu__company')
+      - ref('dim_neshu__device')
+      - ref('dim_lcdp__product')
+      - ref('dim_lcdp__company')
+      - ref('dim_lcdp__device')
+      - ref('dim_lcdp__resource')
+      - ref('dim_technique__product')
+      - ref('dim_technique__technician')
+      - ref('fct_supply_chain__stock_yuman')
+      - ref('fct_supply_chain__couverture_stock_neshu')
+      - ref('fct_supply_chain__point_commande_neshu')
+      - ref('fct_supply_chain__classification_article_neshu')
+      - ref('fct_supply_chain__erreur_prevision_neshu')
+      - ref('fct_supply_chain__disponibilite_article_neshu_depot_mensuel')
+      - ref('fct_supply_chain__disponibilite_article_neshu_vehicule_mensuel')
+      - ref('fct_supply_chain__disponibilite_article_lcdp_depot_mensuel')
+      - ref('fct_supply_chain__rupture_depot_yuman')
+      - ref('fct_technique__consommation_article_nespresso')
+      - ref('fct_technique__piece_detachee_pricing_nespresso')
+      # Intermédiaires lus en direct
+      - ref('int_oracle_neshu__chargement_tasks')
+      - ref('int_oracle_neshu__livraison_tasks')
+      - ref('int_oracle_neshu__livraison_interne_tasks')
+      - ref('int_oracle_neshu__reception_tasks')
+      - ref('int_oracle_neshu__invendus_tasks')
+      - ref('int_oracle_neshu__commande_fournisseur_tasks')
+      - ref('int_oracle_neshu__appro_tasks_enriched')
+      - ref('int_oracle_neshu__valorisation_parc_machines')
+      - ref('int_oracle_lcdp__chargement_tasks')
+      - ref('int_oracle_lcdp__livraison_tasks')
+      - ref('int_oracle_lcdp__livraison_interne_tasks')
+      - ref('int_oracle_lcdp__reception_tasks')
+      - ref('int_oracle_lcdp__invendus_tasks')
+      - ref('int_oracle_lcdp__appro_tasks_enriched')
+      - ref('int_oracle_lcdp__entree_fabrication_tasks')
+      - ref('int_oracle_lcdp__sortie_fabrication_tasks')
+      - ref('int_yuman__interventions')
