@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="product_code", model=get_where_subquery(ref('app_cockpit__neshu_stock_photo'))) }}

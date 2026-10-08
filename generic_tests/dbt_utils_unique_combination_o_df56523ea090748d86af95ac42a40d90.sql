@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["entity_code","product_code","date_system"], model=get_where_subquery(ref('app_cockpit__neshu_inventaire_transition'))) }}
