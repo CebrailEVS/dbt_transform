@@ -9,10 +9,10 @@ version: 2
 models:
   - name: app_cockpit__neshu_stock_photo
     description: |
-      [QUOI MÉTIER] Photos de stock Neshu dont l'application Cockpit Supply a besoin : la dernière photo de chaque mois (stock de fin de mois), la première photo de chaque mois (repli de l'app quand la photo de fin de mois manque) et donc la photo courante (dernière du mois en cours).
-      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_neshu restreint aux jours de référence (min et max de snapshot_date par mois). Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
-      [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code), comme la table source, sur environ 2 jours par mois.
-      [NOTES] Remplace dans l'app la lecture de tout l'historique journalier (~1 M lignes → ~70 k). L'app applique elle-même ses règles de fin de mois (api, stock_snapshot_fin_mois) : ce modèle ne fait que lui fournir les jours nécessaires, d'où des chiffres strictement identiques. date_system tombe toujours le jour de snapshot_date (vérifié le 2026-10-08 sur 984 416 lignes). Les véhicules inactifs ne sont pas filtrés (l'app applique son propre filtre). Réservé à l'application : ne pas brancher de rapport Power BI dessus.
+      [QUOI MÉTIER] Photos de stock Neshu dont l'application Cockpit Supply a besoin : pour chaque série (entité × article) et chaque mois, la dernière photo (stock de fin de mois, ou photo courante pour le mois en cours) et la première (repli de l'app quand la photo de fin de mois manque).
+      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_neshu : lignes dont snapshot_date est le min ou le max de la série (entity_type, id_entity, product_code) dans son mois. Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
+      [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code), comme la table source, sur environ 2 jours par série et par mois.
+      [NOTES] Remplace dans l'app la lecture de tout l'historique journalier (~1 M lignes → ~70 k). L'app applique elle-même ses règles de fin de mois (api, stock_snapshot_fin_mois) : ce modèle ne fait que lui fournir les jours nécessaires, d'où des chiffres strictement identiques. Bornes calculées PAR SÉRIE et non par jour global : l'app cherche la photo d'un groupe dans les seules lignes de ce groupe, et une série arrêtée en cours de mois (cas réel : café torréfié au dépôt VERT) doit garder sa dernière ligne. date_system tombe toujours le jour de snapshot_date (vérifié le 2026-10-08 sur 984 416 lignes). Les véhicules inactifs ne sont pas filtrés (l'app applique son propre filtre). Réservé à l'application : ne pas brancher de rapport Power BI dessus.
     columns:
       - name: snapshot_date
         description: "Jour métier de la photo (DATE), colonne de partition"
@@ -43,9 +43,9 @@ models:
       - name: is_vehicle_active
         description: "Véhicule actif selon dim_neshu__resource (état COURANT, non historisé) ; NULL pour les dépôts"
       - name: is_derniere_photo_mois
-        description: "Vrai si snapshot_date est la dernière photo disponible du mois (stock de fin de mois, ou photo courante pour le mois en cours)"
+        description: "Vrai si snapshot_date est la dernière photo de la série (entité × article) dans le mois"
       - name: is_premiere_photo_mois
-        description: "Vrai si snapshot_date est la première photo disponible du mois"
+        description: "Vrai si snapshot_date est la première photo de la série (entité × article) dans le mois"
       - name: is_photo_courante
         description: "Vrai pour la photo la plus récente de la table"
       - name: stock_at_date
@@ -67,8 +67,8 @@ models:
 
   - name: app_cockpit__lcdp_stock_photo
     description: |
-      [QUOI MÉTIER] Photos de stock Cafés du Phare dont l'application Cockpit Supply a besoin : dernière et première photo de chaque mois, donc la photo courante.
-      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_lcdp restreint aux jours de référence (min et max de snapshot_date par mois). Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
+      [QUOI MÉTIER] Photos de stock Cafés du Phare dont l'application Cockpit Supply a besoin : pour chaque série (entité × article) et chaque mois, la dernière et la première photo.
+      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_lcdp : lignes dont snapshot_date est le min ou le max de la série (entity_type, id_entity, product_code) dans son mois (même construction que app_cockpit__neshu_stock_photo). Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
       [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code), sur environ 2 jours par mois.
       [NOTES] Remplace dans l'app la lecture de tout l'historique journalier (~250 k lignes → ~19 k). Règles de fin de mois, prix effectif et kg appliqués par l'app (api/lcdp.py). date_system tombe toujours le jour de snapshot_date (vérifié le 2026-10-08). Réservé à l'application.
     columns:
@@ -101,9 +101,9 @@ models:
       - name: is_vehicle_active
         description: "Véhicule actif (état courant) ; NULL pour les dépôts"
       - name: is_derniere_photo_mois
-        description: "Vrai si dernière photo disponible du mois"
+        description: "Vrai si dernière photo de la série dans le mois"
       - name: is_premiere_photo_mois
-        description: "Vrai si première photo disponible du mois"
+        description: "Vrai si première photo de la série dans le mois"
       - name: is_photo_courante
         description: "Vrai pour la photo la plus récente de la table"
       - name: stock_at_date
