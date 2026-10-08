@@ -7,10 +7,11 @@ version: 2
 # de pilotage supply des BU Neshu, TechCare, Cafés du Phare et Nunshen.
 # Code : dépôt COCKPIT-SUPPLY. Lecture par le compte evs-cockpit-supply.
 #
-# Liste COMPLÈTE de ce que l'app lit dans BigQuery : couche de service
-# (prod_app_cockpit_supply) + marts et intermédiaires encore lus en direct
-# pendant la migration (cf. docs/conventions/apps.md). Un changement sur l'un
-# de ces modèles a un impact sur l'app : `dbt ls -s +exposure:cockpit_supply`.
+# Liste COMPLÈTE de ce que l'app lit dans BigQuery : uniquement sa couche de
+# service prod_app_cockpit_supply depuis le 2026-10-08 (plus aucune lecture
+# directe de marts ou d'intermédiaires, cf. docs/conventions/apps.md). Un
+# changement sur l'une de ces tables, ou sur un modèle en amont, a un impact
+# sur l'app : `dbt ls -s +exposure:cockpit_supply`.
 # ============================================================
 
 exposures:
@@ -22,9 +23,8 @@ exposures:
     url: https://supply.evs-pro.com
     description: >
       Application de pilotage supply (stocks, flux des dépôts, prévisions, fournisseurs,
-      ISO, CODIR) des BU Neshu, TechCare, Cafés du Phare et Nunshen. Lit la couche de
-      service prod_app_cockpit_supply et, pendant la migration vers cette couche, des
-      marts et intermédiaires en direct.
+      ISO, CODIR) des BU Neshu, TechCare, Cafés du Phare et Nunshen. Lit uniquement
+      la couche de service prod_app_cockpit_supply (Nunshen : Supabase, hors BigQuery).
     owner:
       name: Cébrail Aksoy
       email: cebrail.aksoy@evs-pro.com
@@ -39,38 +39,39 @@ exposures:
       - ref('app_cockpit__technique_stock_photo')
       - ref('app_cockpit__technique_stock_van')
       - ref('app_cockpit__technique_reference')
-      # Marts lus en direct
-      - ref('dim_neshu__product')
-      - ref('dim_neshu__company')
-      - ref('dim_neshu__device')
-      - ref('dim_lcdp__product')
-      - ref('dim_lcdp__company')
-      - ref('dim_lcdp__device')
-      - ref('dim_lcdp__resource')
-      - ref('dim_technique__product')
-      - ref('dim_technique__technician')
-      - ref('fct_supply_chain__couverture_stock_neshu')
-      - ref('fct_supply_chain__point_commande_neshu')
-      - ref('fct_supply_chain__classification_article_neshu')
-      - ref('fct_supply_chain__erreur_prevision_neshu')
-      - ref('fct_supply_chain__disponibilite_article_neshu_depot_mensuel')
-      - ref('fct_supply_chain__disponibilite_article_neshu_vehicule_mensuel')
-      - ref('fct_supply_chain__disponibilite_article_lcdp_depot_mensuel')
-      - ref('fct_supply_chain__rupture_depot_yuman')
-      - ref('fct_technique__consommation_article_nespresso')
-      - ref('fct_technique__piece_detachee_pricing_nespresso')
-      # Intermédiaires lus en direct
-      - ref('int_oracle_neshu__livraison_tasks')
-      - ref('int_oracle_neshu__livraison_interne_tasks')
-      - ref('int_oracle_neshu__reception_tasks')
-      - ref('int_oracle_neshu__invendus_tasks')
-      - ref('int_oracle_neshu__commande_fournisseur_tasks')
-      - ref('int_oracle_neshu__valorisation_parc_machines')
-      - ref('int_oracle_lcdp__livraison_tasks')
-      - ref('int_oracle_lcdp__livraison_interne_tasks')
-      - ref('int_oracle_lcdp__reception_tasks')
-      - ref('int_oracle_lcdp__invendus_tasks')
-      - ref('int_oracle_lcdp__appro_tasks_enriched')
-      - ref('int_oracle_lcdp__entree_fabrication_tasks')
-      - ref('int_oracle_lcdp__sortie_fabrication_tasks')
-      - ref('int_yuman__interventions')
+      - ref('app_cockpit__neshu_produit')
+      - ref('app_cockpit__neshu_societe')
+      - ref('app_cockpit__neshu_machine')
+      - ref('app_cockpit__neshu_couverture_stock')
+      - ref('app_cockpit__neshu_disponibilite_depot_mensuel')
+      - ref('app_cockpit__neshu_disponibilite_vehicule_mensuel')
+      - ref('app_cockpit__neshu_point_commande')
+      - ref('app_cockpit__neshu_classification_article')
+      - ref('app_cockpit__neshu_erreur_prevision')
+      - ref('app_cockpit__neshu_livraison_interne')
+      - ref('app_cockpit__neshu_livraison')
+      - ref('app_cockpit__neshu_reception')
+      - ref('app_cockpit__neshu_commande_fournisseur')
+      - ref('app_cockpit__neshu_invendu')
+      - ref('app_cockpit__neshu_valorisation_parc_machine')
+      - ref('app_cockpit__lcdp_produit')
+      - ref('app_cockpit__lcdp_machine')
+      - ref('app_cockpit__lcdp_ressource')
+      - ref('app_cockpit__lcdp_societe')
+      - ref('app_cockpit__lcdp_disponibilite_depot_mensuel')
+      - ref('app_cockpit__lcdp_appro_passage')
+      - ref('app_cockpit__lcdp_livraison_interne')
+      - ref('app_cockpit__lcdp_livraison')
+      - ref('app_cockpit__lcdp_reception')
+      - ref('app_cockpit__lcdp_invendu')
+      - ref('app_cockpit__lcdp_entree_fabrication')
+      - ref('app_cockpit__lcdp_sortie_fabrication')
+      - ref('app_cockpit__technique_conso_nespresso_mensuelle')
+      - ref('app_cockpit__technique_conso_nespresso_detail')
+      - ref('app_cockpit__technique_technicien')
+      - ref('app_cockpit__technique_rupture_depot_courant')
+      - ref('app_cockpit__technique_rupture_depot_jour_vide')
+      - ref('app_cockpit__technique_rupture_depot_mois')
+      - ref('app_cockpit__technique_intervention')
+      - ref('app_cockpit__technique_prix_nespresso')
+      - ref('app_cockpit__technique_produit')
