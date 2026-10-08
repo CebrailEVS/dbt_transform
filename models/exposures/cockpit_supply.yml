@@ -24,7 +24,8 @@ exposures:
     description: >
       Application de pilotage supply (stocks, flux des dépôts, prévisions, fournisseurs,
       ISO, CODIR) des BU Neshu, TechCare, Cafés du Phare et Nunshen. Lit uniquement
-      la couche de service prod_app_cockpit_supply (Nunshen : Supabase, hors BigQuery).
+      la couche de service prod_app_cockpit_supply (Nunshen : Sage depuis le 2026-10-08 ;
+      saisies manuelles dans Supabase).
     owner:
       name: Cébrail Aksoy
       email: cebrail.aksoy@evs-pro.com
@@ -75,3 +76,15 @@ exposures:
       - ref('app_cockpit__technique_intervention')
       - ref('app_cockpit__technique_prix_nespresso')
       - ref('app_cockpit__technique_produit')
+      # Nunshen (Sage)
+      - ref('app_cockpit__nunshen_article')
+      - ref('app_cockpit__nunshen_nomenclature')
+      - ref('app_cockpit__nunshen_vente_mensuelle')
+      - ref('app_cockpit__nunshen_bl_client')
+      - ref('app_cockpit__nunshen_stock_photo')
+      - ref('app_cockpit__nunshen_stock_lot')
+      - ref('app_cockpit__nunshen_ordre_production')
+      - ref('app_cockpit__nunshen_fabrication')
+      - ref('app_cockpit__nunshen_commande_fournisseur')
+      - ref('app_cockpit__nunshen_reception')
+      - ref('app_cockpit__nunshen_inventaire')

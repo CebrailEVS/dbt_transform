@@ -808,3 +808,404 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: ['mois', 'depot', 'reference']
+
+  # ── Nunshen (Sage) : remplace les imports manuels de Supabase (2026-10-08) ──
+
+  - name: app_cockpit__nunshen_article
+    description: |
+      [QUOI MÉTIER] Base article Nunshen : statut actif / en sommeil, famille et attributs qui retirent un article des analyses de disponibilité (signature exclusivité client, exclusivité boutique, produit sur demande).
+      [COMMENT CONSTRUITE] stg_mssql_sage__f_article joint à stg_mssql_sage__f_famille. actif = ar_sommeil = 0 ; champs libres OUI/NON convertis en booléens (vide = faux).
+      [GRAIN] 1 ligne par référence (reference).
+      [NOTES] Remplace l'import « Base articles » (table Supabase articles). Noms de colonnes de la table Supabase, que l'app lit sans changement. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: reference
+        description: "Référence article Sage (AR_Ref)"
+        tests:
+          - not_null
+          - unique
+      - name: designation
+        description: "Désignation"
+      - name: actif
+        description: "Vrai si l'article n'est pas en sommeil"
+        tests:
+          - not_null
+      - name: code_famille
+        description: "Code famille Sage (TBH100, TL1000…)"
+      - name: libelle_famille
+        description: "Libellé de la famille"
+      - name: signature_exclusivite_client
+        description: "Champ libre « Signature exclusivité client » à OUI"
+      - name: exclusivite_boutique
+        description: "Champ libre « Exclusivité boutique » à OUI (demande Vincent 3.1)"
+      - name: produit_sur_demande
+        description: "Champ libre « Produit sur demande » à OUI (demande Vincent 3.2)"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage (fraîcheur affichée par l'app)"
+
+  - name: app_cockpit__nunshen_nomenclature
+    description: |
+      [QUOI MÉTIER] Nomenclature de niveau 1 des produits Nunshen : composants directs (vrac, poche, boîte, étiquette) et quantité par produit. Sert à vérifier les emballages vides avant de signaler un produit « à produire ».
+      [COMMENT CONSTRUITE] stg_mssql_sage__f_nomenclat, désignation et famille du produit et désignation du composant lues dans stg_mssql_sage__f_article.
+      [GRAIN] 1 ligne par (reference, composant_reference).
+      [NOTES] Remplace l'import « Nomenclature » (table Supabase nomenclature), sans les doublons de l'export, avec la quantité par composant en plus. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: reference
+        description: "Produit composé"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation du produit"
+      - name: code_famille
+        description: "Famille du produit"
+      - name: composant_reference
+        description: "Composant"
+        tests:
+          - not_null
+      - name: composant_designation
+        description: "Désignation du composant"
+      - name: quantite_composant
+        description: "Quantité de composant par unité de produit (NO_Qte)"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['reference', 'composant_reference']
+
+  - name: app_cockpit__nunshen_vente_mensuelle
+    description: |
+      [QUOI MÉTIER] Ventes Nunshen par mois et par référence : quantités et chiffre d'affaires HT. Base des prévisions, de la disponibilité, de l'ABC/XYZ et des KPI Wissous.
+      [COMMENT CONSTRUITE] Lignes de factures et d'avoirs de vente (do_domaine 0, types 6 et 7) de stg_mssql_sage__f_docligne, hors composants de kits (dl_valorise = 1), sommées par mois de facture ; quantité d'un avoir financier (quantité négative sans retour en stock) non déduite, comme l'export « Ventes » ; désignation et famille de l'article.
+      [GRAIN] 1 ligne par (annee, mois, reference), depuis janvier 2024.
+      [NOTES] Remplace l'import « Ventes » (table Supabase ventes) : CA 2025 identique à l'euro (1 514 671 €). Les avoirs sont déjà négatifs dans Sage. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: annee
+        description: "Année de la facture"
+        tests:
+          - not_null
+      - name: mois
+        description: "Mois de la facture (1-12)"
+        tests:
+          - not_null
+      - name: reference
+        description: "Référence vendue"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation de l'article"
+      - name: code_famille
+        description: "Famille de l'article"
+      - name: qte_vendue
+        description: "Quantité vendue (avoirs déduits)"
+      - name: ca_ht
+        description: "Chiffre d'affaires HT (€)"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['annee', 'mois', 'reference']
+
+  - name: app_cockpit__nunshen_bl_client
+    description: |
+      [QUOI MÉTIER] Lignes de bons de livraison clients Nunshen avec leur date de préparation : « commandes traitées » (BL distincts) et délai de traitement (BL − préparation) des KPI Wissous, de l'ISO et de la Vue d'ensemble Supply.
+      [COMMENT CONSTRUITE] Lignes de vente de stg_mssql_sage__f_docligne portant un BL (factures et BL non facturés, types 3, 6, 7), hors composants de kits et hors mouvements d'entrée. date_pl laissée vide quand la ligne n'a pas de préparation (au lieu d'une date incohérente).
+      [GRAIN] 1 ligne par ligne de document Sage (dl_no), depuis janvier 2024 (date du BL).
+      [NOTES] Remplace l'import « Suivi de commande » (table Supabase commandes_lignes). is_intragroupe marque les factures « ZZ » (demande Vincent 9.3, commandes expédiées avec ou sans intragroupe). Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: annee
+        description: "Année de la date du BL"
+      - name: mois
+        description: "Mois de la date du BL"
+      - name: n_piece
+        description: "Pièce Sage de la ligne (facture ou BL)"
+        tests:
+          - not_null
+      - name: n_piece_bl
+        description: "N° du bon de livraison"
+        tests:
+          - not_null
+      - name: date_piece_bl
+        description: "Date du bon de livraison"
+        tests:
+          - not_null
+      - name: date_pl
+        description: "Date de la préparation de livraison (vide sans préparation)"
+      - name: reference
+        description: "Référence livrée"
+      - name: qte
+        description: "Quantité livrée"
+      - name: is_intragroupe
+        description: "Vrai pour une facture intragroupe (pièce « ZZ… »)"
+      - name: is_non_facture
+        description: "Vrai pour un BL pas encore facturé (type 3)"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+
+  - name: app_cockpit__nunshen_stock_photo
+    description: |
+      [QUOI MÉTIER] Stock Nunshen par dépôt et référence, en quantité et en valeur (CMUP) : stock disponible (dépôt NUNSHEN), stock valorisé tous dépôts, photos de fin de mois du flux et du CODIR.
+      [COMMENT CONSTRUITE] stg_mssql_sage__f_artstock (photos complètes à chaque extraction) : une photo par jour, la dernière extraction du jour en heure de Paris ; gardées : la photo courante et la dernière photo de chaque mois. Lignes à quantité et valeur nulles retirées. Dépôt, désignation et famille joints.
+      [GRAIN] 1 ligne par (stock_date, depot_id, reference).
+      [NOTES] Remplace les imports « Stock Wissous » (quantités, totaux par référence) et « Valo stock » (valeur). Historique depuis le 2026-09-23 : les relevés antérieurs restent dans Supabase, lus par l'app pour les mois passés. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: stock_date
+        description: "Jour de la photo (heure de Paris), colonne de partition"
+        tests:
+          - not_null
+      - name: depot_id
+        description: "N° de dépôt Sage (1 = NUNSHEN, 9 = CONTROLE & QUALITE)"
+        tests:
+          - not_null
+      - name: depot
+        description: "Intitulé du dépôt"
+      - name: reference
+        description: "Référence article"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation"
+      - name: code_famille
+        description: "Famille"
+      - name: stock_reel
+        description: "Quantité en stock (AS_QteSto)"
+      - name: valorisation
+        description: "Valeur du stock au CMUP (AS_MontSto, €)"
+      - name: prix_unitaire
+        description: "CMUP du dépôt (valeur / quantité)"
+      - name: is_derniere_photo_mois
+        description: "Vrai pour la dernière photo du mois"
+      - name: is_photo_courante
+        description: "Vrai pour la photo la plus récente"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage de la photo"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['stock_date', 'depot_id', 'reference']
+
+  - name: app_cockpit__nunshen_stock_lot
+    description: |
+      [QUOI MÉTIER] Lots Nunshen encore en stock avec leurs dates de fabrication et de péremption : péremption et traçabilité de l'Audit Bio.
+      [COMMENT CONSTRUITE] Dernière photo de stg_mssql_sage__f_lotserie, lignes d'entrée (ls_mvt_stock = 1) à quantité restante positive, regroupées par dépôt, référence et n° de lot.
+      [GRAIN] 1 ligne par (depot_id, reference, n_serie).
+      [NOTES] Remplace le détail par lot de l'import « Stock Wissous ». Seuls les articles suivis par lot y figurent (16 références en stock à NUNSHEN n'en ont pas) : le stock disponible se lit dans app_cockpit__nunshen_stock_photo. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: stock_date
+        description: "Jour de la photo des lots"
+        tests:
+          - not_null
+      - name: depot_id
+        description: "N° de dépôt Sage"
+        tests:
+          - not_null
+      - name: depot
+        description: "Intitulé du dépôt"
+      - name: reference
+        description: "Référence article"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation"
+      - name: code_famille
+        description: "Famille"
+      - name: n_serie
+        description: "N° de lot"
+        tests:
+          - not_null
+      - name: date_fabrication
+        description: "Date de fabrication du lot"
+      - name: date_peremption
+        description: "Date de péremption (DLUO) du lot"
+      - name: stock_reel
+        description: "Quantité restante du lot"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['depot_id', 'reference', 'n_serie']
+
+  - name: app_cockpit__nunshen_ordre_production
+    description: |
+      [QUOI MÉTIER] Préparations de fabrication Nunshen ouvertes (ordres de conditionnement Wissous pas encore réalisés) : un produit déjà programmé n'est pas re-signalé « à produire ».
+      [COMMENT CONSTRUITE] Lignes de préparations de fabrication (type 24) de stg_mssql_sage__f_docligne, quantités sommées par pièce et référence. Le chargement Sage en remplacement ne garde que les préparations pas encore transformées en bon de fabrication.
+      [GRAIN] 1 ligne par (n_piece, reference).
+      [NOTES] Remplace l'import « Listes des PF » (table Supabase production_wissous), où toutes les PF importées restaient « en cours » faute de date de fabrication. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: n_piece
+        description: "N° de la préparation de fabrication"
+        tests:
+          - not_null
+      - name: date_document
+        description: "Date de la préparation"
+      - name: reference
+        description: "Produit à fabriquer"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation"
+      - name: quantite
+        description: "Quantité à fabriquer"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['n_piece', 'reference']
+
+  - name: app_cockpit__nunshen_fabrication
+    description: |
+      [QUOI MÉTIER] Produits fabriqués à Wissous par bon de fabrication : « produits réalisés » des KPI Wissous et entrée « production » du flux.
+      [COMMENT CONSTRUITE] Lignes de bons de fabrication (type 26) de stg_mssql_sage__f_docligne qui entrent en stock (dl_mvt_stock = 1 ; 3 = composants consommés), hors références de service MANUFACT, quantités sommées par bon et référence.
+      [GRAIN] 1 ligne par (n_piece, date_document, reference), depuis janvier 2024.
+      [NOTES] Remplace l'import « Bons de fabrication » (table Supabase fabrication_lignes). Un produit fabriqué en plusieurs lots a une ligne par lot dans Sage : la somme corrige le sous-comptage de l'import (une seule ligne gardée par bon et référence). Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: n_piece
+        description: "N° du bon de fabrication"
+        tests:
+          - not_null
+      - name: date_document
+        description: "Date du bon"
+        tests:
+          - not_null
+      - name: reference
+        description: "Produit fabriqué"
+        tests:
+          - not_null
+      - name: code_famille
+        description: "Famille du produit"
+      - name: quantite
+        description: "Quantité fabriquée (somme des lots)"
+      - name: nb_lignes_lot
+        description: "Nombre de lignes Sage (lots) sommées"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['n_piece', 'date_document', 'reference']
+
+  - name: app_cockpit__nunshen_commande_fournisseur
+    description: |
+      [QUOI MÉTIER] Lignes de commandes fournisseurs Nunshen encore ouvertes : reste à livrer, date de livraison prévue, dépôt de réception, fournisseur. Alimente le stock projeté, les commandes Siti, le cash flow, les retards fournisseurs et le statut « en attente de validation matière ».
+      [COMMENT CONSTRUITE] Lignes de commandes fournisseurs (type 12) de stg_mssql_sage__f_docligne ; dépôt et date de livraison de la ligne, sinon de l'en-tête ; fournisseur de stg_mssql_sage__f_comptet (intitulé sans espaces finaux) ; quantité déjà reçue sommée sur les réceptions de la même commande et de la même référence.
+      [GRAIN] 1 ligne par ligne de commande ouverte (n_piece, reference, une ligne Sage).
+      [NOTES] Remplace l'import « Commandes fournisseurs » (lignes « Bon de commande »). Sage supprime une ligne reçue de la commande : qte_restante = quantité de la ligne (règle nun_qte_restante de l'app). Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: type_document
+        description: "Toujours « Bon de commande » (compatibilité avec l'import)"
+      - name: n_piece
+        description: "N° de commande fournisseur"
+        tests:
+          - not_null
+      - name: reference
+        description: "Référence commandée (MANUFACT = conditionnement Siti)"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation"
+      - name: qte_commandee
+        description: "Quantité de la ligne ouverte"
+      - name: qte_restante
+        description: "Reste à livrer (= quantité de la ligne ouverte)"
+      - name: qte_livree
+        description: "Quantité déjà reçue sur cette commande et cette référence"
+      - name: prix_unitaire_ht
+        description: "Prix unitaire HT (€)"
+      - name: date_piece_bc
+        description: "Date de la commande"
+      - name: date_livraison
+        description: "Date de livraison prévue"
+      - name: depot
+        description: "Dépôt de réception"
+      - name: code_fournisseur
+        description: "Compte fournisseur"
+      - name: intitule_fournisseur
+        description: "Nom du fournisseur"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+
+  - name: app_cockpit__nunshen_reception
+    description: |
+      [QUOI MÉTIER] Réceptions fournisseurs Nunshen (bons de réception) avec la commande d'origine et le lot reçu : achats, fiches et taux de service fournisseurs, flux, Audit Bio.
+      [COMMENT CONSTRUITE] Lignes de bons de réception (type 13) de stg_mssql_sage__f_docligne ; dépôt et date de livraison de la ligne, sinon de l'en-tête ; fournisseur de stg_mssql_sage__f_comptet ; lot de la photo la plus récente de stg_mssql_sage__f_lotserie (ligne d'entrée liée par dl_no_in).
+      [GRAIN] 1 ligne par ligne de réception Sage, depuis janvier 2024.
+      [NOTES] Remplace l'import « Réceptions fournisseurs » (lignes « Bon de livraison »), qui écrasait les lignes d'un même produit reçu en plusieurs lots. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: n_piece
+        description: "N° du bon de réception"
+        tests:
+          - not_null
+      - name: n_piece_bc
+        description: "N° de la commande d'origine"
+      - name: date_piece_bc
+        description: "Date de la commande d'origine"
+      - name: date_piece_bl
+        description: "Date de la réception"
+        tests:
+          - not_null
+      - name: date_livraison
+        description: "Date de livraison prévue"
+      - name: reference
+        description: "Référence reçue"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation"
+      - name: qte_livree
+        description: "Quantité reçue"
+      - name: qte_commandee
+        description: "Quantité de la commande d'origine"
+      - name: prix_unitaire_ht
+        description: "Prix unitaire HT (€)"
+      - name: montant_ht
+        description: "Montant HT de la ligne (€)"
+      - name: depot
+        description: "Dépôt de réception"
+      - name: code_fournisseur
+        description: "Compte fournisseur"
+      - name: intitule_fournisseur
+        description: "Nom du fournisseur"
+      - name: n_serie_lot
+        description: "N° du lot reçu"
+      - name: date_fabrication
+        description: "Date de fabrication du lot reçu"
+      - name: date_peremption
+        description: "Date de péremption du lot reçu"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+
+  - name: app_cockpit__nunshen_inventaire
+    description: |
+      [QUOI MÉTIER] Sessions d'inventaire Nunshen (date × dépôt) : indicateur ISO « fréquence des inventaires ».
+      [COMMENT CONSTRUITE] Pièces d'inventaire « i… » d'entrée et de sortie (do_domaine 2, types 20 et 21) de stg_mssql_sage__f_docligne, regroupées par date et dépôt (ligne, sinon en-tête) : nombre de pièces et de références, quantités et valeurs ajustées.
+      [GRAIN] 1 ligne par (date_inventaire, depot_id).
+      [NOTES] Remplace le proxy « nombre d'imports de stock » de l'ISO. Sage n'écrit une pièce que s'il y a un écart : un inventaire sans écart n'y figure pas (définition à valider par le pilote ISO). Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: date_inventaire
+        description: "Date de la session d'inventaire"
+        tests:
+          - not_null
+      - name: depot_id
+        description: "N° de dépôt Sage"
+      - name: depot
+        description: "Intitulé du dépôt"
+      - name: nb_pieces
+        description: "Nombre de pièces d'inventaire"
+      - name: nb_references
+        description: "Nombre de références ajustées"
+      - name: qte_entree
+        description: "Quantités ajoutées"
+      - name: qte_sortie
+        description: "Quantités retirées"
+      - name: valeur_entree
+        description: "Valeur ajoutée (€)"
+      - name: valeur_sortie
+        description: "Valeur retirée (€)"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['date_inventaire', 'depot_id']
