@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="company_id", model=get_where_subquery(ref('app_cockpit__lcdp_societe'))) }}

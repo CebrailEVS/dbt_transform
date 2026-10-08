@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["date_calcul","company_id","product_code"], model=get_where_subquery(ref('app_cockpit__neshu_couverture_stock'))) }}

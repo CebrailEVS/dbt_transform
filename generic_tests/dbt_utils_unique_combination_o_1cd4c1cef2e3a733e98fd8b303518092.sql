@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["device_name","device_group"], model=get_where_subquery(ref('app_cockpit__neshu_valorisation_parc_machine'))) }}

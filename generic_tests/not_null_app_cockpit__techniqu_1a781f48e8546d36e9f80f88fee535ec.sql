@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="piece_prix_unitaire", model=get_where_subquery(ref('app_cockpit__technique_prix_nespresso'))) }}
