@@ -33,6 +33,7 @@ exposures:
       - ref('app_cockpit__neshu_stock_photo')
       - ref('app_cockpit__lcdp_stock_photo')
       - ref('app_cockpit__neshu_inventaire_transition')
+      - ref('app_cockpit__neshu_chargement')
       # Marts lus en direct
       - ref('dim_neshu__product')
       - ref('dim_neshu__company')
@@ -55,7 +56,6 @@ exposures:
       - ref('fct_technique__consommation_article_nespresso')
       - ref('fct_technique__piece_detachee_pricing_nespresso')
       # Intermédiaires lus en direct
-      - ref('int_oracle_neshu__chargement_tasks')
       - ref('int_oracle_neshu__livraison_tasks')
       - ref('int_oracle_neshu__livraison_interne_tasks')
       - ref('int_oracle_neshu__reception_tasks')
