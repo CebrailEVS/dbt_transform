@@ -13,9 +13,9 @@
 
 
 
-select snapshot_date
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_stock_photo`
-where snapshot_date is null
+select task_id
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_chargement`
+where task_id is null
 
 
 

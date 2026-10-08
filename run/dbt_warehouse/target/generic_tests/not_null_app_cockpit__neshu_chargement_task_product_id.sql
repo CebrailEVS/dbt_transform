@@ -13,9 +13,9 @@
 
 
 
-select entity_type
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_stock_photo`
-where entity_type is null
+select task_product_id
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_chargement`
+where task_product_id is null
 
 
 
