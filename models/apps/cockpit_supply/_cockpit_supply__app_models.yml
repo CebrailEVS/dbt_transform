@@ -217,3 +217,52 @@ models:
         description: "Quantité chargée"
       - name: load_valuation
         description: "Valorisation du chargement (NULL possible, l'app la compte à 0)"
+
+  - name: app_cockpit__lcdp_chargement
+    description: |
+      [QUOI MÉTIER] Chargements machines Cafés du Phare Distribution Auto validés (articles chargés par les approvisionneurs dans les distributeurs). Alimente le flux des véhicules de tournée Cafés du Phare dans Cockpit Supply.
+      [COMMENT CONSTRUITE] int_oracle_lcdp__chargement_tasks filtrée sur les statuts FAIT et VALIDE (config.STATUS_VALIDES de l'app). Colonnes reprises sans transformation.
+      [GRAIN] 1 ligne par task_product_id (article d'un bordereau de chargement).
+      [NOTES] Remplace dans l'app la lecture en mémoire de tout l'historique (~370 k lignes) : l'app lit le seul mois affiché. Partition mensuelle sur task_start_date (UTC, comme les mois de l'app). Même construction que app_cockpit__neshu_chargement, sans jointure client / machine (aucun écran n'en a besoin). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        description: "Identifiant de la ligne article du bordereau (clé)"
+        tests:
+          - not_null
+          - unique
+      - name: task_id
+        description: "Numéro de bordereau de chargement"
+        tests:
+          - not_null
+      - name: task_start_date
+        description: "Date et heure du chargement (UTC), colonne de partition"
+        tests:
+          - not_null
+      - name: task_status_code
+        description: "Statut de la tâche (FAIT ou VALIDE)"
+      - name: load_type_code
+        description: "Type de chargement Oracle"
+      - name: vehicle_code
+        description: "Véhicule de tournée"
+      - name: roadman_code
+        description: "Approvisionneur"
+      - name: company_id
+        description: "Client (identifiant dim_lcdp__company)"
+      - name: company_code
+        description: "Code client"
+      - name: device_id
+        description: "Machine (identifiant dim_lcdp__device)"
+      - name: device_code
+        description: "Code machine"
+      - name: product_code
+        description: "Code article chargé"
+      - name: unit_coeff_multi
+        description: "Coefficient de conditionnement (multiplicateur)"
+      - name: unit_coeff_div
+        description: "Coefficient de conditionnement (diviseur)"
+      - name: base_unit_quantity
+        description: "Quantité en unité de base"
+      - name: load_quantity
+        description: "Quantité chargée"
+      - name: load_valuation
+        description: "Valorisation du chargement (NULL possible, l'app la compte à 0)"

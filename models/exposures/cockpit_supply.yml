@@ -34,6 +34,7 @@ exposures:
       - ref('app_cockpit__lcdp_stock_photo')
       - ref('app_cockpit__neshu_inventaire_transition')
       - ref('app_cockpit__neshu_chargement')
+      - ref('app_cockpit__lcdp_chargement')
       # Marts lus en direct
       - ref('dim_neshu__product')
       - ref('dim_neshu__company')
@@ -63,7 +64,6 @@ exposures:
       - ref('int_oracle_neshu__commande_fournisseur_tasks')
       - ref('int_oracle_neshu__appro_tasks_enriched')
       - ref('int_oracle_neshu__valorisation_parc_machines')
-      - ref('int_oracle_lcdp__chargement_tasks')
       - ref('int_oracle_lcdp__livraison_tasks')
       - ref('int_oracle_lcdp__livraison_interne_tasks')
       - ref('int_oracle_lcdp__reception_tasks')
