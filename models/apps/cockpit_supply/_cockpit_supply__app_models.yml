@@ -266,3 +266,129 @@ models:
         description: "Quantité chargée"
       - name: load_valuation
         description: "Valorisation du chargement (NULL possible, l'app la compte à 0)"
+
+  - name: app_cockpit__neshu_appro_passage
+    description: |
+      [QUOI MÉTIER] Passages des approvisionneurs Neshu chez les clients (une tâche d'approvisionnement validée). Alimente dans Cockpit Supply les heures de travail des approvisionneurs (premier et dernier passage du jour) et l'onglet Clients (passages chez un client sur une période).
+      [COMMENT CONSTRUITE] int_oracle_neshu__appro_tasks_enriched filtrée sur les statuts FAIT et VALIDE (config.STATUS_VALIDES de l'app), avec approvisionneur et date renseignés. Colonnes reprises sans transformation.
+      [GRAIN] 1 ligne par task_id (passage).
+      [NOTES] task_start_date et task_end_date sont en heure locale française dans la source malgré l'étiquette UTC du type TIMESTAMP : l'app les lit comme des heures locales sans conversion (comportement historique, cf. api/neshu.py). Les bornes propres à l'app (passages depuis le 2026-01-01, pas de passage futur) sont appliquées par ses requêtes. Partition mensuelle sur task_start_date. Réservé à l'application.
+    columns:
+      - name: task_id
+        description: "Identifiant du passage (clé)"
+        tests:
+          - not_null
+          - unique
+      - name: task_start_date
+        description: "Début du passage, heure locale française (étiquette UTC sans conversion), colonne de partition"
+        tests:
+          - not_null
+      - name: task_end_date
+        description: "Fin du passage, heure locale française"
+      - name: roadman_code
+        description: "Approvisionneur"
+        tests:
+          - not_null
+      - name: company_id
+        description: "Client (identifiant)"
+      - name: company_code
+        description: "Code client"
+      - name: company_name
+        description: "Nom du client"
+      - name: company_info
+        description: "Information client saisie dans Oracle"
+      - name: device_id
+        description: "Machine (identifiant)"
+      - name: device_code
+        description: "Code machine"
+      - name: device_name
+        description: "Nom de la machine"
+      - name: device_info
+        description: "Information machine saisie dans Oracle"
+      - name: gea_code
+        description: "Code GEA de la machine"
+      - name: task_location_info
+        description: "Information d'emplacement saisie sur la tâche"
+      - name: task_status_code
+        description: "Statut de la tâche (FAIT ou VALIDE)"
+      - name: is_done
+        description: "Passage réalisé (1/0)"
+      - name: is_planned
+        description: "Passage planifié (1/0)"
+      - name: is_anomaly
+        description: "Passage en anomalie (1/0)"
+      - name: passage_duration_min
+        description: "Durée du passage en minutes"
+      - name: passage_duration_hours
+        description: "Durée du passage en heures"
+
+  - name: app_cockpit__technique_stock_photo
+    description: |
+      [QUOI MÉTIER] Photos de stock TechCare (dépôts ateliers et vans des techniciens) dont l'application Cockpit Supply a besoin : la photo du début de chaque mois (stocks d'ouverture et de clôture des flux) et la dernière photo de chaque zone dans chaque mois (stock courant, fin de mois des dépôts, CODIR).
+      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_yuman : toutes les lignes des jours qui sont soit le premier jour de photo du mois (toutes zones confondues), soit le dernier jour de photo de leur zone (colonne stock) dans le mois. Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
+      [GRAIN] Celui de la source : 1 ligne par (stock_date, stock, reference), avec les quelques doublons de la source (l'app les additionne), sur environ 2 jours par zone et par mois.
+      [NOTES] Remplace dans l'app la lecture de tout l'historique quotidien (~1,9 M lignes → ~170 k). Bornes par ZONE et non par (zone × article) : chez Yuman une ligne absente vaut stock 0, une référence sortie d'une zone en cours de mois doit disparaître de sa photo de fin de mois (différence volontaire avec app_cockpit__neshu_stock_photo). Les règles de date restent appliquées par l'app ; ce modèle lui fournit seulement les jours nécessaires, d'où des chiffres identiques. Réservé à l'application.
+    columns:
+      - name: stock_date
+        description: "Jour de la photo, colonne de partition"
+        tests:
+          - not_null
+      - name: stock
+        description: "Zone : nom du dépôt ou « ST - NOM » pour le van d'un technicien"
+        tests:
+          - not_null
+      - name: type_stock
+        description: "DEPOT ou TECHNICIEN (repris de la source)"
+      - name: reference
+        description: "Référence Yuman brute"
+        tests:
+          - not_null
+      - name: designation
+        description: "Libellé de la référence"
+      - name: quantite
+        description: "Quantité en stock (les lignes à 0 n'existent pas chez Yuman)"
+      - name: is_premiere_photo_mois
+        description: "Vrai si stock_date est le premier jour de photo du mois (toutes zones)"
+      - name: is_derniere_photo_zone_mois
+        description: "Vrai si stock_date est le dernier jour de photo de la zone dans le mois"
+      - name: is_photo_courante
+        description: "Vrai pour le jour de photo le plus récent de la table"
+
+  - name: app_cockpit__technique_stock_van
+    description: |
+      [QUOI MÉTIER] Stock quotidien des vans des techniciens TechCare, pièces présentes seulement. Sert à Cockpit Supply pour savoir, jour par jour, combien de vans actifs d'un dépôt détiennent une pièce en rupture au dépôt (taux de service historisé).
+      [COMMENT CONSTRUITE] Lignes de fct_supply_chain__stock_yuman dont la zone commence par « ST - » et dont la quantité est positive (filtre ligne à ligne), additionnées par (stock_date, stock, reference).
+      [GRAIN] 1 ligne par (stock_date, stock, reference).
+      [NOTES] La correspondance van → dépôt et le choix des vans actifs restent dans l'app (référentiel des techniciens) : elle les passe en paramètres d'une requête qui regroupe par dépôt, fournisseur et article. Partition mensuelle sur stock_date. Réservé à l'application.
+    columns:
+      - name: stock_date
+        description: "Jour de la photo, colonne de partition"
+        tests:
+          - not_null
+      - name: stock
+        description: "Zone du van : « ST - NOM »"
+        tests:
+          - not_null
+      - name: reference
+        description: "Référence Yuman brute"
+        tests:
+          - not_null
+      - name: quantite
+        description: "Quantité en stock dans le van (somme des lignes positives)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['stock_date', 'stock', 'reference']
+
+  - name: app_cockpit__technique_reference
+    description: |
+      [QUOI MÉTIER] Références connues du stock TechCare sur tout l'historique. Sert à Cockpit Supply pour retrouver la référence complète (EVS_NESPRESSO_ ou EVS_NESP_) d'un code article court, et donc son prix.
+      [COMMENT CONSTRUITE] Références distinctes de fct_supply_chain__stock_yuman.
+      [GRAIN] 1 ligne par reference.
+      [NOTES] Toutes zones et tous jours : une référence vue un seul jour compte (elle change le préfixe retenu). Réservé à l'application.
+    columns:
+      - name: reference
+        description: "Référence Yuman brute"
+        tests:
+          - not_null
+          - unique
