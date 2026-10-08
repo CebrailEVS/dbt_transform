@@ -160,3 +160,60 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: ['entity_code', 'product_code', 'date_system']
+
+  - name: app_cockpit__neshu_chargement
+    description: |
+      [QUOI MÉTIER] Chargements machines Neshu validés (articles chargés par les approvisionneurs dans les distributeurs), avec le client et la machine. Alimente les écrans Cockpit Supply « Contrôle des conditionnements », « Clients », flux des véhicules et bilan mensuel.
+      [COMMENT CONSTRUITE] int_oracle_neshu__chargement_tasks filtrée sur les statuts FAIT et VALIDE (config.STATUS_VALIDES de l'app), jointe à dim_neshu__company (company_name) et dim_neshu__device (device_name, device_brand) sur leurs identifiants. Colonnes reprises sans transformation.
+      [GRAIN] 1 ligne par task_product_id (article d'un bordereau de chargement).
+      [NOTES] Remplace dans l'app la lecture en mémoire de tout l'historique (1,25 M lignes) : l'app envoie des requêtes filtrées et ne reçoit que les résultats. Partition mensuelle sur task_start_date (UTC, comme les mois de l'app), clustering vehicle_code / task_id (filtre véhicule, détail d'un bordereau). Champs du bordereau (date, véhicule, approvisionneur, client, machine) constants par task_id (vérifié le 2026-10-08 sur 364 652 bordereaux). Réservé à l'application.
+    columns:
+      - name: task_product_id
+        description: "Identifiant de la ligne article du bordereau (clé)"
+        tests:
+          - not_null
+          - unique
+      - name: task_id
+        description: "Numéro de bordereau de chargement"
+        tests:
+          - not_null
+      - name: task_start_date
+        description: "Date et heure du chargement (UTC), colonne de partition"
+        tests:
+          - not_null
+      - name: task_status_code
+        description: "Statut de la tâche (FAIT ou VALIDE)"
+      - name: load_type_code
+        description: "Type de chargement Oracle"
+      - name: task_location_info
+        description: "Information d'emplacement saisie sur la tâche"
+      - name: vehicle_code
+        description: "Véhicule de tournée (NULL sur quelques lignes)"
+      - name: roadman_code
+        description: "Approvisionneur"
+      - name: company_id
+        description: "Client (identifiant dim_neshu__company)"
+      - name: company_code
+        description: "Code client"
+      - name: company_name
+        description: "Nom du client (dim_neshu__company)"
+      - name: device_id
+        description: "Machine (identifiant dim_neshu__device), NULL sur quelques lignes"
+      - name: device_code
+        description: "Code machine"
+      - name: device_name
+        description: "Nom de la machine (dim_neshu__device)"
+      - name: device_brand
+        description: "Marque de la machine (BLUPURA, NESTLE, ANIMO…), dim_neshu__device"
+      - name: product_code
+        description: "Code article chargé"
+      - name: unit_coeff_multi
+        description: "Coefficient de conditionnement (multiplicateur)"
+      - name: unit_coeff_div
+        description: "Coefficient de conditionnement (diviseur)"
+      - name: base_unit_quantity
+        description: "Quantité en unité de base"
+      - name: load_quantity
+        description: "Quantité chargée"
+      - name: load_valuation
+        description: "Valorisation du chargement (NULL possible, l'app la compte à 0)"
