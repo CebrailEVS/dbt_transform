@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["stock_date","stock","reference"], model=get_where_subquery(ref('app_cockpit__technique_stock_van'))) }}

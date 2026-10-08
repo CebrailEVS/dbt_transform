@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="stock", model=get_where_subquery(ref('app_cockpit__technique_stock_van'))) }}
