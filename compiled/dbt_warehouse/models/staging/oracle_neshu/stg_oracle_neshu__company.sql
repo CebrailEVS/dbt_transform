@@ -19,9 +19,8 @@ cleaned_data as (
         code_status_record,
         name,
         siret,
-        -- Zone XML libre de l'ERP, exposée brute : le parsing est le travail de
-        -- l'aval, comme dans stg_oracle_neshu__contract. Porte notamment
-        -- /ZONE/EFFECTIF, l'effectif saisi du client.
+        -- Zone XML libre de l'ERP, exposée brute : le XML est laissé brut ; il est parsé en aval quand
+        -- un modèle en a besoin. Porte notamment /ZONE/EFFECTIF, l'effectif saisi du client.
         xml,
 
         -- Timestamps harmonisés

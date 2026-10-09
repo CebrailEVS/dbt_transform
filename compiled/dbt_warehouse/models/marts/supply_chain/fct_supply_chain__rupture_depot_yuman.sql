@@ -2,7 +2,7 @@
 
 -- La rupture par dépôt n'existe pas en source : quand un article tombe à zéro,
 -- Yuman supprime les lignes d'emplacement (une ligne n'existe que si quantite > 0).
--- On la reconstruit : les 4 dépôts étant fixes et présents chaque jour dans
+-- On la reconstruit : les dépôts étant fixes et présents chaque jour dans
 -- l'export, l'absence de ligne (dépôt, référence) = stock à zéro. L'assortiment
 -- attendu d'un dépôt (les références qu'il est censé stocker) est défini par la
 -- demande : consommations des 180 jours précédents des techniciens rattachés.
@@ -169,7 +169,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '01a11fdc-5cc8-7ff1-bc92-55e3798a882d' as dbt_invocation_id
+    '01a12000-e333-7100-a81e-67593030e128' as dbt_invocation_id
 from assortiment_stock as ast
 left join reference_designation as rd
     on ast.reference = rd.reference

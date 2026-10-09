@@ -43,8 +43,7 @@ lines_exploded as (
         item
     from po_base as pb
     cross join unnest(
-        -- `lines` est une colonne JSON NATIVE depuis dlt (Meltano rendait une
-        -- chaîne, d'où le parse_json d'avant). json_query_array gère le NULL.
+        -- `lines` est une colonne JSON NATIVE (dlt). json_query_array gère le NULL.
         coalesce(json_query_array(lines), [])
     ) as item
 

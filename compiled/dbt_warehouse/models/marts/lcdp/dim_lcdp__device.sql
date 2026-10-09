@@ -34,7 +34,7 @@ with device_labels as (
 -- lien disponible — la source ne porte aucune FK idresources.
 -- Jointure sur dim_lcdp__resource (et non sur le staging) pour garantir que la FK
 -- exposée résout toujours dans la dimension à laquelle la BI se relie.
--- DÉPARTAGE : 2 machines portent aujourd'hui 2 affectations (M7077, M5114) ; on
+-- DÉPARTAGE : une machine peut porter 2 affectations ; on
 -- retient le code le plus petit, ce qui garantit 1 ligne par machine et une valeur
 -- stable d'un rebuild à l'autre (le contact.ismain vaut 0 partout, inexploitable).
 -- Le test assert_lcdp__device_single_assigned_roadman alerte si ces cas se multiplient.
@@ -146,8 +146,8 @@ select
     -- Roadman AFFECTÉ (état courant ERP, cf. CTE assigned_roadman).
     -- À ne pas confondre avec le roadman OBSERVÉ de fct_lcdp__chargement_sortie,
     -- qui est celui ayant réellement chargé la machine sur la semaine.
-    -- NULL pour ~73 % du parc (affectation renseignée sur 730 machines / 2 758),
-    -- mais renseignée sur 99,4 % du périmètre DA FROID Nayax.
+    -- NULL pour la majorité du parc (affectation peu renseignée), mais
+    -- renseignée sur la quasi-totalité du périmètre DA FROID Nayax.
     ar.assigned_roadman_id,
     ar.assigned_roadman_code,
     ar.assigned_roadman_name,

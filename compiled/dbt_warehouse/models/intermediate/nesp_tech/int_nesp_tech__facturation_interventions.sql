@@ -109,9 +109,9 @@ final as (
         kf.tarif_factu
     from joined as j
     -- Tarif en vigueur À LA DATE DE L'INTERVENTION, et non tarif courant : la
-    -- grille Nespresso a déjà changé au moins une fois (générations 2021 / 2024,
-    -- cf. onglet Paramètres du classeur de facturation), et un tarif unique par
-    -- clé interdisait de recalculer une facture d'un mois passé. Même patron que
+    -- grille Nespresso change dans le temps (cf. onglet Paramètres du classeur de
+    -- facturation) ; un tarif unique par clé empêcherait de recalculer une facture
+    -- d'un mois passé. Même patron que
     -- `ref_yuman__tarification_clean` / `int_yuman__interventions`.
     left join `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation` as kf
         on

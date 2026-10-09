@@ -65,14 +65,11 @@ cleaned as (
             '%d/%m/%Y', nullif(trim(date_de_cl_ture_du_sinistre), '')
         ) as date_cloture_sinistre,
 
-        -- Date métier du snapshot. Le pipeline dlt la FOURNIT désormais : elle
-        -- est sa clé de merge, dérivée du nom du fichier daté
-        -- (suivi_sinistres_EB_YYYYMMDD_*.csv). Le `regexp_extract` qui vivait
-        -- ici a simplement descendu d'un étage, là où il sert de clé.
+        -- Date métier du snapshot, fournie par le pipeline dlt : c'est sa clé de merge, dérivée du nom du
+        -- fichier daté (suivi_sinistres_EB_YYYYMMDD_*.csv).
         snapshot_date,
 
-        -- Horodatage du run dlt. Remplace `_sdc_received_at` : la colonne
-        -- Singer `_sdc_extracted_at` était NULL à 100 %, celle-ci est remplie.
+        -- Horodatage du run dlt.
         _extracted_at
 
     from source
@@ -96,9 +93,8 @@ deduplicated as (
 
                 -- Tri par date métier du snapshot (et non l'heure de chargement) :
                 -- garantit qu'on garde la version la plus récente du sinistre.
-                -- Le pipeline dlt merge désormais sur `snapshot_date`, donc un
-                -- fichier relu écrase sa journée au lieu de s'empiler : ce tri
-                -- arbitre entre snapshots DIFFÉRENTS, plus entre ré-appends.
+                -- Le pipeline dlt merge sur `snapshot_date` : un fichier relu écrase sa journée au lieu de
+                -- s'empiler ; ce tri arbitre entre snapshots DIFFÉRENTS.
                 order by snapshot_date desc, _extracted_at desc
 
             ) as rn

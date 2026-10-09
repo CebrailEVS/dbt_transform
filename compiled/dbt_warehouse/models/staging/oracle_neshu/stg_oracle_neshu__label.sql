@@ -18,8 +18,7 @@ cleaned_data as (
         code,
 
         -- Bolean
-        -- NUMERIC(1) depuis le passage de prod_raw a dlt : le NUMBER(1) Oracle
-        -- n'arrive plus en BOOL. Double cast, BigQuery refusant NUMERIC -> BOOL.
+        -- Double cast : BigQuery refuse NUMERIC -> BOOL.
         cast(cast(system as int64) as boolean) as is_system,
         cast(cast(enabled as int64) as boolean) as is_enabled,
 

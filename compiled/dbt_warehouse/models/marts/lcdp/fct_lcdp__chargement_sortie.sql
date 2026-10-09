@@ -17,15 +17,15 @@
 -- déclarée chargée (somme en unités de base) : deux systèmes de mesure distincts.
 --
 -- ROADMAN DE LA SEMAINE : la ligne porte le roadman qui a réalisé le plus de
--- tâches de chargement sur la machine dans la semaine (demande BI 2026-07-28 :
--- monitorer les flux de marchandises au niveau roadman). Calculé sur le MÊME
+-- tâches de chargement sur la machine dans la semaine (pour monitorer les flux
+-- de marchandises au niveau roadman). Calculé sur le MÊME
 -- périmètre de tâches que qty_chargee / qty_retiree (produits vendables), donc
 -- la colonne qualifie exactement l'activité de chargement mesurée sur la ligne.
--- NULL sur les semaines sans chargement (~17 % des lignes : machine qui a vendu
+-- NULL sur les semaines sans chargement (machine qui a vendu
 -- sans être rechargée) — c'est attendu, il n'y a personne à nommer.
 -- Il s'agit du roadman OBSERVÉ, à ne pas confondre avec le roadman AFFECTÉ à la
--- machine dans l'ERP (contact_has_device, exposé sur dim_lcdp__device) : sur les
--- 90 derniers jours, les deux coïncident sur 82,6 % des lignes comparables.
+-- machine dans l'ERP (contact_has_device, exposé sur dim_lcdp__device) : un écart
+-- entre les deux est un signal métier.
 --
 -- Mouvements de stock classés par movement_type (signe de la quantité, cf.
 -- int_oracle_lcdp__chargement_tasks) : LOADING = chargé, REMOVING = retiré
@@ -93,7 +93,7 @@ chargement_weekly as (
 ),
 
 -- Roadman principal de la semaine, par machine.
--- Départage déterministe (5,6 % des device×semaine sont à égalité sur le nombre
+-- Départage déterministe (égalités possibles sur le nombre
 -- de tâches) : nb de chargements, puis volume chargé, puis identifiant le plus
 -- petit. Sans règle stable, la valeur changerait d'un rebuild à l'autre.
 chargement_roadman_counts as (

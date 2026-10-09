@@ -22,17 +22,16 @@ cleaned_data as (
         -- Colonnes texte et types
         type_product_source,
         type_product_destination,
-        -- Zone XML libre de la tâche, exposée brute : le parsing est le travail
-        -- de l'aval, comme dans stg_oracle_neshu__contract. Porte notamment
-        -- /ZONE/COUTRM, l'enveloppe mensuelle de charges sociales (type 242).
+        -- Zone XML libre de la tâche, exposée brute : le XML est laissé brut ; il est parsé en aval
+        -- quand un modèle en a besoin. Porte notamment /ZONE/COUTRM, l'enveloppe mensuelle de charges
+        -- sociales (type 242).
         -- Renseignée sur une petite minorité de tâches.
         xml,
 
         -- Colonne numérique
-        -- FLOAT64 depuis le passage de prod_raw a dlt (etait STRING sous Meltano).
-        -- Cast explicite : le modèle ne dépend plus du type du raw.
+        -- Cast explicite : le modèle ne dépend pas du type du raw.
         cast(spantime as float64) as spantime, -- durée de la tâche en minute
-        -- status record (1 = validé, 0 ou -1 possiblement inactif/desactivé : à confirmer)
+        -- status record (1 = validé, 0 ou -1 possiblement inactif/désactivé)
         cast(code_status_record as string) as code_status_record,
 
         -- Date de la tache

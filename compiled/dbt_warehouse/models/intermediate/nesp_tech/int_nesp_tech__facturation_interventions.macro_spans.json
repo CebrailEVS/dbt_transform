@@ -161,24 +161,24 @@
         "start": {
           "line": 119,
           "col": 15,
-          "index": 3859
+          "index": 3817
         },
         "stop": {
           "line": 119,
           "col": 58,
-          "index": 3902
+          "index": 3860
         }
       },
       "expanded_span": {
         "start": {
           "line": 116,
           "col": 15,
-          "index": 3802
+          "index": 3760
         },
         "stop": {
           "line": 116,
           "col": 85,
-          "index": 3872
+          "index": 3830
         }
       }
     }

@@ -1,9 +1,8 @@
 
 
 -- Modèle intermédiaire consolidé des interventions Yuman.
--- Fusionne ici, en CTE, ce qui était auparavant éclaté en deux faits chaînés
--- (fct_technique__workorder_pricing puis fct_neshu__workorder_delai) afin de
--- supprimer les dépendances fait→fait. Source de vérité unique pour :
+-- Consolide en CTE tarification et délai, sans dépendance fait→fait.
+-- Source de vérité unique pour :
 --   1. la normalisation type/machine/métropole + extraction code postal
 --   2. la tarification automatique (récurrence → type tarif → montant)
 --   3. le délai de traitement en jours ouvrés et son type (J+0,5 … J++)
@@ -105,7 +104,7 @@ with base_workorders as (
     from `evs-datastack-prod`.`prod_intermediate`.`int_yuman__demands_workorders_enriched`
     -- Exclusion des bons de travail "secs" (orphelins, sans demande rattachée) : ils
     -- décrochent du référentiel client/partenaire (partner_name, client_id… NULL) et
-    -- fausseraient la clé d'intervention aval (key_inter) + la tarification (~65 lignes).
+    -- fausseraient la clé d'intervention aval (key_inter) + la tarification.
     -- Flag canonique défini une seule fois en amont (cf. is_orphan_workorder).
     where not is_orphan_workorder
 ),

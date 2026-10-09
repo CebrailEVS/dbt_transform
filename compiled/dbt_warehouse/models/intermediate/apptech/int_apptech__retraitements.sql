@@ -9,7 +9,7 @@
 --
 -- Identité : key_inter = concat(src_inter, '_', intervention_id) reconstruit la PK
 -- de fct_technique__intervention (workorder_id/n_planning chevauchent → src_inter
--- requis). src_inter/numero_pu proviennent du NDJSON (contrat identité 2026-07) ;
+-- requis). src_inter/numero_pu proviennent du NDJSON ;
 -- ils sont NULL tant que l'app ne les émet pas — key_inter est alors NULL et la
 -- jointure au fait est vide, sans casser le build (bascule sûre).
 

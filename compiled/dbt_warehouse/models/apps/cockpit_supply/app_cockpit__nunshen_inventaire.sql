@@ -1,8 +1,7 @@
 
 
 -- Sessions d'inventaire Nunshen (Sage, pièces « i… » d'entrée et de sortie, types 20/21)
--- pour Cockpit Supply : remplace le proxy « nombre d'imports de stock » de l'ISO
--- (fréquence des inventaires). Une session = une date × un dépôt. Sage n'écrit une pièce
+-- pour Cockpit Supply (fréquence des inventaires). Une session = une date × un dépôt. Sage n'écrit une pièce
 -- d'inventaire que s'il y a un écart : un inventaire sans écart n'y figure pas.
 select
     date(dl.do_date) as date_inventaire,

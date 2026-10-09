@@ -3,7 +3,7 @@
 -- Pendant Nespresso (Nomad Repair) de fct_technique__consommation_article_yuman :
 -- les interventions Nespresso ne passent pas par les bons Yuman, mais leurs articles
 -- sont centralisés dans le référentiel Yuman sous le préfixe EVS_NESPRESSO_.
--- Une ligne de la table articles = une pose réelle (vérifié : 99,95 % des lignes
+-- Une ligne de la table articles = une pose réelle (la quasi-totalité des lignes
 -- portent un état terminé) — aucun filtre d'état, l'état est exposé en information.
 
 with articles as (
@@ -13,7 +13,7 @@ with articles as (
 interventions as (
     -- Contexte d'intervention : états, agence, horodatages début/fin.
     -- Périmètre agences EVS uniquement ('nespresso sud' = sous-traitant,
-    -- hors flux de stock EVS, plus actif depuis 2025).
+    -- hors flux de stock EVS, plus actif).
     select
         n_planning,
         etat_intervention,
@@ -69,7 +69,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '01a11fdc-5cc8-7ff1-bc92-55e3798a882d' as dbt_invocation_id
+    '01a12000-e333-7100-a81e-67593030e128' as dbt_invocation_id
 from articles as a
 inner join interventions as i
     on a.n_planning = i.n_planning

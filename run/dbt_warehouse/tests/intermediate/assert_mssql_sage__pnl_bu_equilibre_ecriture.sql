@@ -12,16 +12,8 @@
 -- Invariant comptable : pour chaque écriture ventilée, la somme des lignes
 -- analytiques signées doit redonner le montant signé de l'écriture générale.
 --
--- Garde-fou du correctif de signe (2026-10-05) : montant_analytique_signe
--- appliquait abs() avant le sens, ce qui inversait les montants analytiques
--- négatifs (réaffectations entre sections). Aucune des 382 écritures concernées
--- ne s'équilibrait ; ~1 M€ de résultat 2025 manquait au P&L BU.
---
--- Seuils et non zéro : 43 écritures sont déséquilibrées DANS SAGE (ventilation
--- analytique saisie différente du montant général, ex. 360 € ventilés 32 856 €),
--- indépendamment de la règle de signe. Relevé le 2026-10-05 : 43.
--- warn au-delà de 60 (nouvelles saisies à remonter à la compta),
--- error au-delà de 200 (régression de la règle de signe : ~420 avec abs()).
+-- Garde-fou : `abs()` appliqué avant le sens inversait les réaffectations.
+-- warn/error selon `warn_if`/`error_if`.
 
 with ecritures_generales as (
     select

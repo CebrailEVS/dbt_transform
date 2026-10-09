@@ -3,9 +3,8 @@
 -- Point de commande NESHU par dépôt et article (maillon 4 : la suggestion de réappro).
 -- Assemble la prévision (③), le stock actuel, le délai fournisseur, les commandes en cours et un
 -- stock de sécurité calibré par classe ABC, puis émet une quantité à commander + un feu tricolore.
--- Construit EN PARALLÈLE de fct_supply_chain__couverture_stock_neshu (bascule PBI après comparaison).
 --
--- Méthode de sécurité = V2 (validée par backtest, cf. .claude/notes/supply_chain/forecast_v2) :
+-- Méthode de sécurité (validée par backtest) :
 -- la sécurité couvre « la demande bouge PLUS QUE PRÉVU » -> on dimensionne sur l'ERREUR de
 -- prévision (mesurée par le backtest fct_supply_chain__erreur_prevision_neshu), pas sur la
 -- variabilité brute de la demande. La calibration a prouvé que cette méthode TIENT les cibles
@@ -136,19 +135,7 @@ stock_actuel as (
     -- au sien, cohérent avec la demande (macro neshu_depot_reappro).
     select
         
--- Rattachement des dépôts au pilotage du réapprovisionnement NESHU (forecast / point de commande).
---
--- Strasbourg (118) est réapprovisionné DEPUIS Lyon (116) : il ne passe quasiment aucune commande
--- fournisseur en direct (vérifié en données : 4 lignes sur tout l'historique). Sa demande et son
--- stock doivent donc remonter sur Lyon, qui commande au fournisseur pour le territoire Lyon +
--- Strasbourg puis réexpédie en interne. On rattache donc 118 → 116.
---
--- Bordeaux (120) commande de façon indépendante (Distrilog) et n'est PAS remappé : il est simplement
--- exclu du pilotage en aval (filtre sur le périmètre 114/116/364 = Rungis / Lyon(+Strasbourg) /
--- Marseille), puisqu'après remap il reste le seul id hors de ce périmètre.
---
--- Macro partagée par le socle de demande (int_oracle_neshu__demande_mensuelle) et par les CTE stock
--- et encours du point de commande, pour que le rattachement reste cohérent sur les trois flux.
+
 case when id_entity = 118 then 116 else id_entity end
  as company_id,
         product_code,
@@ -167,19 +154,7 @@ encours as (
     -- Filtre : commande faite/validée + livraison EN_ATTENTE, < N jours.
     select
         
--- Rattachement des dépôts au pilotage du réapprovisionnement NESHU (forecast / point de commande).
---
--- Strasbourg (118) est réapprovisionné DEPUIS Lyon (116) : il ne passe quasiment aucune commande
--- fournisseur en direct (vérifié en données : 4 lignes sur tout l'historique). Sa demande et son
--- stock doivent donc remonter sur Lyon, qui commande au fournisseur pour le territoire Lyon +
--- Strasbourg puis réexpédie en interne. On rattache donc 118 → 116.
---
--- Bordeaux (120) commande de façon indépendante (Distrilog) et n'est PAS remappé : il est simplement
--- exclu du pilotage en aval (filtre sur le périmètre 114/116/364 = Rungis / Lyon(+Strasbourg) /
--- Marseille), puisqu'après remap il reste le seul id hors de ce périmètre.
---
--- Macro partagée par le socle de demande (int_oracle_neshu__demande_mensuelle) et par les CTE stock
--- et encours du point de commande, pour que le rattachement reste cohérent sur les trois flux.
+
 case when product_destination_id = 118 then 116 else product_destination_id end
  as company_id,
         product_id,
@@ -253,7 +228,7 @@ calcul as (
         *,
         stock_actuel + encours_fournisseur as position_stock,
         -- Horizon à couvrir = délai fournisseur + période de revue (intervalle entre 2 passations,
-        -- var revue_jours). Défaut 7 = commande hebdomadaire (cadence validée par Vincent : une
+        -- var revue_jours). Défaut 7 = commande hebdomadaire (cadence validée par la logistique : une
         -- commande par semaine ; 7 jours calendaires, cohérent avec la demande journalière /30,4).
         delai_jours + 7 as horizon_jours,
         -- σ fiable si assez de mois d'erreur observés au backtest, sinon fallback σ(demande).
@@ -277,7 +252,7 @@ securite as (
             else sigma_demande_mensuelle
         end * sqrt(horizon_jours / 30.4) as sigma_lead_time,
         -- Demande retenue = prévision ③ + correction de biais positif (sous-prévision) si σ fiable.
-        -- Le biais négatif (sur-prévision) n'est PAS retranché (prudence, cf. note design V2.1).
+        -- Le biais négatif (sur-prévision) n'est PAS retranché (prudence).
         (
             demande_prevue_mensuelle
             + case when is_sigma_erreur_fiable then greatest(biais_mensuel, 0) else 0 end
@@ -371,7 +346,7 @@ select
     coalesce(purchase_unit_coeff, 1) as coeff_conditionnement,
     quantite_a_commander,
     -- Reconditionnement : quantité arrondie au conditionnement de commande supérieur (carton/pack).
-    -- fallback coeff 1 = commande à l'unité (article sans unité d'achat au master, ~8 produits actifs).
+    -- fallback coeff 1 = commande à l'unité (article sans unité d'achat au master).
     case
         when methode_prevision = 'exclu' then 0
         else cast(ceil(quantite_a_commander / coalesce(purchase_unit_coeff, 1)) as int64)

@@ -7,10 +7,7 @@ with source as (
 renamed as (
     select
         -- primary key + foreign key to stg_zoho_desk__tickets
-        -- La FK est nommée par dlt d'après la ressource PARENTE
-        -- (`zoho_desk_associated_tickets`). Elle s'appelait _zoho_desk_tickets_id
-        -- jusqu'au passage du pipeline sur dlt.sources.rest_api : le transformer
-        -- était alors défini sur une ressource nommée `tickets`.
+        -- La FK est nommée par dlt d'après la ressource PARENTE (`zoho_desk_associated_tickets`).
         _zoho_desk_associated_tickets_id as ticket_id,
 
         -- sla (indicateurs et flags regroupés par domaine)
@@ -35,11 +32,8 @@ renamed as (
         safe_cast(task_count as int64) as task_count,
 
         -- custom fields (tous STRING — caster dans les marts si nécessaire)
-        -- Colonnes source préfixées cf__ : l'API rend un OBJET `cf`, que dlt
-        -- aplatit en cf__<nom d'API>. L'ancien pipeline remontait ces clés à la
-        -- racine à la main — de la logique dans l'extracteur, que les conventions
-        -- d'ingestion interdisent. Les noms de SORTIE ne bougent pas : les couches
-        -- intermediate et marts sont intactes.
+        -- Colonnes source préfixées cf__ : l'API rend un OBJET `cf`, que dlt aplatit en cf__<nom d'API>.
+        -- Les noms de SORTIE sont sans préfixe.
         cf__cf_statut_client as cf_statut_client,
         cf__cf_nature_des_demandes as cf_nature_des_demandes,
         cf__cf_type as cf_type,

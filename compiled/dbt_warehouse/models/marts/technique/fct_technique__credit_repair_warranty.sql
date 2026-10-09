@@ -12,8 +12,7 @@
 -- corrective qui l'a suivie.
 --
 -- Imputation : au mois où la décision est traitée dans l'app (`periode_date`),
--- et non au mois de l'intervention fautive — décision métier du 2026-08-05,
--- l'écart de méthode avec l'ancien processus Excel est assumé.
+-- et non au mois de l'intervention fautive — décision métier.
 --
 -- Contrat du flux source : `stg_apptech__suivi_tech_rw` ne contient QUE des
 -- décisions confirmées. L'app filtre `pole_expertise_RW != 'OUI'` avant écriture
@@ -22,7 +21,7 @@
 -- sert de garde-fou si l'app changeait ce filtre.
 --
 -- Ce mart est le consommateur « facturation » du flux RW. Le clawback de prime
--- technicien en est l'autre consommateur, indépendant (marts Primes, à venir) :
+-- technicien en est l'autre consommateur, indépendant (marts Primes) :
 -- même événement métier, deux conséquences financières distinctes.
 --
 -- ⚠️ À ne pas confondre avec `fct_technique__repair`, qui qualifie les récidives
@@ -39,7 +38,7 @@ with decisions_rw as (
     from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_rw`
     -- Les fichiers de test d'ingestion du DA portent de vraies interventions
     -- fautives mais des correctives factices (TESTDATAING-<AAAAMM>) : sans ce
-    -- filtre, 2 avoirs de -90 € entreraient dans la facturation NESPRESSO.
+    -- filtre, des avoirs factices entreraient dans la facturation NESPRESSO.
     -- Le test `relationships` sur key_inter_corrective attrape tout autre cas.
     where not starts_with(upper(coalesce(source, '')), 'RW_TEST_DATA_ING')
 
@@ -76,7 +75,7 @@ select
 
     -- Identité lisible de la corrective (audit). Elle-même facturée normalement,
     -- et rien n'interdit qu'elle soit à son tour créditée si elle récidive :
-    -- 1 cas sur 14 aujourd'hui (chaînage récidive → récidive).
+    -- cas rare (chaînage récidive → récidive).
     rw.new_intervention_id as intervention_corrective_id,
     concat('NESP_', rw.new_intervention_id) as key_inter_corrective,
 
@@ -100,7 +99,7 @@ from decisions_rw as rw
 left join intervention_fautive as fautive
     on rw.bad_intervention_id = fautive.n_planning
 -- Nom résolu sur la DIM et non sur le staging Yuman : la FK est testée contre la
--- dim, et 31 des 97 utilisateurs du staging n'y sont pas (elle ne garde que les
+-- dim, et des utilisateurs du staging n'y sont pas (elle ne garde que les
 -- techniciens et les managers-techniciens). Résoudre sur le staging afficherait
 -- un nom là où la FK est orpheline.
 left join `evs-datastack-prod`.`prod_marts`.`dim_technique__technician` as tech

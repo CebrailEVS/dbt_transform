@@ -17,12 +17,10 @@ renamed as (
         property_type,
         system_property,
 
-        -- Les TROIS valeurs scalaires ci-dessous sont POLYMORPHES : l'API rend
-        -- tantôt du texte ('Closed'), tantôt un horodatage (property_name
-        -- 'Due Date'), tantôt un booléen. Le cast explicite en string rend ce
-        -- modèle indépendant du type inféré au raw — sans lui, une inférence à
-        -- `timestamp` casse les modèles d'intermediate qui les coalescent
-        -- (COALESCE(TIMESTAMP, STRING)), comme mesuré le 2026-08-05.
+        -- Les TROIS valeurs scalaires ci-dessous sont POLYMORPHES : l'API rend tantôt du texte ('Closed'),
+        -- tantôt un horodatage (property_name 'Due Date'), tantôt un booléen. Le cast explicite en string
+        -- modèles d'intermediate qui les coalescent (COALESCE(TIMESTAMP, STRING)).
+        -- (COALESCE(TIMESTAMP, STRING)).
 
         -- scalar value (quand la valeur n'est pas un before/after — ex : première assignation)
         cast(property_value as string) as property_value,

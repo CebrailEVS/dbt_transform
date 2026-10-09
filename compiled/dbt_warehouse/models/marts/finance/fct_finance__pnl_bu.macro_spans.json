@@ -83,24 +83,24 @@
         "start": {
           "line": 313,
           "col": 6,
-          "index": 11268
+          "index": 11251
         },
         "stop": {
           "line": 313,
           "col": 25,
-          "index": 11287
+          "index": 11270
         }
       },
       "expanded_span": {
         "start": {
           "line": 313,
           "col": 6,
-          "index": 11291
+          "index": 11274
         },
         "stop": {
           "line": 313,
           "col": 42,
-          "index": 11327
+          "index": 11310
         }
       }
     }

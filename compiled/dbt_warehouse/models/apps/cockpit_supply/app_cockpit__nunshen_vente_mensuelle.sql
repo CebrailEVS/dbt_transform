@@ -1,9 +1,9 @@
 
 
--- Ventes Nunshen par mois et référence (Sage) pour Cockpit Supply : remplace l'import
--- « Ventes ». Factures (types 6 et 7, avoirs compris, quantités déjà signées), lignes
+-- Ventes Nunshen par mois et référence (Sage) pour Cockpit Supply.
+-- Factures (types 6 et 7, avoirs compris, quantités déjà signées), lignes
 -- valorisées seulement (dl_valorise = 1 : sans les composants de kits, qui doubleraient
--- le CA). Depuis janvier 2024, comme l'import. Référence brute (alias appliqués par l'app).
+-- le CA). Référence brute (alias appliqués par l'app).
 select
     extract(year from dl.do_date) as annee,
     extract(month from dl.do_date) as mois,
@@ -11,7 +11,7 @@ select
     ar.ar_design as designation,
     ar.fa_code_famille as code_famille,
     -- Avoir financier (quantité négative sans retour en stock) : CA déduit, quantité non
-    -- (même règle que l'export « Ventes » de Sage utilisé jusqu'ici)
+    -- (règle de l'export « Ventes » de Sage)
     cast(sum(if(dl.dl_qte < 0 and dl.dl_mvt_stock = 0, 0, dl.dl_qte)) as float64) as qte_vendue,
     cast(sum(dl.dl_montant_ht) as float64) as ca_ht,
     max(dl.extracted_at) as extracted_at

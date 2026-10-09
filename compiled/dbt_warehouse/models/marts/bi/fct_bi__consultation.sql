@@ -36,8 +36,8 @@ select
     p.report_name,
     p.workspace_name,
 
-    -- QUI : dimension degeneree portee par le fait. 32 lecteurs distincts pour
-    -- 2 domaines, ce qui ne justifie pas une dim_bi__utilisateur dediee.
+    -- QUI : dimension degeneree portee par le fait (peu de lecteurs distincts,
+    -- pas de dim_bi__utilisateur dediee).
     -- Donnee personnelle : voir l'en-tete de _bi__marts_models.yml.
     c.user_id,
     split(c.user_id, '@')[safe_offset(1)] as user_domain,
@@ -50,6 +50,6 @@ select
     c.created_at as consultation_at
 
 from consultations as c
--- INNER JOIN : restreint aux consultations du parc metier. Ecarte les 2 vues
+-- INNER JOIN : restreint aux consultations du parc metier. Ecarte les vues
 -- portant sur un rapport hors perimetre (copie d'App ou metriques d'usage).
 inner join parc as p on c.report_id = p.report_id

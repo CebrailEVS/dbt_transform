@@ -43,7 +43,7 @@ select
 from rapports as r
 -- La jointure INTERNE sur les espaces de travail EST le troisieme filtre
 -- obligatoire du contrat de source : elle restreint le parc aux seuls espaces
--- partages et actifs. C'est ce qui fait passer de 100 rapports (staging) aux
--- 37 rapports metier. Ne jamais la passer en LEFT.
+-- partages et actifs : seuls les rapports metier restent dans la dimension.
+-- Ne jamais la passer en LEFT.
 inner join espaces as e on r.workspace_id = e.workspace_id
 left join modeles as m on r.dataset_id = m.dataset_id

@@ -1,4 +1,3 @@
--- fct_technique__machines_maintenance_tracking.sql
 
 
 -- LISTE MACHINE DLOG filtré & clean
@@ -495,7 +494,7 @@ final as (
 
         -- Métadonnées dbt
         current_timestamp() as dbt_updated_at,
-        '01a11fdc-5cc8-7ff1-bc92-55e3798a882d' as dbt_invocation_id  -- noqa: TMP
+        '01a12000-e333-7100-a81e-67593030e128' as dbt_invocation_id  -- noqa: TMP
 
     from deduplicated
     where rn = 1  -- Ne garder qu'une ligne par device_id

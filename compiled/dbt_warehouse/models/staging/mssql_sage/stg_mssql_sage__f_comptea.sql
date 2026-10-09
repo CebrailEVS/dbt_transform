@@ -12,7 +12,7 @@ cleaned_data as (
 
         -- Clé métier. Sage déclare l'unicité sur (N_Analytique, CA_Num), mais
         -- n_analytique ne porte qu'UNE valeur ici — il n'y a qu'un plan analytique.
-        -- ca_num est donc unique à lui seul : mesuré 309 valeurs pour 309 lignes.
+        -- ca_num est donc unique à lui seul.
         n_analytique,
         ca_num,
         ca_intitule,

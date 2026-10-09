@@ -2,9 +2,8 @@
 
 -- Fait mince : délai de traitement et tarification des interventions Yuman.
 -- Toute la logique métier (normalisation, tarification, calcul du délai en jours
--- ouvrés) vit désormais dans int_yuman__interventions. Ce modèle ne fait qu'exposer
--- le contrat de colonnes historique attendu par le rapport Power BI
--- (exposure neshu / workorder_delai). Aucune dépendance fait→fait.
+-- ouvrés) vit dans int_yuman__interventions. Ce modèle ne fait qu'exposer
+-- le contrat de colonnes attendu par le rapport Power BI. Aucune dépendance fait→fait.
 
 select
     demand_id,

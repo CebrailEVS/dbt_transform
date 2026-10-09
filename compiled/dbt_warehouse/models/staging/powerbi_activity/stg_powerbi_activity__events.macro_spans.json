@@ -10,7 +10,7 @@
         "stop": {
           "line": 8,
           "col": 3,
-          "index": 700
+          "index": 706
         }
       },
       "expanded_span": {
@@ -31,12 +31,12 @@
         "start": {
           "line": 11,
           "col": 19,
-          "index": 742
+          "index": 748
         },
         "stop": {
           "line": 11,
           "col": 78,
-          "index": 801
+          "index": 807
         }
       },
       "expanded_span": {

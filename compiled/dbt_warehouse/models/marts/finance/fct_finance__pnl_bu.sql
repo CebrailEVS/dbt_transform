@@ -273,7 +273,7 @@ kpi_with_budget as (
         safe_divide(l.valeur - b.valeur, abs(b.valeur)) as ecart_vs_budget_pct,
         l.valeur_ytd - b.valeur_ytd as ecart_vs_budget_ytd,
         safe_divide(l.valeur_ytd - b.valeur_ytd, abs(b.valeur_ytd)) as ecart_vs_budget_pct_ytd,
-        -- ✨ NOUVEAUTÉ : ratio budget en % du CA réel
+        -- ratio budget en % du CA réel
         safe_divide(b.valeur, ca.valeur) as budget_pct_du_ca,
         safe_divide(b.valeur_ytd, ca.valeur_ytd) as budget_pct_du_ca_ytd
     from kpi_long as l
@@ -310,7 +310,7 @@ select
     budget_pct_du_ca,
     budget_pct_du_ca_ytd,
     current_timestamp() as dbt_updated_at,
-    '01a11fdc-5cc8-7ff1-bc92-55e3798a882d' as dbt_invocation_id
+    '01a12000-e333-7100-a81e-67593030e128' as dbt_invocation_id
 from kpi_with_budget
 where annee >= 2024
 order by annee, mois, bu, kpi

@@ -25,7 +25,7 @@ cleaned_data as (
         ec_devise,
         n_devise,
 
-        -- Dates (colonnes désormais TIMESTAMP natifs ; placeholder Sage 1753-01-01 -> NULL)
+        -- Dates (TIMESTAMP natifs ; placeholder Sage 1753-01-01 -> NULL)
         ec_date,
         jm_date,
         ec_jour,

@@ -1,7 +1,6 @@
 
 
--- Nomenclatures Nunshen (Sage, niveau 1) pour Cockpit Supply : remplace l'import
--- « Nomenclature », avec en plus la quantité de chaque composant.
+-- Nomenclatures Nunshen (Sage, niveau 1) pour Cockpit Supply, avec la quantité de chaque composant.
 select
     nm.ar_ref as reference,
     p.ar_design as designation,

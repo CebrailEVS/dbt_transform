@@ -1,13 +1,13 @@
 
 
--- Backtest « prévision rejouée vs réel » (V2.0 — fondation de la feuille de route V2).
--- Pour chaque mois cible passé, rejoue les 3 méthodes de prévision V1 telles qu'elles
+-- Backtest « prévision rejouée vs réel ».
+-- Pour chaque mois cible passé, rejoue les 3 méthodes de prévision telles qu'elles
 -- auraient été calculées pendant ce mois (walk-forward : seules les données STRICTEMENT
 -- antérieures au mois cible sont visibles — pas de fuite du futur), puis compare au réel.
 -- Possible sans ré-entraînement car les méthodes sont des formules déterministes de
 -- l'historique : on remplace le current_date() de la prévision (③) par le mois de coupure.
 -- Champion-challenger : les 3 candidates sont exposées côte à côte pour arbitrer les
--- évolutions V2.1+ (sigma d'erreur, Croston, saisonniers) sans re-backtester.
+-- évolutions de méthode (sigma d'erreur, Croston, saisonniers) sans re-backtester.
 -- Limite assumée : prevision_retenue route selon la classification ACTUELLE (②), pas
 -- celle rejouée à chaque date (la classif à date s'accumulera via le snapshot mensuel).
 
@@ -29,7 +29,7 @@ with classification as (
 
 mois_cibles as (
 
-    -- Mois complets rejoués : janv. 2024 (le socle démarre déc. 2022 -> 13 mois d'amont,
+    -- Mois complets rejoués : janv. 2024 (13 mois d'historique amont requis,
     -- la référence saisonnière N-1 est toujours couverte) jusqu'au dernier mois clos.
     -- Le mois qui vient de se clore entre automatiquement au build suivant.
     select mois_cible

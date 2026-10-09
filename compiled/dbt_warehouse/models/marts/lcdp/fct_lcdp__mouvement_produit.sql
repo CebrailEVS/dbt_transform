@@ -33,7 +33,7 @@ with chargement_daily as (
         -- ANOMALIE, le filtre est donc posé ici.
         c.task_status_code in ('FAIT', 'VALIDE')
         -- Retraits saisis au niveau du client sans machine renseignée (erreur de
-        -- saisie ERP, ~50 lignes) : non rattachables au grain machine.
+        -- saisie ERP) : non rattachables au grain machine.
         and c.device_id is not null
     group by 1, 2, 3, 4
 ),
@@ -53,11 +53,11 @@ invendus_daily as (
     group by 1, 2, 3, 4
 ),
 
--- FULL OUTER JOIN obligatoire : plus d'un tiers des constats d'invendus n'ont pas
+-- FULL OUTER JOIN obligatoire : une part importante des constats d'invendus n'a pas
 -- de chargement sur le même produit × machine × jour. Un LEFT JOIN sur le
 -- chargement les perdrait.
 -- Le roadman fait partie de la clé : chargement et invendus d'un même passage
--- tombent sur la même ligne (même roadman dans 99,4 % des cas) ; quand deux
+-- tombent sur la même ligne (en général le même roadman) ; quand deux
 -- personnes différentes interviennent, chacune a sa ligne. NULL-safe sur le
 -- roadman (tâche sans ressource PERSON) pour ne pas dédoubler ces lignes.
 mouvements as (

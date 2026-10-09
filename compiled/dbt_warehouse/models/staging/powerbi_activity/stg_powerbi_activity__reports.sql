@@ -25,7 +25,7 @@ cleaned_data as (
         created_by,
         modified_by,
 
-        -- traçabilité du filtre n°1 : null sur 100 % des lignes PAR CONSTRUCTION
+        -- traçabilité du filtre n°1 : toujours null PAR CONSTRUCTION
         -- (`app_id is null` en clause where). Conservés pour que la question
         -- « pourquoi app_id est-il toujours vide ? » trouve sa réponse ici.
         app_id,

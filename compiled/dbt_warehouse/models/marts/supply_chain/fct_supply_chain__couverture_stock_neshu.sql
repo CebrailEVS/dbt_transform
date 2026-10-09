@@ -124,7 +124,7 @@ couverture as (
     left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__product` as p on b.product_code = p.product_code
     -- on exclut uniquement les produits explicitement arrêtés (product_exploit='NON') ;
     -- les NULL (champ non renseigné dans Distrilog) sont conservés pour ne pas masquer
-    -- de ruptures réelles. À basculer en '=OUI' quand le champ sera complété à la source.
+    -- de ruptures réelles.
     where p.product_exploit is distinct from 'NON'
 )
 

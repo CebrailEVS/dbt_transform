@@ -1,7 +1,7 @@
 
 
 -- Préparations de fabrication Nunshen ouvertes (Sage, type 24) pour Cockpit Supply :
--- remplace l'import « Production Wissous ». Chargement Sage en remplacement : une
+-- chargement Sage en remplacement : une
 -- préparation transformée en bon de fabrication disparaît, il ne reste que les ouvertes.
 select
     dl.do_piece as n_piece,
