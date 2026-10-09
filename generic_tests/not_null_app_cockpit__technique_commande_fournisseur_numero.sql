@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="numero", model=get_where_subquery(ref('app_cockpit__technique_commande_fournisseur'))) }}

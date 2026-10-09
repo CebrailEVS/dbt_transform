@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="purchase_order_line_id", model=get_where_subquery(ref('app_cockpit__technique_commande_fournisseur'))) }}
