@@ -14,8 +14,6 @@ data/reference_data/<source>/
 └── _<source>__seeds.yml        # doc + tests + column_types, un fichier par source
 ```
 
-> Dette connue : `zoho_desk` n'a pas encore son `_zoho_desk__seeds.yml`.
-
 ### Types des colonnes
 
 On les déclare **dans `_<source>__seeds.yml`**, avec `config: column_types`, pour **toutes** les

@@ -100,7 +100,9 @@ scripts/pull-state.sh --force  # retélécharge quoi qu'il arrive
 Cloud Scheduler → Cloud Workflows → Cloud Run dlt        → prod_raw
                                   → Cloud Run dbt-runner → dbt build source:<X>+ → prod_*
 ```
-Le job `dbt-runner` tourne sur l'image `:latest`, résolue à chaque exécution. Le détail est
+Le job `dbt-runner` tourne sur l'image `:latest`, résolue à chaque exécution. Les paquets
+dbt y sont installés à la construction (`package-lock.yml`) : une exécution n'a besoin d'aucun
+accès à hub.getdbt.com ni à GitHub. Le détail est
 dans [`pipeline-schedule.md`](pipeline-schedule.md).
 
 ### Développement local

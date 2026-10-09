@@ -23,9 +23,6 @@
 
 set -euo pipefail
 
-echo "[dbt] Installing packages..."
-dbt deps
-
 if [ -n "${DBT_SOURCE_SELECTOR:-}" ]; then
   echo "[dbt] Running source freshness: ${DBT_SOURCE_SELECTOR}"
   # Exit 1 = seuil error_after franchi ou requête en échec : seul détecteur d'un

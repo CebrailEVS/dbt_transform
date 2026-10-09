@@ -8,8 +8,6 @@ models:
       de la source `nespresso_technique_interventions` (API Nomad Repair).
       Convertit les identifiants en entiers, harmonise les dates au format TIMESTAMP
       et nettoie les libellés et champs texte.
-    config:
-      tags: ['nesp_tech', 'staging']
     tests:
       # Freshness fallback (tier Hebdomadaire — extracted_at est NULL sur les fichiers
       # récents côté source, on monitore date_heure_fin qui reflète l'activité réelle
@@ -99,8 +97,6 @@ models:
       Modèle de staging nettoyant les données des articles consommés lors des
       interventions Nespresso issues de la table `nespresso_technique_articles`.
       Convertit les identifiants en entiers, harmonise les dates, et cast la quantité en float.
-    config:
-      tags: ['nesp_tech', 'staging']
     tests:
       # Freshness fallback (tier Hebdomadaire — extracted_at NULL sur fichiers récents,
       # on monitore date_intervention — cf. docs/freshness.md)

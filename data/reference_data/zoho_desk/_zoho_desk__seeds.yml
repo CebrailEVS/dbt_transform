@@ -1,0 +1,72 @@
+version: 2
+
+seeds:
+  - name: ref_zoho_desk__status_mapping
+    description: "Correspondance des statuts de ticket Zoho Desk (libellés français de l'interface et valeurs anglaises de l'API) vers un type de statut et deux indicateurs utilisés par le calcul des SLA : temps en attente (pause du chrono) et ticket clôturé. Lu par int_zoho_desk__ticket_status_events, jointure sur status."
+    config:
+      column_types:
+        status: STRING
+        status_type: STRING
+        is_on_hold: BOOL
+        is_closed: BOOL
+    columns:
+      - name: status
+        description: "Statut tel qu'il apparaît dans l'historique du ticket (clé de jointure)"
+        tests:
+          - not_null
+          - unique
+      - name: status_type
+        description: "Type de statut normalisé"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Open', 'On Hold', 'Closed']
+      - name: is_on_hold
+        description: "TRUE si le ticket est en attente (le chrono SLA est suspendu)"
+        tests:
+          - not_null
+      - name: is_closed
+        description: "TRUE si le statut clôture le ticket"
+        tests:
+          - not_null
+
+  - name: ref_zoho_desk__sla_buckets
+    description: "Tranches de délai SLA en minutes, par métrique (première réponse, résolution) : un délai d appartient à la tranche si lower_min <= d < upper_min. bucket_order donne l'ordre d'affichage."
+    config:
+      column_types:
+        metric: STRING
+        lower_min: INT64
+        upper_min: INT64
+        bucket_label: STRING
+        bucket_order: INT64
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - metric
+              - bucket_order
+    columns:
+      - name: metric
+        description: "Métrique SLA : first_response ou resolution"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['first_response', 'resolution']
+      - name: lower_min
+        description: "Borne basse incluse de la tranche, en minutes"
+        tests:
+          - not_null
+      - name: upper_min
+        description: "Borne haute exclue de la tranche, en minutes (999999 = sans limite)"
+        tests:
+          - not_null
+      - name: bucket_label
+        description: "Libellé d'affichage de la tranche (ex. 1-6h)"
+        tests:
+          - not_null
+      - name: bucket_order
+        description: "Rang d'affichage de la tranche au sein de sa métrique"
+        tests:
+          - not_null
