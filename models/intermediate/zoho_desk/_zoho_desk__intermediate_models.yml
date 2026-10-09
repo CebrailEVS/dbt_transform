@@ -35,7 +35,7 @@ models:
       + agents. Les durées SLA viennent directement de ticket_metrics (Zoho), pas recalculées ici.
 
       [GRAIN]
-      1 ligne par ticket_id (PK). ~22,2k tickets, depuis février 2024.
+      1 ligne par ticket_id (PK).
 
       [NOTES]
       ⚠️ Les champs Zoho standard `category` / `sub_category` sont **toujours NULL** : la
@@ -65,7 +65,7 @@ models:
           En cours de traitement, Closed/Clôturé (doublons). Préférer status_type pour regrouper.
       - name: status_type
         description: >
-          Catégorie de statut (regroupement propre). Valeurs : Closed (clôturé, ~99,8%), Open
+          Catégorie de statut (regroupement propre). Valeurs : Closed (clôturé), Open
           (ouvert), On Hold (en attente). Synonyme : état du ticket. À utiliser plutôt que `status`.
         tests:
           - accepted_values:
@@ -73,15 +73,15 @@ models:
               config: {severity: warn}
       - name: priority
         description: >
-          Priorité du ticket. Valeurs : Medium, Low, High (pas d'Urgent observé). ~35% NULL
-          (priorité non renseignée). Synonyme : criticité.
+          Priorité du ticket. Valeurs : Medium, Low, High. NULL si priorité
+          non renseignée. Synonyme : criticité.
         tests:
           - accepted_values:
               arguments: {values: [Low, Medium, High, Urgent]}
               config: {severity: warn}
       - name: channel
         description: >
-          Canal d'entrée du ticket. Valeurs : Email (~99%), Phone, Zoho Opportunity, Zoho Form,
+          Canal d'entrée du ticket. Valeurs : Email, Phone, Zoho Opportunity, Zoho Form,
           Web. Synonyme : canal / source de la demande.
       - name: category
         description: "⚠️ Champ Zoho standard NON utilisé (toujours NULL). La catégorisation passe par nature_des_demandes + cf_*."
@@ -110,7 +110,7 @@ models:
           Compte client (entreprise) du ticket. FK → stg_zoho_desk__accounts. COALESCE de
           t.account_id puis du compte du contact. NULL si aucun rattachement. Synonyme : client / société.
       - name: account_name
-        description: "Nom du compte client (~92% de couverture). NULL si account_id NULL."
+        description: "Nom du compte client NULL si account_id NULL."
       - name: contact_id
         description: "Contact (personne) ayant ouvert le ticket. FK → stg_zoho_desk__contacts."
       - name: contact_first_name
@@ -133,7 +133,7 @@ models:
         description: >
           **Nature / motif de la demande** — principal champ de catégorisation métier (cf_nature_des_demandes).
           Valeurs fréquentes : Gestion des cartes privatives/Badges, Equipements, Remboursements,
-          Facturation, Commerce/CSM, Commandes directes/Négoce, Réappro, Recyclage… (~50% NULL).
+          Facturation, Commerce/CSM, Commandes directes/Négoce, Réappro, Recyclage… (souvent NULL).
           Synonymes : type de demande / motif / sujet métier.
       - name: cf_contrat_avenant
         description: "Catégorie custom : contrat / avenant."
@@ -188,7 +188,7 @@ models:
       - name: is_escalated
         description: "True si le ticket a été escaladé."
       - name: resolution
-        description: "Texte de résolution saisi à la fermeture. Quasi toujours vide (~0,6% rempli)."
+        description: "Texte de résolution saisi à la fermeture. Quasi toujours vide."
 
       # --- COMPTEURS DE CONVERSATION ---
       - name: thread_count
@@ -222,8 +222,7 @@ models:
       sont normalisés via le seed ref_zoho_desk__status_mapping (status_type / is_on_hold / is_closed).
 
       [GRAIN]
-      1 ligne par événement de changement de statut. ~66,4k événements, ~22,2k tickets (dont ~23,2k
-      créations), depuis février 2024.
+      1 ligne par événement de changement de statut (créations incluses).
 
       [NOTES]
       Aucune sémantique métier (closed/reopened) appliquée ici — laissée aux marts. event_date_paris
@@ -292,11 +291,11 @@ models:
       property_value pour l'attribution initiale.
 
       [GRAIN]
-      1 ligne par événement de changement de priorité (≥ 0 par ticket). Depuis février 2024.
+      1 ligne par événement de changement de priorité (≥ 0 par ticket).
 
       [NOTES]
       Beaucoup de tickets n'ont aucun changement de priorité (priorité souvent jamais renseignée,
-      cf. ticket_enriched.priority ~35% NULL).
+      cf. ticket_enriched.priority, souvent NULL).
     columns:
       - name: ticket_id
         description: "Ticket concerné. FK → stg_zoho_desk__tickets / int_zoho_desk__ticket_enriched."
@@ -347,7 +346,7 @@ models:
       pour l'attribution initiale.
 
       [GRAIN]
-      1 ligne par événement de (ré)assignation. Depuis février 2024.
+      1 ligne par événement de (ré)assignation.
 
       [NOTES]
       « Case Owner » = l'agent assigné (assignee dans ticket_enriched), pas l'auteur du changement
@@ -406,7 +405,7 @@ models:
       plage 9h00-17h30, jours ouvrés, hors fériés FR (ref_general__feries_metropole).
 
       [GRAIN]
-      1 ligne par (ticket_id, segment_idx). ~65,3k segments. Le dernier segment (statut courant)
+      1 ligne par (ticket_id, segment_idx). Le dernier segment (statut courant)
       a segment_end_at et les durées à NULL.
 
       [NOTES]
@@ -461,8 +460,7 @@ models:
       deux variantes : `_calendar` (24/7) et `_business` (heures ouvrées 9h-17h30 FR, hors WE/fériés).
 
       [GRAIN]
-      1 ligne par ticket_id (PK). ~22,2k tickets. 1re réponse moyenne ~944 min ouvrées ; ~3,3k
-      tickets rouverts au moins une fois (max 161 réouvertures).
+      1 ligne par ticket_id (PK).
 
       [NOTES]
       ⚠️ Ce sont des métriques **maison** (heures ouvrées EVS), DISTINCTES de celles fournies par
@@ -470,7 +468,7 @@ models:
       resolution_time_minutes…). Utiliser CE modèle pour le SLA « heures ouvrées » EVS ; l'enriched
       pour les chiffres bruts Zoho. Trois définitions de résolution : first_close (créé→1re clôture,
       ignore réouvertures), last_close (créé→dernière clôture, tous cycles), excluding_hold (somme des
-      segments Open, hors attente client). Règles en attente de confirmation vs dashboard Zoho officiel.
+      segments Open, hors attente client). Hypothèse retenue : règles maison, non alignées sur le dashboard Zoho officiel.
     columns:
       - name: ticket_id
         description: "Ticket. PK. FK → int_zoho_desk__ticket_enriched."

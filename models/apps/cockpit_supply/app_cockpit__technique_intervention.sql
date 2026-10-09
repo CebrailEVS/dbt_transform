@@ -1,7 +1,7 @@
 {{ config(materialized='table') }}
 
 -- Interventions TechCare utiles à l'app : réalisées (onglet Clients, préventives
--- réalisées) et préventives planifiées ; 10 colonnes sur 58 (sans le texte libre).
+-- réalisées) et préventives planifiées ; colonnes utiles seulement (sans le texte libre).
 select
     material_id,
     material_serial_number,

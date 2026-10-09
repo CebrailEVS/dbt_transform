@@ -8,10 +8,9 @@ sources:
       - name: oracle_lcdp_stock_theorique
         description: >
           Stock théorique LCDP, chargé par le pipeline dlt `oracle_lcdp_stock`
-          (dépôt ingestion) directement depuis Oracle. Remplace la table externe
-          `ext_gcs_oracle_lcdp__stock_theorique`, adossée à des CSV dans GCS, le
-          2026-08-06. Les colonnes portent désormais leurs VRAIS types : les huit
-          NUMBER Oracle arrivent en NUMERIC(38,9) et non plus en STRING.
+          (dépôt ingestion) directement depuis Oracle.
+          Les colonnes portent leurs VRAIS types : les huit NUMBER Oracle arrivent en
+          NUMERIC(38,9).
         columns:
           - name: snapshot_date
             description: "Date métier du snapshot. Clé de merge du pipeline — à ne pas confondre avec date_system, qui porte l'heure du run."

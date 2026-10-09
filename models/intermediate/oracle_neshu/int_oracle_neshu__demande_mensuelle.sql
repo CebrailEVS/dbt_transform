@@ -15,8 +15,8 @@
 
 with sorties_clients as (
 
-    -- Bons de livraison clients. La source est toujours un dépôt (product_source_type='COMPANY',
-    -- vérifié : 100 % des lignes). Filtre explicite par robustesse.
+    -- Bons de livraison clients. La source est toujours un dépôt (product_source_type='COMPANY').
+    -- Filtre explicite par robustesse.
     select
         product_source_id as company_id,
         product_id,

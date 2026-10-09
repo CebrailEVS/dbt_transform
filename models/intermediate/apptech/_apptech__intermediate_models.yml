@@ -27,10 +27,10 @@ models:
       RW (Repair Warranty) et events sont exclus : RW = clawback de prime imputé
       au technicien d'une AUTRE intervention (relève des marts Primes), events =
       référentiel technicien distinct. Le cas rare d'une intervention touchée par
-      2 types (ex. curative + modif_intervention) reste ici en 2 lignes :
+      2 types (ex. curative + modif_intervention) reste en 2 lignes :
       l'arbitrage inter-types est fait en aval (mart Facturation retraitée).
-      src_inter/numero_pu proviennent du NDJSON (contrat identité 2026-07) : NULL
-      tant que l'app ne les émet pas → key_inter NULL, jointure aval vide, sans
+      src_inter/numero_pu proviennent du NDJSON : NULL
+      si l'app ne les émet pas → key_inter NULL, jointure aval vide, sans
       casser le build. type_modif n'est renseigné que par modif_intervention.
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -43,16 +43,16 @@ models:
       - name: key_inter
         description: >
           Clé de jointure vers fct_technique__intervention =
-          concat(src_inter, '_', intervention_id). NULL tant que src_inter n'est
-          pas émis par l'app (phase de bascule).
+          concat(src_inter, '_', intervention_id). NULL si src_inter n'est
+          pas émis par l'app.
       - name: intervention_id
         description: "PK source de l'intervention (workorder_id YUMAN / n_planning NESP). Opaque — le n° visible est numero_pu."
         tests:
           - not_null
       - name: src_inter
-        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL en phase de bascule."
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL s'il n'est pas émis."
       - name: numero_pu
-        description: "Numéro d'intervention visible (n° PU), pour audit/relecture. NULL en phase de bascule."
+        description: "Numéro d'intervention visible (n° PU), pour audit/relecture. NULL s'il n'est pas émis."
       - name: type_retraitement
         description: "Type de retraitement à l'origine de la ligne."
         tests:

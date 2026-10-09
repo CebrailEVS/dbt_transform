@@ -79,7 +79,7 @@ snapshots:
       **Fréquence d'exécution** : Quotidienne via `dbt snapshot`
       **Fréquence de capture** : Mensuelle (un snapshot par mois automatiquement)
       **Stratégie** : Timestamp sur snapshot_month
-      **Résistance** : Immune aux `dbt run --full-refresh` hebdomadaires
+      **Résistance** : Immune aux `dbt run --full-refresh` de la table source
       
       **Cas d'usage** :
       - Suivre l'évolution du nombre de machines par modèle
@@ -97,7 +97,7 @@ snapshots:
         description: |
           Premier jour du mois de capture (format DATE).
           Clé de partitionnement temporel pour les analyses mensuelles.
-          Exemple : 2025-12-01, 2026-01-01
+          Exemple : 2025-12-01
         tests:
           - not_null
       
@@ -170,7 +170,3 @@ snapshots:
             severity: error
             error_if: ">0"
             warn_if: ">0"
-
-  # Future snapshots can be added here:
-  # - name: snap_oracle_neshu__company
-  # - name: snap_oracle_neshu__contract

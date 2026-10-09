@@ -1,7 +1,7 @@
 {{ config(materialized='table') }}
 
--- Articles Nunshen (Sage) pour Cockpit Supply : remplace l'import « Base articles ».
--- Colonnes nommées comme la table d'import de l'app. Champs libres Sage OUI/NON → booléens.
+-- Articles Nunshen (Sage) pour Cockpit Supply.
+-- Colonnes nommées comme les attributs lus par l'app. Champs libres Sage OUI/NON → booléens.
 select
     ar.ar_ref as reference,
     ar.ar_design as designation,

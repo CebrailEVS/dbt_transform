@@ -12,10 +12,10 @@ models:
       rôles, normalisation des identifiants (C4C '#' → NULL), probabilité ramenée en [0,1].
 
       [GRAIN]
-      1 ligne par opp_id (PK). ~27,7k lignes.
+      1 ligne par opp_id (PK).
 
       [NOTES]
-      Source commerciale Nespresso, encore en construction (WIP). Les montants et probabilités
+      Source commerciale Nespresso. Les montants et probabilités
       sont du prévisionnel commercial, pas du réalisé.
     columns:
       - name: opp_id
@@ -72,10 +72,10 @@ models:
       du statut et de la catégorie.
 
       [GRAIN]
-      1 ligne par act_id (PK). ~140,5k lignes.
+      1 ligne par act_id (PK).
 
       [NOTES]
-      Source commerciale Nespresso (WIP). Certaines catégories C4C restent non traduites
+      Certaines catégories C4C restent non traduites
       (ex. 'Customer Visit') quand elles ne sont pas couvertes par le mapping.
     columns:
       - name: act_id
@@ -127,10 +127,10 @@ models:
       plus récent observé dans les opportunités et activités (déduplication par date de référence).
 
       [GRAIN]
-      1 ligne par third (PK, clé métier client). ~21,3k lignes.
+      1 ligne par third (PK, clé métier client).
 
       [NOTES]
-      Source commerciale Nespresso (WIP). third_c4c_id est NULL si aucun C4C n'a pu être déduit.
+      third_c4c_id est NULL si aucun C4C n'a pu être déduit.
     columns:
       - name: third
         description: Identifiant tiers (clé métier client EVS). PK.

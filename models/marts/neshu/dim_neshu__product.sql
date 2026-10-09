@@ -128,7 +128,7 @@ standardized as (
 purchase_unit as (
     -- Unité d'achat = conditionnement de commande fournisseur (idunit_type=1 active).
     -- coeff_multi = nb d'unités de base par conditionnement. Unique par produit
-    -- (vérifié : 0 produit avec plusieurs unités d'achat actives) ; max() = collapse défensif.
+    -- (hypothèse de la source) ; max() = collapse défensif.
     select
         idproduct as product_id,
         max(coeff_multi) as purchase_unit_coeff,

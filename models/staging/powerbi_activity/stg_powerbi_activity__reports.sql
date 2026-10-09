@@ -2,7 +2,7 @@
     config(
         materialized='table',
         cluster_by=['workspace_id', 'dataset_id'],
-        description="Rapports Power BI nettoyés — 1 ligne = 1 rapport original hors métriques d'usage, PK report_id. Source : powerbi_reports. DEUX FILTRES OBLIGATOIRES appliqués : app_id is null (écarte les copies d'App, que les événements ViewReport ne référencent jamais) et exclusion des rapports 'usage metrics report' auto-générés. Attendu : 100 rapports au 2026-09-03 ; s'il en sort 139, les filtres ne s'appliquent plus. Le périmètre métier (37 rapports) exige EN PLUS la restriction aux espaces partagés actifs — jointure sur les workspaces, donc en intermediate, pas ici."
+        description="Rapports Power BI nettoyés — 1 ligne = 1 rapport original hors métriques d'usage, PK report_id. Source : powerbi_reports. DEUX FILTRES OBLIGATOIRES appliqués : app_id is null (écarte les copies d'App, que les événements ViewReport ne référencent jamais) et exclusion des rapports 'usage metrics report' auto-générés. S'il en sort autant que de rapports bruts, les filtres ne s'appliquent plus. Le périmètre métier exige EN PLUS la restriction aux espaces partagés actifs — jointure sur les workspaces, donc en intermediate, pas ici."
     )
 }}
 
@@ -31,7 +31,7 @@ cleaned_data as (
         created_by,
         modified_by,
 
-        -- traçabilité du filtre n°1 : null sur 100 % des lignes PAR CONSTRUCTION
+        -- traçabilité du filtre n°1 : toujours null PAR CONSTRUCTION
         -- (`app_id is null` en clause where). Conservés pour que la question
         -- « pourquoi app_id est-il toujours vide ? » trouve sa réponse ici.
         app_id,

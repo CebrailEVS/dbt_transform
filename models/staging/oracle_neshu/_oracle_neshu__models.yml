@@ -93,7 +93,7 @@ models:
       Rattachement d'une machine au membre du personnel interne qui en a la charge
       (approvisionneur / technicien). Grain : 1 ligne par couple contact × device.
       Le contact se raccroche à une ressource via son `code` (aucune FK idresources
-      dans la source). Couvre ~29 % du parc actif NESHU.
+      dans la source).
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

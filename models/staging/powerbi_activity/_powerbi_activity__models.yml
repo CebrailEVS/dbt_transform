@@ -12,16 +12,16 @@ version: 2
 # donc légitimement pointer vers une ligne écartée. Ces "orphelins" sont le
 # périmètre voulu, pas un défaut — un test qui warne à chaque build n'apprend
 # rien et finit ignoré. Ils ne sont donc PAS testés :
-#   - reports.workspace_id   → 63 / 100 rapports sont dans un espace personnel
-#   - datasets.workspace_id  → 78 / 125 idem
-#   - events.report_id       → 18 / 270 visent une copie d'App ou un rapport
+#   - reports.workspace_id   → des rapports sont dans un espace personnel
+#   - datasets.workspace_id  → idem
+#   - events.report_id       → des événements visent une copie d'App ou un rapport
 #                              de métriques d'usage, écartés du staging
-#   - events.workspace_id    → 6 / 2 060
+#   - events.workspace_id    → idem (espaces écartés)
 #
-# Seul `events.dataset_id → datasets` est testé (0 orphelin mesuré) : celui-là
-# détecte vraiment quelque chose. En warn quand même, car l'inventaire est un
-# snapshot `replace` face à 27 jours d'événements — un modèle supprimé hier
-# reste référencé par les événements de la fenêtre.
+# Seul `events.dataset_id → datasets` est testé : celui-là détecte vraiment
+# quelque chose. En warn quand même, car l'inventaire est un snapshot `replace`
+# face à une fenêtre d'événements — un modèle supprimé reste référencé par les
+# événements de la fenêtre.
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -54,14 +54,14 @@ models:
             severity: warn
     columns:
       - name: event_id
-        description: "PK — GUID de l'événement dans le journal d'audit unifié (renommé depuis id). Vérifié 2 135/2 135 distincts au 2026-09-03."
+        description: "PK — GUID de l'événement dans le journal d'audit unifié (renommé depuis id)."
         tests: [unique, not_null]
 
       - name: activity
         description: >
-          Type d'activité. RefreshDataset domine (1 771 / 2 135 = 83 %) : c'est
+          Type d'activité. RefreshDataset domine : c'est
           du rafraîchissement automatique, PAS de l'usage humain. ViewReport
-          (248) est la seule activité qui mesure une consultation.
+          est la seule activité qui mesure une consultation.
         tests:
           - not_null
           # Liste fermée côté API mais susceptible de s'enrichir (nouveaux types
@@ -93,7 +93,7 @@ models:
                 severity: warn
 
       - name: record_type
-        description: "Type d'enregistrement du journal d'audit. Constant à 20 (PowerBIAudit) sur 100 % des lignes."
+        description: "Type d'enregistrement du journal d'audit. Constant à 20 (PowerBIAudit)."
         tests:
           - accepted_values:
               arguments:
@@ -105,32 +105,32 @@ models:
                 severity: warn
 
       - name: operation
-        description: "Nom d'opération de l'API d'audit. Miroir de `activity` (11 valeurs distinctes de part et d'autre)."
+        description: "Nom d'opération de l'API d'audit. Miroir de `activity`."
 
       - name: is_success
         description: "Vrai si l'opération a abouti."
 
       - name: user_id
-        description: "DONNÉE PERSONNELLE — UPN du salarié. 34 utilisateurs distincts sur la fenêtre. À agréger en aval, jamais à exposer nominativement."
+        description: "DONNÉE PERSONNELLE — UPN du salarié. À agréger en aval, jamais à exposer nominativement."
         tests: [not_null]
 
       - name: user_key
         description: "DONNÉE PERSONNELLE — clé interne Microsoft de l'utilisateur."
 
       - name: user_type
-        description: "0 = utilisateur régulier, 6 = compte de service / système (1 765 lignes, l'essentiel des RefreshDataset)."
+        description: "0 = utilisateur régulier, 6 = compte de service / système (l'essentiel des RefreshDataset)."
 
       - name: report_id
         description: >
-          FK rapport. Renseigné sur 270 / 2 135 lignes (12,6 %) — uniquement les
+          FK rapport. Renseigné uniquement sur les
           événements qui concernent un rapport. NE JAMAIS faire d'inner join
           dessus : les autres types d'activité seraient écrasés.
 
       - name: workspace_id
-        description: "FK espace de travail. Renseigné sur 2 060 / 2 135 lignes."
+        description: "FK espace de travail."
 
       - name: dataset_id
-        description: "FK modèle sémantique. Renseigné sur 2 047 / 2 135 lignes ; 0 orphelin mesuré au 2026-09-03."
+        description: "FK modèle sémantique."
         tests:
           - relationships:
               arguments:
@@ -170,7 +170,7 @@ models:
           __models_snapshots) via leur `_dlt_parent_id`. Ces tables existent dans
           prod_raw mais ne sont PAS déclarées en source : elles ne portent pas
           `_extracted_at` (freshness impossible), et dlt ne les crée que si un
-          événement porte le tableau imbriqué non vide (0,28 % des lignes).
+          événement porte le tableau imbriqué non vide.
 
       - name: created_at
         description: "Horodatage de l'événement (UTC), renommé depuis creation_time. Clé de partition — filtrer dessus en aval pour l'élagage."
@@ -190,12 +190,12 @@ models:
   - name: stg_powerbi_activity__workspaces
     description: >
       Grain : 1 ligne = 1 espace de travail PARTAGÉ ET ACTIF.
-      Filtre obligatoire appliqué (type = 'Workspace' and state = 'Active') :
-      149 lignes brutes → 13. Les 136 écartés sont des espaces personnels, qui
-      portent DEUX types distincts (`PersonalGroup` 134, `Personal` 2) — filtrer
-      sur le seul `PersonalGroup` en laisserait passer deux.
+      Filtre obligatoire appliqué (type = 'Workspace' and state = 'Active').
+      Les espaces écartés sont des espaces personnels, qui portent DEUX types
+      distincts (`PersonalGroup` et `Personal`) — filtrer sur le seul
+      `PersonalGroup` en laisserait passer.
     tests:
-      # GARDE-FOU DU FILTRE. 13 espaces au 2026-09-03. Si ce test remonte ~149,
+      # GARDE-FOU DU FILTRE. Si le nombre d'espaces remonte à celui des espaces bruts,
       # le filtre a sauté et tous les chiffres d'usage en aval sont faux.
       - dbt_expectations.expect_table_row_count_to_be_between:
           arguments:
@@ -247,22 +247,17 @@ models:
   - name: stg_powerbi_activity__reports
     description: >
       Grain : 1 ligne = 1 rapport original, hors rapports de métriques d'usage.
-      Deux filtres obligatoires appliqués : 139 lignes brutes → 100.
+      Deux filtres obligatoires appliqués.
 
-      ⚠️ CE MODÈLE N'EST PAS LE PÉRIMÈTRE MÉTIER. Les 37 « rapports métier » des
-      chiffres de référence exigent EN PLUS la restriction aux espaces partagés
+      ⚠️ CE MODÈLE N'EST PAS LE PÉRIMÈTRE MÉTIER. Les « rapports métier »
+      exigent EN PLUS la restriction aux espaces partagés
       actifs — soit une jointure vers les workspaces, interdite en staging
       (staging.md § 1 et § 9 : une source de staging = une table source, pas de
       jointure, pas de logique de périmètre). Cette restriction appartient à
-      l'intermediate. Décomposition mesurée au 2026-09-03 :
-        139 rapports bruts
-         →  76 dans un espace partagé actif   (63 des 100 restants sont dans un espace personnel)
-         →  47 hors copies d'App              (29 copies)
-         →  37 hors métriques d'usage         (10 rapports auto-générés)
-              dont 19 consultés et 18 dormants.
+      l'intermediate. Le périmètre métier s'obtient en trois restrictions successives :
+      espace partagé actif, hors copies d'App, hors métriques d'usage.
     tests:
-      # GARDE-FOU DES FILTRES. 100 rapports au 2026-09-03. Un retour vers ~139
-      # signale que les filtres ont sauté.
+      # GARDE-FOU DES FILTRES. Un retour vers le volume brut signale que les filtres ont sauté.
       - dbt_expectations.expect_table_row_count_to_be_between:
           arguments:
             min_value: 40
@@ -283,14 +278,14 @@ models:
         tests: [unique, not_null]
       - name: workspace_id
         description: >
-          FK espace de travail. Non nul sur 100 % des lignes, mais 63 / 100
-          pointent vers un espace personnel écarté du staging workspaces —
+          FK espace de travail. Les rapports
+          peuvent pointer vers un espace personnel écarté du staging workspaces —
           non testé pour cette raison (cf. en-tête). C'est la jointure vers
           stg_powerbi_activity__workspaces qui matérialise le périmètre métier
-          (37 rapports), en marts.
+          en marts.
         tests: [not_null]
       - name: dataset_id
-        description: "FK modèle sémantique. Non nul sur 100 % des lignes, 0 orphelin mesuré au 2026-09-03."
+        description: "FK modèle sémantique. Non nul."
         tests:
           - not_null
           - relationships:
@@ -303,7 +298,7 @@ models:
         description: "Nom du rapport (préfixé depuis `name` : co-joint en aval). Porte aussi le filtre n°2."
         tests: [not_null]
       - name: report_type
-        description: "Constant à 'PowerBIReport' au 2026-09-03 (les rapports paginés donneraient 'PaginatedReport')."
+        description: "Constant à 'PowerBIReport' (les rapports paginés donneraient 'PaginatedReport')."
         tests:
           - accepted_values:
               arguments:
@@ -327,16 +322,16 @@ models:
       - name: modified_by
         description: "UPN du dernier modificateur."
       - name: app_id
-        description: "Null sur 100 % des lignes PAR CONSTRUCTION (filtre n°1). Conservé comme trace du filtre."
+        description: "Toujours null PAR CONSTRUCTION (filtre n°1). Conservé comme trace du filtre."
       - name: original_report_object_id
-        description: "Null sur 100 % des lignes par construction : cette colonne n'est renseignée que sur les copies d'App, précisément celles qu'on écarte."
+        description: "Toujours null par construction : cette colonne n'est renseignée que sur les copies d'App, précisément celles qu'on écarte."
       - name: _dlt_id
         description: "Clé technique dlt."
       - name: created_at
         description: "Date de création du rapport (renommée depuis created_date_time)."
         tests: [not_null]
       - name: updated_at
-        description: "Dernière modification (modified_date_time, à défaut created_date_time). Aucun null sur les deux colonnes source au 2026-09-03."
+        description: "Dernière modification (modified_date_time, à défaut created_date_time)."
       - name: extracted_at
         description: "Horodatage d'extraction dlt = date du snapshot d'inventaire."
         tests: [not_null]
@@ -345,10 +340,9 @@ models:
 
   - name: stg_powerbi_activity__datasets
     description: >
-      Grain : 1 ligne = 1 modèle sémantique du locataire. 125 lignes au
-      2026-09-03, aucun filtre obligatoire.
+      Grain : 1 ligne = 1 modèle sémantique du locataire. Aucun filtre obligatoire.
 
-      À savoir en aval : 8 lignes portent
+      À savoir en aval : certaines lignes portent
       `content_provider_type = 'UsageMetricsUserReport'` — ce sont les modèles
       des rapports de métriques d'usage auto-générés par Power BI, pendant du
       filtre n°2 côté rapports. À écarter de tout décompte de parc ou de coût
@@ -366,15 +360,15 @@ models:
         tests: [unique, not_null]
       - name: workspace_id
         description: >
-          FK espace de travail. Non nul sur 100 % des lignes, mais 78 / 125
-          pointent vers un espace personnel écarté du staging workspaces —
+          FK espace de travail. Les modèles
+          peuvent pointer vers un espace personnel écarté du staging workspaces —
           non testé pour cette raison (cf. en-tête).
         tests: [not_null]
       - name: dataset_name
         description: "Nom du modèle sémantique (préfixé depuis `name` : co-joint en aval)."
         tests: [not_null]
       - name: target_storage_mode
-        description: "Mode de stockage cible. Constant à 'Abf' au 2026-09-03."
+        description: "Mode de stockage cible. Constant à 'Abf'."
         tests:
           - accepted_values:
               arguments:

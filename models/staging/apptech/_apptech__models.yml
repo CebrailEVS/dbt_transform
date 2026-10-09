@@ -21,9 +21,9 @@ models:
         tests:
           - not_null
       - name: src_inter
-        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL quand l'app ne l'émet pas."
       - name: numero_pu
-        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL quand l'app ne l'émet pas."
       - name: doubler_prime
         description: "Décision de doublement de la prime (normalisé en majuscules)"
         tests:
@@ -63,9 +63,9 @@ models:
         tests:
           - not_null
       - name: src_inter
-        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL quand l'app ne l'émet pas."
       - name: numero_pu
-        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL quand l'app ne l'émet pas."
       - name: convertir_code_5
         description: "Décision de conversion du code 5 (normalisé en majuscules)"
         tests:
@@ -105,9 +105,9 @@ models:
         tests:
           - not_null
       - name: src_inter
-        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL quand l'app ne l'émet pas."
       - name: numero_pu
-        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL quand l'app ne l'émet pas."
       - name: tech_id_reel
         description: "Identifiant interne du technicien réel (normalisé en minuscules, ex. 'tec-00056')"
         tests:
@@ -134,8 +134,8 @@ models:
   - name: stg_apptech__suivi_tech_curative
     description: >
       Délais forcés (technicien/partenaire) sur interventions curatives. Domaine
-      des délais non contraint (valeurs observées J+0/J+1/J+2 — liste complète à
-      confirmer avec l'analyste avant un accepted_values). Dedup snapshot : seules
+      des délais non contraint (valeurs J+0/J+1/J+2, liste non exhaustive : à valider
+      avec l'analyste avant un accepted_values). Dedup snapshot : seules
       les lignes du dernier fichier NDJSON de chaque mois sont conservées.
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -149,9 +149,9 @@ models:
         tests:
           - not_null
       - name: src_inter
-        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL quand l'app ne l'émet pas."
       - name: numero_pu
-        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL quand l'app ne l'émet pas."
       - name: delai_tech_force
         description: "Délai technicien forcé (normalisé en majuscules, ex. 'J+0')"
       - name: delai_partenaire_force
@@ -210,7 +210,7 @@ models:
         tests:
           - not_null
       - name: evt_event_unit
-        description: "Unité de la valeur (Journee / Heure observés)"
+        description: "Unité de la valeur (Journee / Heure)"
         tests:
           - accepted_values:
               arguments:
@@ -257,9 +257,9 @@ models:
         tests:
           - not_null
       - name: src_inter
-        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL quand l'app ne l'émet pas."
       - name: numero_pu
-        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL quand l'app ne l'émet pas."
       - name: a_facturer
         description: "Décision de facturation de la MEE (normalisé en majuscules)"
         tests:
@@ -300,9 +300,9 @@ models:
         tests:
           - not_null
       - name: src_inter
-        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL tant que l'app ne l'émet pas (bascule contrat identité 2026-07)."
+        description: "Système source de l'intervention (NESP / YUMAN), émis par l'app. NULL quand l'app ne l'émet pas."
       - name: numero_pu
-        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL en phase de bascule."
+        description: "Numéro d'intervention visible (n° PU), pour recherche/audit. NULL quand l'app ne l'émet pas."
       - name: a_facturer
         description: "Décision de facturation de la modif : 'NOT VALIDATED' (= annulation, seule valeur émise par l'app) ou NULL si non renseignée. À ne pas confondre avec le OUI/NON de la MEE."
         tests:
@@ -310,11 +310,11 @@ models:
               arguments:
                 values: ['NOT VALIDATED']
       - name: tech_id_reel
-        description: "Identifiant du technicien réel : nomad ('tec-xxxx') pour un technicien qui en a un, ou id Yuman brut sinon (23/66 techniciens n'ont pas de nomad — cf. app evs-suivi-tech). Normalisé en minuscules."
+        description: "Identifiant du technicien réel : nomad ('tec-xxxx') pour un technicien qui en a un, ou id Yuman brut sinon (certains techniciens n'ont pas de nomad — cf. app evs-suivi-tech). Normalisé en minuscules."
       - name: tech_yuman_id_reel
         description: "Identifiant Yuman du technicien réel"
       - name: type_modif
-        description: "Nature de la modification, calculée côté app (Annulation / Réattribution / Annulation + Réattribution / Autre). NULL tant que l'app ne l'émet pas."
+        description: "Nature de la modification, calculée côté app (Annulation / Réattribution / Annulation + Réattribution / Autre). NULL quand l'app ne l'émet pas."
       - name: commentaire
         description: "Commentaire libre du manager (NULL si vide)"
       - name: periode
@@ -376,7 +376,7 @@ models:
       - name: mois
         description: "Mois (1-12) porté par l'enregistrement source"
       - name: source
-        description: "Fichier Excel d'origine de la correction (traçabilité amont, ex. 'RW EVS IDF 2026-02.xlsx')"
+        description: "Fichier Excel d'origine de la correction (traçabilité amont, ex. 'RW EVS IDF <mois>.xlsx')"
       - name: periode
         description: "Mois concerné au format YYYY-MM, dérivé du dossier GCS"
         tests:

@@ -28,18 +28,10 @@ with source_data as (
     from {{ source('oracle_neshu', 'evs_contract') }}
 ),
 
--- Le XML de CONTRACT etait parse par un script Python separe
--- (ingest_oracle_evs_contract -> prod_raw.evs_contract_parsed), parce que le tap
--- Meltano ne savait pas lire une colonne XMLTYPE et la laissait NULL. dlt la charge
--- en texte, donc le parsing revient ici : un job, une table et une image en moins.
+-- Le XML de CONTRACT (colonne XMLTYPE chargée en texte par dlt) est parsé ici par regexp.
 --
--- Les entites XML doivent etre decodees : ElementTree le faisait, une regex non.
--- Sur les 306 contrats, un seul contient `&apos;` — sans ce decodage la valeur
--- differait de celle du script. `&amp;` est traite EN DERNIER, sinon `&amp;apos;`
--- deviendrait `'` au lieu de `&apos;`.
---
--- Equivalence verifiee le 2026-08-01 contre evs_contract_parsed : 306/306 lignes
--- identiques sur nombre_collab ET engagement.
+-- Les entités XML doivent être décodées (une regex ne le fait pas) : `&amp;` est traité EN DERNIER,
+-- sinon `&amp;apos;` deviendrait `'` au lieu de `&apos;`.
 extraction_xml as (
     select
         idcontract,

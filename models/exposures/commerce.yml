@@ -15,8 +15,7 @@ exposures:
     description: >
       Suivi commercial des interventions techniques EVS sur le parc machines
       Nespresso (6 derniers mois glissants). Vue consolidée client / machine
-      / intervention basée sur les fichiers nesp_tech (hebdo) et nesp_co
-      (quotidien).
+      / intervention basée sur les fichiers nesp_tech et nesp_co.
     owner:
       name: Rim Bouchikhi
       email: rim.bouchikhi@evs-pro.com

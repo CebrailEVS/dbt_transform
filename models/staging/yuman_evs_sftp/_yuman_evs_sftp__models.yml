@@ -6,16 +6,13 @@ models:
       Snapshot quotidien du stock théorique Yuman, nettoyé et typé. Une ligne
       par (référence, emplacement) présente dans le fichier du jour ; l'absence
       de ligne vaut quantité nulle, Yuman ne conservant pas les emplacements
-      vides. Remplace stg_yuman_gcs__stock_theorique, dont la sortie métier est
-      identique.
+      vides.
 
     tests:
       # Le test porte sur `_dlt_id`, et NON sur une combinaison métier : le
-      # fichier du fournisseur contient de vrais doublons — 1 463 lignes sur
-      # 2 002 398 partagent (export_date, référence, nom_du_stock). Prétendre
-      # que ce triplet est unique ferait échouer le build sur une propriété que
-      # la source n'a jamais eue. L'ancien test tenait par `_sdc_source_lineno`,
-      # une clé POSITIONNELLE : il n'affirmait déjà rien de métier.
+      # fichier du fournisseur contient de vrais doublons sur
+      # (export_date, référence, nom_du_stock). Prétendre que ce triplet est unique
+      # ferait échouer le build sur une propriété que la source n'a pas.
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
@@ -43,14 +40,13 @@ models:
       - name: export_date
         description: >
           Date du snapshot, tirée de la date de MODIFICATION du fichier sur le
-          SFTP — non de la date du run. Les deux coïncidaient historiquement
-          (fichier écrit vers 00:00, run à 06:30 le même jour) : la série est
-          continue avec celle produite par Meltano. Le contenu reste
-          structurellement en retard d'~1 jour, propriété du fournisseur.
+          SFTP — non de la date du run (fichier écrit vers 00:00, run à 06:30 le même
+          jour). Le contenu reste structurellement en retard d'~1 jour, propriété du
+          fournisseur.
         tests:
           - not_null
 
       - name: _dlt_id
         description: >
           Identifiant de ligne généré par dlt. Seule clé disponible : la source
-          n'en a pas. Tient le rôle de l'ancien `_sdc_source_lineno`.
+          n'en a pas.

@@ -80,7 +80,8 @@
         -- Statut
         is_active,
 
-        -- Date de création (immuable, ne déclenche pas de version)
+        -- last_installation_date est mutable et suivie par check_cols='all' (elle déclenche une version) ;
+        -- created_at est immuable.
         last_installation_date,
         created_at
     from source_table

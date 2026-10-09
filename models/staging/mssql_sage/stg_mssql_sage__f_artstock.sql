@@ -7,7 +7,7 @@
             "granularity": "day"
         },
         cluster_by=['ar_ref', 'de_no'],
-        description="Photos du stock Sage Nunshen par article × dépôt (dbo_f_artstock). Chargement append : chaque run dlt ajoute une photo complète, identifiée par extracted_at (une valeur par photo). Toutes les photos sont gardées, y compris un éventuel run manuel en journée ; la sélection d'une photo par jour se fait en aval. Pas de photo le week-end. Historique depuis le 2026-09-24."
+        description="Photos du stock Sage Nunshen par article × dépôt (dbo_f_artstock). Chargement append : chaque run dlt ajoute une photo complète, identifiée par extracted_at (une valeur par photo). Toutes les photos sont gardées, y compris un éventuel run manuel en journée ; la sélection d'une photo par jour se fait en aval. Pas de photo le week-end."
     )
 }}
 

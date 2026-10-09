@@ -8,7 +8,7 @@ version: 2
 # Code : dépôt COCKPIT-SUPPLY. Lecture par le compte evs-cockpit-supply.
 #
 # Liste COMPLÈTE de ce que l'app lit dans BigQuery : uniquement sa couche de
-# service prod_app_cockpit_supply depuis le 2026-10-08 (plus aucune lecture
+# service prod_app_cockpit_supply (aucune lecture
 # directe de marts ou d'intermédiaires, cf. docs/conventions/apps.md). Un
 # changement sur l'une de ces tables, ou sur un modèle en amont, a un impact
 # sur l'app : `dbt ls -s +exposure:cockpit_supply`.
@@ -24,7 +24,7 @@ exposures:
     description: >
       Application de pilotage supply (stocks, flux des dépôts, prévisions, fournisseurs,
       ISO, CODIR) des BU Neshu, TechCare, Cafés du Phare et Nunshen. Lit uniquement
-      la couche de service prod_app_cockpit_supply (Nunshen : Sage depuis le 2026-10-08 ;
+      la couche de service prod_app_cockpit_supply (Nunshen : Sage ;
       saisies manuelles dans Supabase).
     owner:
       name: Cébrail Aksoy

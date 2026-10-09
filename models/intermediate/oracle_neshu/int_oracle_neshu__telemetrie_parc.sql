@@ -13,8 +13,8 @@
 -- ⚠️ Le parc est observé à travers les tâches de type DESTRUCTION (271) et
 -- INSTALL MACHINE (134) — deux ÉVÉNEMENTS, pas un inventaire. Un client dont le
 -- parc n'a pas bougé dans le mois n'a donc aucun coût de télémétrie. C'est le
--- comportement du rapport Distrilog, reproduit tel quel ; savoir s'il est voulu
--- est une question ouverte côté métier.
+-- comportement du rapport Distrilog, reproduit tel quel (hypothèse retenue :
+-- l'absence de mouvement du parc dans le mois ne génère pas de coût).
 --
 -- La vue Oracle `model` n'est pas répliquée : c'est `product` filtré sur les
 -- types 4 et 7, actifs, et device.idmodel pointe directement product.idproduct.

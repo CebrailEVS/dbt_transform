@@ -20,8 +20,7 @@ exposures:
       Diagramme de flux mensuel supply chain Neshu. Visualisation consolidée
       des stocks (dépôts + véhicules, réels et théoriques) et des flux
       opérationnels (réceptions fournisseurs, livraisons clients/internes,
-      chargements machines). Granularité mensuelle (mois_date). En cours
-      de développement (label DEV).
+      chargements machines). Granularité mensuelle (mois_date).
     owner:
       name: Etienne Boulinier
       email: etienne.boulinier@evs-pro.com
@@ -36,8 +35,7 @@ exposures:
       Analyse de la consommation des stocks supply chain Neshu. Visualisation
       consolidée des consommations (livraisons clients/internes, chargements
       machines) et des stocks (dépôts + véhicules, réels et théoriques) sur
-      une période donnée. Granularité mensuelle (mois_date). En cours de
-      développement (label DEV).
+      une période donnée. Granularité mensuelle (mois_date).
     owner:
       name: Etienne Boulinier
       email: etienne.boulinier@evs-pro.com 
@@ -54,8 +52,7 @@ exposures:
     description: >
       Analyse de l'activité des dépôts supply chain Neshu. Visualisation
       consolidée des flux opérationnels (réceptions fournisseurs, livraisons
-      clients/internes, chargements machines) par dépôt et par mois. En cours
-      de développement (label DEV).
+      clients/internes, chargements machines) par dépôt et par mois.
     owner:
       name: Etienne Boulinier
       email: etienne.boulinier@evs-pro.com
@@ -74,7 +71,7 @@ exposures:
     description: >
       Analyse de la consommation des produits supply chain Neshu. Visualisation
       consolidée des consommations (livraisons clients/internes, chargements
-      machines) par produit et par mois. En cours de développement (label DEV).
+      machines) par produit et par mois.
     owner:
       name: Etienne Boulinier
       email: etienne.boulinier@evs-pro.com
@@ -94,8 +91,7 @@ exposures:
       Vue à 360° d'un article supply chain Neshu. Visualisation consolidée des
       stocks (dépôts + véhicules, réels et théoriques) et des flux opérationnels
       (réceptions fournisseurs, livraisons clients/internes, chargements machines)
-      pour un article donné sur une période donnée. En cours de développement
-      (label DEV).
+      pour un article donné sur une période donnée.
     owner:
       name: Etienne Boulinier
       email: etienne.boulinier@evs-pro.com
@@ -113,8 +109,7 @@ exposures:
     maturity: medium
     description: >
       Contrôle des chargements supply chain Neshu. Visualisation consolidée des
-      chargements machines par dépôt, par produit et par mois. En cours de
-      développement (label DEV).
+      chargements machines par dépôt, par produit et par mois.
     owner:
       name: Etienne Boulinier
       email: etienne.boulinier@evs-pro.com
@@ -132,7 +127,6 @@ exposures:
     description: >
       Contrôle des livraisons internes supply chain Neshu. Visualisation
       consolidée des livraisons internes par dépôt, par produit et par mois.
-      En cours de développement (label DEV).
     owner:
       name: Etienne Boulinier
       email: etienne.boulinier@evs-pro.com

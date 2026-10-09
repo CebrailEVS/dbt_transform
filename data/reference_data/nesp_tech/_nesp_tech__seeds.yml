@@ -95,11 +95,9 @@ seeds:
       et le tarif Enlèvement s'est ajouté plus tard. Un tarif unique par clé
       interdisait de recalculer une facture d'un mois passé avec le tarif qui
       était alors en vigueur.
-      État actuel : une seule génération chargée, plancher `2000-01-01` →
-      `9999-12-31`, donc aucun changement de comportement par rapport à la
-      version non versionnée. Les générations réelles (bascule 2021 → 2024, date
-      de création du tarif Enlèvement) restent à récupérer auprès du manager : ne
-      pas les inventer, une date fausse déplacerait des montants facturés.
+      Une seule génération chargée, plancher `2000-01-01` → `9999-12-31`. Les dates de
+      génération doivent venir du manager : ne pas les inventer, une date fausse
+      déplacerait des montants facturés.
     config:
       column_types:
         type_code: STRING

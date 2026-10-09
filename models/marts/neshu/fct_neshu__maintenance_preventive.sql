@@ -1,4 +1,3 @@
--- fct_technique__machines_maintenance_tracking.sql
 {{ config(
     materialized='table',
     cluster_by=['company_code', 'device_code']

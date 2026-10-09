@@ -57,12 +57,11 @@ sources:
         description: >
           Événements du journal d'audit unifié Microsoft 365 restreints à la
           charge de travail PowerBI. 1 ligne = 1 événement, identifié par `id`
-          (GUID du journal d'audit — vérifié 2 135 lignes / 2 135 ids distincts
-          au 2026-09-03). Écriture `merge`, partitionnée par jour sur
+          (GUID du journal d'audit). Écriture `merge`, partitionnée par jour sur
           `creation_time` avec expiration à 365 jours.
 
-          Volume faible : ~2 100 événements sur 27 jours, ~80/jour. `RefreshDataset`
-          en représente ~83 % — c'est du rafraîchissement automatique, pas de
+          Volume faible. `RefreshDataset`
+          domine — c'est du rafraîchissement automatique, pas de
           l'usage humain. Pour mesurer l'usage, filtrer `activity = 'ViewReport'`
           EN AVAL (le staging ne filtre pas : les rafraîchissements servent de
           monitoring gratuit des pipelines, et le croisement rapport dormant ×
@@ -74,7 +73,7 @@ sources:
           n'existent que sur les consultations. Elles sont épinglées côté
           extraction pour que le contrat de schéma reste stable même sur une
           journée sans consultation — les valeurs sont donc massivement nulles
-          (`report_id` renseigné sur 12,6 % des lignes seulement).
+          (`report_id` n'est renseigné que sur une minorité de lignes).
         columns:
           - name: id
             description: "PK — GUID de l'événement dans le journal d'audit unifié. Renommé event_id dans le staging."
@@ -82,9 +81,9 @@ sources:
           - name: creation_time
             description: "Horodatage de l'événement (UTC). Clé de partition. Devient created_at dans le staging."
           - name: activity
-            description: "Type d'activité (ViewReport, RefreshDataset, ExportReport…). 11 valeurs observées au 2026-09-03."
+            description: "Type d'activité (ViewReport, RefreshDataset, ExportReport…)."
           - name: report_id
-            description: "FK rapport → powerbi_reports.id. Renseigné sur les seuls événements qui concernent un rapport (12,6 %)."
+            description: "FK rapport → powerbi_reports.id. Renseigné sur les seuls événements qui concernent un rapport."
           - name: workspace_id
             description: "FK espace de travail → powerbi_workspaces.id."
           - name: dataset_id
@@ -99,17 +98,15 @@ sources:
 
       # Trois tables enfants dérivées de tableaux imbriqués, liées au parent par
       # _dlt_parent_id → powerbi_activity_events._dlt_id :
-      #   powerbi_activity_events__schedules__days      (6 lignes)
-      #   powerbi_activity_events__schedules__time      (44 lignes)
-      #   powerbi_activity_events__models_snapshots     (6 lignes)
+      #   powerbi_activity_events__schedules__days
+      #   powerbi_activity_events__schedules__time
+      #   powerbi_activity_events__models_snapshots
       # Volontairement NON déclarées ici, pour DEUX raisons :
       #   1. Elles ne portent pas `_extracted_at` (le map d'horodatage dlt n'agit
       #      que sur l'item racine) : les déclarer imposerait un `freshness: null`
       #      par table pour ne pas casser `dbt source freshness`.
       #   2. dlt ne les crée que si un événement porte le tableau imbriqué non
-      #      vide. Elles EXISTENT bien dans prod_raw aujourd'hui — l'argument de
-      #      création conditionnelle vaut pour un dataset neuf (dev_raw, rebuild),
-      #      pas pour l'existant. Taux de remplissage du parent : 0,28 %.
+      #      vide : sur un dataset neuf (dev_raw, rebuild) elles peuvent ne pas exister.
       # Ne pas construire de modèle qui en dépende sans gérer leur absence.
 
       # ═══════════════════════════════════════════════════════════════════════
@@ -119,13 +116,12 @@ sources:
       - name: powerbi_workspaces
         description: >
           Inventaire des espaces de travail du locataire. 1 ligne = 1 espace.
-          149 lignes au 2026-09-03, dont seulement 13 sont des espaces partagés
-          actifs — le reste est constitué des espaces personnels des utilisateurs.
+          Seule une minorité sont des espaces partagés actifs — le reste est constitué
+          des espaces personnels des utilisateurs.
 
           ⚠️ FILTRE OBLIGATOIRE AU STAGING : `type = 'Workspace' and state = 'Active'`.
-          Les espaces personnels portent DEUX types distincts (`PersonalGroup`, 134
-          lignes, ET `Personal`, 2 lignes) — filtrer sur le seul `PersonalGroup`
-          en laisse passer deux. Deux espaces sont par ailleurs `Deleted`.
+          Les espaces personnels portent DEUX types distincts (`PersonalGroup`
+          ET `Personal`) — filtrer sur le seul `PersonalGroup` en laisse passer. Deux espaces sont par ailleurs `Deleted`.
         columns:
           - name: id
             description: "PK — GUID de l'espace de travail. Renommé workspace_id dans le staging."
@@ -140,23 +136,20 @@ sources:
       - name: powerbi_reports
         description: >
           Inventaire des rapports du locataire. 1 ligne = 1 rapport, copies d'App
-          incluses. 139 lignes au 2026-09-03, dont 76 dans les espaces partagés
-          actifs et 37 seulement sont des rapports métier.
+          incluses. Une minorité seulement sont des rapports métier (espaces partagés
+          actifs, hors copies d'App, hors métriques d'usage).
 
           ⚠️ DEUX FILTRES OBLIGATOIRES AU STAGING :
           1. `app_id is null` — Power BI crée une COPIE de chaque rapport publié
              dans une App, avec un `id` distinct et un `app_id` renseigné. Les
              événements `ViewReport` référencent TOUJOURS l'original du workspace :
              les copies affichent donc 0 vue et passent pour dormantes.
-             29 copies sur les 76 rapports des espaces partagés.
           2. `name not ilike '%usage metrics report%'` — rapports de métriques
-             d'usage générés automatiquement par Power BI. 10 au 2026-09-03.
+             d'usage générés automatiquement par Power BI.
              (BigQuery n'a pas ILIKE → `lower(name) not like` dans le staging.)
 
-          L'écart mesuré sans les filtres : 55 rapports « jamais consultés » sur 75,
-          contre 17 sur 36 avec. Les 38 points d'écart sont intégralement des
-          artefacts techniques. Un premier tableau de bord a été publié avec les
-          mauvais chiffres avant que l'erreur soit trouvée.
+          Sans ces filtres, la part de rapports « jamais consultés » est largement
+          surestimée : l'écart est intégralement dû à des artefacts techniques.
         columns:
           - name: id
             description: "PK — GUID du rapport. Renommé report_id dans le staging."
@@ -175,7 +168,7 @@ sources:
       - name: powerbi_datasets
         description: >
           Inventaire des modèles sémantiques du locataire. 1 ligne = 1 modèle.
-          125 lignes au 2026-09-03. Aucun filtre obligatoire, mais 8 lignes ont
+          Aucun filtre obligatoire, mais certaines lignes ont
           `content_provider_type = 'UsageMetricsUserReport'` : ce sont les modèles
           des rapports de métriques d'usage auto-générés, à exclure en aval de
           tout décompte de parc.

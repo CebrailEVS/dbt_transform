@@ -17,9 +17,7 @@
 -- meme rapport publie dans une App, et ses rafraichissements sont bien ceux du
 -- rapport d'origine.
 --
--- Etat au 2026-09-03 : 29 modeles du parc sont references par plusieurs
--- rapports bruts, mais ZERO apres rabattement des copies -- l'angle mort est
--- reel et vide. Si ce test se declenche, l'imputation des rafraichissements au
+-- Si ce test se declenche, l'imputation des rafraichissements au
 -- rapport n'est plus valide : il faut alors porter la mesure de cout au grain
 -- du modele semantique plutot qu'a celui du rapport.
 

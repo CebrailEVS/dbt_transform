@@ -2,7 +2,7 @@
     config(
         materialized='table',
         cluster_by=['workspace_id'],
-        description="Modèles sémantiques Power BI nettoyés — 1 ligne = 1 modèle du locataire, PK dataset_id. Source : powerbi_datasets. Aucun filtre obligatoire sur cette table ; en revanche 8 lignes portent content_provider_type = 'UsageMetricsUserReport' (modèles des rapports de métriques auto-générés) et doivent être écartées de tout décompte de parc en aval."
+        description="Modèles sémantiques Power BI nettoyés — 1 ligne = 1 modèle du locataire, PK dataset_id. Source : powerbi_datasets. Aucun filtre obligatoire sur cette table ; en revanche certaines lignes portent content_provider_type = 'UsageMetricsUserReport' (modèles des rapports de métriques auto-générés) et doivent être écartées de tout décompte de parc en aval."
     )
 }}
 

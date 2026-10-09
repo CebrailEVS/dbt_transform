@@ -8,7 +8,7 @@ models:
       [QUOI MÉTIER] Dimension client (company) Neshu enrichie des labels métier et de la localisation.
       [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__company joint à stg_oracle_neshu__location pour les coordonnées, et pivot des labels (stg_oracle_neshu__label_has_company + label + label_family) sur les familles : REGION, SECTEUR_ACTVITE, CODE_SECTEUR, SECTEUR_DACTIVITE, TRANCHE_COLLAB, TYPECOMPAGNIE, MODELEECOCLIENT, STATUT_CLIENT, ISACTIVE, KA, KATIERS, TELETRAVAIL, PROADMAN, GSM_TERRAIN, BADGE, RECYCLAGE.
       [GRAIN] 1 ligne par company_id.
-      [NOTES] is_active converti en booléen (TRUE si label ISACTIVE='yes'). Les ghost-deletes ERP (code_status_record = -1, sociétés supprimées de l'ERP mais conservées en base) sont hard-filtrés : aucune FK aval ne les référence depuis que l'ERP a réaffecté les rôles entrepôt (resource.company_storehouse_id) en juin 2026.
+      [NOTES] is_active converti en booléen (TRUE si label ISACTIVE='yes'). Les ghost-deletes ERP (code_status_record = -1, sociétés supprimées de l'ERP mais conservées en base) sont hard-filtrés : aucune FK aval ne les référence (les rôles entrepôt passent par resource.company_storehouse_id).
     columns:
       - name: company_id
         description: "Identifiant unique de la société"
@@ -62,13 +62,13 @@ models:
         description: "Modèle économique client (label MODELEECOCLIENT)"
 
       - name: company_economic_model_name
-        description: "Libellé lisible du modèle économique. Identique au code aujourd'hui, mais la colonne existe pour ne pas diverger en silence si un libellé est renommé dans l'ERP."
+        description: "Libellé lisible du modèle économique. Généralement identique au code, mais la colonne existe pour ne pas diverger en silence si un libellé est renommé dans l'ERP."
 
       - name: client_status
         description: "Statut client (OR/ARGENT/BRONZE) (label STATUT_CLIENT)"
 
       - name: client_status_name
-        description: "Libellé lisible du statut client. Identique au code aujourd'hui, même raison que ci-dessus."
+        description: "Libellé lisible du statut client. Généralement identique au code, même raison que ci-dessus."
 
       - name: is_active
         description: >
@@ -149,7 +149,7 @@ models:
       [QUOI MÉTIER] Dimension produit Neshu enrichie des labels métier (famille, groupe, marque, bio, propriétaire).
       [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__product filtré sur product_type_id IN (1, 5), enrichi par pivot des labels via stg_oracle_neshu__label_has_product : MARQUEP, PROPRIETAIRE, FAMILLE, BIO, GROUPE, ISACTIVE. product_type standardisé via règle métier (CAFE CAPS, THE, CHOCOLATS VAN HOUTEN, BOISSONS GOURMANDES, ACCESSOIRES, CAFENOIR, SNACKING, BOISSONS FRAICHES, INDEFINI). Unité d'achat (conditionnement de commande fournisseur) aplatie depuis stg_oracle_neshu__product_unit (idunit_type=1 active, unique par produit) : purchase_unit_coeff + purchase_unit_code.
       [GRAIN] 1 ligne par product_id.
-      [NOTES] product_type_id : 1 = produit, 5 = ligne de prix. is_active converti en booléen. purchase_unit_coeff NULL pour ~8 produits actifs sans unité d'achat au master (à compléter côté ERP).
+      [NOTES] product_type_id : 1 = produit, 5 = ligne de prix. is_active converti en booléen. purchase_unit_coeff NULL pour les produits sans unité d'achat au master (donnée à compléter côté ERP).
     columns:
       - name: product_id
         description: "Identifiant unique du produit"
@@ -285,7 +285,7 @@ models:
       [QUOI MÉTIER] Dimension machine **versionnée (SCD Type 2)** : l'état historique de chaque machine (rattachement client, localisation, modèle économique, statut...) à chaque période de validité. Sert aux jointures « à la date » (point-in-time) : retrouver l'état d'une machine au moment d'une consommation, plutôt que son état courant.
       [COMMENT CONSTRUITE] Issu du snapshot snap_oracle_neshu__device (SCD2 géré par dbt/Cloud Workflows). Les bornes dbt_valid_from/dbt_valid_to sont exposées en valid_from/valid_to : bornes semi-ouvertes [valid_from, valid_to) en timestamp (valid_to = dbt_valid_to, exclusif ; 9999-12-31 si version ouverte). La 1ère version est plancherée au 2000-01-01 (pas d'historique avant le démarrage du snapshot). device_economic_model : backfill des NULL en tête de vie par la 1ère valeur connue de la machine (rattrapage de saisie tardive — n'agit que sur NULL, un vrai changement X→Y reste intact). Aucun filtre marque/type : dimension générale, c'est au fait consommateur de filtrer son périmètre.
       [GRAIN] 1 ligne par machine × période de validité (device_id × valid_from). PK = device_version_key.
-      [NOTES] L'historisation porte surtout sur le rattachement (client/localisation/date d'installation) ; le modèle économique change rarement (~43 machines). Horizon limité au démarrage du snapshot (nov. 2025) ; avant = pas d'historique (1ère version plancherée 2000-01-01). Jointure point-in-time : `event_ts >= valid_from and event_ts < valid_to` ; une date (= minuit) matche aussi une seule période (état début de journée). is_current = TRUE pour la version courante. Pour un simple état courant, préférer dim_neshu__device.
+      [NOTES] L'historisation porte surtout sur le rattachement (client/localisation/date d'installation) ; le modèle économique change rarement. Horizon limité au démarrage du snapshot ; avant = pas d'historique (1ère version plancherée 2000-01-01). Jointure point-in-time : `event_ts >= valid_from and event_ts < valid_to` ; une date (= minuit) matche aussi une seule période (état début de journée). is_current = TRUE pour la version courante. Pour un simple état courant, préférer dim_neshu__device.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -623,10 +623,10 @@ models:
     description: |
       [QUOI MÉTIER] Quantités chargées vs consommées par machine et par jour de passage APPRO (taux d'écoulement).
       [COMMENT CONSTRUITE] Pour chaque passage APPRO d'une machine, calcul via LAG du passage précédent pour borner la période d'écoulement ; q_consommee = somme des télémétries entre les deux passages ; q_chargee = somme des chargements lors du passage actuel. Sources : int_oracle_neshu__chargement_tasks, int_oracle_neshu__telemetry_tasks, jointes par device_id et period bounds.
-      [GRAIN] 1 ligne par (device_id, date_debut_passage_appro, product_id). Grain JOURNALIER, pas par passage : les jours à plusieurs passages (~1,7 % des device-jours) sont fusionnés en une seule ligne.
+      [GRAIN] 1 ligne par (device_id, date_debut_passage_appro, product_id). Grain JOURNALIER, pas par passage : les jours à plusieurs passages sont fusionnés en une seule ligne.
       [NOTES]
       ⚠️ q_consommee = somme BRUTE des télémétries, SANS arbitrage télémétrie/chargement ni multiplicateur de conditionnement. Ce N'EST PAS la métrique officielle de consommation : le volume de consommation arbitré (consommation_volume du semantic layer) est porté par fct_neshu__consommation. Ne pas confondre les deux.
-      Ce mart re-dérive sa propre notion de passage (int_oracle_neshu__appro_tasks filtré task_status_code='FAIT', depuis 2025-01-01) et n'est PAS aligné sur fct_neshu__passage_appro (source de vérité passages, périmètre PREVU/FAIT/ANOMALIE) — ré-ancrage à prévoir.
+      Ce mart re-dérive sa propre notion de passage (int_oracle_neshu__appro_tasks filtré task_status_code='FAIT', depuis 2025-01-01) et n'est PAS aligné sur fct_neshu__passage_appro (source de vérité passages, périmètre PREVU/FAIT/ANOMALIE).
       q_chargee : chargement filtré sur task_status_code in ('FAIT', 'VALIDE') (ANNULE/ANOMALIE exclus, aligné sur fct_neshu__consommation). Utilise un MAX (et non un SUM) : sur un jour à plusieurs passages, la jointure chargement par DATE duplique le total journalier sur chaque passage, le MAX dédoublonne ce total. task_start_date_min = MIN des horodatages des passages du jour (pas un horodatage unique).
       roadman_code = nom du roadman associé au véhicule source (attribut d'affichage). product_source_id / product_source_type = identifiant et type Oracle de la source du chargement (exposés pour diagnostic, pas de test FK car mart combinant plusieurs intermediates). product_type aplati pour filtre BI. product_code conservé en attribut d'affichage.
 
@@ -664,7 +664,7 @@ models:
             - nom de famille d'un roadman pour les véhicules avec PERSON associée (ex. "DUPONT")
             - libellé de véhicule contrat (ex. "VARKEMA")
             - libellé de site logistique (ex. "PREPA RUNGIS")
-            - état temporaire (ex. "LIBRE ( ANCIEN SJEROME)")
+            - état temporaire (ex. "LIBRE ( ANCIEN <NOM>)")
           Conséquence : ne pas utiliser comme clé de filtre/jointure côté BI sans
           discriminer la nature via product_source_type. Attribut d'affichage uniquement.
           Pour identifier proprement la source : product_source_id (+ product_source_type).
@@ -1343,10 +1343,6 @@ models:
       device Yuman ↔ device Oracle Neshu reste envisageable si le string
       match sur le serial devient insuffisant.
 
-      Replace l'ancienne PR #77 (Rim) qui plaçait ce mart à tort dans
-      `marts/technique/` avec un nom au pluriel et une logique appro
-      enfouie en 7 CTEs (factorisée via l'intermediate).
-
       OBT controlled : seuls les IDs (device_id, company_id, material_id par
       bucket) + 1-3 attributs d'affichage par dim sont exposés. Les autres
       attributs dim (brand, technician_equipe, client_category) sont
@@ -1541,7 +1537,7 @@ models:
 
   - name: fct_neshu__pnl_client_mensuel
     description: |
-      [QUOI MÉTIER] Compte de résultat mensuel par client Neshu (codes CN), du chiffre d'affaires à la marge nette. Reprise du rapport que les développeurs de Distrilog produisent par une requête SQL de 457 lignes, portée dans notre stack.
+      [QUOI MÉTIER] Compte de résultat mensuel par client Neshu (codes CN), du chiffre d'affaires à la marge nette. Reprise du rapport que les développeurs de Distrilog produisent par une requête SQL, portée dans notre stack.
       [COMMENT CONSTRUITE] Assemble int_oracle_neshu__ca_client_mensuel (6 composantes de CA), __cout_produits_mensuel (produits chargés et livrés), __temps_appro_mensuel (temps et passages), __charges_sociales (enveloppe à répartir), __amortissement_machines, __telemetrie_parc et __contrat_client, enrichi de la signalétique de dim_neshu__company. Chaînage : CA − coûts produits = marge brute ; − amortissement − coût de main-d'oeuvre − télémétrie = marge nette.
       [GRAIN] 1 ligne par (mois, company_id), restreint aux clients dont le code commence par CN.
       [NOTES] ÉCARTS CONNUS AVEC LE RAPPORT DISTRILOG — à lire avant de conclure à une erreur de calcul.

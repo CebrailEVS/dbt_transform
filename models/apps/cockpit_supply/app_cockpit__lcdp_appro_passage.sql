@@ -1,7 +1,7 @@
 {{ config(materialized='table') }}
 
 -- Passages des approvisionneurs Cafés du Phare Distribution Auto, pour Cockpit Supply : seules les colonnes lues par l'app,
--- passages validés (FAIT, VALIDE) avec approvisionneur, depuis le 2026-01-01 (bornes de l'app).
+-- passages validés (FAIT, VALIDE) avec approvisionneur, sur les bornes de dates de l'app.
 select
     task_id,
     roadman_code,

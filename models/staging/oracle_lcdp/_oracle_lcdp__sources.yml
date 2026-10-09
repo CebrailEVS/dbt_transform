@@ -177,8 +177,8 @@ sources:
         description: >
           Table de jonction contact <-> device : rattachement d'une machine au
           personnel interne (approvisionneur / technicien) qui en a la charge.
-          Aucune colonne temporelle métier ni code_status_record : seuls les _sdc_*
-          sont disponibles.
+          Aucune colonne temporelle métier ni code_status_record : seules les colonnes
+          techniques du pipeline sont disponibles.
         columns:
           - name: idcontact
             tests:

@@ -5,7 +5,7 @@
     )
 }}
 
--- Macro locale : convertit "HH:MM hrs" en minutes (INT64)
+-- Conversion HH:MM inlinée : convertit "HH:MM hrs" en minutes (INT64)
 -- Formule : heures * 60 + minutes
 -- safe_cast retourne NULL si la valeur source est NULL ou malformée
 

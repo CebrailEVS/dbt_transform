@@ -9,7 +9,7 @@
 
 -- La rupture par dépôt n'existe pas en source : quand un article tombe à zéro,
 -- Yuman supprime les lignes d'emplacement (une ligne n'existe que si quantite > 0).
--- On la reconstruit : les 4 dépôts étant fixes et présents chaque jour dans
+-- On la reconstruit : les dépôts étant fixes et présents chaque jour dans
 -- l'export, l'absence de ligne (dépôt, référence) = stock à zéro. L'assortiment
 -- attendu d'un dépôt (les références qu'il est censé stocker) est défini par la
 -- demande : consommations des 180 jours précédents des techniciens rattachés.

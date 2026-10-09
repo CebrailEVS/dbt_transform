@@ -15,9 +15,9 @@ models:
       en passthrough par int_yuman__interventions et dérivée par fct_technique__suivi_partenaire.
 
       [GRAIN]
-      1 ligne par couple (demand_id, workorder_id). ~18,9k lignes. Inclut 65 bons de travail
-      orphelins (demand_id NULL, issus du full join) et 559 demandes sans bon de travail
-      (workorder_id NULL). Léger fan-out (~64 lignes en double sur le couple) non dédupliqué
+      1 ligne par couple (demand_id, workorder_id). Inclut les bons de travail
+      orphelins (demand_id NULL, issus du full join) et les demandes sans bon de travail
+      (workorder_id NULL). Léger fan-out (lignes en double sur le couple) non dédupliqué
       ici — int_yuman__interventions tranche via qualify.
 
       [NOTES]
@@ -27,9 +27,9 @@ models:
     columns:
       # --- DEMANDES D'INTERVENTION ---
       - name: demand_id
-        description: Identifiant de la demande d'intervention Yuman (clé métier de la demande). NULL pour un bon de travail orphelin (65 lignes).
+        description: Identifiant de la demande d'intervention Yuman (clé métier de la demande). NULL pour un bon de travail orphelin.
       - name: workorder_id
-        description: Identifiant du bon de travail rattaché. NULL si la demande n'a pas (encore) de bon de travail (559 lignes).
+        description: Identifiant du bon de travail rattaché. NULL si la demande n'a pas (encore) de bon de travail.
       - name: material_id
         description: "Matériel concerné par la demande. FK → stg_yuman__materials / dim_technique__material."
       - name: site_id
@@ -44,7 +44,7 @@ models:
           d'extraction du code postal en aval quand le site n'en a pas.
       - name: demand_status
         description: >
-          Statut brut de la demande Yuman. Valeurs : Closed (clôturée, ~18,1k),
+          Statut brut de la demande Yuman. Valeurs : Closed (clôturée),
           Rejected (rejetée), Accepted (acceptée, en attente de bon de travail),
           Open (ouverte). NULL pour les bons de travail orphelins.
       - name: demand_reject_comment
@@ -59,7 +59,7 @@ models:
         description: >
           Catégorie de la demande, libellé composite suivant le motif
           `<TYPE> <DÉLAI/PROG> - <PARTENAIRE>` (ex. 'CURATIVE J+2 - NESHU',
-          'PREVENTIVE PROG - BRITA', 'INSTALLATION PROG - NESHU'). ~40 combinaisons.
+          'PREVENTIVE PROG - BRITA', 'INSTALLATION PROG - NESHU').
 
       # --- INTERVENTIONS / WORKORDERS ---
       - name: technician_id
@@ -70,10 +70,10 @@ models:
         description: >
           Catégorie brute du bon de travail, même motif que demand_category_name
           (`<TYPE> <DÉLAI/PROG> - <PARTENAIRE>`, ex. 'CURATIVE J+2 - NESHU'). NULL si pas de
-          bon de travail (~800 lignes).
+          bon de travail.
       - name: workorder_status
         description: >
-          Statut brut du bon de travail Yuman. Valeurs : Closed (clôturé, ~18,1k),
+          Statut brut du bon de travail Yuman. Valeurs : Closed (clôturé),
           Scheduled (planifié), In progress (en cours). NULL si la demande n'a pas de bon de travail.
       - name: workorder_title
         description: Titre ou résumé du bon de travail.
@@ -102,7 +102,7 @@ models:
           renseigné). Sur un workorder Closed = pause historique (déjà reprise).
       - name: is_workorder_currently_paused
         description: >
-          True si l'intervention est actuellement en pause : en pause
+          True si l'intervention est en pause : en pause
           (is_workorder_paused) ET workorder_status = 'In progress'. Distingue
           la pause active de la pause historique (Closed conserve ses champs
           de pause). Utilisé par les marts pour repérer les interventions
@@ -232,13 +232,13 @@ models:
       - name: user_name
         description: Nom de l'utilisateur / créateur de la demande.
       - name: user_type
-        description: "Rôle Yuman de l'utilisateur. Valeurs : guest (~17,4k), manager (souvent NULL)."
+        description: "Rôle Yuman de l'utilisateur. Valeurs : guest, manager (souvent NULL)."
       - name: is_manager_as_technician
         description: True si un manager agit comme technicien sur le bon de travail.
 
       # --- AGENCE TECHNICIEN (MAPPING) ---
       - name: technician_agency_stock
-        description: Agence de rattachement du technicien (mapping fourni par Vincent).
+        description: Agence de rattachement du technicien (mapping fourni par l'exploitation).
 
   - name: int_yuman__interventions
     description: >
@@ -248,21 +248,20 @@ models:
       pivot des interventions techniques, consommée par les marts technique/neshu.
 
       [COMMENT CONSTRUITE]
-      Construit sur int_yuman__demands_workorders_enriched ; fusionne la logique auparavant
-      éclatée en deux faits chaînés (fct_technique__workorder_pricing puis
-      fct_neshu__workorder_delai), supprimant les dépendances fait→fait. Couvre :
+      Construit sur int_yuman__demands_workorders_enriched ; consolide en CTE tarification et
+      délai, sans dépendance fait→fait. Couvre :
       (1) normalisation type/machine/métropole + extraction du code postal,
       (2) tarification automatique (récurrence → palier de remise → montant via table de réf),
       (3) délai en jours ouvrés et son type (J+0,5 … J++),
       (4) qualification métier via intervention_state (repris en passthrough de l'enriched).
 
       [GRAIN]
-      1 ligne par couple (demand_id, workorder_id). ~18,9k lignes (18 872). Inclut les demandes
+      1 ligne par couple (demand_id, workorder_id). Inclut les demandes
       sans bon de travail (workorder_id NULL → DEMANDE_OUVERTE / DEMANDE_REJETEE) ; dédupliqué
       via qualify (le fan-out de l'enriched est tranché ici).
 
       [NOTES]
-      Périmètre : exclut les bons de travail "secs" (orphelins, demand_id NULL, ~44 lignes),
+      Périmètre : exclut les bons de travail "secs" (orphelins, demand_id NULL),
       dépourvus de référentiel client/partenaire fiable qui fausserait la clé d'intervention
       et la tarification. À l'inverse de l'enriched (qui les conserve via is_orphan_workorder).
     columns:

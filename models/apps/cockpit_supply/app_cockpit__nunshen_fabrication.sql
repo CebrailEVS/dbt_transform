@@ -1,9 +1,9 @@
 {{ config(materialized='table') }}
 
 -- Produits fabriqués Nunshen (Sage, bons de fabrication type 26) pour Cockpit Supply :
--- remplace l'import « Bons de fabrication ». Produits seulement (dl_mvt_stock = 1 ; 3 =
+-- produits seulement (dl_mvt_stock = 1 ; 3 =
 -- composants consommés), hors lignes MANUFACT ; quantité SOMMÉE par bon et référence (un
--- produit peut être découpé en une ligne par lot). Depuis janvier 2024.
+-- produit peut être découpé en une ligne par lot).
 select
     dl.do_piece as n_piece,
     date(dl.do_date) as date_document,

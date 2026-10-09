@@ -19,8 +19,7 @@ models:
 
       [GRAIN]
       1 ligne par immatriculation (contrat_immatriculation_edi). Clé strictement unique.
-      ~126 immatriculations renseignées (sur 271 immats réels : ~145 véhicules de pool /
-      non affectés, sans code analytique, sont volontairement exclus).
+      Les véhicules de pool / non affectés, sans code analytique, sont volontairement exclus.
 
       [NOTES]
       Le code analytique est constant sur toutes les lignes d'un même immat dans la source :

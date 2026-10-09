@@ -67,7 +67,7 @@ enriched as (
             else pa.task_status_code
         end as task_status_code,
         case when pa.task_status_code in ('FAIT', 'ENCOURS') then 1 else 0 end as is_done,
-        -- ANOMALIE volontairement exclu de la base du taux (règle métier non figée) :
+        -- ANOMALIE exclu de la base du taux (hypothèse retenue) :
         -- les anomalies restent visibles via is_anomaly mais ne pèsent pas au dénominateur.
         case
             when pa.task_status_code in ('PREVU', 'FAIT', 'ENCOURS') then 1 else 0

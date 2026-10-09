@@ -1,11 +1,10 @@
 {{ config(materialized='table') }}
 
--- Lignes de BL clients Nunshen (Sage) pour Cockpit Supply : remplace la table des lignes de
--- commande alimentée par l'import « Ventes » (nombre de commandes = BL distincts, délai de
--- préparation = date du BL − date de préparation). Lignes de factures (types 6 et 7) et de
+-- Lignes de BL clients Nunshen (Sage) pour Cockpit Supply (nombre de commandes = BL distincts,
+-- délai de préparation = date du BL − date de préparation). Lignes de factures (types 6 et 7) et de
 -- BL pas encore facturés (type 3, n° de BL = n° de pièce), hors avoirs, lignes valorisées.
--- Date de préparation laissée vide quand la ligne n'a pas de préparation (11 % des lignes :
--- date non fiable, délais négatifs). Depuis janvier 2024.
+-- Date de préparation laissée vide quand la ligne n'a pas de préparation (date non
+-- fiable, délais négatifs).
 with lignes as (
     select
         coalesce(dl.dl_piece_bl, dl.do_piece) as n_piece_bl,

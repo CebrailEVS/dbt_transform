@@ -16,9 +16,7 @@ exposures:
     type: dashboard
     maturity: medium
     description: >
-      Monitoring des passages appro Roadman chez les clients LCDP. Rafraîchi par le workflow
-      pipeline-passages-appro-lcdp : EL fast-lane (tap-oracle-lcdp-appro-fastlane) + dbt
-      (selector passage_appro_fastlane) + refresh PBI.
+      Monitoring des passages appro Roadman chez les clients LCDP.
       Consomme le mart fct_lcdp__passage_appro.
       PBI : workspace "Lcdp" / dataset "DEV APPRO MONITORING".
     owner:

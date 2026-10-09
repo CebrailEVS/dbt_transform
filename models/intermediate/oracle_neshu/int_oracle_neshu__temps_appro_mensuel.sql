@@ -9,7 +9,7 @@
 -- l'AMPLITUDE de la journée chez le client, du début de la première
 -- intervention à la fin de la dernière. Une pause entre deux machines est donc
 -- comptée comme du temps passé. C'est la règle du rapport Distrilog, reproduite
--- telle quelle ; l'intention derrière reste à confirmer côté métier.
+-- telle quelle (hypothèse retenue : la pause est comptée comme du temps passé).
 --
 -- Deux comptages coexistent et ne mesurent pas la même chose :
 --   nb_passages_machine = nombre de tâches (une par machine servie) ;
