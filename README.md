@@ -81,18 +81,8 @@ le data analyst contribue aux `marts/`.
 
 ## Organisation du repo
 
-| Dossier | Contenu | Versionné |
-|---|---|---|
-| `models/`, `macros/`, `snapshots/`, `data/`, `tests/` | le projet dbt | ✅ |
-| `docs/` | documentation durable (conventions, environnements, architecture par source) | ✅ |
-| `scripts/` | scripts d'**équipe** uniquement (aujourd'hui : `pull-state.sh`) | ✅ |
-| `.github/`, `Dockerfile`, `entrypoint.sh` | CI/CD et image `dbt-runner` | ✅ |
-| `tmp/` | **ton brouillon** : tests, exports, rapports ponctuels | ❌ |
-| `models/_analysis/` | modèles d'analyse jetables, dev uniquement | ❌ |
-| `.claude/notes/` | notes de travail avec l'IA | ❌ |
-| `state/`, `target/`, `logs/`, `dbt_packages/` | générés par dbt ou les scripts | ❌ |
-
-Un script ponctuel va dans `tmp/`. Il ne passe dans `scripts/` que s'il sert à toute l'équipe.
+Brouillons, exports et rapports ponctuels vont dans `tmp/`, ignoré par git. `scripts/` ne contient
+que les scripts utiles à toute l'équipe.
 
 ---
 
