@@ -17,10 +17,14 @@ RUN pip install --no-cache-dir -r requirements-lock.txt
 
 WORKDIR /app
 
+# Paquets dbt installés à la construction, figés par package-lock.yml : une
+# exécution ne dépend ni de hub.getdbt.com ni de github.com.
+COPY dbt_project.yml packages.yml package-lock.yml profiles.yml selectors.yml ./
+RUN dbt deps
+
 # Copier TOUS les chemins déclarés dans dbt_project.yml (models, tests, macros,
 # seeds, snapshots) : un chemin absent n'est pas signalé par dbt, il est
 # simplement ignoré (un test-path manquant = 0 test singulier en prod).
-COPY dbt_project.yml packages.yml profiles.yml selectors.yml ./
 COPY models/ models/
 COPY macros/ macros/
 COPY snapshots/ snapshots/
