@@ -119,7 +119,7 @@ Present results grouped by model:
 ## Important notes
 
 - Use `mcp__bigquery__execute_sql_readonly` if `get_table_info` doesn't provide enough detail
-- Ignore `_sdc_*` columns — they are Meltano system metadata
+- Ignore `_dlt_*` columns — they are dlt load metadata (`_extracted_at` is mapped to `extracted_at` in staging)
 - The BigQuery project is always `evs-datastack-prod`
 - Dataset mapping: raw → `prod_raw`, staging → `prod_staging`, intermediate → `prod_intermediate`, marts → `prod_marts`
 - When auditing a specific model (`$2`), try both `dim_` and `fct_` prefixes for marts layer

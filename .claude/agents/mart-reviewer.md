@@ -41,8 +41,8 @@ de vérité, elle évolue, et ta mémoire de ses règles ne fait pas foi. Sa **�
    le MCP BigQuery en lecture seule (`execute_sql_readonly`, `get_table_info`,
    `list_table_ids`) — sers-t'en, ne raisonne pas sur le SQL seul.
 
-   Utilise `prod_marts` sur `evs-datastack-prod` : les datasets `dev_*` sont
-   souvent périmés et ne prouvent rien.
+   Utilise `prod_marts` sur `evs-datastack-prod` : un dataset de dev (`dbt_<dev>`)
+   est souvent périmé et ne prouve rien.
 
    **a. Le grain déclaré est-il vrai ?** Le contrôle le plus rentable de toute
    la review. La description annonce « 1 ligne par X » :
