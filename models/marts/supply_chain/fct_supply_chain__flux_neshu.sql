@@ -5,7 +5,9 @@
 {% set flux_start = '2025-01-01' %}
 {% set flux_end = '9999-12-31' %}
 
--- CTE inventaire_base : inventaires valides + ressources actives
+-- CTE inventaire_base : inventaires valides. Pas de filtre sur is_active : c'est l'état
+-- COURANT d'une dimension non historisée ; filtrer dessus effacerait le passé d'un véhicule
+-- sorti du parc. Un inventaire validé prouve que la source existait à cette date.
 with inventaire_base as (
     select
         i.source_code,
@@ -14,11 +16,9 @@ with inventaire_base as (
         date(i.task_start_date) as task_date,
         date_trunc(date(i.task_start_date), month) as mois
     from {{ ref('int_oracle_neshu__inventaire_tasks') }} as i
-    left join {{ ref('dim_neshu__resource') }} as r on i.source_code = r.resources_code
     where
         i.task_status_code = 'VALIDE'
         and date(i.task_start_date) >= '{{ start_date }}'
-        and (r.is_active = true or r.is_active is null)
 ),
 
 -- CTE inventaire_dates : calcul date de référence
@@ -71,10 +71,14 @@ inventaire_sources_mois as (
     from inventaire_reel
 ),
 
--- CTE stock_theorique : fallback
+-- CTE stock_theorique : fallback des ressources (entity_type = 'resource' : véhicules, mais
+-- aussi toute ressource qui porte un stock) sans inventaire réel dans le mois. Les dépôts
+-- (entity_type = 'company') n'y sont pas repris. Une ressource sortie du parc reste valorisée à
+-- son stock figé, même négatif (règle métier ; test warn sur stocks_theoriques_autre >= 0).
+-- Mois métier = snapshot_date (date_system est un horodatage).
 stock_theorique as (
     select
-        date_trunc(date(st.date_system), month) as mois,
+        date_trunc(st.snapshot_date, month) as mois,
         st.resources_code as source_code,
         st.product_code,
         p.purchase_unit_price * st.stock_at_date as valuation
@@ -82,14 +86,13 @@ stock_theorique as (
     left join {{ ref('dim_neshu__product') }} as p on st.product_code = p.product_code
     left join
         inventaire_sources_mois as ir
-        on st.resources_code = ir.source_code and ir.mois = date_trunc(date(st.date_system), month)
-    left join {{ ref('dim_neshu__resource') }} as rr on st.resources_code = rr.resources_code
-    where ir.source_code is null and rr.is_active = true
+        on st.resources_code = ir.source_code and ir.mois = date_trunc(st.snapshot_date, month)
+    where ir.source_code is null and st.entity_type = 'resource'
     qualify
         row_number()
             over (
-                partition by st.resources_code, st.product_code, date_trunc(date(st.date_system), month)
-                order by st.date_system desc
+                partition by st.resources_code, st.product_code, date_trunc(st.snapshot_date, month)
+                order by st.snapshot_date desc, st.date_system desc
             )
         = 1
 ),
