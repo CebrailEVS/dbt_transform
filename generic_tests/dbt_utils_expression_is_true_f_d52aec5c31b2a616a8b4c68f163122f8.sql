@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="categorie_pnl_bu is not null", model=get_where_subquery(ref('fct_finance__pnl_section_mensuel'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

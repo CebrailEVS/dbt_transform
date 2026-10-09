@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="numero_compte_general", model=get_where_subquery(ref('fct_finance__pnl_section_mensuel'))) }}
