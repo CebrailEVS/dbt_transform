@@ -1,489 +1,126 @@
-# Architecture — Yuman
+# Architecture — Yuman (API)
 
-> Dernière mise à jour : 2026-05-19
+| | |
+|---|---|
+| Source dbt | `yuman_api` (`models/staging/yuman/_yuman__sources.yml`) |
+| Pipeline dlt | `yuman_evs` (`ingestion/pipelines/yuman_evs`) |
+| Tables raw | `prod_raw.yuman_evs_*` (une par entité : workorders, workorder_demands, purchase_orders, clients, sites, materials, users, contacts, products, catégories, products_storehouses) |
+| Chargement | Snapshot complet (`replace`) à chaque run : le raw est l'état courant de l'API, sans historique |
 
----
-
-## Vue d'ensemble
+Fraîcheur : `docs/freshness.md`. Cadence et orchestration : `docs/pipeline-schedule.md`.
 
 Yuman est l'outil de gestion des interventions terrain (workorders) et des
-demandes d'intervention pour les techniciens EVS. Ce pipeline extrait les
-données de l'**API Yuman** (extraction quotidienne, full refresh via le
-pipeline dlt `yuman_evs`) et les rend disponibles dans BigQuery pour la
-facturation, le pilotage du SAV et le suivi des partenaires.
+demandes d'intervention. Il alimente la facturation, le pilotage du SAV et le
+suivi des partenaires. Un second pipeline, `yuman_evs_stock`, apporte le stock
+théorique que l'API n'expose pas : voir `docs/architecture/yuman_evs_sftp.md`.
 
-Données clés exposées :
-- **Workorders** (interventions) — base de la facturation
-- **Workorder demands** (demandes d'intervention)
-- **Purchase orders** (commandes d'achat fournisseurs)
-- Référentiels clients / sites / matériels / contacts / utilisateurs
+Chaîne : `prod_raw` → `stg_yuman__*` → `int_yuman__*` → marts `technique/` et `neshu/`.
 
 ---
 
-## Flux de données
+## Grain et clés
 
-```
-┌─────────────────┐    pipeline dlt       ┌──────────────────────┐
-│   API Yuman     │ ──────────────────►   │  prod_raw (BigQuery) │
-│                 │   yuman_evs           │  yuman_evs_*         │
-└─────────────────┘   full refresh / day  └──────────┬───────────┘
-                                                     │ dbt staging
-                                                     ▼
-                                       ┌──────────────────────────┐
-                                       │  staging (BigQuery)      │
-                                       │  stg_yuman__*            │
-                                       │  matérialisé en TABLE    │
-                                       └──────────┬───────────────┘
-                                                  │ dbt intermediate
-                                                  ▼
-                                       ┌──────────────────────────┐
-                                       │  intermediate            │
-                                       │  int_yuman__*            │
-                                       └──────────┬───────────────┘
-                                                  │ dbt marts
-                                                  ▼
-                                       ┌──────────────────────────┐
-                                       │  marts/technique/        │
-                                       │  dim_technique__* /      │
-                                       │  fct_technique__*        │
-                                       │  (+ neshu/, commerce/    │
-                                       │   selon le partenaire)   │
-                                       └──────────────────────────┘
-```
-
-**Ce que fait chaque couche :**
-
-| Couche | Rôle | Localisation |
+| Modèle | Grain | Clé |
 |---|---|---|
-| `prod_raw` | Données brutes telles que reçues de l'API — aucune transformation | `evs-datastack-prod.prod_raw` |
-| `staging` | Nettoyage, renommage des PKs, cast des types, extraction des champs custom JSON | `evs-datastack-prod.prod_staging` |
-| `intermediate` | Vue unifiée demandes ↔ interventions + enrichissement référentiels | `evs-datastack-prod.prod_intermediate` |
-| `marts` | Dimensions et faits BI-ready (modèle en étoile) | `evs-datastack-prod.prod_marts` |
+| `stg_yuman__workorders` | 1 workorder (table centrale) | `workorder_id` |
+| `stg_yuman__workorder_demands` | 1 demande d'intervention | `demand_id` |
+| `stg_yuman__workorder_products` | 1 produit utilisé sur 1 workorder | `workorder_product_id` |
+| `stg_yuman__purchase_orders` | 1 commande **x** 1 article | `purchase_order_line_id` |
+| `stg_yuman__storehouses` | 1 entrepôt | `storehouses_id` |
+| `stg_yuman__users` | 1 technicien ou manager interne | `user_id` |
+| `stg_yuman__clients` / `sites` / `materials` / `contacts` / `products` | 1 entité | `<entité>_id` |
+| `int_yuman__demands_workorders_enriched` | 1 couple (demande, workorder), `FULL JOIN` | `(demand_id, workorder_id)`, léger fan-out non dédupliqué |
+| `int_yuman__interventions` | 1 couple (demande, workorder), dédupliqué | `(demand_id, workorder_id)` |
 
-**Fraîcheur (source freshness)** : tier *Standard* — warn 26h / error 48h sur
-`_extracted_at` (source dbt `yuman_api`). Les tables référentielles stables
-(`yuman_evs_products`, `yuman_evs_materials_categories`,
-`yuman_evs_workorders_categories`, `yuman_evs_workorder_demands_categories`,
-`yuman_evs_products_storehouses`) ont la freshness désactivée.
+Valeurs de statut : demande = `Open`, `Accepted`, `Rejected`, `Closed` ;
+workorder = `Scheduled`, `In progress`, `Closed`. Le détail est dans le YAML de
+`int_yuman__demands_workorders_enriched`.
 
----
-
-## Modèle de données
-
-### Diagramme des relations
-
-```mermaid
-erDiagram
-
-    stg_yuman__clients {
-        int client_id PK
-        int partner_id FK
-        string client_code
-        string client_name
-        string client_category
-        boolean is_active
-    }
-
-    stg_yuman__sites {
-        int site_id PK
-        int client_id FK
-        int agency_id
-        string site_code
-        string site_name
-        string site_postal_code
-    }
-
-    stg_yuman__materials {
-        int material_id PK
-        int site_id FK
-        int category_id FK
-        string material_name
-        string material_serial_number
-        string material_brand
-    }
-
-    stg_yuman__materials_categories {
-        int category_id PK
-        string category_name
-    }
-
-    stg_yuman__contacts {
-        int contact_id PK
-        int category_id
-        string contact_name
-        string contact_email
-    }
-
-    stg_yuman__users {
-        int user_id PK
-        int manager_id FK
-        string nomad_id
-        string user_name
-        string user_type
-        boolean is_active
-    }
-
-    stg_yuman__workorders {
-        int workorder_id PK
-        int client_id FK
-        int site_id FK
-        int category_id FK
-        int contact_id FK
-        int technician_id FK
-        int manager_id FK
-        string workorder_number
-        string workorder_status
-        timestamp date_planned
-        timestamp date_started
-        timestamp date_done
-    }
-
-    stg_yuman__workorders_categories {
-        int category_id PK
-        string category_name
-    }
-
-    stg_yuman__workorder_demands {
-        int demand_id PK
-        int workorder_id FK
-        int client_id FK
-        int site_id FK
-        int material_id FK
-        int contact_id FK
-        int user_id FK
-        int demand_category_id FK
-        string demand_status
-    }
-
-    stg_yuman__workorder_demands_categories {
-        int demand_category_id PK
-        string demand_category_name
-    }
-
-    stg_yuman__workorder_products {
-        int workorder_product_id PK
-        int workorder_id FK
-        int product_id FK
-        float product_quantity
-    }
-
-    stg_yuman__products {
-        int product_id PK
-        string product_reference
-    }
-
-    stg_yuman__purchase_orders {
-        int purchase_order_line_id PK
-        int purchase_order_id
-        int product_id FK
-        int supplier_id
-        int manager_id
-        float quantity
-        float line_subtotal
-    }
-
-    stg_yuman__storehouses {
-        int storehouses_id PK
-        string storehouses_name
-        string storehouses_address
-    }
-
-    %% Hiérarchie client / site / matériel
-    stg_yuman__clients ||--o{ stg_yuman__sites : "client_id"
-    stg_yuman__sites ||--o{ stg_yuman__materials : "site_id"
-    stg_yuman__materials_categories ||--o{ stg_yuman__materials : "category_id"
-
-    %% Self-ref clients (partner)
-    stg_yuman__clients ||--o{ stg_yuman__clients : "partner_id"
-
-    %% Self-ref users (manager)
-    stg_yuman__users ||--o{ stg_yuman__users : "manager_id"
-
-    %% Workorders → dimensions
-    stg_yuman__workorders }o--|| stg_yuman__clients : "client_id"
-    stg_yuman__workorders }o--|| stg_yuman__sites : "site_id"
-    stg_yuman__workorders }o--|| stg_yuman__workorders_categories : "category_id"
-    stg_yuman__workorders }o--|| stg_yuman__contacts : "contact_id"
-    stg_yuman__workorders }o--|| stg_yuman__users : "technician_id"
-    stg_yuman__workorders }o--|| stg_yuman__users : "manager_id"
-
-    %% Workorder demands → dimensions
-    stg_yuman__workorder_demands }o--|| stg_yuman__clients : "client_id"
-    stg_yuman__workorder_demands }o--|| stg_yuman__sites : "site_id"
-    stg_yuman__workorder_demands }o--|| stg_yuman__materials : "material_id"
-    stg_yuman__workorder_demands }o--|| stg_yuman__contacts : "contact_id"
-    stg_yuman__workorder_demands }o--|| stg_yuman__users : "user_id"
-    stg_yuman__workorder_demands }o--|| stg_yuman__workorder_demands_categories : "demand_category_id"
-    stg_yuman__workorder_demands }o--o| stg_yuman__workorders : "workorder_id (optionnel)"
-
-    %% Workorder products (sous-table JSON)
-    stg_yuman__workorders ||--o{ stg_yuman__workorder_products : "workorder_id"
-    stg_yuman__products ||--o{ stg_yuman__workorder_products : "product_id"
-
-    %% Purchase orders
-    stg_yuman__products ||--o{ stg_yuman__purchase_orders : "product_id"
-
-    %% Storehouse = entrepôt mobile d'un user (technicien/manager)
-    stg_yuman__users ||--o| stg_yuman__storehouses : "user_id = storehouses_id"
-```
+Les snapshots `snap_yuman__users` et `snap_yuman__storehouses` historisent les
+changements de rattachement et les suppressions (SCD2). Ils sont pilotés par
+Cloud Workflows, pas par le CI/CD (voir `CLAUDE.md`).
 
 ---
 
-## Rôle de chaque table
-
-### Dimensions — les référentiels
-
-| Table | Ce qu'elle contient | Lignes (~) |
-|---|---|---|
-| `stg_yuman__clients` | Clients EVS (entités contractuelles), avec catégorie EVS (OR / ARGENT / BRONZE) et nom du partenaire (self-join via `partner_id`) | 2 103 |
-| `stg_yuman__sites` | Sites physiques rattachés à un client (un client peut avoir plusieurs sites) | 2 604 |
-| `stg_yuman__materials` | Machines / équipements installés sur les sites | 9 449 |
-| `stg_yuman__materials_categories` | Catégories de matériels | 206 |
-| `stg_yuman__contacts` | Contacts (personnes physiques) — référentiel autonome, sans rattachement direct à un client ou un site (cf. point d'attention) | 1 794 |
-| `stg_yuman__users` | Techniciens et managers internes EVS, avec rattachement Nomad (`nomad_id`) et hiérarchie (`manager_id`) | 94 |
-| `stg_yuman__products` | Catalogue des produits / pièces détachées | 4 000 |
-| `stg_yuman__workorders_categories` | Catégories d'intervention | 64 |
-| `stg_yuman__workorder_demands_categories` | Catégories de demandes d'intervention | 57 |
-| `stg_yuman__storehouses` | Entrepôts mobiles. `storehouses_id` correspond au `user_id` du technicien ou manager propriétaire (41/45). Exceptions : 4 ateliers physiques (Rungis/Lyon, Lyon, Strasbourg, Bordeaux) sans user associé | 45 |
-
-### Facts — les événements
-
-| Table | Ce qu'elle contient | Lignes (~) |
-|---|---|---|
-| `stg_yuman__workorders` | **Table centrale** — un workorder par ligne, avec ses dates clés (`date_planned`, `date_started`, `date_done`) et tous les champs custom EVS extraits du chemin `$.fields` du JSON `_embed` (motif non-intervention, raison mise en pause, etc.) | 17 538 |
-| `stg_yuman__workorder_demands` | Demandes d'intervention. Une demande peut être convertie ou non en workorder (`workorder_id` nullable) | 17 954 |
-| `stg_yuman__workorder_products` | Produits / pièces consommés lors de chaque intervention. Une ligne = 1 produit utilisé sur 1 workorder. Issu du chemin `$.products` du JSON `_embed` de `yuman_evs_workorders` | 15 441 |
-| `stg_yuman__purchase_orders` | Bons de commande **dépliés** — une ligne = 1 commande + 1 article (le JSON `lines` est unnested) | 7 172 |
-
----
-
-## Jointures clés
-
-### Cas d'usage typiques
-
-**Workorder avec ses dimensions :**
-```sql
-select
-    w.workorder_id,
-    w.workorder_number,
-    w.workorder_status,
-    w.date_planned,
-    w.date_done,
-    cl.client_name,
-    cl.partner_name,
-    s.site_name,
-    s.site_postal_code,
-    wc.category_name  as workorder_category,
-    tech.user_name    as technician_name
-from stg_yuman__workorders            w
-left join stg_yuman__clients              cl   on cl.client_id   = w.client_id
-left join stg_yuman__sites                s    on s.site_id      = w.site_id
-left join stg_yuman__workorders_categories wc  on wc.category_id = w.category_id
-left join stg_yuman__users                tech on tech.user_id   = w.technician_id
-```
-
-**Demande d'intervention enrichie (déjà disponible en intermediate) :**
-```sql
-select *
-from prod_intermediate.int_yuman__demands_workorders_enriched
-where demand_status = 'Open'   -- valeurs possibles : Accepted, Rejected, Open
-```
-
-**Produits consommés sur une intervention :**
-```sql
-select
-    w.workorder_number,
-    wp.product_reference,         -- dénormalisé depuis le JSON dans workorder_products
-    wp.product_designation,
-    wp.product_quantity,
-    p.product_code,               -- côté référentiel produits
-    p.product_name
-from stg_yuman__workorders         w
-join stg_yuman__workorder_products wp on wp.workorder_id = w.workorder_id
-left join stg_yuman__products      p  on p.product_id    = wp.product_id
-where w.workorder_id = <id>
-```
-
-**Lignes d'une commande d'achat :**
-```sql
-select
-    purchase_order_number,
-    line_reference,
-    line_description,
-    quantity,
-    unit_price,
-    line_subtotal
-from stg_yuman__purchase_orders
-where purchase_order_id = <id>
-order by purchase_order_line_id
-```
-
-**Hiérarchie partenaire → client :**
-```sql
-select
-    c.client_id,
-    c.client_name,
-    c.partner_id,
-    c.partner_name      -- déjà résolu par self-join dans le staging
-from stg_yuman__clients c
-where c.partner_id is not null
-```
-
----
-
-## Points d'attention
+## Pièges
 
 ### `stg_yuman__contacts` n'a ni `client_id` ni `site_id`
-Contrairement à ce que suggère la source brute Yuman, ces colonnes ont été
-**retirées du staging** (voir lignes commentées dans `_yuman__models.yml`).
-Le seul moyen de relier un contact à un site / un client est de passer par
-`workorders.contact_id` ou `workorder_demands.contact_id`. Ne pas chercher à
-rejoindre `contacts.site_id` directement — la colonne n'existe pas.
+- **Symptôme** : une jointure `contacts.site_id` ou `contacts.client_id` ne compile pas.
+- **Règle** : ces colonnes ne sont pas exposées. Relier un contact à un site ou
+  un client en passant par `workorders.contact_id` ou `workorder_demands.contact_id`.
+- **Appliqué par** : `int_yuman__demands_workorders_enriched`.
 
-### `stg_yuman__clients.partner_name` provient d'un self-join
-Yuman représente la hiérarchie partenaire ↔ client par une self-référence
-(`partner_id` pointe vers un autre `client_id` de la même table). Le staging
-résout déjà cette jointure et expose `partner_name` directement. Inutile de la
-recalculer en aval.
+### Les champs custom EVS vivent dans le JSON `_embed`
+- **Symptôme** : une valeur métier (motif de non-intervention, raison de mise en
+  pause, catégorie client EVS, localisation matériel, code postal du site,
+  `ID NOMAD`, secteur, inactif) est introuvable en colonne.
+- **Règle** : les champs personnalisés sont dans `_embed` sous `$.fields`
+  (tables `workorders`, `clients`, `materials`, `users`, `sites`), extraits par
+  `name`. Pour en ajouter un, modifier le staging concerné.
+- **Appliqué par** : les staging de ces cinq tables.
 
-### `stg_yuman__workorder_demands.workorder_id` est nullable
-Toutes les demandes ne deviennent pas des workorders (rejet, annulation, en
-attente). Inversement, certains workorders n'ont pas de demande
-correspondante (créés manuellement par un technicien). Pour cette raison, le
-modèle intermediate `int_yuman__demands_workorders_enriched` utilise un
-`FULL JOIN` entre demandes et workorders.
+### Deux staging sont dépliés depuis un tableau JSON
+- **Symptôme** : une somme sur `purchase_orders` compte l'en-tête de commande
+  autant de fois qu'il y a d'articles.
+- **Règle** : `purchase_orders` déplie `lines` (en-têtes dupliqués par ligne,
+  clé = `purchase_order_line_id`). `workorder_products` déplie `$.products` de
+  `_embed` sur `yuman_evs_workorders`. Ne pas re-parser le JSON dans les marts.
+- **Appliqué par** : `stg_yuman__purchase_orders`, `stg_yuman__workorder_products`.
 
-### Les champs custom EVS sont extraits du JSON `_embed`
-Yuman stocke les champs personnalisés dans un tableau JSON, sous le chemin
-`$.fields` de la colonne brute `_embed`, sur les tables `workorders`,
-`clients`, `materials`, `users` et `sites`. Le staging isole ce tableau via
-`json_query`/`json_query_array(_embed, '$.fields')`, puis extrait chaque
-valeur par `name` via `json_extract_scalar`/`json_value`. Exemples :
-- `workorders` : `DATE DE CREATION`, `MOTIF DE NON INTERVENTION`,
-  `RAISON MISE EN PAUSE`, `NECESSITE D'INTERVENIR`, etc.
-- `clients` : `CATEGORIE CLIENT EVS` (OR / ARGENT / BRONZE)
-- `materials` : `LOCALISATION`
-- `sites` : `CODE POSTAL` (avec nettoyage `.0` final)
-- `users` : `ID NOMAD`, `SECTEUR`, `INACTIF`
+### Demandes et workorders ne se recouvrent pas
+- **Symptôme** : des demandes sans workorder, des workorders sans demande ; un
+  `LEFT JOIN` perd l'une des deux populations.
+- **Règle** : `workorder_id` est nullable sur les demandes (rejet, annulation,
+  attente) et un workorder peut être créé sans demande. Jointure `FULL JOIN`.
+  `int_yuman__interventions` déduplique le fan-out de l'enriched.
+- **Appliqué par** : `int_yuman__demands_workorders_enriched`.
 
-Pour ajouter un nouveau champ custom, modifier le staging correspondant —
-**ne pas** chercher la valeur dans une colonne dédiée côté source.
+### Le produit d'un workorder porte deux libellés
+- **Symptôme** : `product_reference` introuvable sur `stg_yuman__products`.
+- **Règle** : le catalogue expose `product_code` et `product_name` ;
+  `product_reference` et `product_designation` n'existent que sur
+  `stg_yuman__workorder_products`, dénormalisés depuis le JSON. Pour joindre,
+  passer par `product_id`.
 
-### `stg_yuman__purchase_orders` et `stg_yuman__workorder_products` sont dépliés
-Ces deux modèles staging "explosent" un JSON array de la source :
-- `purchase_orders` : 1 ligne = 1 commande **+** 1 article (champ `lines`).
-  Les champs entête de commande sont dupliqués sur chaque ligne. La PK est
-  `purchase_order_line_id`, pas `purchase_order_id`.
-- `workorder_products` : 1 ligne = 1 produit utilisé sur 1 workorder, issu
-  du chemin `$.products` de la colonne `_embed` dans `yuman_evs_workorders`
-  (via `json_query_array`). Cela évite d'avoir à re-parser le JSON dans
-  chaque mart consommateur.
+### `storehouses_id = user_id`, sauf pour les ateliers
+- **Symptôme** : un entrepôt sans technicien ni manager correspondant.
+- **Règle** : un storehouse est le stock embarqué d'un user ; son id est celui
+  du user propriétaire. Seuls les 4 ateliers physiques n'ont pas de user. Le
+  test `relationships` vers `stg_yuman__users` est en `warn` : un orphelin
+  hors de ces 4 ateliers signale une dérive.
+- **Appliqué par** : `stg_yuman__storehouses`.
 
-### `storehouses_id` est identique au `user_id` du propriétaire
-Un storehouse Yuman représente l'entrepôt mobile (stock embarqué) d'un
-technicien ou d'un manager. La règle métier — non documentée par Yuman mais
-vérifiée empiriquement — est que `storehouses_id = user_id`. Sur 45
-storehouses : 38 matchent un technicien, 3 matchent un manager, et 4 sont des
-**ateliers physiques** sans user associé :
+### Technicien → agence : jointure sur le nom
+- **Symptôme** : technicien sans agence après un changement d'orthographe côté Yuman.
+- **Règle** : Yuman ne porte pas l'agence. Le seed `ref_yuman__tech_agence` est
+  joint sur le nom complet normalisé (majuscules, trim, préfixe `[INACTIF]`
+  retiré). Tout nom modifié casse la jointure : mettre à jour le seed.
+- **Appliqué par** : `int_yuman__demands_workorders_enriched`.
 
-| storehouses_id | Nom |
-|---|---|
-| 1891 | 06 - ATELIER RUNGIS DEPOT *(adresse Dardilly/69 — incohérence libellé)* |
-| 311335 | 07 - ATELIER LYON DEPOT |
-| 311336 | 09 - ATELIER STRASBOURG DEPOT |
-| 311337 | 08 - ATELIER BORDEAUX DEPOT |
-
-Un test `relationships` (severity = `warn`) entre `stg_yuman__storehouses.storehouses_id`
-et `stg_yuman__users.user_id` est en place dans `_yuman__models.yml` pour
-détecter toute dérive future (sortie de plus de 4 orphelins → alerte).
-
-### Le rattachement technicien → agence passe par un mapping nom/prénom
-Yuman ne porte pas l'agence du technicien. Le mapping est fourni par un seed
-(`ref_yuman__tech_agence`) et la jointure se fait sur le nom complet du
-technicien (`workorder_technician_name`) après normalisation (uppercase, trim,
-suppression du préfixe `[INACTIF]`). C'est fragile : tout changement
-d'orthographe d'un nom côté Yuman casse la jointure. À surveiller lors d'un
-audit qualité.
+### `partner_name` est déjà résolu
+- **Règle** : `partner_id` pointe vers un autre `client_id` de la même table ;
+  le staging expose `partner_name`. Ne pas refaire le self-join.
+- **Appliqué par** : `stg_yuman__clients`.
 
 ---
 
-## Couche intermediate
+## Règles métier
 
-Yuman dispose de **deux modèles intermediate** :
-- `int_yuman__demands_workorders_enriched` consolide en une vue large
-  (« fat row ») la jointure demande ↔ workorder + tous les référentiels
-  associés, et sert de base aux marts technique / commerce.
-- `int_yuman__interventions` fusionne ce qui était auparavant éclaté en deux
-  facts chaînés (`fct_technique__workorder_pricing`, désormais supprimé,
-  puis `fct_neshu__workorder_delai`) pour couper la dépendance fait→fait :
-  normalisation type/machine/métropole, tarification automatique, délai de
-  traitement en jours ouvrés, qualification métier de l'intervention
-  (`intervention_state` + flags). Périmètre : exclut les workorders sans
-  demande rattachée.
+- Le workorder est la base de la facturation ; sa qualification
+  (`intervention_state`, flags, délai en jours ouvrés, tarification automatique)
+  est calculée une seule fois dans `int_yuman__interventions`, pour éviter les
+  chaînes fait → fait.
+- Le mapping technicien → agence est centralisé en intermediate, pas dupliqué
+  dans les marts.
+- Sur un workorder `Closed`, les champs de pause décrivent une pause
+  historique, pas une pause active.
 
-### Diagramme de flux
+---
 
-```mermaid
-flowchart TB
-    subgraph staging["staging (couche existante)"]
-        stg_demands[stg_yuman__workorder_demands]
-        stg_demands_cat[stg_yuman__workorder_demands_categories]
-        stg_wo[stg_yuman__workorders]
-        stg_clients[stg_yuman__clients]
-        stg_sites[stg_yuman__sites]
-        stg_contacts[stg_yuman__contacts]
-        stg_materials[stg_yuman__materials]
-        stg_mat_cat[stg_yuman__materials_categories]
-        stg_users[stg_yuman__users]
-        seed_tech[(ref_yuman__tech_agence)]
-    end
+## Consommateurs
 
-    subgraph intermediate["intermediate"]
-        int_enriched[int_yuman__demands_workorders_enriched<br/>1 ligne / demande ⨝ workorder]
-    end
-
-    stg_demands --> int_enriched
-    stg_demands_cat --> int_enriched
-    stg_wo --> int_enriched
-    stg_clients --> int_enriched
-    stg_sites --> int_enriched
-    stg_contacts --> int_enriched
-    stg_materials --> int_enriched
-    stg_mat_cat --> int_enriched
-    stg_users --> int_enriched
-    seed_tech --> int_enriched
-
-    classDef seed fill:#fff3cd,stroke:#856404
-    classDef int fill:#d1ecf1,stroke:#0c5460,font-weight:bold
-    class seed_tech seed
-    class int_enriched int
+```bash
+dbt ls -s source:yuman_api+
 ```
 
-### Modèle intermediate
-
-| Modèle | Grain | Source | Rôle |
-|---|---|---|---|
-| `int_yuman__demands_workorders_enriched` | 1 ligne par demande **FULL JOIN** workorder | demands + workorders + clients + sites + contacts + materials + materials_categories + users + seed tech_agence | Vue large servant de fondation aux marts Yuman / technique / commerce. Partition sur `demand_created_at`. |
-
-### Choix de modélisation
-
-- **`FULL JOIN` plutôt que `LEFT JOIN`** : car un workorder peut exister
-  sans demande (créé directement par un technicien) et une demande peut
-  exister sans workorder (rejet / annulation / en attente). Conserver les
-  deux populations est nécessaire pour les marts SAV.
-- **Mapping technicien → agence par nom** : implémenté ici pour éviter de
-  le dupliquer dans chaque mart consommateur. Cf. point d'attention.
-
----
-
-## Marts consommateurs
-
-Les modèles Yuman alimentent deux familles de marts (post-refacto BU 2026-05) :
-
-| Dossier | Marts | Usage BI |
-|---|---|---|
-| `marts/technique/` | dims conformes (`dim_technique__*` : client, site, material, parc_machine, technician, product) + facts transverses (`fct_technique__suivi_partenaire`, `fct_technique__intervention`) — `fct_technique__workorder_pricing` a été retiré, remplacé par `int_yuman__interventions` | Pilotage technique transverse (tous partenaires Yuman) |
-| `marts/neshu/` | `fct_neshu__workorder_delai`, `fct_neshu__maintenance_preventive` | Logique métier Neshu-specific sur données Yuman |
-
-> Note : `marts/commerce/fct_commerce__machine_intervention` ne
-> consomme **pas** de données Yuman (il s'appuie sur `nesp_tech` et `nesp_co`).
+`fct_commerce__machine_intervention` ne lit pas Yuman.

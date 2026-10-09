@@ -1,549 +1,150 @@
-# Architecture — Oracle Neshu
+# Architecture — Oracle NESHU et LCDP (ERP Distrilog)
 
-> Dernière mise à jour : 2026-05-24
-
----
-
-## Vue d'ensemble
-
-Oracle Neshu est l'**ERP opérationnel principal** d'EVS Professionnelle France.
-Il enregistre l'ensemble des opérations terrain autour des machines à café et
-boissons déployées chez les clients : livraisons de consommables, passages
-roadman (appro), interventions techniques, mouvements de stock, télémétrie,
-pointages.
-
-Ce pipeline extrait les données d'**Oracle (via le pipeline dlt `oracle_neshu`)**
-vers BigQuery `prod_raw` (mix full / incremental selon les tables) et les
-transforme en dimensions et faits BI-ready pour Power BI.
-
-Données clés exposées :
-- **Tâches** (`evs_task`) — table de fait centrale, tous les événements opérationnels
-- **Sociétés / Machines / Produits / Ressources** — référentiels métier
-- **Contrats** — engagements commerciaux
-- **Labels (EAV)** — attributs flexibles attachés aux entités (région, secteur,
-  marque, gamme, modèle économique…)
-
-> Ce document se concentre sur l'**architecture technique** : ERD, jointures,
-> points d'attention.
-
----
-
-## Flux de données
-
-```
-┌─────────────────┐    pipeline dlt           ┌──────────────────────┐
-│  Oracle Neshu   │ ─────────────────────►    │  prod_raw (BigQuery) │
-│  (ERP)          │   oracle_neshu            │  oracle_neshu.evs_*  │
-└─────────────────┘   (mix full / incremental)└──────────┬───────────┘
-                                                         │ dbt staging
-                                                         ▼
-                                           ┌──────────────────────────┐
-                                           │  staging                 │
-                                           │  stg_oracle_neshu__*     │
-                                           │  table (4 incrementaux : │
-                                           │  task, task_has_product, │
-                                           │  task_has_amount,        │
-                                           │  label_has_thp)          │
-                                           └──────────┬───────────────┘
-                                                      │ dbt intermediate
-                                                      ▼
-                                           ┌──────────────────────────┐
-                                           │  intermediate            │
-                                           │  int_oracle_neshu__*     │
-                                           │  (1 modèle / type tâche) │
-                                           └──────────┬───────────────┘
-                                                      │ dbt marts
-                                                      ▼
-                                           ┌──────────────────────────┐
-                                           │  marts/neshu/            │
-                                           │  dim_neshu__* /          │
-                                           │  fct_neshu__*            │
-                                           │  (+ marts/supply_chain/  │
-                                           │   pour fct flux)         │
-                                           └──────────────────────────┘
-```
-
-**Ce que fait chaque couche :**
-
-| Couche | Rôle | Localisation |
+| | NESHU | LCDP |
 |---|---|---|
-| `prod_raw` | Données brutes Oracle, telles que reçues — aucune transformation | `evs-datastack-prod.prod_raw` |
-| `staging` | Cast des IDs en `int64`, harmonisation timestamps, filtre `code_status_record = '1'` | `evs-datastack-prod.prod_staging` |
-| `intermediate` | Découpage de `evs_task` par type de tâche, conversion d'unité, valorisation | `evs-datastack-prod.prod_intermediate` |
-| `marts` | Dims pivotées (labels → colonnes), facts BI-ready | `evs-datastack-prod.prod_marts` |
+| Source dbt | `oracle_neshu` (`models/staging/oracle_neshu/_oracle_neshu__sources.yml`) | `oracle_lcdp` (`models/staging/oracle_lcdp/_oracle_lcdp__sources.yml`) |
+| Pipeline dlt | `oracle_neshu` (`ingestion/pipelines/oracle_neshu`) | `oracle_lcdp` (`ingestion/pipelines/oracle_lcdp`) |
+| Tables raw | `prod_raw.evs_*` (owner Oracle `EVS`) | `prod_raw.lcdp_*` (owner Oracle `LCDP`) |
+| Chargement | `task`, `task_has_product` et leurs jonctions en `merge` sur curseur `modification_date` (propre ou emprunté au parent), toutes rechargées par la purge hebdomadaire ; référentiels en snapshot complet (`replace`) | idem, mais la purge hebdomadaire ne couvre que `task` et `task_has_product` |
 
-**Fraîcheur (source freshness)** : tier *Critique* — warn 26h / error 36h sur
-`_extracted_at`. Source par défaut pour toutes les tables `evs_*`.
+Fraîcheur : `docs/freshness.md`. Cadence et orchestration : `docs/pipeline-schedule.md`.
 
-**Snapshots SCD2** (gérés par Cloud Workflows, exclus du CI) :
-- `snap_oracle_neshu__company` — historique nom / statut actif
-- `snap_oracle_neshu__device` — historique modèle économique, transferts inter-sociétés
-- `snap_oracle_neshu__valo_parc_machines` — valorisation mensuelle du parc
+Deux instances du même progiciel, même schéma, mêmes patterns dbt : ce document décrit NESHU,
+la dernière section liste ce qui diffère côté LCDP. Stock théorique : `oracle_neshu_gcs.md`.
 
 ---
 
-## Modèle de données
+## Grain et clés
 
-### Diagramme des relations (staging)
-
-```mermaid
-erDiagram
-
-    stg_oracle_neshu__company {
-        int idcompany PK
-        int idcompany_type FK
-        string company_name
-        string company_code
-    }
-
-    stg_oracle_neshu__company_type {
-        int idcompany_type PK
-        string code
-    }
-
-    stg_oracle_neshu__company_has_location {
-        int idcompany PK
-        int idlocation PK
-    }
-
-    stg_oracle_neshu__location {
-        int idlocation PK
-        string address
-        string city
-        string postal_code
-    }
-
-    stg_oracle_neshu__contract {
-        int idcontract PK
-        int idcompany FK
-        date contract_start_date
-        date contract_end_date
-    }
-
-    stg_oracle_neshu__contact {
-        int idcontact PK
-        int idcompany FK
-        string contact_name
-    }
-
-    stg_oracle_neshu__device {
-        int iddevice PK
-        int idcompany FK
-        string device_serial_number
-    }
-
-    stg_oracle_neshu__product {
-        int idproduct PK
-        int idproduct_type FK
-        string product_code
-        string product_name
-    }
-
-    stg_oracle_neshu__product_type {
-        int idproduct_type PK
-        string code
-    }
-
-    stg_oracle_neshu__resources {
-        int idresources PK
-        int idresources_type FK
-        int idcompany FK
-        string code_gea
-        string resource_name
-    }
-
-    stg_oracle_neshu__resources_type {
-        int idresources_type PK
-        string code "2=Personne, 3=Vehicule"
-    }
-
-    stg_oracle_neshu__task {
-        int idtask PK
-        int idtask_type FK
-        int idtask_status FK
-        int iddevice FK
-        int idcompany_peer FK
-        int idcontact FK
-        int idlocation FK
-        timestamp real_start_date
-        timestamp real_end_date
-    }
-
-    stg_oracle_neshu__task_type {
-        int idtask_type PK
-        string code "3=Telemetrie, 13=Chargement, 101=Livraison, 131=Inter tech, 32=Appro, 162=Inventaire..."
-    }
-
-    stg_oracle_neshu__task_status {
-        int idtask_status PK
-        string code "FAIT, VALIDE, ANNULE..."
-    }
-
-    stg_oracle_neshu__task_has_product {
-        int idtask_has_product PK
-        int idtask FK
-        int idproduct FK
-        float real_quantity
-        float unit_price
-        float unit_coeff_multi
-        float unit_coeff_div
-    }
-
-    stg_oracle_neshu__task_has_resources {
-        int idtask_has_resources PK
-        int idtask FK
-        int idresources FK
-    }
-
-    stg_oracle_neshu__label_family {
-        int idlabel_family PK
-        string code "REGION, SECTEUR_DACTIVITE, ISACTIVE, MARQUE, GAMME..."
-    }
-
-    stg_oracle_neshu__label {
-        int idlabel PK
-        int idlabel_family FK
-        string code "NORD, HORECA, yes/no, OR/ARGENT/BRONZE..."
-    }
-
-    stg_oracle_neshu__label_has_company {
-        int idcompany FK
-        int idlabel FK
-    }
-
-    stg_oracle_neshu__label_has_device {
-        int iddevice FK
-        int idlabel FK
-    }
-
-    stg_oracle_neshu__label_has_product {
-        int idproduct FK
-        int idlabel FK
-    }
-
-    stg_oracle_neshu__label_has_resources {
-        int idresources FK
-        int idlabel FK
-    }
-
-    stg_oracle_neshu__label_has_contract {
-        int idcontract FK
-        int idlabel FK
-    }
-
-    stg_oracle_neshu__label_has_task {
-        int idtask FK
-        int idlabel FK
-    }
-
-    %% Hiérarchie société / machine / contrat / contact / ressources
-    stg_oracle_neshu__company ||--o{ stg_oracle_neshu__device : "idcompany"
-    stg_oracle_neshu__company ||--o{ stg_oracle_neshu__contract : "idcompany"
-    stg_oracle_neshu__company ||--o{ stg_oracle_neshu__contact : "idcompany"
-    stg_oracle_neshu__company ||--o{ stg_oracle_neshu__resources : "idcompany"
-    stg_oracle_neshu__company_type ||--o{ stg_oracle_neshu__company : "idcompany_type"
-    stg_oracle_neshu__resources_type ||--o{ stg_oracle_neshu__resources : "idresources_type"
-    stg_oracle_neshu__product_type ||--o{ stg_oracle_neshu__product : "idproduct_type"
-
-    %% Localisation (relation n-n)
-    stg_oracle_neshu__company ||--o{ stg_oracle_neshu__company_has_location : "idcompany"
-    stg_oracle_neshu__location ||--o{ stg_oracle_neshu__company_has_location : "idlocation"
-
-    %% Tâche au centre
-    stg_oracle_neshu__task }o--|| stg_oracle_neshu__task_type : "idtask_type"
-    stg_oracle_neshu__task }o--|| stg_oracle_neshu__task_status : "idtask_status"
-    stg_oracle_neshu__task }o--|| stg_oracle_neshu__device : "iddevice"
-    stg_oracle_neshu__task }o--|| stg_oracle_neshu__company : "idcompany_peer"
-    stg_oracle_neshu__task }o--|| stg_oracle_neshu__contact : "idcontact"
-    stg_oracle_neshu__task }o--|| stg_oracle_neshu__location : "idlocation"
-
-    %% Tâche → produits / ressources (n-n)
-    stg_oracle_neshu__task ||--o{ stg_oracle_neshu__task_has_product : "idtask"
-    stg_oracle_neshu__product ||--o{ stg_oracle_neshu__task_has_product : "idproduct"
-    stg_oracle_neshu__task ||--o{ stg_oracle_neshu__task_has_resources : "idtask"
-    stg_oracle_neshu__resources ||--o{ stg_oracle_neshu__task_has_resources : "idresources"
-
-    %% Système EAV de labels
-    stg_oracle_neshu__label_family ||--o{ stg_oracle_neshu__label : "idlabel_family"
-    stg_oracle_neshu__label ||--o{ stg_oracle_neshu__label_has_company : "idlabel"
-    stg_oracle_neshu__label ||--o{ stg_oracle_neshu__label_has_device : "idlabel"
-    stg_oracle_neshu__label ||--o{ stg_oracle_neshu__label_has_product : "idlabel"
-    stg_oracle_neshu__label ||--o{ stg_oracle_neshu__label_has_resources : "idlabel"
-    stg_oracle_neshu__label ||--o{ stg_oracle_neshu__label_has_contract : "idlabel"
-    stg_oracle_neshu__label ||--o{ stg_oracle_neshu__label_has_task : "idlabel"
-    stg_oracle_neshu__company ||--o{ stg_oracle_neshu__label_has_company : "idcompany"
-    stg_oracle_neshu__device ||--o{ stg_oracle_neshu__label_has_device : "iddevice"
-    stg_oracle_neshu__product ||--o{ stg_oracle_neshu__label_has_product : "idproduct"
-    stg_oracle_neshu__resources ||--o{ stg_oracle_neshu__label_has_resources : "idresources"
-    stg_oracle_neshu__contract ||--o{ stg_oracle_neshu__label_has_contract : "idcontract"
-    stg_oracle_neshu__task ||--o{ stg_oracle_neshu__label_has_task : "idtask"
-```
-
----
-
-## Rôle de chaque table
-
-### Entités principales
-
-| Table staging | Ce qu'elle contient |
-|---|---|
-| `stg_oracle_neshu__company` | Sociétés (clients, fournisseurs, entités internes/dépôts). PK : `idcompany`. Typée via `idcompany_type` |
-| `stg_oracle_neshu__device` | Machines déployées chez les clients. PK : `iddevice`. Rattachées à une société via `idcompany` |
-| `stg_oracle_neshu__product` | Catalogue des articles consommables (capsules, thés, gobelets…). PK : `idproduct` |
-| `stg_oracle_neshu__resources` | Ressources opérationnelles — **personnes (roadmen) et véhicules** dans la même table, distingués via `idresources_type` (2=personne, 3=véhicule) |
-| `stg_oracle_neshu__contract` | Contrats commerciaux entre EVS et une société cliente |
-| `stg_oracle_neshu__contact` | Contacts (personnes physiques) rattachés à une société |
-| `stg_oracle_neshu__location` | Adresses physiques. Relation **n-n** avec society via `company_has_location` |
-
-### Tables de fait (événements)
-
-| Table staging | Ce qu'elle contient | Volume |
+| Modèle | Grain | Clé |
 |---|---|---|
-| `stg_oracle_neshu__task` | **Table centrale** — un événement = une ligne. Tous types confondus (livraison, appro, télémétrie, intervention…). Filtrée par `idtask_type` en intermediate. **Incrémentale (merge)**, partitionnée sur `real_start_date`, clusterée `idtask_type, idtask_status, idcompany_peer, iddevice` | ~très volumineux |
-| `stg_oracle_neshu__task_has_product` | Produits déplacés/consommés sur une tâche (quantités + prix unitaire + coefficients d'unité). **Incrémentale (merge)** | très volumineux |
-| `stg_oracle_neshu__task_has_resources` | Roadmen/véhicules affectés à une tâche (n-n) | volumineux |
+| `stg_oracle_neshu__task` | 1 tâche, **tous types confondus** | `idtask` |
+| `stg_oracle_neshu__task_has_product` | 1 ligne produit d'une tâche | `idtask_has_product` |
+| `stg_oracle_neshu__task_has_resources` | 1 ressource affectée à une tâche, par statut | `(idtask, idresources, task_status)` — le couple `(idtask, idresources)` **n'est pas unique** |
+| `stg_oracle_neshu__task_has_amount` | 1 montant par tâche, taux, taxe et région de taxe | `(idtask, tax_rate, idtax, idtax_region)` |
+| `stg_oracle_neshu__label_has_task` | 1 label posé sur une tâche ; une tâche en porte plusieurs | `(idlabel, idtask)` |
+| `stg_oracle_neshu__label_has_thp` | 1 label posé sur une **ligne produit** (mode de paiement télémétrie), à ne pas confondre avec `label_has_product` (catalogue) | `(idlabel, idtask_has_product)` |
+| `stg_oracle_neshu__resources` | 1 personne (`idresources_type = 2`) **ou** 1 véhicule (`3`) | `idresources` |
+| Référentiels (`company`, `device`, `product`, `contract`, `contact`, `location`…) | 1 entité | `id<entité>` |
 
-### Référentiels (décodage IDs)
-
-| Table staging | Ce qu'elle décode |
-|---|---|
-| `stg_oracle_neshu__task_type` | Type de tâche (`3`=Télémétrie, `13`=Chargement, `32`=Appro, `101`=Livraison, `121`=Réception, `131`=Inter technique, `132`=Commande interne, `161`=Livraison interne, `162`=Inventaire, `163`=Écart inventaire, `194`=Pointage, `11`=Invendus) |
-| `stg_oracle_neshu__task_status` | Statut tâche (FAIT, VALIDE, ANNULE…) |
-| `stg_oracle_neshu__resources_type` | 2=Personne, 3=Véhicule |
-| `stg_oracle_neshu__company_type` | Catégorie de société |
-| `stg_oracle_neshu__product_type` | Catégorie de produit |
-
-### Système EAV de labels (7 tables)
-
-| Table staging | Rôle |
-|---|---|
-| `stg_oracle_neshu__label_family` | Familles d'attributs (`REGION`, `SECTEUR_DACTIVITE`, `STATUT_CLIENT`, `ISACTIVE`, `MARQUE`, `GAMME`, `MODECOMA`, `FAMILLE`, `GROUPE`, `KA`…) |
-| `stg_oracle_neshu__label` | Valeurs possibles (`NORD`, `HORECA`, `yes`, `OR`/`ARGENT`/`BRONZE`…). Rattachées à une famille via `idlabel_family` |
-| `stg_oracle_neshu__label_has_company` | Liaison société ↔ label |
-| `stg_oracle_neshu__label_has_device` | Liaison machine ↔ label |
-| `stg_oracle_neshu__label_has_product` | Liaison produit ↔ label |
-| `stg_oracle_neshu__label_has_resources` | Liaison ressource ↔ label |
-| `stg_oracle_neshu__label_has_contract` | Liaison contrat ↔ label |
-| `stg_oracle_neshu__label_has_task` | Liaison tâche ↔ label |
-
-> **Ne jamais joindre les labels manuellement dans un mart.** Le pivot label →
-> colonne est fait une fois pour toutes dans les `dim_neshu__*` (cf. § Pattern
-> de pivot labels). Joindre directement la dim suffit.
+- La société d'une tâche est `idcompany_peer` (la tâche n'a pas de `idcompany`), renommée
+  `company_id` en intermediate. Une machine porte trois sociétés : `idcompany_customer`,
+  `idcompany_owner`, `idcompany_supplier` ; les dims machines se rattachent au client.
+- `stg_*__task` mélange tous les types : ne jamais la lire sans filtre `idtask_type`, posé une
+  fois dans l'intermediate du type (`int_oracle_neshu__<type>_tasks`) dont part l'aval. Types :
+  3 télémétrie · 11 invendus · 13 chargement · 32 passage appro · 101 livraison · 102 facture /
+  106 avoir · 120 commande fournisseur · 121 réception · 131 intervention technique ·
+  132 commande interne · 161 livraison interne · 162 inventaire · 163 écart d'inventaire ·
+  194 pointage.
 
 ---
 
-## Jointures clés
+## Pièges
 
-### Pattern de pivot labels (EAV → colonnes)
+### `code_status_record = '1'` n'est PAS filtré en staging
+- **Symptôme** : des tâches dont l'enregistrement n'est pas actif sont comptées dès qu'on lit
+  `stg_oracle_*__task` sans filtre.
+- **Règle** : le staging expose toutes les tâches. **Tout modèle qui lit `stg_oracle_*__task`
+  filtre `code_status_record = '1'`** (chaîne sur la tâche, numérique sur les référentiels).
+  Les jonctions ne filtrent rien : elles héritent du filtre par jointure sur la tâche.
+- **Appliqué par** : chaque `int_oracle_*__*_tasks` (ex. `int_oracle_neshu__appro_tasks`).
 
-C'est **le pattern central** des marts Neshu. Référence : `dim_neshu__company`,
-`dim_neshu__device`, `dim_neshu__product`.
+### Le statut de tâche se filtre modèle par modèle
+- **Symptôme** : deux modèles du même type de tâche n'ont pas le même volume, ou des tâches
+  ANNULE apparaissent dans un intermediate.
+- **Règle** : chaque intermediate déclare son filtre `idtask_status`. La plupart des intermediate
+  de mouvement gardent FAIT, VALIDE, ANNULE et ANOMALIE et exposent `task_status_code` ; c'est
+  au mart de restreindre (souvent FAIT et VALIDE).
+- **Appliqué par** : les marts (ex. `fct_neshu__passage_appro`, `fct_lcdp__mouvement_produit`).
 
-```sql
-with entity_labels as (
-    select
-        c.*,
-        l.code  as label_code,
-        lf.code as label_family_code
-    from {{ ref('stg_oracle_neshu__company') }} c
-    left join {{ ref('stg_oracle_neshu__label_has_company') }} lhc
-        on c.idcompany = lhc.idcompany
-       and lhc.idlabel is not null
-    left join {{ ref('stg_oracle_neshu__label') }} l
-        on lhc.idlabel = l.idlabel
-    left join {{ ref('stg_oracle_neshu__label_family') }} lf
-        on l.idlabel_family = lf.idlabel_family
-),
-aggregated as (
-    select
-        idcompany,
-        company_name,
-        max(case when label_family_code = 'REGION'            then label_code end) as region,
-        max(case when label_family_code = 'SECTEUR_DACTIVITE' then label_code end) as secteur,
-        max(case when label_family_code = 'STATUT_CLIENT'     then label_code end) as statut_client,
-        max(case when label_family_code = 'ISACTIVE'          then label_code end) as is_active_raw
-    from entity_labels
-    group by idcompany, company_name
-)
-select
-    *,
-    coalesce(lower(is_active_raw) = 'yes', false) as is_active
-from aggregated
-```
+### Unités de conditionnement
+- **Symptôme** : quantités multipliées ou divisées par le conditionnement (lot, rame…).
+- **Règle** : la quantité exploitable vaut `real_quantity × unit_coeff_multi / unit_coeff_div`,
+  exposée en `quantity` (`load_quantity` pour le chargement) ; `base_unit_quantity` garde la
+  valeur brute. Ne pas reconvertir en aval.
+- **Appliqué par** : les `int_oracle_*__*_tasks` à lignes produit.
 
-### Tâche enrichie (intermediate-style)
+### La valorisation suit le prix d'achat du catalogue, pas celui de la tâche
+- **Symptôme** : la valeur d'un mouvement passé change alors que le mouvement n'a pas bougé.
+- **Règle** : `valuation` (`load_valuation`) = quantité ajustée × `purchase_unit_price` de
+  `stg_*__product` (exposé `product_unit_price_latest`), lu au build ; le prix de la ligne au
+  jour de la tâche est `net_price` (`product_unit_price_task`). Un changement de prix catalogue
+  revalorise l'historique des intermediate en `table`, pas celui des incrémentaux.
 
-```sql
-select
-    t.idtask,
-    t.real_start_date,
-    tt.code  as task_type_code,
-    ts.code  as task_status_code,
-    c.company_name,
-    d.device_serial_number,
-    thp.idproduct,
-    thp.real_quantity,
-    thp.real_quantity * coalesce(thp.unit_coeff_multi, 1) / coalesce(thp.unit_coeff_div, 1) as quantite_ajustee,
-    thp.real_quantity * thp.unit_price                                                       as valorisation
-from {{ ref('stg_oracle_neshu__task') }}              t
-left join {{ ref('stg_oracle_neshu__task_type') }}    tt  on tt.idtask_type   = t.idtask_type
-left join {{ ref('stg_oracle_neshu__task_status') }}  ts  on ts.idtask_status = t.idtask_status
-left join {{ ref('stg_oracle_neshu__company') }}      c   on c.idcompany      = t.idcompany_peer
-left join {{ ref('stg_oracle_neshu__device') }}       d   on d.iddevice       = t.iddevice
-left join {{ ref('stg_oracle_neshu__task_has_product') }} thp on thp.idtask   = t.idtask
-where t.idtask_type = 101   -- ex : livraison
-```
+### Labels (EAV) : pivoter dans la dim, agréger avant de joindre
+- **Symptôme** : grain produit doublé après une jointure à `label_has_task` ; attribut
+  (région, secteur, actif…) introuvable en colonne.
+- **Règle** : un attribut se lit par `label_family` → `label` → `label_has_<entité>`. Le pivot
+  est fait une fois dans la dim (`max(case when label_family_code = …)` ; `ISACTIVE` →
+  `coalesce(lower(…) = 'yes', false)`) : en aval, joindre la dim, jamais les `label_*`. Les
+  labels de tâche s'agrègent au grain tâche avant toute jointure aux lignes produit.
+- **Appliqué par** : `dim_neshu__company`, `__device`, `__product`, `__resource`, `__contract` ;
+  `int_oracle_neshu__chargement_tasks` pour les labels de tâche.
 
-### Roadman d'une tâche
+### Ressources : personnes et véhicules mêlés, plusieurs par tâche
+- **Symptôme** : un `roadman_id` et un `roadman_code` qui désignent deux personnes différentes
+  sur une tâche en binôme.
+- **Règle** : filtrer `idresources_type` (2 personne, 3 véhicule) et retenir **une ligne
+  entière** par tâche (`row_number()` sur le plus petit `idresources`), jamais des `min()`
+  indépendants par colonne. Le `gea_code` des personnes vient du seed
+  `ref_oracle_neshu__roadman_gea`, joint dans `dim_neshu__resource`.
+- **Appliqué par** : `int_oracle_neshu__appro_tasks_enriched`, `int_oracle_lcdp__appro_tasks_enriched`.
 
-```sql
-select
-    t.idtask,
-    r.idresources,
-    r.resource_name,
-    r.code_gea
-from {{ ref('stg_oracle_neshu__task') }}                  t
-join {{ ref('stg_oracle_neshu__task_has_resources') }}    thr on thr.idtask     = t.idtask
-join {{ ref('stg_oracle_neshu__resources') }}             r   on r.idresources  = thr.idresources
-where r.idresources_type = 2  -- 2 = personne (roadman) ; 3 = véhicule
-```
+### `contact_has_device` relie une machine à du personnel interne
+- **Règle** : le « contact » est un roadman ou un technicien, pas un client. Seul lien vers
+  `resources` : `contact.code = resources.code`. Aucune date : affectation courante, non historisable.
+- **Appliqué par** : `dim_lcdp__device` (roadman affecté).
+
+### Une suppression dans l'ERP n'atteint pas les staging incrémentaux
+- **Règle** : Distrilog n'a pas de suppression logique sur le transactionnel. La purge
+  hebdomadaire retire du raw les lignes supprimées, mais un staging incrémental fait un `merge`
+  sans suppression : la ligne y reste jusqu'au prochain `--full-refresh` du modèle. Sur les
+  référentiels, `code_status_record = -1` marque un enregistrement supprimé côté ERP.
+- **Appliqué par** : `dim_neshu__*`, qui écartent `code_status_record = -1`.
+
+### Staging incrémentaux : fenêtre de 7 jours et type du raw
+- **Règle** : `task`, `task_has_product`, `task_has_amount` et `label_has_thp` sont en `merge`
+  sur `updated_at > max(updated_at)` ou `updated_at` des 7 derniers jours ; une correction plus
+  ancienne demande un `--full-refresh`. Une colonne non castée hérite du type du raw : caster,
+  et valider un changement de type sans `--full-refresh` (cf. `CLAUDE.md` § Frontières).
 
 ---
 
-## Points d'attention
+## Règles métier
 
-### `evs_task` mélange tous les types — filtrer systématiquement sur `idtask_type`
-Une livraison, un passage appro, une intervention technique, un inventaire et
-un pointage cohabitent dans la même table. **Jamais d'analyse sans filtre
-`idtask_type`.** Le filtre est appliqué une fois pour toutes dans la couche
-intermediate (un modèle par type — `int_oracle_neshu__livraison_tasks`,
-`__chargement_tasks`, `__telemetry_tasks`, etc.). En aval, partir toujours d'un
-intermediate, pas de `stg_oracle_neshu__task` directement.
-
-### `code_status_record = '1'` est appliqué en staging
-Les tâches avec `code_status_record` ≠ `1` (= non validées / brouillon Oracle)
-sont **filtrées dès le staging**. En aval, considérer que toutes les lignes
-visibles sont des tâches validées. Pour réintégrer les non-validées (cas rare —
-audit qualité), il faut relire la source brute.
-
-### 4 modèles staging incrémentaux — fenêtre de 7 jours
-`stg_oracle_neshu__task`, `stg_oracle_neshu__task_has_product`,
-`stg_oracle_neshu__task_has_amount` et `stg_oracle_neshu__label_has_thp` sont
-incrémentaux (volume trop important pour un full refresh). Stratégie `merge`
-sur la PK, condition d'incrément commune :
-`updated_at > max(updated_at) ou updated_at >= now() - 7 jours`. Cette fenêtre
-de 7 jours rattrape les rares mises à jour rétroactives dans Oracle. Si un
-backfill plus profond est nécessaire, lancer un `--full-refresh` sur le modèle.
-
-### Le système de labels (EAV) — ne jamais joindre directement dans un mart
-Oracle Neshu utilise un modèle Entity-Attribute-Value pour les attributs
-flexibles : pour connaître la région d'une société, il faut joindre 3 tables
-(`label_family` → `label` → `label_has_company`). **Ce pivot est fait une fois
-dans les dims** (`dim_neshu__company`, `dim_neshu__device`, `dim_neshu__product`,
-`dim_neshu__resource`). Tout mart en aval doit joindre la **dim**, pas les
-tables `label_*`. Pour ajouter un nouvel attribut basé sur un label, modifier
-le bloc `max(case when label_family_code = ...)` de la dim correspondante.
-
-### `resources` mélange personnes et véhicules
-Le même table contient roadmen et camions, distingués par `idresources_type`
-(2=personne, 3=véhicule). Pour analyser uniquement les roadmen ou uniquement
-les véhicules, **filtrer explicitement**. `dim_neshu__resource` joint déjà le
-code GEA (via le seed `ref_oracle_neshu__roadman_gea`) si besoin de relier
-véhicule et roadman — la dim `dim_neshu__vehicule_roadman` a été supprimée.
-
-### Coefficients d'unité — toujours travailler en `quantite_ajustee` dans les marts
-Certains produits sont stockés en unité d'emballage (ex. « GOBELET RAME 50 » =
-1 unité Neshu = 50 gobelets réels). La conversion se fait via :
-```
-quantite_ajustee = real_quantity * unit_coeff_multi / unit_coeff_div
-```
-Appliquée systématiquement dans les intermediate `__*_tasks`. Dans les marts,
-ne jamais re-multiplier — la quantité exposée est déjà ajustée.
-
-### Société : `idcompany_peer` côté tâche, pas `idcompany`
-La FK société sur `evs_task` s'appelle `idcompany_peer` (et non `idcompany`).
-Cela vient du fait qu'une tâche peut avoir deux sociétés (émettrice/destinataire,
-pour les mouvements internes). Le « peer » est celui que l'on retient pour
-l'analyse métier (le client final pour une livraison, le dépôt source pour une
-réception, etc.).
-
-### `_oracle_neshu__sources.yml` désactive la freshness sur les référentiels
-Les tables référentielles stables (`evs_task_type`, `evs_task_status`,
-`evs_resources_type`, `evs_company_type`, `evs_product_type`, `evs_label_family`)
-ont leur freshness explicitement désactivée — elles peuvent ne pas être
-ré-extraites pendant plusieurs jours sans que cela soit une anomalie.
+- **Signe du CA** : `task_type_has_config` (`idconfig = 'coefficient'`) vaut +1 sur FACT
+  CLIENT (102) et −1 sur AVOIR (106). C'est la seule source de la règle ; sans elle un avoir
+  s'ajoute au CA. Appliqué par `int_oracle_neshu__facturation_tasks`.
+- **XML** : le staging du contrat en extrait `NOMBRE_COLLAB` et `ENGAGEMENT` (macro
+  `decoder_entites_xml`) ; celui de la tâche est exposé brut et parsé en aval (`/ZONE/COUTRM`).
+- **Historique** : les dims sont à l'état courant. L'historique passe par les snapshots SCD2
+  `snap_oracle_neshu__company`, `__device` et `__valo_parc_machines` (Cloud Workflows).
 
 ---
 
-## Couche intermediate
+## LCDP : différences
 
-Un modèle intermediate par **type de tâche** (filtre `idtask_type`) + des
-modèles transverses non liés directement à `evs_task` (valorisation de parc,
-CA, coûts, contrats…). Tous matérialisés en `table`. Liste à jour des
-modèles : [dbt docs](https://cebrailevs.github.io/dbt_transform/) (filtre
-`tag:oracle_neshu`).
+Tout ce qui précède s'applique à `oracle_lcdp` (`stg_oracle_lcdp__*`, `int_oracle_lcdp__*`), sauf :
 
-### Par type de tâche
-
-| Modèle | `idtask_type` | Rôle métier |
-|---|---|---|
-| `int_oracle_neshu__telemetry_tasks` | 3 | Lecture compteur machine |
-| `int_oracle_neshu__chargement_tasks` | 13 | Chargement de produits dans une machine sur site |
-| `int_oracle_neshu__invendus_tasks` | 11 | Redistribution d'invendus |
-| `int_oracle_neshu__appro_tasks` | 32 | Passage roadman sur une machine |
-| `int_oracle_neshu__livraison_tasks` | 101 | Livraison consommables chez le client |
-| `int_oracle_neshu__commande_fournisseur_tasks` | 120 | Commande fournisseur |
-| `int_oracle_neshu__reception_tasks` | 121 | Réception stock fournisseur |
-| `int_oracle_neshu__inter_techinique_tasks` | 131 | Maintenance / réparation / détartrage |
-| `int_oracle_neshu__commande_interne_tasks` | 132 | Mouvement entre zones internes |
-| `int_oracle_neshu__livraison_interne_tasks` | 161 | Mouvement entre entités internes |
-| `int_oracle_neshu__inventaire_tasks` | 162 | Comptage de stock |
-| `int_oracle_neshu__ecart_inventaire_tasks` | 163 | Enregistrement d'écart de stock |
-| `int_oracle_neshu__pointage_tasks` | 194 | Pointage début/fin de journée roadman |
-
-Chaque modèle applique le même pattern :
-1. Filtre `stg_oracle_neshu__task` sur l'`idtask_type` concerné
-2. Joint `stg_oracle_neshu__task_has_product` (produits + quantités + prix)
-3. Joint optionnellement `stg_oracle_neshu__task_has_resources` (roadman/véhicule)
-4. Applique la conversion `quantite_ajustee` (coefficients d'unité)
-5. Calcule `valorisation = real_quantity * unit_price`
-
-### Modèles transverses
-
-En plus des passages appro enrichis (`int_oracle_neshu__appro_tasks_enriched`,
-`__appro_machine_context`) et de la valorisation de parc
-(`int_oracle_neshu__valorisation_parc_machines`, qui alimente le snapshot
-mensuel), la couche intermediate porte désormais des modèles finance/CA
-(`ca_client_mensuel`, `ca_telemetrie`, `charges_sociales`, `contrat_client`,
-`cout_produits_mensuel`, `demande_mensuelle`, `facturation_tasks`,
-`amortissement_machines`, `telemetrie_parc`, `temps_appro_mensuel`). Détail
-des rôles : [dbt docs](https://cebrailevs.github.io/dbt_transform/) (filtre
-`tag:oracle_neshu`).
+- **Types de tâche propres** : 130 appel SAV, 30 comptage, 296 entrée et 297 sortie fabrication.
+- **Nommage** : `int_oracle_lcdp__inter_technique_tasks` ; côté NESHU le modèle s'appelle
+  réellement `int_oracle_neshu__inter_techinique_tasks` (coquille dans le nom).
+- **Pas de dimension contrat** : ni `dim_lcdp__contract`, ni staging de `label_has_contract`.
+- **Staging incrémentaux** : `task` et `task_has_product` seulement ; `task_has_amount` est une
+  table, `label_has_thp` et `task_type_has_config` n'existent pas.
+- **Labels des dims** : `dim_lcdp__company`, `__device` et `__product` lisent les vues Oracle
+  `v_label_*` (`stg_oracle_lcdp__label_company`, `__label_device`, `__label_product`), qui
+  portent déjà famille et libellé FR ; `dim_lcdp__resource` pivote `label_has_resources`.
+- **Enregistrements supprimés** : les dims LCDP n'écartent pas `code_status_record = -1`.
+- **Jonctions non purgées** : une liaison supprimée dans `label_has_task`, `task_has_resources`
+  ou `task_has_amount` reste dans le raw. Un comptage à travers ces jonctions peut être gonflé :
+  dédupliquer au grain tâche.
+- **`comments_self`** : des octets non UTF-8 hérités sont remplacés à l'extraction par `U+FFFD`
+  (repérables par `like '%�%'`).
+- **Snapshot** : `snap_lcdp__device` seul.
 
 ---
 
-## Marts consommateurs
+## Consommateurs
 
-Les modèles oracle_neshu alimentent principalement `marts/neshu/` et
-`marts/supply_chain/` (post-refacto BU 2026-05). Liste à jour des marts et de
-leur rôle : [dbt docs](https://cebrailevs.github.io/dbt_transform/) (filtre
-`tag:neshu` ou `tag:supply_chain`).
-
-Points structurants à connaître avant de lire ces marts :
-- `dim_neshu__resource` (roadmen + véhicules, code GEA) a remplacé la dim
-  helper `dim_neshu__vehicule_roadman`, supprimée.
-- `fct_neshu__passage_appro` (ex-`fct_neshu__appro`) reste le fait pivot des
-  passages appro — durée, classement journalier, heures de travail,
-  partitionné `task_start_date`.
-- `fct_neshu__consommation` reste le fait pivot de consommation, consolidant
-  3 sources (télémétrie / chargement / livraison), partitionné
-  `consumption_date`.
-
-### `marts/supply_chain/`
-
-Chaîne prévision/réappro NESHU (stock, flux, classification article,
-prévision de demande, erreur de prévision, couverture, point de commande) —
-`fct_supply_chain__flux_neshu` reste le fait mensuel consolidant stocks,
-réceptions et tous types de mouvements, partitionné `mois_date`. Liste
-complète : [dbt docs](https://cebrailevs.github.io/dbt_transform/) (filtre
-`tag:supply_chain`).
+`dbt ls -s source:oracle_neshu+` et `dbt ls -s source:oracle_lcdp+`.
