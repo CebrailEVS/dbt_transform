@@ -52,7 +52,7 @@ models:
       - name: updated_at
         description: "Date de dernière mise à jour"
       - name: extracted_at
-        description: "Date d'extraction depuis la source (Singer/Meltano)"
+        description: "Date d'extraction depuis la source (dlt)"
 
   - name: stg_yuman__sites
     description: "Sites transformés et nettoyés depuis l'API Yuman"
@@ -363,7 +363,7 @@ models:
 
       # --- Métadonnées ---
       - name: extracted_at
-        description: "Date d'extraction depuis la source (Singer/Meltano)"
+        description: "Date d'extraction depuis la source (dlt)"
 
   # --- Table de faits dépliée des produits utilisés dans les interventions (workorders) ---
   - name: stg_yuman__workorder_products
@@ -416,7 +416,7 @@ models:
       Règle métier : storehouses_id correspond au user_id du technicien ou
       manager propriétaire de l'entrepôt mobile. Exception : les ateliers
       physiques (Rungis/Lyon, Lyon, Strasbourg, Bordeaux) n'ont pas de user
-      associé — 4 enregistrements concernés.
+      associé.
     columns:
       - name: storehouses_id
         description: >

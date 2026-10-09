@@ -42,7 +42,7 @@ All optional, positional:
 
 ## What it checks
 
-Source of truth for every rule is `docs/conventions/marts.md` (§ Nommage + § Marts — pattern complet),
+Source of truth for every rule is `docs/conventions/marts.md` (§ 1 Nommage, § 2 description, § 7 tests),
 the transversal rules in `CONVENTIONS.md`, and `CLAUDE.md`. Each finding gets a priority.
 
 ### P1 — Trust / correctness (mislead the SQL or the user)
@@ -129,7 +129,7 @@ Group by table, P1 → P3. For each finding: **what** / **why (which convention)
 - **Read-only.** Never edit a model, YAML, or run a write. Propose only.
 - **Never invent business meaning.** Enum semantics, grain, ambiguous columns →
   template for the DE, not a guessed description.
-- **Ignore system columns**: `dbt_updated_at`, `dbt_invocation_id`, `_sdc_*`,
+- **Ignore system columns**: `dbt_updated_at`, `dbt_invocation_id`, `_dlt_*`, `_extracted_at`,
   and the standard staging timestamps when auditing upstream.
 - Cap enum probes at cardinality ≤ 25 and skip obvious free-text / id / name /
   code columns (high cardinality) — they aren't enums.

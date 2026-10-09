@@ -4,17 +4,15 @@ Règles transversales : [CONVENTIONS.md](../../CONVENTIONS.md).
 
 ## Seeds
 
-Les seeds sont des CSV de référence statiques (mappings, paramètres), chargés par `dbt seed` dans
-`prod_reference`, ou dans `dbt_<dev>` en dev.
+Les seeds sont des CSV de référence statiques (mappings, paramètres), chargés dans
+`prod_reference` (dans `dbt_<dev>` en dev). En prod, un seed n'est rechargé que par le job `cd`,
+quand son CSV change : les runs planifiés `source:X+` ne le touchent pas.
 
 ```
 data/reference_data/<source>/
 ├── ref_<source>__<entite>.csv
 └── _<source>__seeds.yml        # doc + tests + column_types, un fichier par source
 ```
-
-Sources actuelles : `general`, `mssql_sage`, `nesp_co`, `nesp_tech`, `oracle_lcdp`,
-`oracle_neshu`, `yuman`, `zoho_desk`.
 
 > Dette connue : `zoho_desk` n'a pas encore son `_zoho_desk__seeds.yml`.
 

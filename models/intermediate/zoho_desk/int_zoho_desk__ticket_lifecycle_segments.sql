@@ -41,8 +41,8 @@ holidays as (
 ),
 
 -- Compute business minutes per segment via explicit CROSS JOIN UNNEST.
--- Same logic as the business_minutes_between macro but un-correlated,
--- so BigQuery can plan it alongside the LEAD() window above.
+-- Un-correlated (no correlated subquery), so BigQuery can plan it alongside
+-- the LEAD() window above.
 business_durations as (
     select
         s.ticket_id,

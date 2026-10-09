@@ -230,8 +230,8 @@ select
     statut_vie,
     classe_demande,
     classe_abc,
-    -- Méthode V1 : reference_saisonniere pour les saisonniers avec historique (anticipation via
-    -- N-1) ; moyenne mobile pour l'essentiel ; Croston (intermittent/lumpy) = V2.
+    -- Méthode : reference_saisonniere pour les saisonniers avec historique (anticipation via
+    -- N-1) ; moyenne mobile pour l'essentiel ; Croston (intermittent/lumpy) non implémenté.
     case
         when statut_vie in ('arrete', 'inactif') then 'exclu'
         when est_saisonnier and mois_depuis_premiere >= 13 then 'reference_saisonniere'

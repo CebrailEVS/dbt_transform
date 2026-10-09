@@ -1,10 +1,9 @@
 {{ config(materialized='table') }}
 
 -- Réceptions fournisseurs Nunshen (Sage, bons de réception type 13) pour Cockpit Supply :
--- remplace l'import « Réceptions fournisseurs » (lignes « Bon de livraison »). Une ligne
--- par ligne de réception : un produit reçu en plusieurs lots garde toutes ses lignes
--- (l'import les écrasait sur n° de bon × référence). Lot reçu (n°, dates) : photo la plus
--- récente de f_lotserie, une seule ligne d'entrée par ligne de réception. Depuis 2024.
+-- une ligne par ligne de réception : un produit reçu en plusieurs lots garde toutes ses
+-- lignes (pas de dédoublonnage sur n° de bon × référence). Lot reçu (n°, dates) : photo la plus
+-- récente de f_lotserie, une seule ligne d'entrée par ligne de réception.
 with derniere_photo_lots as (
     select max(extracted_at) as extracted_at
     from {{ ref('stg_mssql_sage__f_lotserie') }}

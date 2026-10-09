@@ -34,9 +34,8 @@ cleaned as (
         safe.parse_date('%d/%m/%Y', nullif(trim(dernier_v_nement_date_d_effet), '')) as dernier_evenement_date_d_effet,
         safe.parse_date('%d/%m/%Y', nullif(trim(dernier_v_nement_date_de_fin), '')) as dernier_evenement_date_de_fin,
 
-        -- Horodatage du run dlt. `_sdc_deleted_at` a disparu : la colonne
-        -- Singer était NULL sur 100 % des lignes, et `replace` ne marque pas
-        -- les suppressions — le fichier écrasé EST l'état courant.
+        -- Horodatage du run dlt. Pas de colonne de suppression : `replace` ne marque pas
+        -- les suppressions, le fichier écrasé EST l'état courant.
         _extracted_at as extracted_at
 
     from source

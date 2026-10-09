@@ -20,9 +20,7 @@ models:
         (SLA jours/heures, bonus) + LEFT JOIN seed `ref_nesp_tech__key_facturation`
         (libellés objets). Filtre de population : `etat_intervention != 'annulée'`.
       - branche YUMAN : `int_yuman__interventions` — modèle intermediate unique
-        portant tarification + délai + état métier (depuis la refacto PR #135 ;
-        remplace l'ancienne chaîne fait→fait `fct_technique__workorder_pricing` +
-        `fct_neshu__workorder_delai`). Filtre de population :
+        portant tarification + délai + état métier. Filtre de population :
         `intervention_state = 'REALISEE'` (workorder Closed et réellement effectué).
       Enrichissement commun (CTE `interventions_enrichies`) : durée, flags primes
       (montagne / Paris / hors-délai), mapping technicien via `stg_yuman__users`
@@ -51,15 +49,14 @@ models:
         vient de la facturation (NULL sur les états 'terminée non signée').
       - Rafraîchissement : aucun scheduler dédié à la BU technique. Le mart se
         reconstruit automatiquement via `source:<source>+` quand une source
-        upstream charge (refacto Option C) — pipeline EL `nesp_tech` (lundi 07:30,
-        cron `30 7 * * 1`) et `yuman` (01:00 en semaine, cron `0 1 * * 1-5`).
+        upstream charge. Cadence : voir docs/pipeline-schedule.md.
 
     columns:
       - name: key_inter
         description: >
           PK — identifiant unique de l'intervention =
           `src_inter` + '_' + `intervention_id`. Discriminant `src_inter` requis :
-          `workorder_id` (YUMAN) et `n_planning` (NESP) se chevauchent sur ~785
+          `workorder_id` (YUMAN) et `n_planning` (NESP) se chevauchent sur des
           valeurs (mêmes plages numériques), donc `intervention_id` seul n'est pas
           unique au global.
         tests:
@@ -112,8 +109,7 @@ models:
           agence recouvre plusieurs secteurs et `evs est` n'a pas d'agence
           propre.
           Le sous-traitant 'nespresso sud' est écarté en amont, au dédup
-          (périmètre unique pour toute la chaîne nesp_tech) : ce fait perd donc
-          643 interventions oct.-déc. 2025, désormais aligné sur
+          (périmètre unique pour toute la chaîne nesp_tech) : ce fait est donc aligné sur
           `consommation_article_nespresso` et `piece_detachee_pricing_nespresso`.
         tests:
           - accepted_values:
@@ -193,7 +189,7 @@ models:
       - name: num_serie_machine
         description: >
           Numéro de série de la machine intervenue. NESP = `num_serie_machine`
-          (~100 % renseigné) ; YUMAN = `material_serial_number` (renseigné en
+          (quasi toujours renseigné) ; YUMAN = `material_serial_number` (renseigné en
           majorité, plus lacunaire chez certains partenaires).
 
       - name: tech_yuman_id
@@ -658,12 +654,12 @@ models:
       `intervention_state` et les motifs de non-intervention / pause.
 
       [GRAIN]
-      1 ligne par couple (`workorder_id`, `product_id`). ~16,6k lignes.
+      1 ligne par couple (`workorder_id`, `product_id`).
 
       [NOTES]
       Périmètre : les workorders **hors flux demande** (sans demande rattachée,
-      ~10 lignes, FK non exploitables) sont **exclus**. Aucun filtre de statut en
-      revanche : ~99,8 % de la conso est sur des interventions REALISEE, le reste
+      FK non exploitables) sont **exclus**. Aucun filtre de statut en
+      revanche : la quasi-totalité de la conso est sur des interventions REALISEE, le reste
       (NON_REALISEE / EN_COURS / EN_PAUSE) est conservé et qualifié par
       `intervention_state` pour laisser le choix au métier — filtrer
       `intervention_state = 'REALISEE'` pour la conso confirmée. Les NON_REALISEE
@@ -700,7 +696,7 @@ models:
         description: >
           Identifiant du matériel concerné par l'intervention (FK).
           Nullable : null quand la demande n'a pas de machine rattachée
-          (~819 lignes, cas légitime). Pas de not_null volontairement.
+          (cas légitime). Pas de not_null volontairement.
         tests:
           - relationships:
               arguments:
@@ -866,21 +862,21 @@ models:
       `int_nesp_tech__articles_dedup` (une ligne = un article posé sur une
       intervention), joint (inner join) à `int_nesp_tech__interventions_dedup`
       restreint aux agences EVS ('evs', 'evs paris', 'evs idf', 'evs paris 2' —
-      'nespresso sud' = sous-traitant hors flux de stock EVS, plus actif depuis 2025)
+      'nespresso sud' = sous-traitant hors flux de stock EVS, plus actif)
       pour l'état, l'agence et les horodatages début/fin. technician_id résolu via
       le matricule Nomad (n_tech ↔ dim_technique__technician.nomad_id, unique).
       product_reference = 'EVS_NESPRESSO_' + upper(code_article).
 
       [GRAIN]
-      1 ligne par (n_planning, code_article). ~168k lignes depuis nov. 2023.
+      1 ligne par (n_planning, code_article).
 
       [NOTES]
       Aucun filtre d'état : une ligne de la table articles = une pose réelle
-      (validé métier ; 99,95 % des lignes portent un état terminé), etat_intervention
+      (validé métier ; la quasi-totalité des lignes portent un état terminé), etat_intervention
       est exposé en information. Contient les lignes de saisie non stockables
       (Détartrage '0000100', Pas de pièce '0000001', flag 'miniprev') — à exclure
       selon l'usage via le seed ref_yuman__pseudo_article (sur product_reference).
-      Source extraite chaque lundi (fenêtre 7 jours glissants) : fraîcheur
+      Source extraite par fenêtre hebdomadaire glissante : fraîcheur
       hebdomadaire, pas quotidienne. Flux disjoint des bons Yuman (outils non
       mélangés, vérifié métier).
     columns:
@@ -928,7 +924,7 @@ models:
       - name: num_serie_machine
         description: "Numéro de série de la machine"
       - name: etat_intervention
-        description: "État de l'intervention porteuse (information, non filtré) : 'terminée signée' (~99,7 %), 'signature différée', 'terminée non signée', 'mise en échec', 'annulée'"
+        description: "État de l'intervention porteuse (information, non filtré) : 'terminée signée' (très majoritaire), 'signature différée', 'terminée non signée', 'mise en échec', 'annulée'"
         tests:
           - accepted_values:
               arguments:
@@ -947,7 +943,7 @@ models:
               arguments:
                 values: [evs, evs paris, evs idf, evs paris 2]
       - name: date_heure_debut
-        description: "Date/heure de début réel de l'intervention (colonne de partition). La date de la table articles source correspond à cette date (99,95 % des lignes)."
+        description: "Date/heure de début réel de l'intervention (colonne de partition). La date de la table articles source correspond à cette date."
         tests:
           - not_null
       - name: date_heure_fin
@@ -982,16 +978,13 @@ models:
     description: |
       [QUOI MÉTIER]
       Suivi opérationnel des demandes et interventions Yuman par partenaire.
-      Remplace l'ancien DAG Airflow `MAIL_Yuman_Module_Notification` qui envoyait
-      des emails d'alerte automatiques.
 
       [COMMENT CONSTRUITE]
       Chaque ligne = 1 demande d'intervention enrichie avec son workorder
       associé + client + site + matériel + technicien. La colonne
       `intervention_state` (état métier canonique) est reprise depuis
       int_yuman__demands_workorders_enriched. 9 flags d'alerte (`alerte_*`)
-      permettent au PBI de filtrer les situations qui déclenchaient
-      auparavant un email automatique : 7 sont de simples projections
+      permettent au PBI de filtrer les situations d'alerte : 7 sont de simples projections
       booléennes de `intervention_state` (aucune logique d'état recalculée
       ici → iso avec int_yuman__interventions), 2 sont des alertes
       opérationnelles spécifiques sans équivalent canonique
@@ -1003,9 +996,7 @@ models:
 
       [NOTES]
       `intervention_state` et les flags `alerte_*` sont la valeur business clé —
-      utilisés comme slicers dans le rapport de monitoring partenaires. Mart
-      conservé même s'il n'est pas activement consommé aujourd'hui (anciennement
-      utilisé pour les emails, à reprendre dans une vue BI future).
+      utilisés comme slicers en BI.
 
     columns:
       - name: demand_id
@@ -1119,8 +1110,7 @@ models:
       - name: alerte_non_realisee
         description: >
           intervention_state = NON_REALISEE : workorder clôturé AVEC motif/détail de
-          non-intervention (intervention non effectuée). Remplace l'ancien
-          alerte_workorder_canceled, qui ne se déclenchait jamais en prod.
+          non-intervention (intervention non effectuée).
       - name: alerte_planifiee
         description: "intervention_state = PLANIFIEE : intervention planifiée (Scheduled)"
       - name: alerte_cloturee
@@ -1235,9 +1225,9 @@ models:
       1 ligne par (intervention `n_planning`, article consommé).
 
       [NOTES]
-      Source nesp_tech = fichier Excel hebdomadaire (Mon 07:30). Suffixe
+      Source nesp_tech = fichier Excel hebdomadaire. Suffixe
       `_nespresso` au nom du mart pour distinguer de la tarification Yuman
-      (tous partenaires), désormais portée par `int_yuman__interventions`.
+      (tous partenaires), portée par `int_yuman__interventions`.
 
     columns:
       - name: n_planning
@@ -1386,8 +1376,7 @@ models:
       machine ayant déjà eu une curative dans les 30 jours précédents
       (récidive de panne / échec de réparation). Contient TOUTES les curatives
       réalisées (flag `is_repair`), pas seulement les repairs, pour permettre
-      le calcul d'un taux de repair en BI. Remplace l'export Excel mensuel
-      produit par un notebook Python.
+      le calcul d'un taux de repair en BI.
 
       [COMMENT CONSTRUITE]
       Lecture de `int_yuman__interventions` filtré sur `partner_name = 'NESHU'`,
@@ -1401,15 +1390,14 @@ models:
 
       [GRAIN]
       1 ligne par `workorder_id` (intervention curative réalisée NESHU avec
-      machine identifiée). ~5 600 lignes depuis déc. 2023.
+      machine identifiée).
 
       [NOTES]
-      - Les curatives sans `material_id` (~38 lignes) sont exclues : aucun
+      - Les curatives sans `material_id` sont exclues : aucun
         suivi repair possible sans machine.
-      - Les curatives clôturées avec pause historique sont INCLUSES
-        (contrairement à l'ancien script Python qui les excluait à tort).
-      - Rafraîchissement : via `source:yuman+` (pipeline EL yuman, 01:00 en
-        semaine), comme les autres marts technique.
+      - Les curatives clôturées avec pause historique sont INCLUSES.
+      - Rafraîchissement : via `source:yuman+`, comme les autres marts technique
+        (cadence : voir docs/pipeline-schedule.md).
 
     columns:
       - name: intervention_date
@@ -1562,8 +1550,8 @@ models:
 
       - name: nb_visites_episode
         description: >
-          Nombre total de visites de l'épisode (équivalent "multi visite N"
-          de l'ancien script, sans double comptage). Non additif — répété sur
+          Nombre total de visites de l'épisode (équivalent "multi visite N",
+          sans double comptage). Non additif — répété sur
           chaque ligne de l'épisode.
 
       - name: done_at
@@ -1616,11 +1604,11 @@ models:
         intervention (cf. contrat identité DA, collision réputée très rare).
       - Décision de facturation : `mee` émet OUI/NON, `modif_intervention` émet
         'NOT VALIDATED' ou rien — normalisés en OUI/NON. ⚠️ Mapping à confirmer
-        avec le DA sur données réelles (période bêta, échantillon test réduit).
+        avec le DA sur données réelles.
       - Colonnes brutes par type (`*_mee`, `*_modif`, `*_astreinte`) conservées
         pour audit.
       - Rafraîchissement : hérite de `fct_technique__intervention` (pas de
-        scheduler dédié, refacto Option C via `source:<source>+`).
+        scheduler dédié, reconstruit via `source:<source>+`).
 
     columns:
       - name: key_inter
@@ -1818,31 +1806,30 @@ models:
       [NOTES]
       - Imputation au mois où la décision est **traitée dans l'app**
         (`periode_credit`), pas au mois de l'intervention fautive — décision
-        métier du 2026-08-05. L'ancien processus Excel imputait au mois d'origine :
-        l'écart de méthode est assumé, mais reste à confirmer côté comptabilité.
+        métier assumée.
       - **Fichiers de test d'ingestion exclus** : les dépôts
         `RW_TEST_DATA_ING_<AAAA-MM>.xlsx` du DA portent de vraies interventions
         fautives mais des correctives factices (`TESTDATAING-<AAAAMM>`). Sans
-        filtre, 2 avoirs de −90 € entraient dans la facturation. À supprimer du
-        bucket côté DA ; le filtre reste en défense.
+        filtre, des avoirs factices entreraient dans la facturation. Le filtre
+        reste en défense.
       - Contrat du flux source, **applicatif et non porté par une colonne** :
         (1) décisions confirmées uniquement — l'app écarte
         `pole_expertise_RW != 'OUI'` (`app/domain/rw.py`) ; (2) périmètre NESP
         garanti — l'app résout les n° saisis avec `src_inter='NESP'`
         (`app/routers/rw.py:120`) et n'émet que les lignes retrouvées. Ce second
         point est ce qui autorise à reconstruire `key_inter` par concaténation :
-        789 `n_planning` NESP collisionnent avec un `intervention_id` YUMAN, un id
+        des `n_planning` NESP collisionnent avec un `intervention_id` YUMAN, un id
         YUMAN qui entrerait ici créditerait la mauvaise intervention avec un
         montant plausible, sans qu'aucun test ne le voie.
       - Même événement métier, deux consommateurs indépendants : ce mart
-        (facturation) et le clawback de prime technicien (marts Primes, à venir).
+        (facturation) et le clawback de prime technicien (marts Primes).
       - Si l'intervention fautive sort du périmètre facturable (état `annulée`,
         agence `nespresso sud` filtrée au dédup, clé de facturation non résolue),
         c'est **tout le côté droit** qui devient NULL — `agency`,
         `categorie_machine`, `machine_clean`, `key_factu_fautive`,
         `date_fin_fautive` et `montant_credit` : l'avoir perd ses coordonnées dans
-        la grille. Base de risque : 12 277 des 87 113 interventions dédupliquées
-        (14 %) sont hors du filtre d'état amont. `not_null` en `warn` sur
+        la grille. Le risque est réel : une part des interventions dédupliquées est hors du
+        filtre d'état amont. `not_null` en `warn` sur
         `montant_credit` et `agency` pour le signaler sans bloquer la prod.
       - `montant_credit` est **additif** : sommable par mois, agence, machine ou
         technicien sans double compte, le grain étant la décision.
@@ -1851,14 +1838,11 @@ models:
         côté app (`rw_draft_key(annee, mois)`), une resoumission réémet tout le
         mois — mais un dépôt partiel sur un mois déjà livré effacerait les avoirs
         des autres agences, et le test de volume ne verrait pas une chute de 12 à 4.
-      - Décalage observé : l'intervention fautive date du mois de la décision ou du
-        précédent (avoirs de mai 2026 : fautives du 24/04 au 20/05). Le « M-2 » du
-        cadrage DA est le décalage entre la décision et la **facture** qui la
-        reprend, pas entre l'intervention et la décision — l'onglet RW du classeur
-        de juillet porte les décisions de mai. Conséquence : cet avoir de mai
-        atterrit ici sur `periode_credit` = mai, là où l'Excel le portait sur la
-        facture de juillet. Écart de méthode à chiffrer lors du rapprochement de
-        l'étape 4.
+      - Décalage : l'intervention fautive date du mois de la décision ou du
+        précédent. Le « M-2 » du cadrage DA est le décalage entre la décision et
+        la **facture** qui la reprend, pas entre l'intervention et la décision.
+        Un avoir est donc imputé ici sur `periode_credit` = mois de la décision,
+        et non sur le mois de la facture qui le reprend dans le classeur Excel.
 
     columns:
       - name: periode_credit
@@ -1922,9 +1906,7 @@ models:
         description: >
           Numéro de l'intervention corrective qui a suivi. Audit : elle est
           facturée normalement, et rien n'interdit qu'elle soit **elle-même
-          créditée** plus tard si elle récidive à son tour — 1 cas sur 14
-          aujourd'hui (`1759312`, corrective de `1756791` et créditée −121 € sur la
-          même période).
+          créditée** plus tard si elle récidive à son tour (chaînage récidive → récidive).
 
       - name: key_inter_corrective
         description: >

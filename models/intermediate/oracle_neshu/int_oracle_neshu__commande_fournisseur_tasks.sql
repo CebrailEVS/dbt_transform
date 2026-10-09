@@ -2,7 +2,7 @@
 
 with delivery_status as (
 
-    -- Pivot du label au grain tâche (1 label STATUT_LIVRAISON par tâche aujourd'hui).
+    -- Pivot du label au grain tâche (1 label STATUT_LIVRAISON par tâche).
     -- Pivot plutôt que jointure + dédup : pas de fan-out sur les lignes produit,
     -- robuste si une seconde famille de label apparaît un jour.
     select

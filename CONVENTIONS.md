@@ -36,8 +36,8 @@ le détail vit dans une page par couche.
 | `_<source>__intermediate_models.yml` | doc et tests de l'intermediate |
 | `_<bu>__marts_models.yml` | doc et tests des marts |
 | `_<application>__app_models.yml` | doc et tests de la couche `apps` |
-| `_<bu>__marts_sources.yml` | tables externes écrites par Cloud Run |
 | `_<source>__seeds.yml` | doc, tests et `column_types` des seeds |
+| `_<source>__snapshots.yml` | doc et tests des snapshots |
 
 ### Colonnes
 
@@ -55,8 +55,8 @@ le détail vit dans une page par couche.
 
 | Couche | Défaut | Exception |
 |---|---|---|
-| Staging | `table` | `incremental` (`merge`) : 6 tables de tâches Oracle |
-| Intermediate | `table` | `incremental` (`merge`) : 10 modèles à gros volume |
+| Staging | `table` | `incremental` (`merge`) : grosses tables de tâches Oracle |
+| Intermediate | `table` | `incremental` (`merge`) : modèles à gros volume |
 | Marts | `table` | — |
 | Apps | explicite par modèle | `table`, `incremental` sur gros volume, `view` pour l'inter-BU ([apps.md](docs/conventions/apps.md)) |
 
@@ -80,8 +80,8 @@ Les arguments d'un test générique s'écrivent sous `arguments:`, la sévérit�
 
 | Sévérité | Pour |
 |---|---|
-| `error` (défaut) | PK `unique` + `not_null`, FK obligatoires, `accepted_values`, clés composites |
-| `warn` | `relationships`, plages de valeurs, volumes |
+| `error` (défaut) | PK `unique` + `not_null`, FK obligatoires, clés composites, `accepted_values` en marts |
+| `warn` | `relationships`, plages de valeurs, volumes, `accepted_values` en staging et intermediate (une nouvelle valeur source ne doit pas bloquer l'aval) |
 
 Minimum par couche : voir la page de chaque couche. Paquets : `dbt_utils`, `dbt_expectations`.
 
@@ -123,7 +123,24 @@ dbt build -s tag:marts            # toute une couche
 
 ---
 
+## Commentaires et descriptions
+
+Ils décrivent **l'état actuel et la règle**, pas l'histoire.
+
+- **À écrire** : le pourquoi d'une règle non évidente, une règle métier et sa source, un piège qui
+  se reproduirait. En 1 à 3 lignes.
+- **À proscrire** : dates, numéros de PR, récits d'incident, volumes ou pourcentages relevés à un
+  instant, « en cours », « temporaire », prénoms, « remplace… », « anciennement… ». L'historique
+  va dans le message de commit et la description de PR.
+
+Les descriptions YAML partent dans BigQuery (`persist_docs`) et sont lues par le data analyst et
+par l'agent text-to-SQL : un chiffre périmé y devient une fausse information.
+
+---
+
 ## Power BI
 
-Le compte de service `powerbi` n'a accès qu'à `prod_marts` ; les rapports joignent les tables sur `<entite>_id`. Chaque rapport
-consommateur est déclaré dans `models/exposures/<bu>.yml`.
+Le compte de service `powerbi` lit `prod_marts`, `prod_intermediate` et `prod_reference` (droits posés hors
+Terraform). La cible est `prod_marts` seul : un rapport qui lit un `int_*` ou un seed est une dette à résorber
+en mart. Les rapports joignent les tables sur `<entite>_id`. Chaque rapport consommateur est déclaré dans
+`models/exposures/<bu>.yml`.

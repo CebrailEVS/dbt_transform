@@ -8,7 +8,7 @@ va de ton poste à la prod. Infra correspondante : `infra/dbt_environments.tf`.
 ## 1. Un projet GCP, un dataset par usage
 
 Tout vit dans `evs-datastack-prod`. L'isolation se fait par **dataset**, et elle est portée
-par l'**IAM** : aucune identité hors prod ne peut écrire dans `prod_*`.
+par l'**IAM** : les identités dbt hors prod (`dbt-dev`, `dbt-ci`) ne peuvent pas écrire dans `prod_*`.
 
 | Usage | Dataset | Écrit par | Durée de vie des tables |
 |---|---|---|---|
@@ -64,10 +64,9 @@ prod, même s'il existe en dev.
 Ne pas l'activer par défaut : dans le premier cas, il ferait lire le `stg_x` de prod et
 masquerait ta modification, sans erreur.
 
-**Piège vécu (2026-10-05)** : une recette de `int_mssql_sage__pnl_bu` a lu des stagings Sage
-restés dans `dbt_cebrail` depuis 7 jours (les tables n'expirent qu'après 14 j). Résultat :
-292 lignes d'écart dev/prod sans rapport avec le changement testé. Réflexe avant d'interpréter
-un écart : **vérifier que dev et prod ont le même nombre de lignes**.
+**Piège** : une table restée dans ton dataset depuis quelques jours (elles n'expirent qu'après
+14 jours) fausse une recette sans aucun message. Réflexe avant d'interpréter un écart :
+**vérifier que dev et prod ont le même nombre de lignes**.
 
 Construire toute la chaîne modifiée en **une seule commande** (`-s stg_x+`) évite aussi le
 problème : ce qui est construit dans le run est toujours lu en dev.
@@ -86,7 +85,7 @@ plus leur aval.
 
 **Mise à jour du manifest local** : automatique. Les hooks git `post-merge` (`git pull`) et
 `post-checkout` (changement de branche) lancent `scripts/pull-state.sh`, qui ne télécharge que si
-la prod a changé (~0,5 s). Seul cas manuel : un collègue a mergé et tu es resté sur ta branche
+la prod a changé. Seul cas manuel : un collègue a mergé et tu es resté sur ta branche
 sans pull ni checkout.
 
 ```bash
@@ -151,7 +150,7 @@ dataset de CI, et les déploiements passent un par un.
 
 ### Arrivée d'un développeur
 
-**Côté data engineer**, environ 15 minutes :
+**Côté data engineer** :
 
 1. **Identité.** Aujourd'hui, un seul SA `dbt-dev` écrit dans tous les datasets de dev. Dès le
    deuxième développeur, passer à **un SA par personne** (`dbt-dev-<nom>`), avec un droit
@@ -170,7 +169,7 @@ dataset de CI, et les déploiements passent un par un.
 4. **GitHub.** Accès en écriture au repo. La protection de `master` impose déjà la PR.
 5. **DSI.** Le prévenir de l'ouverture d'un accès GCP.
 
-**Côté nouveau développeur**, environ 20 minutes : suivre [CONTRIBUTING § 1](../CONTRIBUTING.md#1-installer-son-poste),
+**Côté nouveau développeur** : suivre [CONTRIBUTING § 1](../CONTRIBUTING.md#1-installer-son-poste),
 avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. Vérifier avec
 `dbt debug`, `pre-commit install`, puis `scripts/pull-state.sh` pour le premier manifest.
 
@@ -179,7 +178,7 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
 - Tu développes dans ton dataset ; tes collègues dans le leur.
 - Après un merge d'un collègue : `git pull` (le manifest suit), puis `git rebase origin/master`
   sur ta branche. Un conflit git n'apparaît que si vous avez touché le **même fichier**.
-- Chaque PR est relue par une autre personne avant le merge.
+- Chaque PR est relue par une autre personne que son auteur avant le merge.
 - Sans rebase, rien ne casse en prod : la CI de ta PR reconstruit aussi les modèles de ton
   collègue, dans leur version antérieure et dans ton dataset de PR. Le résultat est juste moins
   lisible.

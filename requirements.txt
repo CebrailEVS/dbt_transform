@@ -1,8 +1,5 @@
-# dbt v2 (moteur Rust). Le paquet `dbt` embarque son adaptateur BigQuery :
-# plus de `dbt-core` + `dbt-bigquery` separes, et plus de venv Python a gerer
-# cote execution — c'est un binaire.
-#
-# SQLFluff n'est plus installe : le lint passe par `dbt lint`, natif a v2, qui
-# lit le meme fichier .sqlfluff et les memes codes de regles (CP01, RF03...),
-# et respecte les `-- noqa`. Il ne se connecte pas a BigQuery.
+# dbt v2 : le paquet `dbt` embarque le moteur Rust et l'adaptateur BigQuery.
+# C'est une extension CPython, pas un binaire autonome : Python >= 3.11 reste
+# requis a l'execution. Installer depuis requirements-lock.txt.
+# Le lint passe par `dbt lint` (natif, lit .sqlfluff) : pas de SQLFluff.
 dbt==2.0.6

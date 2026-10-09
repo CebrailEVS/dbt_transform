@@ -3,7 +3,7 @@
         materialized='table',
         partition_by={'field': 'created_at', 'data_type': 'timestamp', 'granularity': 'day'},
         cluster_by=['activity', 'report_id', 'workspace_id', 'dataset_id'],
-        description="Événements d'audit Power BI nettoyés — 1 ligne = 1 événement du journal d'audit unifié, PK event_id. Source : powerbi_activity_events. AUCUN filtre d'activité ici : RefreshDataset (~83 % du volume) est conservé volontairement, il sert de monitoring des pipelines et de base au coût de maintien des rapports dormants. Filtrer activity = 'ViewReport' en aval pour mesurer l'usage humain. Partitionné sur created_at pour l'élagage de partition."
+        description="Événements d'audit Power BI nettoyés — 1 ligne = 1 événement du journal d'audit unifié, PK event_id. Source : powerbi_activity_events. AUCUN filtre d'activité ici : RefreshDataset (l'essentiel du volume) est conservé volontairement, il sert de monitoring des pipelines et de base au coût de maintien des rapports dormants. Filtrer activity = 'ViewReport' en aval pour mesurer l'usage humain. Partitionné sur created_at pour l'élagage de partition."
     )
 }}
 

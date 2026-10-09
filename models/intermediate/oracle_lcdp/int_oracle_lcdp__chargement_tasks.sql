@@ -10,7 +10,7 @@
 
 -- Sens de chargement porté par le label de la famille TYPE_LOADED (LOADING / REMOVING).
 -- Le filtre sur la famille est indispensable : une tâche porte d'autres labels
--- (INTEGRATION_TYPE = EASYUPLOAD / WORKER depuis le 2026-10-04) qui dupliqueraient le grain.
+-- (INTEGRATION_TYPE = EASYUPLOAD / WORKER) qui dupliqueraient le grain.
 with task_load_type as (
     select
         lht.idtask,

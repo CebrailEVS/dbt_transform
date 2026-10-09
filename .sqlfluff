@@ -1,53 +1,39 @@
+# Configuration de `dbt lint` (natif dbt v2, mêmes clés et codes de règles que SQLFluff).
+# Règles résumées dans CONVENTIONS.md § Lint SQL.
 [sqlfluff]
-# --- Core ---
 dialect = bigquery
+# Seule valeur acceptée sans avertissement par dbt lint.
 templater = dbt
 max_line_length = 120
-large_file_skip_byte_limit = 30000
 exclude_rules = ST06
 
-# --- dbt templater ---
-# Uses dbt to compile models, resolving ref(), source(), dbt_utils macros, etc.
-[sqlfluff:templater:dbt]
-project_dir = ./
-profiles_dir = ./
-target = dev
-
-# --- Indentation ---
 [sqlfluff:indentation]
 indent_unit = space
 tab_space_size = 4
 
-# --- Rules ---
-
-# Keywords: lowercase (matches your staging style, modern dbt convention)
 [sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = lower
 
-# Functions: lowercase (cast, coalesce, timestamp, etc.)
+# functions et types prennent extended_capitalisation_policy : avec
+# capitalisation_policy, la règle est ignorée sans message.
 [sqlfluff:rules:capitalisation.functions]
 extended_capitalisation_policy = lower
 
-# Types: lowercase (int64, float64, string, etc.)
 [sqlfluff:rules:capitalisation.types]
 extended_capitalisation_policy = lower
 
-# Literals: lowercase (null, true, false)
 [sqlfluff:rules:capitalisation.literals]
 capitalisation_policy = lower
 
-# Aliases: always use explicit AS keyword
 [sqlfluff:rules:aliasing.table]
 aliasing = explicit
 
 [sqlfluff:rules:aliasing.column]
 aliasing = explicit
 
-# Trailing commas (you already use this style)
+# Pas de virgule après la dernière colonne d'un select.
 [sqlfluff:rules:convention.select_trailing_comma]
 select_clause_trailing_comma = forbid
 
-# Consistent casting style within a file
 [sqlfluff:rules:convention.casting_style]
 preferred_type_casting_style = consistent
-

@@ -19,7 +19,7 @@ with source_data as (
 
 cleaned_data as (
     select
-        -- IDs et numéros (colonnes désormais INT64 natifs)
+        -- IDs et numéros (INT64 natifs)
         cb_marq,
         ec_no,
         n_analytique,
@@ -34,7 +34,7 @@ cleaned_data as (
         ea_montant,
         ea_quantite,
 
-        -- Timestamps harmonisés (colonnes désormais TIMESTAMP natifs)
+        -- Timestamps harmonisés (TIMESTAMP natifs)
         cb_creation as created_at,
         -- Fallback to cb_creation when cb_modification is null
         coalesce(cb_modification, cb_creation) as updated_at,

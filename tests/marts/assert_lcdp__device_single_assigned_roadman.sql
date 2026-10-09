@@ -5,8 +5,7 @@
 -- code le plus petit, afin de garantir 1 ligne par machine.
 --
 -- Ce test ne dit pas qu'il y a un bug : il rend visible le nombre de cas où le
--- départage s'applique réellement. Au 2026-07-29 il y en a 2 (M7077, M5114, des
--- machines à café hors périmètre DA FROID). Si ce nombre grimpe, la règle
+-- départage s'applique réellement. Si ce nombre grimpe, la règle
 -- « code le plus petit » ne suffit plus et il faudra arbitrer avec l'exploitation
 -- (affectation principale à qualifier dans l'ERP, ou grain machine × roadman).
 select

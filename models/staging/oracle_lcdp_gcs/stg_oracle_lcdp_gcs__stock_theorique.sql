@@ -14,8 +14,7 @@ select
     -- Europe/Paris. Un cast direct la ferait lire en UTC par BigQuery : l'instant
     -- serait faux de 1 h l'hiver et de 2 h l'été, et toute conversion en heure
     -- locale basculerait alors sur le LENDEMAIN — le batch tourne à 23:15. On
-    -- déclare donc le fuseau d'origine. Vérifié sur les 87 journées chargées :
-    -- l'écart entre date_system et extracted_at tombe de 1-2 h à moins de 2 min.
+    -- déclare donc le fuseau d'origine.
     -- Le jour métier reste `snapshot_date` : lui ne porte ni heure ni fuseau.
     timestamp(datetime(date_system), 'Europe/Paris') as date_system,
     resources_code,

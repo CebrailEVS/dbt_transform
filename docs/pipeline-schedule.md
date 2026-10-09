@@ -5,10 +5,11 @@
 >
 > Il ne contient **aucun horaire, aucun décompte, aucun cron**. Ces valeurs
 > changent, et une copie diverge toujours de l'original. La cadence réelle vit
-> dans `infra/workflows_el.tf` — s'y reporter, ou la lire d'une commande :
+>
+> dans `infra/workflows_el.tf` — s'y reporter, ou lire l'état réel (y compris les
+> schedulers intraday et ceux en pause) :
 >
 > ```bash
-> grep -oE 'pipeline_[a-z_]+ += \{ schedule = "[^"]+"' infra/workflows_el.tf
 > gcloud scheduler jobs list --location=europe-west1 \
 >   --format='table(name.basename(),schedule,state)'
 > ```
@@ -17,8 +18,8 @@
 
 ## 1. Le principe : chaque EL enchaîne sa propre transformation
 
-Il n'y a **pas** de workflow « transform » global. Chaque pipeline d'extraction
-fait, dans un seul workflow :
+Il n'y a **pas** de workflow « transform » global. Chaque pipeline d'extraction dont la
+source est déclarée dans dbt fait, dans un seul workflow :
 
 ```
 extract → load BigQuery → dbt build --select source:<source>+ → [refresh Power BI]
@@ -36,8 +37,9 @@ mart ne demande donc aucune modification d'orchestration.
 - Les **snapshots** ont leur propre workflow (`dbt snapshot`, jamais `dbt build`).
   Ils sont exclus de tous les autres builds.
 - La chaîne **`apptech`** n'est branchée sur aucun cron, volontairement : son
-  build sera déclenché par l'app Suivi Tech elle-même (événementiel).
-  Cf. `infra/CLAUDE.md` § Charte d'orchestration, règle 11.
+  build est déclenché par l'app Suivi Tech elle-même (événementiel).
+- Les workflows d'**export** et ceux dont la donnée n'entre pas dans dbt
+  (ex. `pipeline-oracle-nayka`, `pipeline-yuman-lcdp`) n'ont pas d'étape dbt.
 
 ## 2. Trois régimes de cadence
 
@@ -51,22 +53,16 @@ L'intraday ne duplique pas le YAML : deux schedulers, une seule recette. Dupliqu
 condamnerait à reporter chaque correction deux fois, et un jour elles
 divergeraient.
 
-**Ce que l'intraday reconstruit aujourd'hui est le sous-graphe entier de la
-source**, pas un sous-ensemble ciblé. Une voie rapide plus étroite a existé à
-l'époque Meltano, puis a été abandonnée : le gain de calcul ne justifiait pas un
-second workflow à maintenir pour un mainteneur unique. *Si le besoin revient, la
-parade n'est pas un second YAML mais des `params:` sur l'existant — le scheduler
-intraday passerait alors un sélecteur différent dans son `body`.*
+**L'intraday reconstruit le sous-graphe entier de la source**, pas un
+sous-ensemble ciblé : un second workflow plus étroit ne vaut pas sa maintenance
+pour un mainteneur unique. Si le besoin revient, passer un sélecteur différent
+dans le `body` du scheduler intraday (`params:`), pas dupliquer le YAML.
 
-> **Un build partiel n'est pas gratuit, et c'est la leçon à retenir de cette
-> voie rapide.** Reconstruire les faits sans leurs référentiels casse les tests
-> `relationships` : une entité créée dans la journée est référencée par une
-> tâche fraîche mais absente d'un référentiel resté sur la nuit — le test
-> remonte un orphelin et bloque le run. Deux parades, à choisir avant de coder :
-> rafraîchir aussi les référentiels que le sous-graphe joint, ou différer ces
-> tests au build complet avec `--indirect-selection cautious` (déjà géré par
-> `entrypoint.sh` en mode sélecteur nommé). Ne jamais découvrir ce problème en
-> production.
+> **Un build partiel casse les tests `relationships`** : une entité créée dans la
+> journée, référencée par une tâche fraîche, manque au référentiel resté sur la
+> nuit. Parades : rafraîchir aussi les référentiels joints, ou différer ces tests
+> au build complet (`--indirect-selection cautious`, géré par `entrypoint.sh` en
+> mode sélecteur nommé).
 
 ## 3. Fan-out : ce que ce design coûte, assumé
 

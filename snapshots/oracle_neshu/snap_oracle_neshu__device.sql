@@ -4,7 +4,7 @@
 -- Source: dim_neshu__device
 -- Purpose: Track historical changes des label : modele economique, localisation, company, marque
 -- Strategy: Check - Only creates new records when tracked columns change
--- Tracked columns: device_economic_model, company_code
+-- Tracked columns (check_cols): device_economic_model, device_brand, company_code, device_location
 --
 -- Usage:
 --   Query current: SELECT * FROM snapshots.snap_oracle_neshu__device WHERE dbt_valid_to IS NULL

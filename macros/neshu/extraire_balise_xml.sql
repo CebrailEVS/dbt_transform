@@ -5,9 +5,8 @@
     charge en texte. BigQuery n'a pas de fonctions XML : on lit la balise par
     expression régulière.
 
-    Le patron existait déjà, inliné dans stg_oracle_neshu__contract ; il est
-    factorisé ici parce que trois modèles l'utilisent désormais
-    (/ZONE/COUTRM sur task, /ZONE/EFFECTIF sur company, /ZONE/CLOC sur product).
+    Utilisée par int_oracle_neshu__charges_sociales et int_oracle_neshu__telemetrie_parc.
+    stg_oracle_neshu__contract a son propre regexp_extract.
 
     Ne décode PAS les entités XML : enchaîner avec decoder_entites_xml() quand la
     valeur attendue est du texte libre. Inutile pour une valeur numérique.

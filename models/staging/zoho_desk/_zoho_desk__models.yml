@@ -110,7 +110,7 @@ models:
   - name: stg_zoho_desk__agent_departments
     description: >
       Table pont agent ↔ département — dénormalisée depuis le tableau JSON
-      associated_department_ids de l'API Zoho (11 lignes).
+      associated_department_ids de l'API Zoho.
       Source : prod_raw.zoho_desk_agents__associated_department_ids
       Transformation : aucune (pas de colonne id à renommer dans cette table).
       Jointures :
@@ -235,13 +235,10 @@ models:
       # Freshness fallback (tier Relaxe — source _dlt_load_id est STRING, cf. docs/freshness.md)
       # On monitore created_time : ticketerie active → tickets créés régulièrement.
       #
-      # Le seuil 14 jours en severity: error a été RETIRÉ le 2026-08-31 : la source
-      # Zoho est volontairement gelée (scheduler PAUSED depuis la bascule dlt du
-      # 2026-08-05) et la data n'est pas encore exploitée. Un test bloquant sur une
-      # source qu'on sait figée fait échouer le job `cd` — donc pas de rebuild de
-      # l'image dbt-runner ni d'upload du manifest — pour une information déjà
-      # portée par le warn 7 jours ci-dessous. À réarmer quand le scheduler
-      # repartira et que les marts Zoho seront consommés.
+      # Pas de seuil bloquant (severity: error) : un test bloquant sur une source dont le
+      # scheduler peut être en pause ferait échouer le job `cd` — donc pas de rebuild de
+      # l'image dbt-runner ni d'upload du manifest — pour une information déjà portée par
+      # le warn 7 jours ci-dessous.
       - dbt_expectations.expect_row_values_to_have_recent_data:
           arguments:
             column_name: created_time

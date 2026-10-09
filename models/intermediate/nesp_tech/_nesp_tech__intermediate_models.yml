@@ -12,12 +12,10 @@ models:
       stg_nesp_tech__interventions dédupliqué par n_planning (on conserve la ligne la plus
       récente : date_heure_fin desc, puis extracted_at desc). Passthrough des colonnes staging.
       Périmètre restreint aux 4 agences EVS ('evs' = AURA, 'evs idf', 'evs paris',
-      'evs paris 2') : 'nespresso sud' est un sous-traitant, pas une agence EVS (643
-      interventions oct.-déc. 2025, 93 k€, exécutées par 7 techniciens absents du
-      référentiel EVS). Filtre en point unique pour toute la chaîne nesp_tech.
+      'evs paris 2') : 'nespresso sud' est un sous-traitant, pas une agence EVS. Filtre en point unique pour toute la chaîne nesp_tech.
 
       [GRAIN]
-      1 ligne par n_planning (PK). ~84k lignes.
+      1 ligne par n_planning (PK).
 
       [NOTES]
       Colonnes techniques en fin de table (rn, source_file, extracted_at) = artefacts d'ingestion,
@@ -78,7 +76,7 @@ models:
           exacts dans int_nesp_tech__facturation_interventions.type_inter_libelle.
       - name: etat_intervention
         description: >
-          État de l'intervention. Valeurs : 'terminée signée' (réalisée et signée, ~69k),
+          État de l'intervention. Valeurs : 'terminée signée' (réalisée et signée),
           'annulée', 'mise en échec' (intervention non aboutie), 'signature différée',
           'terminée non signée'. Les modèles aval ne gardent que les états facturables.
       - name: observations
@@ -118,7 +116,7 @@ models:
 
       # --- TECHNIQUE (artefacts d'ingestion) ---
       - name: extracted_at
-        description: Timestamp d'extraction Meltano.
+        description: Timestamp d'extraction (dlt).
       - name: source_file
         description: Fichier source d'origine (ingestion). Technique.
       - name: rn
@@ -182,7 +180,7 @@ models:
       - name: date_intervention
         description: Date de l'intervention associée à la pose de l'article.
       - name: extracted_at
-        description: Timestamp d'extraction Meltano.
+        description: Timestamp d'extraction (dlt).
       - name: source_file
         description: Fichier source d'origine. Technique.
       - name: rn

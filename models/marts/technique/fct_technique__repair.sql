@@ -32,7 +32,7 @@ with curative_interventions as (
         partner_name = 'NESHU'
         and intervention_state = 'REALISEE'
         and workorder_type_clean = 'curative'
-        -- Sans machine identifiée, aucun suivi repair possible (38 lignes exclues)
+        -- Sans machine identifiée, aucun suivi repair possible
         and material_id is not null
 ),
 

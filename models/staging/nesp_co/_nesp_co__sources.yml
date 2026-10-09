@@ -10,7 +10,7 @@ sources:
       tags: ['nesp_co', 'source']
     tables:
       - name: nesp_co_activite
-        description: "Activités commerciales Nespresso. Chargée par le pipeline dlt `nesp_co` (dépôt ingestion) depuis les classeurs du SFTP. Remplace la table externe `nespresso_commerce_activite`, adossée à des CSV dans GCS, le 2026-08-06."
+        description: "Activités commerciales Nespresso. Chargée par le pipeline dlt `nesp_co` (dépôt ingestion) depuis les classeurs du SFTP."
         columns:
           - name: employee_responsible
             description: "Identifiant de l'employé responsable"
@@ -74,7 +74,7 @@ sources:
             description: "Date du fichier source"
           
       - name: nesp_co_opportunite
-        description: "Opportunités commerciales Nespresso. Chargée par le pipeline dlt `nesp_co` (dépôt ingestion) depuis les classeurs du SFTP. Remplace la table externe `nespresso_commerce_opportunite` le 2026-08-06."
+        description: "Opportunités commerciales Nespresso. Chargée par le pipeline dlt `nesp_co` (dépôt ingestion) depuis les classeurs du SFTP."
         columns:
           - name: opportunity
             description: "Identifiant de l'opportunité commerciale"
@@ -146,9 +146,7 @@ sources:
         # Freshness: tier Manuel — 60j warn / 90j error
         # Livraison manuelle uniquement (pipeline-sftp-evs-nesp-client). Cf. docs/freshness.md
         config:
-          # ÉTAIT NULL À 100 % sous Meltano : le tap-spreadsheets-anywhere ne
-          # l'émettait pas, donc ce test n'a JAMAIS pu se déclencher — et quatre
-          # mois de retard sont passés inaperçus. `_extracted_at` est rempli.
+          # `_extracted_at` est rempli par dlt : le test de fraîcheur peut se déclencher.
           loaded_at_field: _extracted_at
           freshness:
             warn_after: {count: 60, period: day}

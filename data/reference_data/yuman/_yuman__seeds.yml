@@ -205,7 +205,7 @@ seeds:
       - name: Type_tarif
         description: "Type de tarif"
       - name: Montant
-        description: "Montant en euros (NULL pour les lignes en attente de tarification)"
+        description: "Montant en euros (NULL pour les lignes non tarifées)"
       - name: PROD
         description: "Indicateur production"
       - name: valid_from

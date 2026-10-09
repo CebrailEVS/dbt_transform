@@ -1,10 +1,14 @@
-target/
-dbt_packages/
-logs/
-.venv/
-venv/
-.env
+# Le Dockerfile ne copie que les chemins dbt ; ceci allège le contexte de build
+# et empêche des modèles locaux (models/_analysis/) d'entrer dans l'image de prod.
 .git/
 .github/
-*.pyc
+.env
+dbt_venv/
+dbt_packages/
+target/
+logs/
+state/
+tmp/
+models/_analysis/
 __pycache__/
+*.pyc

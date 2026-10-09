@@ -7,7 +7,6 @@
 -- Strategy: Timestamp - Crée un nouvel enregistrement uniquement au changement de mois
 -- Tracked column: snapshot_month (DATE_TRUNC du mois en cours)
 -- Frequency: Run quotidien mais snapshot mensuel automatique
--- Note: Résiste aux full-refresh hebdomadaires de la table source
 
 {% snapshot snap_oracle_neshu__valo_parc_machines %}
 

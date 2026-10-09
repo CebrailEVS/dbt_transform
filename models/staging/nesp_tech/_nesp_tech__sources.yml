@@ -21,7 +21,7 @@ sources:
           - name: prenom_tech
             description: "Prénom du technicien"
           - name: n_client
-            description: "Identifiant nessoft du client (à confirmer)"
+            description: "Identifiant nessoft du client"
           - name: raison_sociale_client
             description: "Nom client" 
           - name: n_site
@@ -59,7 +59,7 @@ sources:
           - name: prenom_tech
             description: "Prénom du technicien"
           - name: n_client
-            description: "Identifiant nessoft du client (à confirmer)"
+            description: "Identifiant nessoft du client"
           - name: raison_sociale_client
             description: "Nom client" 
           - name: adresse_client

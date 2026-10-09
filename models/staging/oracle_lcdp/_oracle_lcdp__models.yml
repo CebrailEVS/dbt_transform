@@ -105,7 +105,7 @@ models:
       Rattachement d'une machine au membre du personnel interne qui en a la charge
       (approvisionneur / technicien). Grain : 1 ligne par couple contact × device.
       Le contact se raccroche à une ressource via son `code` (aucune FK idresources
-      dans la source). Couvre ~27 % du parc actif LCDP, mais la quasi-totalité du
+      dans la source). Ne couvre qu'une partie du parc actif, mais la quasi-totalité du
       périmètre DA FROID Nayax.
     tests:
       - dbt_utils.unique_combination_of_columns:

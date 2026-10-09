@@ -2,7 +2,7 @@ version: 2
 
 seeds:
   - name: ref_nesp_co__commerciaux
-    description: "Table de référence des secteurs commerciaux et du commercial actuellement associé."
+    description: "Table de référence des secteurs commerciaux et du commercial associé."
     config:
       column_types:
         co_secteur: STRING

@@ -19,9 +19,8 @@ sources:
       Données brutes extraites de l'API Zoho Desk (EU region) via dlt (data load tool).
       Dataset BigQuery : evs-datastack-prod.prod_raw.
     database: "{{ var('raw_project') }}"
-    # Paramétré comme sur oracle_lcdp : permet de pointer dbt sur le raw dlt
-    # en dev (--vars raw_schema: dev_raw) AVANT la bascule de production.
-    # Le défaut prod_raw laisse la prod inchangée.
+    # Surchargeable (--vars raw_schema: dev_raw) pour tester contre un raw de dev.
+    # Le défaut est prod_raw.
     schema: "{{ var('raw_schema', 'prod_raw') }}"
     config:
       tags: ['zoho_desk', 'source']
@@ -34,7 +33,7 @@ sources:
 
       - name: zoho_desk_accounts
         description: >
-          Comptes Zoho Desk = entreprises clientes (251 lignes).
+          Comptes Zoho Desk = entreprises clientes.
           Un compte regroupe plusieurs contacts (personnes physiques).
           Les tickets et contacts y sont rattachés via account_id.
         columns:
@@ -62,7 +61,7 @@ sources:
 
       - name: zoho_desk_agents
         description: >
-          Agents Zoho Desk = membres de l'équipe support (5 lignes).
+          Agents Zoho Desk = membres de l'équipe support.
           Les tickets y sont rattachés via assignee_id.
           Les départements de chaque agent sont dans la sous-table
           zoho_desk_agents__associated_department_ids
@@ -121,7 +120,7 @@ sources:
 
       - name: zoho_desk_agents__associated_department_ids
         description: >
-          Sous-table dlt — départements auxquels appartient chaque agent (11 lignes).
+          Sous-table dlt — départements auxquels appartient chaque agent.
           dlt dénormalise les tableaux JSON en tables séparées.
           Cette table n'a pas de PK métier.
           Jointure vers l'agent  : _dlt_parent_id = zoho_desk_agents._dlt_id
@@ -146,7 +145,7 @@ sources:
 
       - name: zoho_desk_contacts
         description: >
-          Contacts Zoho Desk = personnes physiques (clients) qui ouvrent des tickets (3 362 lignes).
+          Contacts Zoho Desk = personnes physiques (clients) qui ouvrent des tickets.
           Un contact est rattaché à un compte via account_id.
           Les tickets y sont liés via contact_id.
         columns:
@@ -192,7 +191,7 @@ sources:
 
       - name: zoho_desk_departments
         description: >
-          Départements Zoho Desk = groupes organisationnels recevant les tickets (4 lignes).
+          Départements Zoho Desk = groupes organisationnels recevant les tickets.
           Exemples : Service Client, Facturation, Technique.
           Tickets et agents y sont rattachés via department_id.
         columns:
@@ -234,9 +233,9 @@ sources:
 
       - name: zoho_desk_associated_tickets
         description: >
-          Table principale des tickets (20 678 lignes) — table centrale de toute l'analyse.
+          Table principale des tickets — table centrale de toute l'analyse.
           Extraite via /associatedTickets qui contourne la limite de pagination de
-          /tickets (~3 600 lignes max). write_disposition=merge : les runs s'accumulent.
+          /tickets (volume plafonné). write_disposition=merge : les runs s'accumulent.
           Chaque ligne = un ticket.
           Enrichissements disponibles :
             - Métriques SLA       → zoho_desk_ticket_metrics (1:1, jointure sur id)
@@ -352,9 +351,7 @@ sources:
           vue de liste.
           Jointure : _zoho_desk_associated_tickets_id = zoho_desk_associated_tickets.id
           (`id` porte la même valeur — dlt réplique la clé du parent sous les deux noms).
-          NOTE : la FK s'appelait _zoho_desk_tickets_id jusqu'au passage du
-          pipeline sur dlt.sources.rest_api. dlt dérive désormais ce nom de la
-          ressource PARENTE, ce qui supprime l'incohérence.
+          NOTE : dlt dérive le nom de la FK de la ressource PARENTE.
           Les champs personnalisés sont préfixés cf__ : l'API rend un objet `cf`
           que dlt aplatit. L'objet jumeau `customFields`, indexé par LIBELLÉ
           d'affichage, est écarté à l'ingestion — ses noms de colonne
@@ -454,7 +451,7 @@ sources:
           - name: cf__cf_rupture
             description: "Custom field : rupture de stock signalée"
           - name: cf__cf_boisson_chaude
-            description: "Custom field : boissons chaudes (ancienne colonne, remplacée par cf_boissons_chaudes)"
+            description: "Custom field : boissons chaudes (remplacée par cf_boissons_chaudes)"
           - name: cf__cf_boissons_chaudes
             description: "Custom field : boissons chaudes"
           - name: cf__cf_snack
@@ -504,7 +501,7 @@ sources:
 
       - name: zoho_desk_ticket_history
         description: >
-          Journal d'audit par ticket (259 677 lignes) — une ligne par événement
+          Journal d'audit par ticket — une ligne par événement
           (création du ticket, changement de statut, changement d'assigné,
           commentaire ajouté, escalade, etc.).
           C'est la SOURCE DE VÉRITÉ pour toutes les métriques temporelles :
@@ -546,7 +543,7 @@ sources:
 
       - name: zoho_desk_ticket_history__event_info
         description: >
-          Sous-table dlt de ticket_history (823 452 lignes) —
+          Sous-table dlt de ticket_history :
           détail des champs modifiés lors d'un événement.
           Chaque ligne = un champ modifié dans un événement
           (ex : Status passé de Open à Closed).
@@ -612,7 +609,7 @@ sources:
 
       - name: zoho_desk_ticket_metrics
         description: >
-          Métriques SLA et compteurs par ticket (20 678 lignes — 1:1 avec tickets).
+          Métriques SLA et compteurs par ticket (1:1 avec tickets).
           Jointure : _zoho_desk_associated_tickets_id = zoho_desk_associated_tickets.id
           Les colonnes de durée (first_response_time, resolution_time, total_response_time)
           sont au format STRING "HH:MM hrs" — converties en minutes (INT64) dans le staging.
@@ -649,7 +646,7 @@ sources:
 
       - name: zoho_desk_ticket_metrics__agents_handled
         description: >
-          Sous-table dlt de ticket_metrics (33 608 lignes — ~1.6 agents par ticket).
+          Sous-table dlt de ticket_metrics (plusieurs agents par ticket).
           Une ligne par agent ayant traité le ticket, avec le temps passé.
           Jointure : _dlt_parent_id = zoho_desk_ticket_metrics._dlt_id
           Note : agent_id est NULL quand agent_name = 'Unassigned'
@@ -676,7 +673,7 @@ sources:
 
       - name: zoho_desk_ticket_metrics__staging_data
         description: >
-          Sous-table dlt de ticket_metrics (46 663 lignes — ~2.3 statuts par ticket).
+          Sous-table dlt de ticket_metrics (plusieurs statuts par ticket).
           Une ligne par statut par lequel le ticket est passé, avec le temps passé dans ce statut.
           Jointure : _dlt_parent_id = zoho_desk_ticket_metrics._dlt_id
           ATTENTION : "staging" est un terme Zoho (= étape de statut), pas un concept dbt.

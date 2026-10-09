@@ -11,8 +11,7 @@ with commande_header as (
     -- Le lien passe par le document parent partagé (task_idtask) : commande et réception
     -- pointent vers le même parent GESCOM. 1 commande par parent -> au plus 1 date par réception,
     -- donc pas de fan-out. min() = collapse défensif des lignes produit de la commande.
-    -- NB LCDP : ~37 % seulement des réceptions ont une commande rapprochable (vs ~98 % NESHU) :
-    -- le processus commande fournisseur y est moins systématique -> délai souvent NULL (attendu).
+    -- NB LCDP : le processus commande fournisseur y est moins systématique -> délai souvent NULL (attendu).
     select
         task_idtask as parent_id,
         min(real_start_date) as commande_start_date

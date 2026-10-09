@@ -73,7 +73,7 @@ Rows: 1,234 | Size: 2.3 MB | Last modified: 2026-04-07
 ### Observations
 - column_x has 45% nulls — consider coalesce or filter
 - column_y has only 3 distinct values — candidate for enum/label
-- _sdc_extracted_at range: 2024-01-01 to 2026-04-07
+- _extracted_at range: 2024-01-01 to 2026-04-07
 ```
 
 ### 5. Staging readiness recommendations
@@ -89,5 +89,5 @@ Based on the profile, suggest:
 
 - Always use `mcp__bigquery__execute_sql_readonly` (never `execute_sql`)
 - Limit profiling queries to avoid scanning too much data on large tables — use `limit` or sampling if row count > 1M
-- Ignore `_sdc_*` columns in recommendations (they're system metadata) but do include them in the profile
+- Ignore `_dlt_*` columns in recommendations (dlt load metadata) but do include them in the profile; `_extracted_at` becomes `extracted_at` in staging
 - The output should help the user write a correct staging model on the first try

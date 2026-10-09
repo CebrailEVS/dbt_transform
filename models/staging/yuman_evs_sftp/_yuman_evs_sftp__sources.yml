@@ -4,11 +4,8 @@ sources:
   # Stock théorique Yuman, déposé chaque nuit par le fournisseur sur son SFTP et
   # chargé par le pipeline dlt `yuman_evs_stock` (dépôt `ingestion`).
   #
-  # REMPLACE la source `yuman_gcs`, qui lisait une table externe posée sur les
-  # fichiers JSONL de Meltano. L'interface a changé — GCS -> SFTP direct — d'où
-  # le suffixe. Le job Meltano `elt-yuman` continue en parallèle d'alimenter
-  # l'archive GCS : elle reste la seule trace fichier d'une source NON
-  # RÉTROACTIVE, mais plus rien dans dbt ne la lit.
+  # Lecture SFTP directe : d'où le suffixe `sftp`. La source est NON RÉTROACTIVE, un jour
+  # manqué ne se rattrape pas.
   - name: yuman_evs_sftp
     database: "{{ var('raw_project') }}"
     schema: "prod_raw"
@@ -16,25 +13,20 @@ sources:
       tags: ['yuman_evs_sftp', 'source']
       # Freshness: tier Quotidien 7j/7 — 36h warn / 48h error
       # Pipeline `pipeline-yuman-evs-stock` à 06:30 Paris, cron `30 6 * * *`.
-      # PLUS DE DIMANCHE SKIPPÉ, contrairement à l'ancienne source yuman_gcs :
-      # le fournisseur rafraîchit le fichier tous les jours et le pipeline dlt
-      # tourne 7j/7. Les seuils se resserrent donc de 36h/80h à 36h/48h.
+      # Pas de dimanche skippé : le fournisseur rafraîchit le fichier tous les jours et le
+      # pipeline dlt tourne 7j/7.
       #
-      # export_date est la date du snapshot (DATE = minuit) et vaut désormais la
+      # export_date est la date du snapshot (DATE = minuit) et vaut la
       # date de MODIFICATION du fichier, non celle du run. Pire cas normal :
       # juste avant le run du lendemain, max(export_date) = la veille = ~30h30.
       # 36h laisse donc ~5h de marge après l'heure attendue, 48h ne se déclenche
       # que si une journée entière manque.
       #
-      # C'est ce test qui détecte un jour perdu : 5 jours ouvrés ont disparu de
-      # l'archive entre novembre 2025 et février 2026 sans que rien ne le
-      # signale. Cf. docs/freshness.md
-      # export_date est un DATE en raw (verifie sur INFORMATION_SCHEMA.COLUMNS
-      # le 2026-09-16), pas un TIMESTAMP : sans cast, la requete de fraicheur
-      # echoue a chaque run avec « Expected a timestamp value ... received DATE »
-      # et ne rend donc AUCUN verdict depuis le 2026-08-02. Le cast donne minuit
-      # UTC du jour d'export, ce qui correspond exactement au raisonnement des
-      # seuils ci-dessous (~30h30 en regime normal).
+      # C'est ce test qui détecte un jour perdu. Cf. docs/freshness.md
+      # export_date est un DATE en raw, pas un TIMESTAMP : sans cast, la requête de fraîcheur
+      # échoue avec « Expected a timestamp value ... received DATE » et ne rend aucun verdict.
+      # Le cast donne minuit UTC du jour d'export, ce qui correspond au raisonnement des
+      # seuils ci-dessus (~30h30 en régime normal).
       loaded_at_field: "timestamp(export_date)"
       freshness:
         warn_after: {count: 36, period: hour}

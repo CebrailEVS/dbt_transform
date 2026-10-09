@@ -22,7 +22,7 @@ models:
 
       [NOTES]
       Le type APPEL / COMMERCIALCALL (idtask_type 201) n'a aucune tâche en source et n'est pas inclus.
-      Un appel peut porter plusieurs sous-catégories (3 appels sur 334 au 2026-09-24) : elles sont
+      Un appel peut porter plusieurs sous-catégories : elles sont
       concaténées avec ' / ', dans le même ordre (libellé de sous-catégorie) pour les trois colonnes
       appel_sous_categorie_*/appel_detail_label. Ex. 6002244 : "PROBLEME DISTRIBUTION OU ECOULEMENT
       / VIDE" et "PROBLEME DISTRIBUTION OU ECOULEMENT / VIDE LAIT".
@@ -128,11 +128,10 @@ models:
       provient du système de paiement NAYAX via l'ERP Distrilog. Incrémental (merge sur task_product_id).
 
       [GRAIN]
-      1 ligne par task_product_id (1 relevé = 1 produit). **~4,36M lignes** (très volumineux),
-      446 distributeurs, depuis novembre 2024.
+      1 ligne par task_product_id (1 relevé = 1 produit). Table très volumineuse.
 
       [NOTES]
-      Périmètre actuel = 100% Nayax (telemetry_source TELEM_NAYAX), donc les champs de vente sont
+      Périmètre : Nayax uniquement (telemetry_source TELEM_NAYAX), donc les champs de vente sont
       renseignés sur quasi toutes les lignes. telemetry_quantity vaut toujours 1.
     columns:
       # --- IDENTIFIANTS ---
@@ -246,8 +245,7 @@ models:
       (resources type 3). Quantité ramenée en unités de base ; valorisation = quantité × prix d'achat.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'une tâche). ~313k lignes (~42,6k tâches), depuis
-      fin 2023. Incrémental (merge sur task_product_id).
+      1 ligne par task_product_id (ligne produit d'une tâche). Incrémental (merge sur task_product_id).
 
       [NOTES]
       ⚠️ Deux indicateurs de sens : `load_type_code` (issu du label) et `movement_type` (dérivé du
@@ -324,7 +322,7 @@ models:
               config: {severity: warn}
       - name: load_type_code
         description: >
-          Type d'opération issu du **label** de la tâche. Valeurs : LOADING (chargement, ~99%),
+          Type d'opération issu du **label** de la tâche. Valeurs : LOADING (chargement),
           REMOVING (retrait). Peut diverger du sens réel — voir movement_type.
         data_type: string
         tests:
@@ -409,8 +407,7 @@ models:
       prix d'achat. Incrémental (merge sur task_product_id).
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'une tâche invendus). ~4,9k lignes (~2k tâches),
-      185 distributeurs, depuis décembre 2024.
+      1 ligne par task_product_id (ligne produit d'une tâche invendus).
 
       [NOTES]
       real_quantity toujours positive (quantité retirée car invendue). Majoritairement des PRODUIT
@@ -530,8 +527,7 @@ models:
       et product. Quantité ramenée en unités de base ; valorisation = quantité × prix d'achat.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un bon de livraison). ~8,4k lignes (~3,3k bons),
-      depuis fin 2024.
+      1 ligne par task_product_id (ligne produit d'un bon de livraison).
 
       [NOTES]
       En pratique surtout des bons VALIDE. product_source_id / product_destination_id sont des
@@ -647,8 +643,7 @@ models:
       RESOURCES → code ressource (véhicule/roadman). Quantité ramenée en unités de base.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un inventaire). ~18,1k lignes (~331 inventaires),
-      depuis fin 2024.
+      1 ligne par task_product_id (ligne produit d'un inventaire).
 
       [NOTES]
       Pas de destination (un inventaire constate un stock, il ne le déplace pas). Les lignes dont
@@ -758,8 +753,7 @@ models:
       (véhicule/roadman). Quantité ramenée en unités de base.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un écart). ~46,5k lignes (~1 404 tâches),
-      depuis fin 2024.
+      1 ligne par task_product_id (ligne produit d'un écart).
 
       [NOTES]
       Pas de destination. La majorité des tâches d'écart sont en statut ANNULE (écart non retenu) ;
@@ -872,18 +866,16 @@ models:
       (task_idtask, un GESCOM), une réception pointe vers au plus 1 commande.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un bon de réception). ~8,7k lignes (~636 bons),
-      depuis début 2025.
+      1 ligne par task_product_id (ligne produit d'un bon de réception).
 
       [NOTES]
       Symétrique de la livraison côté entrée : product_destination_id est polymorphe et vaut
       toujours COMPANY ici (réception dans un dépôt). Pas de source.
-      Délai de livraison : contrairement à NESHU (~98 % de réceptions rapprochées d'une commande),
-      seules ~37 % des réceptions LCDP ont une commande fournisseur rapprochable — le processus
-      commande y est moins systématique — donc commande_start_date et delivery_lead_time_days sont
+      Délai de livraison : contrairement à NESHU, peu de réceptions LCDP ont une commande
+      fournisseur rapprochable — le processus commande y est moins systématique — donc commande_start_date et delivery_lead_time_days sont
       NULL pour la majorité (attendu, pas un bug). De rares saisies incohérentes donnent un délai
-      négatif (réception datée avant la commande) et la distribution a une longue traîne (médiane 4 j
-      mais P90 ~97 j) : filtrer sur is_lead_time_valid et préférer la médiane à la moyenne en aval.
+      négatif (réception datée avant la commande) et la distribution a une longue traîne :
+      filtrer sur is_lead_time_valid et préférer la médiane à la moyenne en aval.
     columns:
       # --- IDENTIFIANTS ---
       - name: task_product_id
@@ -941,7 +933,7 @@ models:
       - name: commande_start_date
         description: >
           Date de la commande fournisseur (type 120) rattachée, via le document parent partagé
-          (task_idtask, GESCOM). NULL si la réception n'a pas de commande rapprochable (~63 % des cas
+          (task_idtask, GESCOM). NULL si la réception n'a pas de commande rapprochable (fréquent
           côté LCDP).
         data_type: timestamp
 
@@ -1000,13 +992,12 @@ models:
       stg_oracle_lcdp__task (idtask_type = 120, code_status_record = '1', real_start_date non nul,
       tous statuts de tâche conservés) croisé avec task_has_product (grain ligne produit), enrichi
       product et task_status. Source (fournisseur) et destination (dépôt) résolues sur company
-      (type COMPANY dans 100 % des cas). Le statut de livraison est pivoté au grain tâche depuis le
+      (type COMPANY). Le statut de livraison est pivoté au grain tâche depuis le
       label de famille STATUT_LIVRAISON (max(case ...)), puis rattaché aux lignes produit — pas de
       déduplication. Seules les lignes dont source ET destination se résolvent sont conservées.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'une commande fournisseur). ~3 900 lignes
-      (~207 tâches), depuis décembre 2024.
+      1 ligne par task_product_id (ligne produit d'une commande fournisseur).
 
       [NOTES]
       Transposition LCDP de int_oracle_neshu__commande_fournisseur_tasks (mêmes types Oracle 120/121,
@@ -1143,13 +1134,12 @@ models:
       [COMMENT CONSTRUITE]
       stg_oracle_lcdp__task (idtask_type = 296, code_status_record = '1', real_start_date non nul,
       tous statuts conservés) croisé avec task_has_product (grain ligne produit), enrichi product et
-      task_status. Source et destination résolues sur company (COMPANY dans 100 % des cas). Seules
+      task_status. Source et destination résolues sur company (COMPANY). Seules
       les lignes dont source ET destination se résolvent sont conservées. Quantité ramenée en unités
       de base (real_quantity × coeff_multi / coeff_div).
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'une entrée en fabrication). ~1 380 lignes
-      (~208 tâches, 39 cafés verts), depuis janvier 2025.
+      1 ligne par task_product_id (ligne produit d'une entrée en fabrication).
 
       [NOTES]
       Maillon amont de la chaîne de torréfaction : VERT (café vert, codes 11xxx « CV … ») →
@@ -1272,13 +1262,12 @@ models:
       [COMMENT CONSTRUITE]
       stg_oracle_lcdp__task (idtask_type = 297, code_status_record = '1', real_start_date non nul,
       tous statuts conservés) croisé avec task_has_product (grain ligne produit), enrichi product et
-      task_status. Source et destination résolues sur company (COMPANY dans 100 % des cas). Seules
+      task_status. Source et destination résolues sur company (COMPANY). Seules
       les lignes dont source ET destination se résolvent sont conservées. Quantité ramenée en unités
       de base (real_quantity × coeff_multi / coeff_div).
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'une sortie de fabrication). ~2 300 lignes
-      (~347 tâches, 47 produits), depuis janvier 2025.
+      1 ligne par task_product_id (ligne produit d'une sortie de fabrication).
 
       [NOTES]
       Maillon aval de la chaîne de torréfaction : VERT (café vert) → [ENTREE_FABRICATION] →
@@ -1408,8 +1397,7 @@ models:
       Quantité ramenée en unités de base.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un mouvement interne). ~55,6k lignes (~4 162 tâches),
-      depuis fin 2024.
+      1 ligne par task_product_id (ligne produit d'un mouvement interne).
 
       [NOTES]
       Seules les lignes dont la source ET la destination se résolvent sont conservées. Flux dominant
@@ -1530,7 +1518,7 @@ models:
       task_status (code statut) et location (info d'accès).
 
       [GRAIN]
-      1 ligne par task_id (PK). ~51,4k lignes, depuis fin 2023.
+      1 ligne par task_id (PK).
 
       [NOTES]
       Modèle de base. task_status_code couvre tout le cycle (PREVU → FAIT/ANNULE…), pas seulement
@@ -1635,8 +1623,7 @@ models:
       task_product_id en priorisant le label LIVRE.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'une commande interne). ~44,5k lignes (~2 080 tâches),
-      depuis fin 2024.
+      1 ligne par task_product_id (ligne produit d'une commande interne).
 
       [NOTES]
       Distinct de int_oracle_lcdp__livraison_interne_tasks (idtask_type 161) : ici type 132, avec
@@ -1771,13 +1758,13 @@ models:
       resources_id). Incrémental (merge sur task_id).
 
       [GRAIN]
-      1 ligne par task_id (intervention). ~1 176 lignes, 393 distributeurs, depuis fin 2024.
+      1 ligne par task_id (intervention).
 
       [NOTES]
       Diffère de int_oracle_neshu__inter_techinique_tasks : ici pas de ligne produit, un technicien
       rattaché (resources_id), labels statut_inter / objet_intervent / device_cancel_reason (pas de
       dc04/mission_type), et **aucun filtre sur objet_intervent** (neshu filtrait OC04).
-      Une tâche peut porter deux statuts (1 cas au 2026-09-24, task 4190590 : TERMINATED + TOTECH) :
+      Une tâche peut porter deux statuts (ex. TERMINATED + TOTECH) :
       TERMINATED l'emporte.
       L'incrémental filtre sur task.updated_at : un label modifié sans que la tâche le soit n'est
       repris qu'au prochain --full-refresh.
@@ -1878,7 +1865,7 @@ models:
       (type 2 = PERSON). Conservé uniquement si un roadman est rattaché.
 
       [GRAIN]
-      1 ligne par task_id (un pointage). ~10k lignes, 14 roadmen, depuis fin 2024. Une journée de
+      1 ligne par task_id (un pointage). Une journée de
       roadman = typiquement 2 pointages (un START_DAY + un END_DAY).
 
       [NOTES]
@@ -1952,8 +1939,7 @@ models:
       HT / TVA vient de task_has_amount (somme des taux par tâche). Incrémental.
 
       [GRAIN]
-      1 ligne par task_id (un comptage = une relève sur une machine à une date). ~9,2k lignes,
-      ~308 distributeurs, depuis début 2025.
+      1 ligne par task_id (un comptage = une relève sur une machine à une date).
 
       [NOTES]
       Pour le **CA total** d'une machine, combiner ce CA encaissé (physique) avec le CA Nayax de
@@ -2015,7 +2001,7 @@ models:
         description: "CA encaissé total (€, TTC) = ca_pieces_eur + ca_billets_eur + ca_titres_resto_eur. Synonymes : CA espèces, recette monnayeur. Mesure additive."
         data_type: float64
       - name: ca_cash_ht_eur
-        description: "CA encaissé HT (€), ventilé depuis task_has_amount (somme sur les taux de TVA). NULL si la tâche n'a pas de ventilation HT/TVA (~10 tâches)."
+        description: "CA encaissé HT (€), ventilé depuis task_has_amount (somme sur les taux de TVA). NULL si la tâche n'a pas de ventilation HT/TVA."
         data_type: float64
       - name: ca_cash_tva_eur
         description: "Montant de TVA (€) du CA encaissé, depuis task_has_amount. NULL si pas de ventilation."

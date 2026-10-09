@@ -1,433 +1,216 @@
 # CLAUDE.md — dbt_warehouse (EVS Professionnelle France)
 
-## Project overview
-ELT data warehouse for EVS Professionnelle France.
-**Stack:** dlt sur Cloud Run jobs (extract, repo `ingestion`) → BigQuery `prod_raw` (lake) → dbt (transform) → GCP Cloud Workflows (orchestrate) → Power BI (viz)
-**dbt version:** 2.0.6 — paquet `dbt` (moteur Rust, adaptateur BigQuery inclus). Distribution
-gratuite mais **propriétaire** (dbt Product Licensing Agreement) ; `dbt-oss` est l'équivalent
-Apache 2.0, **sans `dbt lint`**. Choix assumé le 2026-09-21.
-**Team:** 1 Data Engineer (owner), 1 Data Analyst (contributes to marts)
+Entrepôt ELT d'EVS Professionnelle France. Équipe : 1 data engineer (propriétaire), 1 data
+analyst (contribue aux marts).
+
+**Chaîne** : dlt sur Cloud Run (repo `ingestion`) → BigQuery `prod_raw` → **dbt (ce repo)** →
+Cloud Workflows (repo `infra`) → Power BI.
+
+**dbt v2** (version : `requirements-lock.txt`), paquet `dbt` installé par pip. Moteur Rust livré
+comme extension CPython : Python ≥ 3.11 requis à l'exécution. Licence propriétaire gratuite de
+dbt Labs, choisie plutôt que `dbt-oss` (Apache 2.0) parce que ce dernier n'a pas `dbt lint`.
+
+Toujours appeler `./dbt_venv/bin/dbt` avec `.env` chargé (`set -a && . ./.env && set +a`) : un
+`dbt` nu peut résoudre une autre installation (dbt-core 1.x), que `require-dbt-version` refuse.
+
+| Sujet | Référence |
+|---|---|
+| Vue d'ensemble, sources, commandes | [`README.md`](README.md) |
+| Workflow, PR, ajouter un modèle | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| Conventions communes + une page par couche | [`CONVENTIONS.md`](CONVENTIONS.md), [`docs/conventions/`](docs/conventions/) |
+| Dev / CI / prod, identités, defer | [`docs/environnements.md`](docs/environnements.md) |
+| Fraîcheur des sources | [`docs/freshness.md`](docs/freshness.md) |
+| Cadence de production | [`docs/pipeline-schedule.md`](docs/pipeline-schedule.md) |
 
 ---
 
-## Local dev setup
+## Règles strictes
 
-Required env vars (set in `.env`, cf. `.env.example`):
-```
-DBT_BIGQUERY_PROJECT=evs-datastack-prod        # projet UNIQUE, dev et prod
-DBT_TARGET=dev                                 # defaults to dev if not set
-
-# dev target (default) — un seul dataset personnel, toutes couches
-DBT_BIGQUERY_DATASET_DEV=dbt_cebrail
-DBT_BIGQUERY_KEYFILE_DEV=/opt/credentials/gcp-dbt-dev-prod-key.json  # SA dbt-dev@evs-datastack-prod
-DBT_DEFER=true                                 # ref() non construits -> prod_*
-DBT_STATE=state/                               # rempli par scripts/pull-state.sh
-
-# prod target (Cloud Run runtime, pas en local)
-DBT_BIGQUERY_KEYFILE=/path/to/prod-keyfile.json
-DBT_BIGQUERY_DATASET_PROD=prod                 # prefix — prod_staging, prod_intermediate, prod_marts
-```
-
-**Un seul projet GCP, isolation par dataset** (depuis 2026-09-25, `infra/dbt_environments.tf`).
-Référence complète : [`docs/environnements.md`](docs/environnements.md).
-- `dev` → `dbt_cebrail` : `generate_schema_name` met **tout** dans le dataset du target hors
-  prod (les préfixes rendent les noms uniques) ; tables expirées après 14 j sans rebuild.
-- `ci` → `dbt_ci_pr_<N>` : créé par `pr-check`, supprimé à la fermeture de la PR.
-- `prod` → `prod_<couche>` : comportement dbt par défaut, inchangé.
-- Frontière = **IAM** : `dbt-dev` et `dbt-ci` lisent `prod_*`, n'y écrivent jamais. La macro
-  refuse aussi un dataset `prod_*` hors prod à la compilation.
-- `--defer` par défaut : le manifest prod est tenu à jour par un hook git (`post-merge`, `post-checkout`) qui lance `scripts/pull-state.sh` (téléchargement seulement si la prod a changé ; à la main : `--force`), depuis
-  `gs://evs-datastack-dbt-state`. Incrémental à tester : `dbt clone -s <modele>` puis build.
-- Snapshots : jamais construits hors prod (`target_schema: snapshots`, lecture seule hors prod).
-Never run against `prod` target unless explicitly asked.
+- **Jamais `--target prod`**, sauf demande explicite.
+- **Jamais supprimer ni dropper une table**, sauf demande explicite.
+- **Jamais de `git push` ni de PR sans GO explicite, à chaque fois.** Un GO donné plus tôt ne
+  vaut pas pour le push suivant. Les commits locaux sur une branche de feature sont libres.
+- **Branche depuis `master` à jour**, jamais depuis la branche courante :
+  `git fetch origin master && git checkout -b feature/<nom> origin/master`.
+  Avant tout push, `git log --oneline origin/master..HEAD` et `git diff --stat origin/master...HEAD`
+  ne doivent montrer que le chantier en cours. Branche polluée : nouvelle branche depuis
+  `origin/master` + `git cherry-pick` des seuls commits du chantier.
+- **Tout changement de code passe par une PR** : un push sur `master` construit en prod.
+  Exception : la documentation pure (README, CONTRIBUTING, CONVENTIONS, `docs/`, ce fichier) part
+  en push direct sur `master`, avec les droits owner (à défaut : PR + `gh pr merge --admin`).
+- **`dbt lint`** sur chaque modèle modifié avant de le considérer terminé.
+- **Staging** : écrit par le data engineer lui-même. Ne pas générer de modèle de staging.
+- **Snapshots** : stratégie et colonnes intouchables (Cloud Workflows les exécute). Seule
+  exception : mettre à jour un `ref()` interne quand une dim référencée est renommée. Ne jamais
+  renommer un fichier snapshot ni sa table : l'historique SCD2 serait perdu.
+- **Rangement** : brouillons, exports, rapports ponctuels → `tmp/` (ignoré). `scripts/` = scripts
+  d'équipe versionnés. Jamais de clé ni de copie de clé dans le repo.
+- **Commentaires** : un commentaire dit la règle et son pourquoi, en 1 à 3 lignes. Pas de date, de
+  numéro de PR, de récit d'incident ni de compte qui dérive : l'historique va dans le message de
+  commit.
 
 ---
 
-## CI/CD (GitHub Actions — `.github/workflows/dbt-ci.yml`)
+## Environnements
 
-One workflow, path-filtered on `models/**`, `data/**`, `snapshots/**`, `macros/**`, `tests/**`,
-`dbt_project.yml`, `profiles.yml`, `packages.yml`, `selectors.yml`, `Dockerfile`, `entrypoint.sh`,
-`requirements*.txt`, `.sqlfluff`. Four jobs:
+Détail : [`docs/environnements.md`](docs/environnements.md). Variables locales : `.env.example`.
 
-**`pr-check`** — runs on `pull_request` → master (model paths only; `models/exposures/**` excluded):
-- Auth **WIF**, SA `dbt-ci` (aucune clé dans GitHub) ; crée `dbt_ci_pr_<N>` (tables expirées à 3 j)
-- `dbt deps` + `dbt debug --target ci`
-- `dbt lint` on **changed** models only (git diff vs base ref)
-- `dbt parse --target ci` (warnings surfaced, non-blocking)
-- `dbt compile --static-analysis strict --target ci` — **bloquant**. Type-check le projet
-  **entier** contre les schémas réels de BigQuery (~16 s). Portée globale voulue : une dérive
-  de type vient du **raw**, pas d'une PR. Vert depuis le 2026-09-23.
-- Pulls prod `manifest.json` from the GCS state bucket, then a **deferred incremental** build:
-  `dbt build --target ci --select state:modified+ --defer --state state/ --exclude resource_type:snapshot`
-  → builds only modified+downstream in `dbt_ci_pr_<N>`; unbuilt refs & snapshots **defer to prod**.
-  (No manifest → full `dbt build --target ci`, snapshots excluded.)
+- **Un seul projet GCP** `evs-datastack-prod`, isolation par dataset ; la frontière est l'IAM.
+  - `dev` → `dbt_<toi>` : toutes les couches dans un seul dataset, tables expirées après 14 jours
+    sans rebuild ;
+  - `ci` → `dbt_ci_pr_<N>` : créé par `pr-check`, supprimé à la fermeture de la PR ;
+  - `prod` → `prod_<couche>`.
+  `dbt-dev` et `dbt-ci` lisent `prod_*` et n'y écrivent jamais ; `generate_schema_name` refuse
+  aussi un dataset `prod*` hors prod.
+- **`--defer` par défaut** vers le manifest prod (`state/`), tenu à jour par les hooks git
+  `post-merge` / `post-checkout`. À la main : `scripts/pull-state.sh --force`.
+- **Recette dev ↔ prod** : `--favor-state`, et vérifier que dev et prod ont le même volume avant
+  d'interpréter un écart (une table dev périmée fausse la comparaison).
+- **Incrémental** : `dbt clone -s <modele>` puis `dbt run -s <modele>` exécute le vrai `MERGE`.
+- **Snapshots** : jamais construits hors prod (`target_schema: snapshots`, lecture seule ailleurs).
 
-**`cleanup-ci-dataset`** — runs on `pull_request: closed` : drops `dbt_ci_pr_<N>`.
+## CI/CD — `.github/workflows/dbt-ci.yml`
 
-**`cd`** — runs on `push` → master (**including direct pushes that bypass the PR rule**).
-Verrou `concurrency: dbt-cd-prod` : un seul `cd` à la fois, jamais annulé en cours de build.
-- Auth **WIF**, SA `dbt-deployer` (master uniquement) ; target prod en `DBT_BIGQUERY_METHOD=oauth`
-- `dbt deps` + `dbt debug --target prod`
-- Pulls prod manifest, then **state-based incremental** build **directly in prod**:
-  `dbt build --target prod --select state:modified+ --exclude resource_type:snapshot --state state/`
-  (No manifest → full build, snapshots excluded.)
-- `dbt docs generate --target prod`, then **uploads `manifest.json` to `gs://evs-datastack-dbt-state`** (versionné, state for next run)
-- Builds & pushes `dbt-runner:latest` to Artifact Registry
-  (`europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner`)
-
-**`deploy-docs`** — `needs: cd`: deploys the generated dbt docs to GitHub Pages.
-
-**Key facts (don't forget these):**
-- Snapshots are **always excluded** from CI/CD builds — owned by Cloud Workflows only.
-- Builds are **state-based incremental** (`state:modified+`) against the GCS manifest, **not** full rebuilds.
-- A **direct push to master triggers `cd`** → the change builds in prod immediately, not only on PR merge.
-  The rebuilt `dbt-runner` image is then picked up **per-execution** by scheduled Cloud Workflows runs.
-- CI/CD (immediate build on push/PR) is **distinct from Cloud Workflows** (scheduled EL + transform orchestration).
-- **dbt v2 est EN PROD depuis le 2026-09-21.** GA éditeur le 2026-09-16, adaptateur BigQuery
-  *Generally available*. Le `manifest.json` reste en **schéma v12**, identique à 1.12 : l'état
-  GCS, `--defer` et `state:modified+` fonctionnent **dans les deux sens**, donc un rollback vers
-  1.12 ne demande qu'un revert du `Dockerfile` + un `cd` (l'image est re-résolue par exécution).
-- **v2 exige `roles/bigquery.readSessionUser`** : il lit via la BigQuery Storage Read API. Sans
-  ce rôle → `[DbDriverFailed (dbt1308)]`. Accordé à `dbt-dev`, `dbt-ci`, `dbt-deployer`
-  (`infra/dbt_environments.tf`) et à `meltano-runner` (`infra/iam.tf`), l'identité de Cloud Run.
-- **SQLFluff est retiré** : incompatible v2, remplacé par `dbt lint` (natif, lit le même
-  `.sqlfluff`, mêmes codes de règles, mêmes `-- noqa`, pas de connexion BigQuery). La parité
-  n'est pas garantie règle pour règle — layout/indentation (LT02) est la divergence connue.
-- `dbt docs generate` **fonctionne en v2** : `deploy-docs` est inchangé.
-- **Installation par `pip`**, la voie documentée par dbt Labs. Le paquet `dbt` n'est pas un
-  binaire autonome : c'est une extension CPython (`dbt/_core.abi3.so`), donc **Python ≥ 3.11
-  reste requis à l'exécution**. Un binaire autonome existe (`install.sh`) et allègerait l'image
-  d'environ 130 Mo — écarté pour rester sur la voie standard.
-- **`dbt lint` est gratuit sans compte** (« free forever » côté dbt Labs). Demandent un
-  `dbt login` : LSP complet, lineage colonne précis, compréhension SQL avancée.
-
----
-
-## Architecture — 3 layers
-
-| Layer | Schema | Materialization |
+| Événement | Job | Ce qui se passe |
 |---|---|---|
-| `models/staging/` | `prod_staging` / `dbt_<dev>` | table (one model = `incremental`) |
-| `models/intermediate/` | `prod_intermediate` / `dbt_<dev>` | table |
-| `models/marts/` | `prod_marts` / `dbt_<dev>` | table |
-| `models/apps/<application>/` | `prod_app_<application>` / `dbt_<dev>` | explicite (cf. [`docs/conventions/apps.md`](docs/conventions/apps.md)) |
+| PR vers `master` | `pr-check` | `dbt lint` des modèles modifiés, `dbt parse`, `dbt compile --static-analysis strict` (bloquant, projet entier), build `state:modified+` avec defer dans `dbt_ci_pr_<N>` |
+| PR fermée | `cleanup-ci-dataset` | suppression de `dbt_ci_pr_<N>` |
+| Push sur `master`, **y compris direct** | `cd` | build `state:modified+` **en prod**, docs, dépôt du manifest dans `gs://evs-datastack-dbt-state`, image `dbt-runner:latest` |
+| après `cd` | `deploy-docs` | publication de la doc dbt |
 
-Sources : voir le tableau du [README](README.md#sources-de-donnees) (14 sources, dont `historic`), autorité de fraîcheur dans [`docs/freshness.md`](docs/freshness.md).
-
-Seeds are in `data/reference_data/<source>/` and land in `prod_reference` / `dbt_<dev>`.
-
----
-
-## Naming conventions
-
-- **Staging / intermediate** : `<prefix>_<source>__<entity>.sql` (par source)
-- **Marts** : `<prefix>_<bu>__<entity>.sql` (par BU/domaine, **post-refacto by BU**)
-  - BUs : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi`
-  - `bi` = gouvernance du parc Power BI (télémétrie de la plateforme BI elle-même, pas un domaine métier)
-  - Entité **singulier**, snake_case, nom métier (pas le nom source, pas le nom du rapport BI)
-- Prefixes: `stg_` staging · `int_` intermediate · `dim_` dimension · `fct_` fact · `snap_` snapshot
-- YAML files: `_<source>__models.yml` (staging/intermediate) · `_<bu>__marts_models.yml` (marts) · `_<bu>__marts_sources.yml` (external Cloud Run tables) · `_<source>__seeds.yml` (seeds, one per source, co-located in `data/reference_data/<source>/`)
-- Seeds: `ref_<source>__<entity>.csv` (no monolithic `data/schema.yml` — doc lives in the per-source `_<source>__seeds.yml`)
-- Columns: snake_case · IDs as `id<entity>` in staging, `<entity>_id` in marts
-- Booleans: `is_` / `has_` prefix · timestamps: `_at` suffix · dates: `_date` suffix
-- Staging system columns: `extracted_at` **mandatory** (from dlt `_extracted_at`); `created_at` / `updated_at` when the source has them. **`deleted_at` is gone** (Meltano-only, always NULL) — don't add it. Debt: `zoho_desk` still exposes raw `_extracted_at`.
-
-Voir [`docs/conventions/marts.md`](docs/conventions/marts.md) § Nommage pour les règles complètes (suffixe de grain, suffixe de source si collision, etc.).
+- Snapshots **toujours exclus** de la CI/CD : seul Cloud Workflows les exécute.
+- `state:modified+` ne reconstruit que le modifié et son aval. Après un changement de forme du raw,
+  un build vert ne prouve rien sur la chaîne complète : la reconstruire entièrement.
+- L'image `dbt-runner:latest` est résolue à chaque exécution Cloud Run : le merge suffit à la déployer.
+- Toute identité qui exécute dbt v2 a besoin de `roles/bigquery.readSessionUser` (lecture par la
+  Storage Read API), sinon `DbDriverFailed (dbt1308)`.
 
 ---
 
-## Common commands
+## Architecture
 
-```bash
-# Build one model (parents deferred to prod) / + downstream
-dbt build -s dim_neshu__resource
-dbt build -s dim_neshu__resource+
+| Couche | Dossier | Dataset prod | Matérialisation |
+|---|---|---|---|
+| Staging | `models/staging/<source>/` | `prod_staging` | `table` ; `incremental` pour les grosses tables de tâches Oracle |
+| Intermediate | `models/intermediate/<source>/` | `prod_intermediate` | `table` ; `incremental` sur gros volume ; `ephemeral` ponctuel |
+| Marts | `models/marts/<bu>/` | `prod_marts` | `table` ; `view` ponctuelle |
+| Apps | `models/apps/<application>/` | `prod_app_<application>` | explicite par modèle ([`apps.md`](docs/conventions/apps.md)) |
+| Seeds | `data/reference_data/<source>/` | `prod_reference` | — |
 
-# Test an incremental model on real data: clone prod, then run the real MERGE
-dbt clone -s stg_oracle_lcdp__task && dbt run -s stg_oracle_lcdp__task
+Sources : tableau du [README](README.md#sources-de-données). BUs des marts : `neshu`, `lcdp`,
+`technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi` (gouvernance du
+parc Power BI, pas un domaine métier).
 
-# Build all models for a source (by tag)
-dbt build --select tag:oracle_neshu
+## Nommage
 
-# Build a full layer
-dbt build --select tag:staging
-dbt build --select tag:intermediate
-dbt build --select tag:marts
+Règles complètes : [`CONVENTIONS.md`](CONVENTIONS.md) et [`marts.md` § 1](docs/conventions/marts.md#1-nommage).
 
-# Lint before committing
-dbt lint models/path/to/model.sql
+- `<prefixe>_<source ou BU>__<entite>` : `stg_` / `int_` par source, `dim_` / `fct_` par BU,
+  `app_` par application, `snap_` et `ref_` (seeds) par source. Entité au singulier, nom métier.
+- Colonnes : snake_case ; IDs = nom source en staging, `<entite>_id` en marts ; booléens `is_` /
+  `has_` ; timestamps `_at` ; dates `_date`.
+- Staging : `extracted_at` obligatoire (depuis `_extracted_at` de dlt), `created_at` /
+  `updated_at` quand la source les porte. Pas de `deleted_at`.
+- YAML : `_<source>__sources.yml`, `_<source>__models.yml` (staging),
+  `_<source>__intermediate_models.yml`, `_<bu>__marts_models.yml`, `_<application>__app_models.yml`,
+  `_<source>__seeds.yml` (à côté des CSV), `_<source>__snapshots.yml`.
 
-# Fix lint issues automatically
-dbt lint models/path/to/model.sql --fix
+## Créer ou modifier un modèle
 
-# Lint only what the working tree changed
-dbt lint --changed
+Ordre : staging → intermediate → marts, sans sauter de couche. **Lire la page de la couche avant
+d'écrire** : [`staging.md`](docs/conventions/staging.md),
+[`intermediate.md`](docs/conventions/intermediate.md), [`marts.md`](docs/conventions/marts.md),
+[`apps.md`](docs/conventions/apps.md), [`seeds-snapshots.md`](docs/conventions/seeds-snapshots.md).
+SQL et entrée YAML dans la même PR.
 
-# Run source freshness
-dbt source freshness
+- **Staging** : une table source = un modèle, renommage passthrough, `description='…'` dans le
+  `config()` (en plus du YAML).
+- **Intermediate** : logique métier alignée sur **une** source, uniquement des `ref()` (seule
+  exception : l'archive `historic`). Le croisement de sources se fait dans les marts. Description
+  en YAML seulement.
+- **Marts** — [`marts.md`](docs/conventions/marts.md) :
+  1. description YAML en 4 blocs `[QUOI MÉTIER]` / `[COMMENT CONSTRUITE]` / `[GRAIN]` / `[NOTES]`,
+     grain obligatoire ;
+  2. tests minimum (§ 7) : dim → `unique` + `not_null` sur la PK ; fait → `relationships` sur chaque
+     FK, clé composite unique, invariants. Sévérités : [`CONVENTIONS.md` § Tests](CONVENTIONS.md#tests) ;
+  3. `config()` = matérialisation seulement ; ni description ni `tags` ;
+  4. schéma en étoile strict (§ 3) : pas de jointure fait-à-fait (agréger à un grain plus grossier
+     ou étendre en 1:1 est permis), pas de snowflake, pas d'OBT ; du parent direct, 1 à 3 attributs
+     d'affichage au maximum ;
+  5. colonnes dans l'ordre grain-first (§ 5).
+- **Avec le MCP BigQuery**, explorer l'amont avant d'écrire un mart : `get_table_info`,
+  `SELECT DISTINCT` pour les `accepted_values`, `COUNT(*)` pour les bornes de volume, `MIN/MAX`
+  pour les plages de dates.
+- **Exposures** : un fichier par BU dans `models/exposures/`, plus `cockpit_supply.yml` (exposure
+  `application`). Mettre à jour l'exposure dès qu'un mart consommé par un rapport est créé ou modifié.
 
-# List all exposures
-dbt ls --select exposure:*
+## BigQuery
 
-# Build all models feeding a specific BI report
-dbt build -s +exposure:business_review
-```
-
-> Note: `dbt lint` ne se connecte pas à BigQuery — pas de templater à choisir. Il lui faut
-> seulement de quoi résoudre les `env_var()` de `profiles.yml`, donc `.env` chargé.
-
----
-
-## Workflow for new models
-
-Always follow this order — never skip layers. Each layer has a dedicated convention doc — read it before writing:
-
-1. **Staging** ([`docs/conventions/staging.md`](docs/conventions/staging.md)) — clean/cast columns (passthrough naming), harmonise timestamps, expose all source fields. One staging model = one source table.
-2. **Intermediate** ([`docs/conventions/intermediate.md`](docs/conventions/intermediate.md)) — business logic, task-type splits, enrichment. **Source-aligned, NOT cross-source** — multi-source unification happens in marts.
-3. **Marts** ([`docs/conventions/marts.md`](docs/conventions/marts.md)) — final dims and facts for BI consumption.
-
-For each new model, create the SQL and its YAML entry in the same PR:
-- Staging YAML: `_<source>__models.yml` in the same folder
-- Marts YAML: `_<bu>__marts_models.yml` in the BU folder
-
-### Staging pattern
-```sql
-{{ config(materialized='table', description='<quoi + source>') }}
-with source_data as (select * from {{ source('...', '...') }}),
-cleaned_data as (
-    select
-        cast(id as int64) as id,
-        ...
-        timestamp(creation_date) as created_at,
-        timestamp(coalesce(modification_date, creation_date)) as updated_at,
-        timestamp(_extracted_at) as extracted_at
-    from source_data
-)
-select * from cleaned_data
-```
-
-### Marts dim pattern (label pivot)
-Oracle Neshu dims use an EAV label system. Standard pattern (staging refs stay per-source, output dim is per-BU):
-```sql
-with entity_labels as (
-    select e.*, l.code as label_code, lf.code as label_family_code
-    from {{ ref('stg_oracle_neshu__entity') }} as e
-    left join {{ ref('stg_oracle_neshu__label_has_entity') }} as lhe
-        on e.identity = lhe.identity and lhe.idlabel is not null
-    left join {{ ref('stg_oracle_neshu__label') }} as l on lhe.idlabel = l.idlabel
-    left join {{ ref('stg_oracle_neshu__label_family') }} as lf on l.idlabel_family = lf.idlabel_family
-),
-aggregated_labels as (
-    select
-        ...,
-        max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active
-    from entity_labels
-    group by ...
-)
-select
-    ...,
-    coalesce(lower(is_active) = 'yes', false) as is_active
-from aggregated_labels
-```
-> File path: `models/marts/neshu/dim_neshu__<entity>.sql`.
-
-### When creating or modifying a mart
-
-Always follow [`docs/conventions/marts.md`](docs/conventions/marts.md) (§ Marts — pattern complet). 4 piliers :
-
-1. **Description YAML en 4 blocs** : `[QUOI MÉTIER]` / `[COMMENT CONSTRUITE]` / `[GRAIN]` / `[NOTES]`. Grain obligatoire (1 ligne par X).
-2. **Tests minimum** : Dim → `unique` + `not_null` sur PK (error) + `accepted_values` / row count range (warn). Fact → `not_null` + `relationships` sur chaque FK (warn) + `unique_combination_of_columns` sur clé composite + `expression_is_true` sur invariants.
-3. **Config block hygiène** : `{{ config() }}` pour matérialisation uniquement. Description en YAML, pas en config (persist_docs déjà actif). Pas de `tags=[...]` model-level.
-4. **Star schema strict** : pas de jointure fait-à-fait, pas de snowflake, pas d'OBT (cf. [`docs/conventions/marts.md`](docs/conventions/marts.md) § 1 pour le pattern hybride flatten/relations PBI).
-5. **Ordre des colonnes (`select` final)** : règle **grain-first** — colonnes du grain en tête (`dimension temporelle → PK → FK`), puis FK restantes → attributs texte → dates secondaires → booléens → mesures → métadonnées (`*_at`) en dernier. Convention indicative, non lintée. Détail + exemple : [`docs/conventions/marts.md`](docs/conventions/marts.md) § 7.
-
-**Avec le MCP BigQuery** : explorer la source upstream avant d'écrire le mart (`get_table_info` pour schéma, `SELECT DISTINCT` pour `accepted_values`, `COUNT(*)` pour les bornes `row_count_between`, `MIN/MAX(date)` pour les plages).
-
-### Exposures (Power BI reports)
-
-Exposures declare which Power BI reports consume which dbt models. One file per BU dans `models/exposures/` :
-- `neshu.yml` · `lcdp.yml` · `finance.yml` · `services_generaux.yml` · `supply_chain.yml`
-- `technique.yml`, `commerce.yml` à créer quand des rapports y seront affectés
-- `cockpit_supply.yml` : exposure `type: application` de l'app Cockpit Supply (couche `apps`, cf. [`docs/conventions/apps.md`](docs/conventions/apps.md)) — à tenir à jour dès que l'app lit un nouveau modèle
-
-Update l'exposure correspondante dès qu'un mart est créé/modifié et consommé par un rapport BI. `ref()` pour dbt models.
-
----
-
-## BigQuery configuration
-
-### Partitioning
-Partition on the **date/timestamp column used as the main filter in Power BI reports**.
-- Fact tables → partition on the primary date dimension (e.g. `consumption_date`, `task_start_date`)
-- Staging incremental models → partition on the timestamp used for the incremental filter
-- Use `data_type: 'date'` for date columns, `data_type: 'timestamp'` for timestamps
-- No partition needed on small dimension tables (company, product, etc.)
-
-### Clustering
-Cluster on **foreign key columns** used in JOINs or BI filters, up to 4 columns.
-- Typical: `cluster_by: ['company_id', 'product_id', 'device_id']`
-- For staging incremental: cluster on the FK columns most used in downstream joins
-
-### Incremental strategy
-**16 modèles** sont incrémentaux (6 en staging `oracle_neshu`/`oracle_lcdp`, 10 en
-intermediate). Standard pattern:
-```sql
-{{ config(materialized='incremental', unique_key='id', incremental_strategy='merge') }}
-...
-{% if is_incremental() %}
-    where updated_at > (select max(updated_at) from {{ this }})
-       or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
-{% endif %}
-```
-
----
-
-## Documentation maintenance
-
-After any model creation, deletion, or convention change, update the relevant docs **in the same work session**.
-
-### What triggers an update
-
-| Change | README.md | CONTRIBUTING.md | CONVENTIONS.md | Autre |
-|---|---|---|---|---|
-| New model added | — | — | — | — |
-| New source added | Add row in Sources table | Add source to § 4 "Une source" steps | — | — |
-| New BI report / exposure added | — | — | — | Update `models/exposures/<bu>.yml` |
-| New naming/column convention | — | — | Update relevant section | — |
-| New lint rule | — | — | Update lint rules table | — |
-| New materialization pattern | — | Update § 4 "Ajouter…" steps | Update Materialisation table | — |
-| New mandatory test pattern | — | Update checklist | Update Tests section | Update `docs/conventions/marts.md` § 4 if marts test rule |
-| New marts modeling rule | — | — | — | Update `docs/conventions/marts.md` |
-| Workflow or PR process change | — | Update relevant section | — | — |
-| BigQuery config change (partition/cluster) | — | — | Add/update BigQuery section | — |
-| New BU / marts folder | — | — | — | Create `_<bu>__marts_models.yml` + exposure file; marts refacto by BU is DONE (no `docs/migration-marts/`) |
-| Environment / CI/CD / IAM change | CI/CD table if the flow changes | § 2-3 if the dev loop changes | — | **`docs/environnements.md`** (reference) |
-
-### What to update in each doc
-
-**`README.md`** — high-level overview for anyone discovering the project:
-- Sources table: when a new source is added or an existing one changes
-
-**`CONTRIBUTING.md`** — practical workflow guide for the Data Analyst:
-- Step-by-step model creation process if the workflow changes
-- Checklist before merge if new quality gates are added
-
-**`CONVENTIONS.md`** — now a **minimal global index**. Holds only transversal rules (naming format, columns, materialisation summary, test/severity strategy, lint, tags) + a router table to the per-layer docs. Layer-specific rules live in `docs/conventions/`, NOT here.
-
-**`docs/conventions/{staging,intermediate,marts,seeds-snapshots}.md`** — the per-layer/-resource convention docs, loaded on demand. Each follows the same skeleton (rôle · nommage · colonnes · pattern SQL · matérialisation · description · tests minimum · freshness · anti-patterns · checklist PR). **Update the relevant layer doc** when a rule for that layer changes — that's the source of truth now:
-- `staging.md` — passthrough naming rule, system columns, CTE pattern, incremental, tests, freshness method A/B
-- `intermediate.md` — source-aligned (not cross-source), ref-only, incremental, tests
-- `marts.md` — naming by BU, star schema, 4-block description trame, config hygiene, tests, anti-patterns, grain-first order
-- `seeds-snapshots.md` — CSV seeds (column_types, BigQuery types, BOM), SCD2 snapshots
-
-**`docs/environnements.md`** — reference for datasets, identities, defer, CI/CD flows, table lifetimes. README and CONTRIBUTING only summarise and link here.
-
-**`docs/freshness.md`** — source freshness authority: état par source (14 sources), méthodes A/B, seuils et leur justification, sources non couvertes. `CONVENTIONS.md § Source freshness` and `staging.md § 8` only point here.
-
----
+- **Partition** sur la date filtrée par Power BI (faits) ou par l'incrémental (staging) ;
+  `data_type: 'date'` ou `'timestamp'`. Pas de partition sur les petites dimensions.
+- **Cluster** sur les FK les plus jointes ou filtrées, 4 au maximum.
+- **Incrémental** :
+  ```sql
+  {{ config(materialized='incremental', unique_key='id', incremental_strategy='merge') }}
+  ...
+  {% if is_incremental() %}
+      where updated_at > (select max(updated_at) from {{ this }})
+         or updated_at >= timestamp_sub(current_timestamp(), interval 7 day)
+  {% endif %}
+  ```
 
 ## Frontières avec `ingestion/` et `infra/`
 
-Les sources de ce repo sont produites par les pipelines dlt d'`ingestion/`, et
-orchestrées par `infra/`. Deux points ont déjà coûté un incident.
+- **Le raw est fidèle à la source** : `ingestion/` ne fait aucun typage métier (`NUMBER` Oracle
+  sans précision → `FLOAT64`, clés → `NUMERIC`, types inconnus → `STRING`). **Tous les casts se
+  font ici** ; ne pas demander de changement de type côté extraction.
+- **Un changement de type dans `prod_raw` casse un modèle incrémental** sur toute colonne passée
+  sans cast : le `MERGE` échoue (`Value of type X cannot be assigned to <col>`). `--full-refresh`
+  ne le révèle pas, puisqu'il reconstruit la table. Après une évolution de type : build **sans**
+  `--full-refresh`, et caster explicitement toute colonne passée telle quelle.
+- `--static-analysis strict` ne compare que les colonnes dont le `data_type` est déclaré en YAML,
+  une minorité : il ne remplace pas le cast.
+- **Un sélecteur de `selectors.yml` doit avoir un appelant** dans les workflows `infra/`. Retirer
+  un workflow peut rendre un sélecteur mort : le supprimer avec.
 
-**Un changement de type dans `prod_raw` peut casser un modèle INCRÉMENTAL, et
-`--full-refresh` ne le révèle pas.** Il reconstruit la table, donc il n'exerce pas le
-chemin que le job `cd` emprunte chaque nuit. Une colonne qui traverse un modèle
-incrémental **sans cast** hérite du type du raw : si celui-ci change, le `MERGE`
-échoue avec `Value of type X cannot be assigned to <col>, which has type Y`.
-**Incident 2026-07-30** : le passage des `NUMBER` Oracle de `STRING` à `FLOAT64` a
-cassé `stg_oracle_lcdp__task` sur la seule colonne `spantime`, passée sans cast. Le
-build en `--full-refresh` était vert, l'incrémental non.
+## Lint — `dbt lint`, config `.sqlfluff`
 
-Parade : après toute évolution de type au raw, faire un build **sans**
-`--full-refresh`, et caster explicitement toute colonne passée telle quelle — le
-modèle devient indépendant du type de la source.
+Mots-clés, fonctions et types en minuscules ; indentation 4 espaces ; 120 caractères par ligne ;
+alias explicites ; pas de virgule finale dans le `select`. `dbt lint` est natif, ne se connecte pas
+à BigQuery, respecte les `-- noqa`, mais doit résoudre les `env_var()` de `profiles.yml` (`.env`
+chargé). Sa parité avec SQLFluff n'est pas totale : l'indentation (LT02) diverge.
 
-`--static-analysis strict` (actif en CI) **ne remplace pas le cast** : il ne compare que
-là où un `data_type` est déclaré en YAML, soit **13 % des colonnes** (459/3371). `spantime`,
-la colonne victime en juillet, n'en a pas — strict ne l'aurait pas vue venir. C'est un
-détecteur partiel dont la couverture grandit avec les `data_type` déclarés ; le bouclier
-reste le cast.
-
-**Le raw est délibérément fidèle à la source.** `ingestion/` ne fait aucun typage
-métier : les `NUMBER` Oracle sans précision atterrissent en `FLOAT64`, les colonnes de
-clé en `NUMERIC`, les types inconnus en `STRING`. **Tous les casts se font ici.** Ne
-pas demander de changement de type côté extraction pour éviter un cast dbt.
-
-**Retirer un workflow dans `infra/` peut rendre un selector mort.** Les selectors de
-`selectors.yml` sont appelés par les workflows Cloud Workflows. Quand un workflow
-disparaît, vérifier si son selector a encore un appelant.
+Piège : `capitalisation.functions` et `capitalisation.types` prennent
+`extended_capitalisation_policy`. Avec `capitalisation_policy`, la règle est ignorée sans message.
 
 ## Délégation aux subagents
 
-Règle : **ce qui lit beaucoup pour ne conclure qu'un peu part en subagent.** La
-session principale garde la décision, pas les 40 fichiers qui y mènent. Un
-subagent a sa propre fenêtre de contexte et ne rend qu'un rapport.
+Ce qui lit beaucoup pour conclure peu part en subagent ; la session principale garde la décision.
 
 | Situation | Délégation |
 |---|---|
-| « comprends comment marche X », recherche large, convention à retrouver | agent `Explore` (intégré) |
-| un mart est écrit et semble fini | agent `mart-reviewer` — **avant** de le déclarer terminé |
-| le changement touche un type de colonne, un nom de source, un selector, un tag | agent `boundary-impact` (global) |
-| audit lourd sur BigQuery (`audit-docs`, `audit-sources`, `check-staging-relationships`) | lancer la **skill dans un subagent**, pas dans la session principale |
-| review de diff générique, pré-PR | `/code-review` (intégré) |
+| Comprendre comment marche X, recherche large | agent `Explore` |
+| Un mart semble fini | agent `mart-reviewer`, **avant** de le déclarer terminé |
+| Changement d'un type de colonne, d'un nom de source, d'un sélecteur, d'un tag | agent `boundary-impact` |
+| Audit lourd sur BigQuery (`audit-docs`, `audit-sources`, `check-staging-relationships`) | la skill dans un subagent |
+| Revue de diff avant PR | `/code-review` |
 
-**À ne pas déléguer** : l'écriture des modèles de staging (le DE les écrit
-lui-même), les décisions d'architecture, les arbitrages métier.
+Ne pas déléguer : l'écriture des stagings, les décisions d'architecture, les arbitrages métier.
+Les agents-gardes (`mart-reviewer`, `boundary-impact`, `tf-plan-reviewer`, `pipeline-reviewer`)
+sont seuls relecteurs avant la prod : `opus` + `effort: high`. `sonnet` sert au travail de
+volume (audit d'une BU, scaffolding, migration en fan-out). Deux corrections ratées sur le même
+point : `/clear` et reprompt plus précis.
 
-**Modèle — doctrine** : le palier suit `enjeu irréversible × jugement ÷ fréquence`.
-Les agents-gardes (`mart-reviewer`, `boundary-impact`, `tf-plan-reviewer`,
-`pipeline-reviewer`) sont en **`opus` + `effort: high`** : ils tournent quelques
-fois par semaine sur un diff borné, ils sont le **seul** relecteur, et ce qu'ils
-laissent passer arrive en prod. Le gain d'un palier inférieur y serait
-négligeable, le coût d'un défaut manqué non.
-`sonnet` est réservé au travail de **volume** : audit d'une BU entière,
-scaffolding, migration en fan-out — beaucoup de lignes, peu de jugement.
+## Tenir la doc à jour
 
-**Hygiène de contexte** : deux corrections ratées sur le même point → `/clear`
-et reprompt plus précis, plutôt que continuer dans un contexte pollué.
+Dans la même session que le changement :
 
-## Hard rules
-
-- **Où ranger** : brouillon, exports, rapports ponctuels → `tmp/` (ignoré) ; `scripts/` = scripts d'équipe versionnés uniquement ; jamais de clé ni de copie de clé dans le repo (cf. README § Organisation du repo).
-
-- **Snapshots strategy/columns inchangés** — gérés par GCP Cloud Workflows. **Exception** : mettre à jour les `ref()` à l'intérieur d'un snapshot est OK quand une dim référencée est renommée (cf. PR neshu : `snap_oracle_neshu__company` ref → `dim_neshu__company`). Ne jamais renommer le fichier snapshot ni sa table BQ (historique SCD2 perdu).
-- **Never delete or drop tables** unless explicitly asked
-- **Never run against prod target** unless explicitly asked
-- **Never `git push` or create a PR without explicit user confirmation, every time** — local commits on a feature branch are fine, but anything that leaves the machine (push, `gh pr create`, direct push to master) waits for an explicit GO in the current exchange. A confirmation given earlier in the session does NOT carry over to the next push/PR.
-- **Toujours créer une branche de feature depuis `master` à jour**, jamais depuis la branche courante :
-  `git fetch origin master && git checkout -b feature/<nom> origin/master`.
-  Ne jamais faire un `git checkout -b` sans avoir vérifié où pointe `HEAD` : partir d'une
-  autre branche de feature embarque ses commits non poussés dans la PR. **Incident 2026-07-29** :
-  la branche roadman LCDP a été créée depuis `feature/apptech-interventions-retraitees` → la PR
-  aurait inclus le mart `fct_technique__intervention_retraitee` d'un autre chantier (5 fichiers,
-  ~400 lignes), et vidé sa propre PR de son contenu.
-  **Contrôle avant tout push** : `git log --oneline origin/master..HEAD` ne doit contenir que les
-  commits du chantier en cours, et `git diff --stat origin/master...HEAD` que ses fichiers.
-  Correction si la branche est déjà polluée : nouvelle branche depuis `origin/master` +
-  `git cherry-pick` des seuls commits du chantier (non destructif, l'autre branche reste intacte).
-- **Never skip `dbt lint`** before considering a model done
-- **Marts must follow a star schema** — facts (`fct_`) reference dimensions (`dim_`) via `<entity>_id` foreign keys only. No fact-to-fact joins (un fait peut toutefois en **agréger** un autre à un grain plus grossier via `GROUP BY`, ou l'**étendre** à grain strictement identique 1:1 — cf. [`docs/conventions/marts.md`](docs/conventions/marts.md)), no snowflaked dimensions, no wide one-big-table marts. **Aplatir uniquement les attributs d'affichage du parent direct (1-3 colonnes max)**, jamais une dim parente entière. Voir [`docs/conventions/marts.md`](docs/conventions/marts.md) § Marts — pattern complet.
-- **Description placement** : staging **doit** avoir `description='...'` dans `{{ config() }}` (cf. feedback memory, convention historique). Intermediate et **marts** : description en YAML uniquement, pas dans le config block (persist_docs gère BQ).
-- All contributions go through PRs — DE owns staging/intermediate/snapshots, DA contributes/reviews marts.
-  **Exception** : les changements docs-only (README, docs/, CONTRIBUTING) partent en push direct sur master, pas de PR. Master est protégée : le push direct passe avec les droits owner (sinon fallback PR + merge --admin).
-
----
-
-## Key packages
-
-- `dbt_utils` 1.4.1 — `unique_combination_of_columns`, `expression_is_true`, `generate_surrogate_key`
-- `dbt_expectations` 0.10.10 — row count ranges, date ranges, regex, null rate checks
-
-## Règles de lint (`dbt lint`, config `.sqlfluff`)
-
-- Keywords, functions, types: **lowercase**
-- Indent: **4 spaces**
-- Max line length: **120 characters**
-- **No trailing commas**
-- Pas de templater à configurer : `dbt lint` est natif.
-- **Piège vécu** : `capitalisation.functions` et `capitalisation.types` attendent
-  `extended_capitalisation_policy`, PAS `capitalisation_policy` (valide pour `keywords` et
-  `literals` seulement). Mauvaise clé = règle silencieusement inerte, retombée sur
-  `consistent`. A laissé passer 168 violations jusqu'au 2026-09-21.
+| Changement | Mettre à jour |
+|---|---|
+| Nouvelle source | tableau du README, [`docs/freshness.md`](docs/freshness.md), tags dans `dbt_project.yml` |
+| Nouveau rapport Power BI ou nouvelle lecture par une app | `models/exposures/<bu>.yml` |
+| Nouvelle BU | dossier `models/marts/<bu>/`, `_<bu>__marts_models.yml`, fichier d'exposures, tags |
+| Règle d'une couche (nommage, pattern, tests) | la page de la couche dans `docs/conventions/` |
+| Règle commune (colonnes, lint, sévérités, matérialisation) | `CONVENTIONS.md` |
+| Workflow, PR, checklist | `CONTRIBUTING.md` |
+| Environnement, CI/CD, IAM | [`docs/environnements.md`](docs/environnements.md) (README et CONTRIBUTING ne font que résumer) |

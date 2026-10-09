@@ -7,11 +7,11 @@ version: 2
 # et ce que coûtent en rafraîchissement ceux que personne n'ouvre.
 # Source : docs/architecture/powerbi_activity.md.
 #
-# ⚠️ DONNÉES PERSONNELLES — arbitrage explicite du 2026-09-03.
+# ⚠️ DONNÉES PERSONNELLES — arbitrage explicite du propriétaire du dépôt.
 #
 # Le contrat de source (docs/architecture/powerbi_activity.md) prévoyait
 # initialement des agrégats seuls. **Le propriétaire du dépôt a arbitré
-# autrement le 2026-09-03** : le nominatif est exposé, parce que savoir qui
+# autrement** : le nominatif est exposé, parce que savoir qui
 # lit quoi est jugé utile au pilotage du parc. Cette BU applique donc :
 #
 #   - `fct_bi__consultation` porte `user_id` en clair, au grain de
@@ -54,18 +54,17 @@ models:
       d'App et des rapports de métriques d'usage) sur
       stg_powerbi_activity__workspaces (déjà restreint aux espaces partagés
       actifs). C'est cette jointure interne qui matérialise le troisième filtre
-      obligatoire du contrat de source et fait passer de 100 rapports à 37.
+      obligatoire du contrat de source : seuls les rapports métier restent.
       Aplatit `workspace_name` de l'espace parent, `dataset_name` et
       `is_refreshable` du modèle sémantique parent.
 
       [GRAIN]
-      1 ligne par report_id (PK). 37 lignes au 2026-09-03.
+      1 ligne par report_id (PK).
 
       [NOTES]
-      Sans les trois filtres, le parc afficherait 139 rapports dont 55
-      « jamais consultés » — chiffre faux dans le sens alarmiste, et déjà
-      publié une fois par erreur. Le décompte de référence est : 139 bruts →
-      76 en espace partagé → 47 hors copies d'App → 37 hors métriques d'usage.
+      Sans les trois filtres (espace partagé actif, hors copies d'App, hors
+      métriques d'usage), le parc afficherait des rapports « jamais consultés »
+      qui n'en sont pas : chiffre faux dans le sens alarmiste.
       `dataset_id` est testé `unique` : le parc est en 1:1 rapport/modèle
       sémantique, et les deux faits de cette BU s'appuient sur cette propriété
       pour rattacher les rafraîchissements au rapport.
@@ -134,17 +133,16 @@ models:
       [COMMENT CONSTRUITE]
       stg_powerbi_activity__events restreint à `activity = 'ViewReport'`, en
       jointure interne sur dim_bi__rapport. La jointure interne écarte les
-      consultations hors périmètre métier (2 sur 248 au 2026-09-03 : copies
+      consultations hors périmètre métier (copies
       d'App ou rapports de métriques d'usage). Aplatit `report_name` et
       `workspace_name` du rapport parent ; `user_domain` est dérivé de l'UPN.
 
       [GRAIN]
       1 ligne par event_id (PK) = 1 consultation par une personne.
-      246 lignes au 2026-09-03, pour 32 lecteurs distincts.
 
       [NOTES]
       ⚠️ CONTIENT DES DONNÉES PERSONNELLES NOMINATIVES (`user_id`) — arbitrage
-      du propriétaire du dépôt le 2026-09-03, cf. l'en-tête de ce fichier.
+      du propriétaire du dépôt, cf. l'en-tête de ce fichier.
       Fait sans mesure (« factless fact ») : le décompte des consultations est
       le `count(*)` des lignes. Toutes les consultations sont en
       `user_type = 0`, c'est-à-dire des personnes réelles — aucun compte de
@@ -197,9 +195,9 @@ models:
       - name: user_id
         description: >
           ⚠️ DONNÉE PERSONNELLE — UPN de la personne ayant ouvert le rapport.
-          Dimension dégénérée : 32 lecteurs pour 2 domaines, ce qui ne justifie
+          Dimension dégénérée : peu de lecteurs distincts, ce qui ne justifie
           pas une dimension utilisateur dédiée. Exposé sur arbitrage explicite
-          du 2026-09-03 (cf. en-tête).
+          (cf. en-tête).
         tests: [not_null]
       - name: user_domain
         description: "Domaine de l'UPN : evs-pro.com ou neshu.com. Permet de segmenter les deux entités sans désigner de personne."
@@ -235,10 +233,8 @@ models:
 
       [GRAIN]
       1 ligne par (activite_date, report_id) ayant porté au moins une activité.
-      684 lignes au 2026-09-03. ⚠️ Le nom trompe : la table est à 87 % du
-      rafraîchissement, pas de la consultation. Décomposition mesurée —
-      592 lignes de rafraîchissement seul, 87 lignes mixtes, 5 lignes de
-      consultation seule. Un `count(*)` ici ne compte donc PAS des
+      ⚠️ Le nom trompe : la table porte surtout du rafraîchissement, très peu
+      de consultation seule. Un `count(*)` ici ne compte donc PAS des
       consultations ; sommer `nb_consultations`.
 
       [NOTES]
@@ -331,7 +327,6 @@ models:
 
       [GRAIN]
       1 ligne par report_id (PK) — le parc entier, dormants inclus.
-      37 lignes au 2026-09-03, dont 18 dormantes.
 
       [NOTES]
       Fait de type snapshot, au grain de dim_bi__rapport (1:1). Les mesures
@@ -341,9 +336,8 @@ models:
       La table est RECONSTRUITE à chaque build (pas d'historisation) :
       `snapshot_date` dit de quand l'état date, ce qui permet de repérer une
       table figée par un build en échec au lieu de la lire comme fraîche.
-      Repère métier au 2026-09-03 : 312 rafraîchissements pour zéro lecteur,
-      et 9 rapports à la fois dormants et jamais rafraîchis — ceux-là sont
-      morts, pas à optimiser.
+      Repère métier : un rapport à la fois dormant et jamais rafraîchi est
+      mort, pas à optimiser.
     tests:
       - dbt_expectations.expect_table_row_count_to_be_between:
           arguments:
@@ -389,7 +383,7 @@ models:
       - name: derniere_consultation_at
         description: "Horodatage de la dernière ouverture connue. NULL si le rapport n'a jamais été ouvert sur la fenêtre — c'est la signature d'un dormant."
       - name: is_dormant
-        description: "Vrai si le rapport n'a reçu aucune consultation sur la fenêtre. 18 des 37 rapports au 2026-09-03."
+        description: "Vrai si le rapport n'a reçu aucune consultation sur la fenêtre."
       - name: nb_consultations
         description: "Nombre total d'ouvertures sur la fenêtre. Additif."
         tests:

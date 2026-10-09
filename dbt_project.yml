@@ -1,24 +1,18 @@
-# dbt_project.yml
 name: dbt_warehouse
 version: '1.0.0'
 profile: dbt_warehouse
 config-version: 2
-# Bascule v2 assumee : un moteur 1.x ne doit plus construire ce projet.
+# Projet dbt v2 : un moteur 1.x refuse de le construire.
 require-dbt-version: [">=2.0.0", "<3.0.0"]
 
 flags:
   use_colors: true
   send_anonymous_usage_stats: false
-  # Volontairement FALSE. Le chemin "batch" (metadata TABLE_STORAGE) ne concerne que
-  # les sources sans loaded_at_field : ici il n'y en a aucune, il tourne donc sur 0
-  # source et plante dans get_relation_last_modified ("list object has no element 0").
-  # Sous dbt 1.11 l'erreur etait cosmetique, le calcul par source suivait quand meme.
-  # Sous 1.12 elle fait SKIP les 55 sources : freshness aveugle, exit 1. A remettre a
-  # true seulement si une source passe un jour en freshness sans loaded_at_field.
+  # Garder false : le chemin "batch" ne sert qu'aux sources sans loaded_at_field. Il
+  # n'y en a aucune, et sur une liste vide il plante et rend la freshness aveugle.
   bigquery_use_batch_source_freshness: false
 
 model-paths: ["models"]
-analysis-paths: ["analysis"]
 test-paths: ["tests"]
 seed-paths: ["data"]
 macro-paths: ["macros"]
@@ -45,145 +39,142 @@ models:
       +tags: ['staging']
 
       apptech:
-        +tags: ['staging', 'apptech']
+        +tags: ['apptech']
 
       yuman:
-        +tags: ['staging', 'yuman']
+        +tags: ['yuman']
 
       yuman_evs_sftp:
-        +tags: ['staging', 'yuman_evs_sftp']
+        +tags: ['yuman_evs_sftp']
 
       nesp_co:
-        +tags: ['staging', 'nesp_co']
+        +tags: ['nesp_co']
 
       nesp_tech:
-        +tags: ['staging', 'nesp_tech']
+        +tags: ['nesp_tech']
 
       oracle_neshu:
-        +tags: ['staging', 'oracle_neshu']
+        +tags: ['oracle_neshu']
 
       oracle_lcdp:
-        +tags: ['staging', 'oracle_lcdp']
+        +tags: ['oracle_lcdp']
 
       oracle_neshu_gcs:
-        +tags: ['staging', 'oracle_neshu_gcs']
+        +tags: ['oracle_neshu_gcs']
 
       oracle_lcdp_gcs:
-        +tags: ['staging', 'oracle_lcdp_gcs']
+        +tags: ['oracle_lcdp_gcs']
 
       mssql_sage:
-        +tags: ['staging', 'mssql_sage']
+        +tags: ['mssql_sage']
 
       gac:
-        +tags: ['staging', 'gac']
+        +tags: ['gac']
 
       zoho_desk:
-        +tags: ['staging', 'zoho_desk']
+        +tags: ['zoho_desk']
 
       powerbi_activity:
-        +tags: ['staging', 'powerbi_activity']
+        +tags: ['powerbi_activity']
 
     intermediate:
       +schema: intermediate
       +tags: ['intermediate']
 
+      apptech:
+        +tags: ['apptech']
+
       yuman:
-        +tags: ['intermediate', 'yuman']
+        +tags: ['yuman']
 
       oracle_neshu:
-        +tags: ['intermediate', 'oracle_neshu']
+        +tags: ['oracle_neshu']
 
       oracle_lcdp:
-        +tags: ['intermediate', 'oracle_lcdp']
+        +tags: ['oracle_lcdp']
 
       mssql_sage:
-        +tags: ['intermediate', 'mssql_sage']
+        +tags: ['mssql_sage']
 
       nesp_co:
-        +tags: ['intermediate', 'nesp_co']
+        +tags: ['nesp_co']
 
       nesp_tech:
-        +tags: ['intermediate', 'nesp_tech']
+        +tags: ['nesp_tech']
 
       zoho_desk:
-        +tags: ['intermediate', 'zoho_desk']
+        +tags: ['zoho_desk']
 
       gac:
-        +tags: ['intermediate', 'gac']
+        +tags: ['gac']
 
     marts:
       +schema: marts
       +tags: ['marts']
 
       technique:
-        +tags: ['marts', 'technique']
+        +tags: ['technique']
 
       commerce:
-        +tags: ['marts', 'commerce']
+        +tags: ['commerce']
 
       finance:
-        +tags: ['marts', 'finance']
+        +tags: ['finance']
 
       services_generaux:
-        +tags: ['marts', 'services_generaux']
+        +tags: ['services_generaux']
 
       supply_chain:
-        +tags: ['marts', 'supply_chain']
+        +tags: ['supply_chain']
 
       neshu:
-        +tags: ['marts', 'neshu']
+        +tags: ['neshu']
 
       lcdp:
-        +tags: ['marts', 'lcdp']
+        +tags: ['lcdp']
 
       bi:
-        +tags: ['marts', 'bi']
+        +tags: ['bi']
 
-    # Couche de service des APPLICATIONS (2026-10-08, cf. docs/conventions/apps.md) :
-    # modèles taillés pour une seule application, lus tels quels par elle. Hors
-    # schéma en étoile (règles marts non applicables), un dataset par application.
+    # Couche de service des applications (docs/conventions/apps.md) : modèles taillés
+    # pour une seule application, hors schéma en étoile, un dataset par application.
     apps:
       +tags: ['apps']
 
       cockpit_supply:
         +schema: app_cockpit_supply   # prod -> prod_app_cockpit_supply ; dev/ci -> dataset du target
-        +tags: ['apps', 'cockpit_supply']
+        +tags: ['cockpit_supply']
 
 seeds:
   dbt_warehouse:
     +schema: reference
     +tags: ['reference']
 
-# Configuration des snapshots
-# Les snapshots sont un artefact de PROD (historique SCD2 continu, maintenu par
-# Cloud Run). En dev on ne les reconstruit pas : les builds dev les lisent depuis
-# prod via --defer (cf. dim_neshu__device_history).
+# Snapshots : artefact de prod (historique SCD2 continu, exécuté par Cloud Workflows).
+# Jamais construits hors prod : dev et CI les lisent en prod via --defer.
 snapshots:
   dbt_warehouse:
     +target_schema: snapshots
     +tags: ['snapshots']
 
-# Vars
 vars:
-  # Projet GCP du data lake (prod_raw, historic…), lu par les sources via
-  # database: "{{ var('raw_project') }}". Tous les targets vivent désormais dans
-  # ce projet (infra/dbt_environments.tf) ; la var reste pour pouvoir pointer un
-  # build de test vers un autre lac sans toucher aux sources.
+  # Projet GCP du lac (prod_raw, historic), lu par les sources via
+  # database: "{{ var('raw_project') }}". Surchargeable pour pointer un build de
+  # test vers un autre lac sans toucher aux sources.
   raw_project: 'evs-datastack-prod'
   # Coût du paiement sans contact, en part du CA télémétrie. Le rapport finance
   # de Distrilog l'écrit en dur à 2 % ; aucune trace de ce taux en base, et aucun
   # paramétrage côté ERP. Exposé ici pour qu'il se change sans toucher au SQL.
   taux_cout_cashless: 0.02
-  # Required by dbt_date (transitive dep of dbt_expectations) for recency checks.
-  # Cf. docs/freshness.md méthode B.
+  # Requis par dbt_date (dépendance de dbt_expectations) pour les tests de récence
+  # (docs/freshness.md, méthode B).
   'dbt_date:time_zone': 'Europe/Paris'
   # Plancher de date des écritures à ventiler (fct_finance__ecriture_non_ventilee).
   ecriture_non_ventilee_floor: '2025-01-01'
   # Plafond de surstock du point de commande NESHU (fct_supply_chain__point_commande_neshu) :
-  # stock_max = point de commande + N semaines de demande. Règle logistique du 2026-10-01 : les
-  # fournisseurs livrent avec au moins un mois de DLUO, donc au-delà de 4 semaines de stock le
-  # risque de périmés devient réel -> 4 par défaut (toute famille non listée, y compris une
-  # nouvelle famille : on reste prudent).
+  # stock_max = point de commande + N semaines de demande. Règle de la logistique : les
+  # fournisseurs livrent avec au moins un mois de DLUO, donc au-delà de 4 semaines le risque
+  # de périmés devient réel. 4 par défaut, y compris pour une famille nouvelle ou non listée.
   surstock_semaines: 4
   # Exceptions : café, thé et non périssables gardent 8 semaines. Valeur ENTIÈRE, sans
   # guillemets (sinon CASE STRING/INT64 refusé par BigQuery). Clé = dim_neshu__product.product_family.
@@ -195,4 +186,3 @@ vars:
     'THE': 8
     'GOBELETS': 8
     'MELANGEURS': 8
-    

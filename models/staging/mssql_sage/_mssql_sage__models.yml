@@ -213,7 +213,7 @@ models:
 
   # TABLE DOCLIGNE NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_docligne
-    description: "Lignes de documents Nunshen (ventes, achats, stock, fabrication). Chargement replace depuis le 2026-10-07 : ne contient que les lignes existant dans Sage. Avant, en merge sans purge, ~1 900 lignes n'avaient plus d'en-tête dans f_docentete ; zéro mesuré sur dev_raw après le passage en replace."
+    description: "Lignes de documents Nunshen (ventes, achats, stock, fabrication). Chargement replace : ne contient que les lignes existant dans Sage."
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK)"
@@ -234,10 +234,10 @@ models:
                 field: co_no
       - name: do_domaine
         description: >
-          Domaine du document Sage. Valeurs observées :
-          0 = Ventes (~225 k lignes, CT_Num pointe vers f_comptet),
-          1 = Achats / autre flux (~3 k lignes),
-          2 = Stock interne (~99 k lignes, CT_Num est un code dépôt
+          Domaine du document Sage. Valeurs :
+          0 = Ventes (CT_Num pointe vers f_comptet),
+          1 = Achats / autre flux,
+          2 = Stock interne (CT_Num est un code dépôt
           numérique et ne pointe PAS vers f_comptet).
           Filtrer sur do_domaine = 0 pour ne garder que les ventes Nunshen.
       - name: do_type
@@ -265,7 +265,7 @@ models:
       - name: dl_design
         description: "Désignation produit de la ventes"
       - name: ar_ref
-        description: "Référence article de la vente. FK déclarée par Sage vers F_ARTICLE. Nullable : 39 695 lignes sur 337 572 n'en portent pas (de vrais NULL, que le test relationships ignore)."
+        description: "Référence article de la vente. FK déclarée par Sage vers F_ARTICLE. Nullable (de vrais NULL, que le test relationships ignore)."
         tests:
           - relationships:
               arguments:
@@ -326,7 +326,7 @@ models:
       - name: dl_qte_de
         description: "Quantité du devis"
       - name: do_date_livr
-        description: "Date de livraison PRÉVUE, recopiée de la commande. NULL si non renseignée (Sage : 1753-01-01, 96 % des lignes)."
+        description: "Date de livraison PRÉVUE, recopiée de la commande. NULL si non renseignée (Sage : 1753-01-01)."
       - name: dl_piece_of_prod
         description: "Pièce d'ordre de fabrication (0 partout)"
       - name: ar_ref_compose
@@ -451,7 +451,7 @@ models:
       - name: dl_qte_ressource
         description: "Quantité de ressource (0 partout)"
       - name: dl_date_avancement
-        description: "Date d'avancement. NULL si 1753-01-01 (100 % au 2026-09-28)."
+        description: "Date d'avancement. NULL si 1753-01-01 (valeur sentinelle Sage)."
       - name: pf_num
         description: "Numéro de plan de fabrication (vide partout)"
       - name: dl_operation
@@ -468,9 +468,7 @@ models:
   # ---------------------------------------------------------------------------
   # DIMENSIONS COMPTABLES ET ARTICLES
   #
-  # Ajoutées le 2026-08-01 pour porter les trois relationships que Sage déclare
-  # depuis une colonne exposée. Orphelins mesurés à la source avant ajout : ZÉRO
-  # sur les trois liens.
+  # Portent les trois relationships que Sage déclare depuis une colonne exposée.
   # ---------------------------------------------------------------------------
   - name: stg_mssql_sage__f_compteg
     description: "Plan comptable général — dimension des écritures comptables."
@@ -486,7 +484,7 @@ models:
           - unique
           - not_null
       - name: cg_intitule
-        description: "Libellé du compte général. C'est la source de vérité du champ designation_compte, aujourd'hui saisi à la main dans le seed ref_mssql_sage__code_comptable_bu."
+        description: "Libellé du compte général. C'est la source de vérité du champ designation_compte, saisi à la main dans le seed ref_mssql_sage__code_comptable_bu."
       - name: cg_type
         description: "Type de compte (détail, total, centralisateur…)"
       - name: cg_sommeil
@@ -753,7 +751,7 @@ models:
       - name: exclusivite_boutique
         description: "Champ libre Nunshen : exclusivité boutique (OUI / NON)"
       - name: produit_sur_demande
-        description: "Champ libre Nunshen : produit sur demande (apparu le 2026-09-28, vide à cette date)"
+        description: "Champ libre Nunshen : produit sur demande"
       - name: prime
         description: "Champ libre Nunshen : article primé (OUI / NON)"
       - name: allergene
@@ -1025,7 +1023,7 @@ models:
       - name: de_no
         description: "Dépôt de prélèvement du composant (0 partout : pas de dépôt imposé)"
       - name: no_sous_traitance
-        description: "Composant sous-traité (2 lignes sur 5 132)"
+        description: "Composant sous-traité"
       - name: no_commentaire
         description: "Commentaire de ligne (vide partout)"
       - name: created_at
@@ -1059,7 +1057,7 @@ models:
                 field: ar_ref
               config:
                 severity: warn
-          # Un seul fournisseur principal par article (vrai sur 1 669 / 1 669 au 2026-09-28)
+          # Un seul fournisseur principal par article
           - unique:
               config:
                 where: "af_principal = 1"
@@ -1077,7 +1075,7 @@ models:
       - name: af_principal
         description: "1 = fournisseur principal de l'article"
       - name: af_ref_fourniss
-        description: "Référence de l'article chez le fournisseur (renseignée sur 8 % des lignes)"
+        description: "Référence de l'article chez le fournisseur"
       - name: af_code_barre
         description: "Code-barres fournisseur (quasi jamais renseigné)"
       - name: af_prix_ach
@@ -1097,7 +1095,7 @@ models:
       - name: af_remise_nouv
         description: "Nouvelle remise"
       - name: af_date_application
-        description: "Date d'application du nouveau tarif. NULL si non renseignée (Sage : 1753-01-01) ; 3 lignes datées."
+        description: "Date d'application du nouveau tarif. NULL si non renseignée (Sage : 1753-01-01)."
       - name: af_unite
         description: "Unité d'achat (constante)"
       - name: af_conversion
@@ -1148,7 +1146,7 @@ models:
               config:
                 severity: warn
       - name: do_type
-        description: "Type de document dans le domaine — vente : 0 devis, 1 commande, 2 préparation de livraison, 3 bon de livraison, 6 facture, 7 facture comptabilisée ; achat : 12 commande fournisseur, 13 réception ; stock : 20 entrée, 21 sortie, 23 virement de dépôt, 24 préparation de fabrication, 26 bon de fabrication. Numérotation Sage 100 standard, supposée."
+        description: "Type de document dans le domaine — vente : 0 devis, 1 commande, 2 préparation de livraison, 3 bon de livraison, 6 facture, 7 facture comptabilisée ; achat : 12 commande fournisseur, 13 réception ; stock : 20 entrée, 21 sortie, 23 virement de dépôt, 24 préparation de fabrication, 26 bon de fabrication. Numérotation Sage 100 standard."
         tests:
           - not_null
       - name: do_piece
@@ -1176,7 +1174,7 @@ models:
       - name: do_ref_externe
         description: "Référence externe"
       - name: do_no_web
-        description: "Numéro de commande web (site marchand), 11 % renseigné"
+        description: "Numéro de commande web (site marchand)"
       - name: do_guid
         description: "GUID Sage du document (NULL partout)"
       - name: do_imprim
@@ -1228,11 +1226,11 @@ models:
                 where: "de_no != 0"
                 severity: warn
       - name: do_date_livr
-        description: "Date de livraison PRÉVUE. NULL si non renseignée (Sage : 1753-01-01, 97 % des en-têtes)."
+        description: "Date de livraison PRÉVUE. NULL si non renseignée (Sage : 1753-01-01)."
       - name: do_date_livr_realisee
-        description: "Date de livraison réalisée. NULL si non renseignée (47 %)."
+        description: "Date de livraison réalisée. NULL si non renseignée."
       - name: do_date_expedition
-        description: "Date d'expédition. NULL si non renseignée (100 % vide au 2026-09-28)."
+        description: "Date d'expédition. NULL si non renseignée."
       - name: do_expedit
         description: "Mode d'expédition"
       - name: do_condition
@@ -1470,7 +1468,7 @@ models:
       - name: as_qte_maxi
         description: "Stock maximum"
       - name: as_mont_sto
-        description: "Valeur du stock. Peut être non nulle avec as_qte_sto = 0 (3,4 % des lignes au 2026-09-28) : diviser avec safe_divide pour le CMUP."
+        description: "Valeur du stock. Peut être non nulle avec as_qte_sto = 0 : diviser avec safe_divide pour le CMUP."
       - name: dp_no_principal
         description: "Emplacement principal (0 partout)"
       - name: dp_no_controle
@@ -1565,7 +1563,7 @@ models:
       - name: ls_fabrication
         description: "Date de fabrication. NULL si non renseignée (Sage : 1753-01-01)."
       - name: ls_peremption
-        description: "Date de péremption. NULL si non renseignée (Sage : 1753-01-01). 5 lignes aberrantes en 2923 (lot 170TLP200), laissées telles quelles."
+        description: "Date de péremption. NULL si non renseignée (Sage : 1753-01-01). Les valeurs aberrantes sont laissées telles quelles."
       - name: ls_complement
         description: "Complément libre du lot"
       - name: created_at

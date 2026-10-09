@@ -17,8 +17,7 @@ models:
       (paiement) via l'ERP Distrilog. Incrémental (merge sur task_product_id).
 
       [GRAIN]
-      1 ligne par task_product_id (1 relevé = 1 produit télémétré). **~24,4M lignes** (très volumineux),
-      ~1 269 distributeurs, depuis fin 2022.
+      1 ligne par task_product_id (1 relevé = 1 produit télémétré). Table très volumineuse.
 
       [NOTES]
       Aucune colonne de statut exposée (déjà filtré FAIT/VALIDE). telemetry_quantity vaut toujours 1
@@ -113,11 +112,10 @@ models:
       les coefficients de conditionnement ; valorisation = quantité × prix d'achat.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'une tâche). ~1,14M lignes (~333k tâches),
-      depuis 2022. Incrémental (merge sur task_product_id).
+      1 ligne par task_product_id (ligne produit d'une tâche). Incrémental (merge sur task_product_id).
 
       [NOTES]
-      load_type_code distingue chargement (LOADING, ~99,7%) et retrait (REMOVING). Les colonnes
+      load_type_code distingue chargement (LOADING) et retrait (REMOVING). Les colonnes
       product_source_id / product_destination_id sont des références polymorphes (cf. leur _type).
     columns:
       # --- IDENTIFIANTS ---
@@ -193,7 +191,7 @@ models:
                 severity: warn
       - name: load_type_code
         description: >
-          Type d'opération (label de la tâche). Valeurs : LOADING (chargement, ~99,7%),
+          Type d'opération (label de la tâche). Valeurs : LOADING (chargement),
           REMOVING (retrait de produit).
         data_type: string
         tests:
@@ -273,8 +271,7 @@ models:
       valorisation = quantité × prix d'achat.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un bon de livraison). ~3 962 lignes (~718 bons),
-      depuis fin 2022.
+      1 ligne par task_product_id (ligne produit d'un bon de livraison).
 
       [NOTES]
       Petit volume ; en pratique surtout des bons VALIDE. product_source_id / product_destination_id
@@ -393,8 +390,7 @@ models:
       RESOURCES → code ressource (véhicule/roadman). Quantité ramenée en unités de base.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un inventaire). ~62k lignes (~1 398 inventaires),
-      depuis fin 2022.
+      1 ligne par task_product_id (ligne produit d'un inventaire).
 
       [NOTES]
       Pas de destination (un inventaire constate un stock, il ne le déplace pas). Les lignes dont
@@ -506,8 +502,7 @@ models:
       RESOURCES → code ressource (véhicule/roadman). Quantité ramenée en unités de base.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un écart). ~133k lignes (~4 823 tâches),
-      depuis début 2023.
+      1 ligne par task_product_id (ligne produit d'un écart).
 
       [NOTES]
       Pas de destination. La majorité des tâches d'écart sont en statut ANNULE (écart non retenu) ;
@@ -620,8 +615,7 @@ models:
       Quantité ramenée en unités de base.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un bon de réception). ~9 563 lignes (~1 693 bons),
-      depuis 2022.
+      1 ligne par task_product_id (ligne produit d'un bon de réception).
 
       [NOTES]
       Symétrique de la livraison mais côté entrée : product_destination_id est polymorphe et vaut
@@ -753,8 +747,7 @@ models:
       RESOURCES → resources). Quantité ramenée en unités de base.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un mouvement interne). ~94k lignes (~9 048 tâches),
-      depuis début 2023.
+      1 ligne par task_product_id (ligne produit d'un mouvement interne).
 
       [NOTES]
       Seules les lignes dont la source ET la destination se résolvent sont conservées. En pratique
@@ -875,8 +868,7 @@ models:
       Quantité ramenée en unités de base.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'un retrait d'invendus). ~5 344 lignes (~3 852 tâches),
-      depuis 2022.
+      1 ligne par task_product_id (ligne produit d'un retrait d'invendus).
 
       [NOTES]
       Flux : source = DEVICE (le distributeur) → destination = COMPANY (dépôt de retour).
@@ -1004,7 +996,7 @@ models:
       task_status (code statut) et location (info d'accès).
 
       [GRAIN]
-      1 ligne par task_id (PK). ~555k lignes, depuis 2022.
+      1 ligne par task_id (PK).
 
       [NOTES]
       Modèle de base NON enrichi : roadman, véhicule, device normalisé et statut reclassé sont
@@ -1113,11 +1105,11 @@ models:
       du passage calculée (fin − début) pour les tâches FAIT.
 
       [GRAIN]
-      1 ligne par task_id (passage appro). ~555k lignes.
+      1 ligne par task_id (passage appro).
 
       [NOTES]
-      Filtré aux passages ayant un roadman rattaché (resources_roadman_id non NULL) — ~327
-      passages sans roadman exclus vs int_oracle_neshu__appro_tasks. Pas de véhicule ici :
+      Filtré aux passages ayant un roadman rattaché (resources_roadman_id non NULL) :
+      les passages sans roadman sont exclus vs int_oracle_neshu__appro_tasks. Pas de véhicule ici :
       seul le roadman (resources type=2) est joint.
     columns:
       - name: task_id
@@ -1301,7 +1293,7 @@ models:
       objet_intervent. Filtré sur objet_intervent = 'OC04' (intervention préventive).
 
       [GRAIN]
-      1 ligne par task_id (intervention). ~731 lignes, depuis mai 2025 (modèle récent).
+      1 ligne par task_id (intervention).
 
       [NOTES]
       Pas de notion de flux produit (ni source/destination, ni quantité/valorisation) : c'est un
@@ -1391,8 +1383,7 @@ models:
       task_product_id en priorisant le label LIVRE.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'une commande interne). ~93k lignes (~8 360 tâches),
-      depuis fin 2022.
+      1 ligne par task_product_id (ligne produit d'une commande interne).
 
       [NOTES]
       Distinct de int_oracle_neshu__livraison_interne_tasks (idtask_type 161) : ici type 132, avec
@@ -1527,20 +1518,19 @@ models:
       stg_oracle_neshu__task (idtask_type = 120, code_status_record = '1', real_start_date non nul,
       tous statuts de tâche conservés) croisé avec task_has_product (grain ligne produit), enrichi
       product et task_status. Source (fournisseur) et destination (dépôt) résolues sur company
-      (type COMPANY dans 100 % des cas). Le statut de livraison est pivoté au grain tâche depuis le
+      (type COMPANY). Le statut de livraison est pivoté au grain tâche depuis le
       label de famille STATUT_LIVRAISON (max(case ...)), puis rattaché aux lignes produit — pas de
       déduplication. Seules les lignes dont source ET destination se résolvent sont conservées.
 
       [GRAIN]
-      1 ligne par task_product_id (ligne produit d'une commande fournisseur). ~7 760 lignes
-      (~1 670 tâches), depuis 2022.
+      1 ligne par task_product_id (ligne produit d'une commande fournisseur).
 
       [NOTES]
       Jumeau structurel de int_oracle_neshu__commande_interne_tasks (flux COMPANY → COMPANY), mais
       la source est un fournisseur externe (NESPRESSO, NUNSHEN, LIDIS…) et non un dépôt interne ;
       logiquement en amont de int_oracle_neshu__reception_tasks (type 121, bon de réception).
       Contrairement à commande_interne, le label est pivoté au grain tâche (1 label STATUT_LIVRAISON
-      par tâche aujourd'hui) plutôt que dédupliqué. Aucun filtre statut ici : le tri
+      par tâche) plutôt que dédupliqué. Aucun filtre statut ici : le tri
       FAIT/VALIDE/ANNULE se fait en marts / couche métier.
     columns:
       # --- IDENTIFIANTS ---
@@ -1675,8 +1665,7 @@ models:
       (dim_neshu__product), puis agrégée par (device_name, device_group).
 
       [GRAIN]
-      1 ligne par (device_name, device_group). ~27 lignes (9 groupes), couvrant ~970 machines
-      actives pour ~101 k€ de stock théorique total.
+      1 ligne par (device_name, device_group).
 
       [NOTES]
       Modèle agrégé (pas de grain machine ni de FK device/company en sortie) : c'est une vue
@@ -1721,7 +1710,7 @@ models:
       × resources (type 2 = PERSON). Conservé uniquement si un roadman est rattaché.
 
       [GRAIN]
-      1 ligne par task_id (un pointage). ~43k lignes, 91 roadmen, depuis 2022. Une journée de
+      1 ligne par task_id (un pointage). Une journée de
       roadman = typiquement 2 pointages (un START_DAY + un END_DAY).
 
       [NOTES]
@@ -1947,7 +1936,7 @@ models:
       [QUOI MÉTIER] Temps de présence des approvisionneurs chez le client et comptages de passages, par mois. Base de la répartition du coût de main-d'oeuvre du P&L.
       [COMMENT CONSTRUITE] Tâches PASSAGE APPRO (type 32), statuts 1/4, servies par une ressource de type PERSON. Amplitude calculée par jour et par client, puis sommée sur le mois.
       [GRAIN] 1 ligne par (mois, company_id).
-      [NOTES] Le temps retenu est l'AMPLITUDE de la journée chez le client — de la première arrivée au dernier départ — et non la somme des durées de tâches : une pause entre deux machines est comptée comme du temps passé. Règle de Distrilog, reproduite telle quelle ; l'intention reste à confirmer côté métier. nb_passages_machine utilise un count DISTINCT volontaire : la jointure sur task_has_resources démultiplie une tâche si le raw porte des lignes que la source n'a plus. Une tâche d'appro n'ayant qu'un approvisionneur, le distinct ne change pas le résultat attendu — il le protège. Ne pas réutiliser int_oracle_neshu__appro_tasks, qui sert l'opérationnel et retient d'autres statuts.
+      [NOTES] Le temps retenu est l'AMPLITUDE de la journée chez le client — de la première arrivée au dernier départ — et non la somme des durées de tâches : une pause entre deux machines est comptée comme du temps passé. Règle de Distrilog, reproduite telle quelle (hypothèse retenue : la pause est comptée comme du temps passé). nb_passages_machine utilise un count DISTINCT volontaire : la jointure sur task_has_resources démultiplie une tâche si le raw porte des lignes que la source n'a plus. Une tâche d'appro n'ayant qu'un approvisionneur, le distinct ne change pas le résultat attendu — il le protège. Ne pas réutiliser int_oracle_neshu__appro_tasks, qui sert l'opérationnel et retient d'autres statuts.
     columns:
       - name: mois
         data_type: date
@@ -2007,7 +1996,7 @@ models:
       [QUOI MÉTIER] Coût mensuel de télémétrie par client, déduit du parc de terminaux de paiement observé chez lui.
       [COMMENT CONSTRUITE] Tâches DESTRUCTION (271) et INSTALL MACHINE (134) portant un device de type 4, jointes au produit du modèle (device.idmodel = product.idproduct, types 4 et 7 actifs). Coût unitaire lu dans la zone XML du produit au noeud /ZONE/CLOC, multiplié par le nombre de terminaux distincts. Client sous contrat avant le mois observé.
       [GRAIN] 1 ligne par (mois, company_id).
-      [NOTES] Le parc est observé à travers des ÉVÉNEMENTS (destruction, installation) et non un inventaire : un client dont le parc n'a pas bougé dans le mois n'a aucun coût de télémétrie — 25 lignes sur 180 à zéro en août 2026. Comportement de Distrilog reproduit tel quel ; savoir s'il est voulu est une question ouverte côté métier. La vue Oracle `model` n'est pas répliquée : c'est `product` filtré sur les types 4 et 7 actifs, et device.idmodel pointe directement product.idproduct. Validé contre le rapport Distrilog.
+      [NOTES] Le parc est observé à travers des ÉVÉNEMENTS (destruction, installation) et non un inventaire : un client dont le parc n'a pas bougé dans le mois n'a aucun coût de télémétrie (coût à zéro). Comportement de Distrilog reproduit tel quel (hypothèse retenue : l'absence de mouvement du parc ne génère pas de coût). La vue Oracle `model` n'est pas répliquée : c'est `product` filtré sur les types 4 et 7 actifs, et device.idmodel pointe directement product.idproduct. Validé contre le rapport Distrilog.
     columns:
       - name: mois
         data_type: date

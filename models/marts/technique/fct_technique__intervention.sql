@@ -182,7 +182,6 @@ interventions_enrichies as (
             when
                 i.delai_tech in ('J++', 'J+3')
                 and lower(i.key_factu) like '%curative%'
-                --and i.partenaire = 'NESPRESSO'
                 then 1
             else 0
         end as flag_hors_delai_tech,

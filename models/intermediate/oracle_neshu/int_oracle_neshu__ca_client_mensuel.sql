@@ -10,8 +10,8 @@
 -- télémétrie (int_oracle_neshu__ca_telemetrie), qui suit d'autres règles.
 --
 -- Une ligne de facturation dont le produit ne relève d'aucune des cinq catégories
--- (ca_category à NULL) est IGNORÉE ici, comme dans le rapport Distrilog — environ
--- une ligne sur 850 en août 2026. Elle reste visible dans le modèle amont.
+-- (ca_category à NULL) est IGNORÉE ici, comme dans le rapport Distrilog. Elle
+-- reste visible dans le modèle amont.
 
 with facturation as (
 

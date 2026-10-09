@@ -1,79 +1,46 @@
-# Maintenance — nettoyage des objets orphelins
+# Maintenance — nettoyage des tables orphelines
 
-Cette doc couvre le nettoyage des **objets orphelins** dans BigQuery : tables/vues
-qui existent encore dans un dataset mais ne correspondent plus à aucun modèle dbt
-(séquelles d'une suppression ou d'un renommage de modèle). dbt ne les supprime
-jamais tout seul — d'où cet outillage.
+Une table orpheline existe encore dans un dataset prod alors qu'aucun modèle, seed ou snapshot
+dbt ne la produit plus (modèle supprimé ou renommé). dbt ne la supprime jamais seul.
+Procédure manuelle, réservée au data engineer. Les datasets de dev n'en ont pas besoin : leurs
+tables expirent après 14 jours sans rebuild.
 
-## Outil — `dbt_orphan`
+## Outil
 
-Package : [`Matts52/dbt-orphan`](https://github.com/Matts52/dbt-orphan) (installé via
-git dans `packages.yml`, pin `v0.2.0` — **pas publié sur dbt Hub**).
+[`dbt_orphan`](https://github.com/Matts52/dbt-orphan) (`packages.yml`, installé depuis git). Il
+liste les tables d'un dataset et signale celles qui ne correspondent à aucun nœud du projet
+**résolu dans ce dataset**. Les snapshots sont reconnus.
 
-Comment il fonctionne : il liste `INFORMATION_SCHEMA.TABLES` du dataset scanné, puis
-flague tout objet dont le nom n'est pas un `model`/`seed`/`snapshot` du graph dbt.
-Les **snapshots sont reconnus** par le graph, donc protégés.
+Conséquence : il faut le lancer avec la **config prod**. Lancé depuis le target `dev`, tous les
+nœuds résolvent vers `dbt_<toi>` et chaque table de `prod_*` apparaît orpheline.
 
-## Procédure
+## 1. Lister (lecture seule)
 
-> **Toujours commencer en `dry_run: true`** (lecture seule, aucun `DROP`), vérifier
-> la liste, puis seulement décider.
-
-### 1. Auditer (dry-run, lecture seule)
+Avec sa propre identité Google (`gcloud auth application-default login`), qui doit pouvoir lire
+les datasets scannés :
 
 ```bash
-# prod — scanner les datasets voulus
-./dbt_venv/bin/dbt run-operation dbt_orphan.cleanup_orphans \
-  --args '{schemas: ["prod_marts", "prod_staging", "prod_intermediate"], dry_run: true}' \
-  --target prod
-
-# dev : inutile — les tables de dbt_<toi> expirent seules après 14 jours sans rebuild
+set -a && . ./.env && set +a
+DBT_TARGET=prod DBT_BIGQUERY_METHOD=oauth DBT_BIGQUERY_DATASET_PROD=prod \
+  ./dbt_venv/bin/dbt run-operation dbt_orphan.cleanup_orphans \
+  --args '{schemas: ["prod_staging", "prod_intermediate", "prod_marts", "prod_reference"], dry_run: true}'
 ```
 
-### 2. Vérifier avant de supprimer
+`dry_run: true` ne fait que lister. C'est le seul mode à utiliser depuis un poste.
 
-Avant tout `dry_run: false`, confirmer qu'aucun rapport Power BI (exposure) ni
-l'application (`evs-app`) ne consomme encore l'objet listé.
+## 2. Vérifier chaque table listée
 
-### 3. Supprimer (cleanup réel)
+- aucune exposure (rapport ou application) ne la déclare ;
+- aucune lecture récente : `INFORMATION_SCHEMA.JOBS` (`referenced_tables`) sur 90 jours ;
+- ce n'est pas une table créée hors dbt (externe, chargée par un pipeline).
 
-```bash
-./dbt_venv/bin/dbt run-operation dbt_orphan.cleanup_orphans \
-  --args '{schemas: ["prod_marts"], dry_run: false}' --target prod
-```
+## 3. Supprimer
 
-### Variante — audit en modèle
+Table par table, après validation, avec une identité qui a les droits en prod :
+`bq rm -t evs-datastack-prod:<dataset>.<table>`. Jamais en post-hook ni dans un workflow
+planifié. Jamais sur le dataset `snapshots` (historique SCD2 irréversible).
 
-`get_orphans()` matérialise la liste des orphelins dans une table d'analyse, sans
-rien dropper :
+## Limite
 
-```sql
--- models/_analysis/orphaned_objects.sql
-{{ dbt_orphan.get_orphans(schemas=['prod_marts'], exclude_patterns=[], include_patterns=[]) }}
-```
-
-## Arguments
-
-| Arg | Défaut | Rôle |
-|---|---|---|
-| `schemas` | `[target.schema]` | datasets à scanner (liste — à passer explicitement) |
-| `dry_run` | `true` | `true` = log seulement · `false` = `DROP` |
-| `database` | `target.database` | projet BQ (auto) |
-| `exclude_patterns` | `[]` | protège des tables (LIKE SQL, ex. `["snap_%"]`) |
-| `include_patterns` | `[]` | ne cible que ces tables (LIKE SQL) |
-
-## Règles d'usage
-
-- **`dry_run: true` d'abord, systématiquement.** Cf. hard rule « never drop unless
-  explicitly asked ».
-- **Aligner le target sur le dataset scanné** : le macro compare les noms aux nodes
-  dont `node.schema` == schema scanné. Scanner `prod_marts` depuis le target `dev`
-  → faux positifs massifs (aucun node ne résout vers `prod_marts`).
-- **Jamais en post-hook automatique** ni dans un workflow planifié. Nettoyage
-  toujours manuel et validé.
-- **Snapshots** : déjà protégés par le graph ; en cleanup réel sur le dataset
-  `snapshots`, ajouter `exclude_patterns: ["snap_%"]` par sécurité (perte SCD2
-  irréversible).
-- **Limite connue** : le macro compare `node.name`, pas l'`alias`. Un modèle avec un
-  `alias` ≠ nom de fichier serait faussement vu comme orphelin (les alias actuels
-  sont no-op, donc OK).
+La macro compare le **nom** du nœud, pas son `alias` : un modèle dont l'alias diffère du nom de
+fichier serait vu comme orphelin.

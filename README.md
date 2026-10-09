@@ -11,19 +11,8 @@ BigQuery avec dbt, déclenchée par Google Cloud Workflows après chaque extract
 
 ## Démarrage
 
-```bash
-git clone https://github.com/CebrailEVS/dbt_transform.git && cd dbt_transform
-python3 -m venv dbt_venv && source dbt_venv/bin/activate
-pip install -r requirements-lock.txt
-cp .env.example .env          # dataset dbt_<toi> + chemin de ta clé dbt-dev
-direnv allow                  # ou : set -a && source .env && set +a
-dbt deps && dbt debug
-pipx install pre-commit && pre-commit install   # hooks git : lint, parse, manifest prod
-scripts/pull-state.sh         # premier manifest prod (ensuite : automatique à chaque git pull)
-```
-
-Python 3.11+ est requis : dbt v2 est un moteur Rust distribué comme extension CPython.
-Pour obtenir ta clé et ton dataset, voir [docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs).
+Installation du poste, clé et dataset de dev : [CONTRIBUTING § 1](CONTRIBUTING.md#1-installer-son-poste).
+Python 3.11+ requis : dbt v2 est un moteur Rust distribué comme extension CPython.
 
 ---
 
@@ -43,41 +32,33 @@ par dataset et par IAM. Voir [docs/environnements.md](docs/environnements.md).
 
 ---
 
-## Sources de donnees
+## Sources de données
 
-**14 sources**, 115 tables declarees.
-
-| Source | Systeme | Description |
+| Source | Système | Description |
 |---|---|---|
-| **oracle_neshu** | Oracle ERP (NESHU) | ERP principal : clients, machines, produits, taches |
-| **oracle_lcdp** | Oracle ERP (LCDP) | ERP secondaire, meme schema qu'oracle_neshu |
-| **yuman_api** | Yuman API | Interventions terrain : clients, sites, materiels, bons de travail |
-| **mssql_sage** | MSSQL Sage | Comptabilite : ecritures, comptes tiers, collaborateurs |
-| **nesp_tech** | Nomad Repair API | Interventions techniques Nespresso, pieces detachees |
-| **nesp_co** | Excel / Nespresso | Donnees commerciales Nespresso |
+| **oracle_neshu** | Oracle ERP (NESHU) | ERP principal : clients, machines, produits, tâches |
+| **oracle_lcdp** | Oracle ERP (LCDP) | ERP secondaire, même schéma qu'oracle_neshu |
+| **yuman_api** | Yuman API | Interventions terrain : clients, sites, matériels, bons de travail |
+| **mssql_sage** | MSSQL Sage | Comptabilité : écritures, comptes tiers, collaborateurs |
+| **nesp_tech** | Nomad Repair API | Interventions techniques Nespresso, pièces détachées |
+| **nesp_co** | Excel / Nespresso | Données commerciales Nespresso |
 | **zoho_desk** | Zoho Desk API | Tickets support, SLA, threads |
 | **apptech** | App interne (tables externes GCS) | Suivi technicien : events, pauses, curatif, astreinte |
-| **gac** | SFTP CSV | Assurance flotte, sinistres vehicules |
-| **powerbi_activity** | API admin Power BI | Journaux d'usage du locataire + inventaire espaces/rapports/modeles |
-| **yuman_evs_sftp** | Fichier SFTP | Stock theorique Yuman |
-| **oracle_neshu_gcs** | Oracle ERP (NESHU) | Stock theorique Oracle NESHU |
-| **oracle_lcdp_gcs** | Oracle ERP (LCDP) | Stock theorique Oracle LCDP |
-| **historic** | Archive | Analytique Sage 2024, figee |
+| **gac** | SFTP CSV | Assurance flotte, sinistres véhicules |
+| **powerbi_activity** | API admin Power BI | Journaux d'usage du locataire + inventaire espaces/rapports/modèles |
+| **yuman_evs_sftp** | Fichier SFTP | Stock théorique Yuman |
+| **oracle_neshu_gcs** | Oracle ERP (NESHU) | Stock théorique Oracle NESHU |
+| **oracle_lcdp_gcs** | Oracle ERP (LCDP) | Stock théorique Oracle LCDP |
+| **historic** | Archive | Analytique Sage 2024, figée |
 
-> **Tables externes GCS** : `nesp_tech` (2 tables) et `apptech` (8 tables) sont lues par
-> dbt via des tables externes BigQuery adossees a GCS — l'extraction ne peut pas viser
-> BigQuery directement (API specifique, fichiers ecrits par l'app). Verifie le 2026-09-23
-> via `INFORMATION_SCHEMA.TABLES`. Toutes les autres sources sont des tables natives.
-> `nesp_co` en faisait partie et n'en fait plus : ses 3 tables sont chargees directement
-> par dlt.
+> **Tables externes GCS** : `nesp_tech` et `apptech` sont lues via des tables externes BigQuery
+> adossées à GCS (API spécifique, fichiers écrits par l'app). Toutes les autres sources sont des
+> tables natives chargées par dlt.
+>
+> Le suffixe `_gcs` des deux sources de stock théorique est historique : elles sont chargées
+> directement depuis Oracle par dlt. Le nom est gardé pour ne pas casser les `source()`.
 
-> Le suffixe `_gcs` des deux sources de stock theorique est un **heritage** : depuis le
-> 2026-08-06 elles sont chargees directement depuis Oracle par les pipelines dlt
-> `oracle_neshu_stock` / `oracle_lcdp_stock`, sans CSV ni table externe. Le nom est
-> conserve pour ne pas casser les `source()`. Voir
-> [`docs/architecture/oracle_neshu_gcs.md`](docs/architecture/oracle_neshu_gcs.md).
-
-Fraicheur des sources : **[`docs/freshness.md`](docs/freshness.md)** (autorite unique).
+Fraîcheur des sources : **[`docs/freshness.md`](docs/freshness.md)** (référence unique).
 
 ---
 
@@ -87,7 +68,9 @@ Fraicheur des sources : **[`docs/freshness.md`](docs/freshness.md)** (autorite u
 models/
 ├── staging/        1 modèle = 1 table source : typage, nettoyage   (par source)
 ├── intermediate/   logique métier, enrichissement                  (par source)
-└── marts/          dimensions et faits pour Power BI              (par BU)
+├── marts/          dimensions et faits pour Power BI              (par BU)
+├── apps/           modèles de service d'une application interne   (par application)
+└── exposures/      rapports et applications qui lisent les modèles
 ```
 
 **8 BU** : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`,
@@ -145,12 +128,14 @@ en prod immédiatement. Détail : [docs/environnements.md](docs/environnements.m
 
 ## Dépendances
 
-| Paquet | Version | Rôle |
-|---|---|---|
-| `dbt` (pip) | 2.0.6 | Moteur dbt v2. Gratuit, licence propriétaire dbt Labs (`dbt-oss`, en Apache 2.0, n'a pas `dbt lint`) |
-| `dbt_utils` | 1.4.1 | `unique_combination_of_columns`, `expression_is_true`, `generate_surrogate_key` |
-| `dbt_expectations` | 0.10.10 | Row count, plages de dates, regex, taux de NULL |
-| `dbt_orphan` | v0.2.0 (git) | Objets orphelins, cf. [docs/maintenance.md](docs/maintenance.md) |
+Versions : `requirements-lock.txt` (dbt) et `packages.yml` (paquets dbt).
+
+| Paquet | Rôle |
+|---|---|
+| `dbt` (pip) | Moteur dbt v2. Gratuit, licence propriétaire dbt Labs (`dbt-oss`, en Apache 2.0, n'a pas `dbt lint`) |
+| `dbt_utils` | `unique_combination_of_columns`, `expression_is_true`, `generate_surrogate_key` |
+| `dbt_expectations` | Volumes, plages de valeurs, récence |
+| `dbt_orphan` | Repérage des tables orphelines, cf. [docs/maintenance.md](docs/maintenance.md) |
 
 ---
 
@@ -163,7 +148,7 @@ CLAUDE.md         contexte projet et règles strictes
 .mcp.json         serveurs MCP : BigQuery, Power BI, dbt
 .claude/
 ├── commands/     /build-source, /new-mart, /lint-fix, /freshness
-├── skills/       audit-sources, audit-docs, check-staging-relationships
+├── skills/       audit-sources, audit-docs, check-staging-relationships, profile
 ├── agents/       mart-reviewer
 └── hooks/        dbt lint et dbt parse après édition, helpers d'auth MCP
 ```

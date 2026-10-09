@@ -8,7 +8,8 @@ La logique métier **à l'intérieur d'une source** : déduplication, enrichisse
 référentiels, champs calculés, découpage par type de tâche, réconciliation de grain.
 
 - **Aligné sur une source.** Le croisement de plusieurs sources se fait en marts.
-- Lit uniquement `ref('stg_*')`, `ref('int_*')` et les seeds `ref('ref_*')`. Jamais `source()`.
+- Lit uniquement `ref('stg_*')`, `ref('int_*')` et les seeds `ref('ref_*')`. Jamais `source()`,
+  sauf la source d'archive `historic` (données figées, sans staging), lue par `int_mssql_sage__pnl_bu`.
 
 ## 2. Nommage
 
@@ -50,16 +51,17 @@ Déduplication : `qualify row_number() over (partition by ... order by ...) = 1`
 ## 4. Matérialisation
 
 - `table` par défaut.
-- `incremental` (`merge`) pour les gros volumes, soit 10 modèles aujourd'hui (tâches Oracle,
-  `int_mssql_sage__pnl_bu`). Même clause `is_incremental()` qu'en staging ; `partition_by` sur la
-  date filtrée, `cluster_by` sur les FK les plus jointes.
+- `incremental` (`merge`) pour les gros volumes (dérivés des tâches Oracle). Même clause
+  `is_incremental()` qu'en staging ; `partition_by` sur la date filtrée, `cluster_by` sur les FK
+  les plus jointes.
+- `ephemeral` pour une étape intermédiaire lue par un seul modèle et sans intérêt à matérialiser.
 
 ## 5. Documentation
 
 La description se met **en YAML uniquement**, pas dans le `config()`. Elle est lue par l'agent
 NL→SQL via le manifest : on documente pour lui **et** pour l'humain.
 
-> Dette connue : 41 `int_*` portent encore une `description=` dans le `config()`. On la retire
+> Dette connue : des `int_*` portent encore une `description=` dans le `config()`. On la retire
 > quand on touche le modèle, et on n'en ajoute pas.
 
 **Description du modèle** : la même trame en 4 blocs que les marts

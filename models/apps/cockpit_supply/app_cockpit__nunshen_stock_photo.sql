@@ -5,8 +5,7 @@
 ) }}
 
 -- Stock Nunshen par dépôt et référence (Sage, photos quotidiennes de f_artstock) pour
--- Cockpit Supply : remplace les imports « Stock Wissous » (quantités) et « Valo stock »
--- (valeur, CMUP). Une photo par jour (la dernière extraction du jour, heure de Paris) ;
+-- Cockpit Supply (quantités, valeur, CMUP). Une photo par jour (la dernière extraction du jour, heure de Paris) ;
 -- gardées : la photo courante et la dernière photo de chaque mois (flux et CODIR).
 -- Stock disponible de l'app = dépôt NUNSHEN (depot_id 1) ; valeur de stock = tous dépôts.
 with extractions as (

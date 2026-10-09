@@ -34,9 +34,7 @@ exposures:
     type: dashboard
     maturity: high
     description: >
-      Monitoring des passages appro Roadman chez les clients Neshu. Rafraîchi 3x par jour
-      (08h, 11h, 15h Paris) par le workflow pipeline-passages-appro-neshu : EL fast-lane
-      (tap-oracle-appro-fastlane) + dbt (selector passage_appro_fastlane) + refresh PBI.
+      Monitoring des passages appro Roadman chez les clients Neshu.
       Consomme le mart fct_neshu__passage_appro (qui porte gea_code).
       PBI : workspace "Neshu" / dataset "PROD APPRO MONITORING".
     owner:

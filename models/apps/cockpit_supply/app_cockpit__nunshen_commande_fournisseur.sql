@@ -1,7 +1,7 @@
 {{ config(materialized='table') }}
 
--- Commandes fournisseurs Nunshen ouvertes (Sage, type 12) pour Cockpit Supply : remplace
--- l'import « Commandes fournisseurs » (lignes « Bon de commande »). Chargement Sage en
+-- Commandes fournisseurs Nunshen ouvertes (Sage, type 12) pour Cockpit Supply.
+-- Chargement Sage en
 -- remplacement : une ligne reçue disparaît de la commande, la quantité d'une ligne
 -- ouverte est donc déjà le reste à livrer (qte_restante, lue par nun_qte_restante).
 -- qte_livree = quantité déjà reçue sur la même commande et la même référence.

@@ -7,7 +7,7 @@
 ) }}
 
 /*
-    Modèle de suivi opérationnel par partenaire — remplace le DAG MAIL_Yuman_Module_Notification.
+    Modèle de suivi opérationnel par partenaire.
 
     Chaque ligne = une demande d'intervention enrichie avec son workorder associé.
     La colonne intervention_state (état métier canonique, défini une seule fois dans

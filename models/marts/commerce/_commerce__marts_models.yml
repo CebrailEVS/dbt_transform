@@ -20,11 +20,9 @@ models:
       1 ligne par intervention (n_planning).
 
       [NOTES]
-      Sources nesp_tech (fichier Excel hebdo Mon 07:30) et nesp_co (fichier Excel
-      daily 08:00) — pas de base de données, donc pas de vraies dims, les
+      Sources nesp_tech et nesp_co (fichiers Excel) — pas de base de données, donc pas de vraies dims, les
       attributs client/machine sont aplatis depuis les intermediates. INNER JOIN
-      sur le client : une intervention sans client matching est exclue. Rafraîchi
-      2× par jour weekdays (08:30 + 10:00) via transform-commerce-daily.
+      sur le client : une intervention sans client matching est exclue. Cadence : voir docs/pipeline-schedule.md.
 
     columns:
       # === Identification client ===
@@ -139,10 +137,9 @@ models:
       1 ligne par `third`.
 
       [NOTES]
-      Source : fichier Excel daily nesp_co (rafraîchi 08:00 weekdays). Noms
-      de colonnes en français pour préserver la compatibilité avec les
-      rapports Power BI existants. Un renommage vers les conventions marts
-      EN pourra être proposé dans un PR ultérieur, coordonné avec le DA.
+      Source : fichier Excel nesp_co. Noms de colonnes en français pour
+      préserver la compatibilité avec les rapports Power BI. Écart assumé
+      avec les conventions marts (noms en anglais).
 
     columns:
       - name: third
@@ -238,7 +235,7 @@ models:
       1 ligne par opportunité (`opp_id`).
 
       [NOTES]
-      Source : fichier Excel daily nesp_co (rafraîchi 08:00 weekdays). Lien
+      Source : fichier Excel nesp_co. Lien
       client : `opp_id_compte` (format `FR_<nessoft>`) ou `opp_id_client_c4c`
       (ID C4C). Pas de FK directe vers `dim_commerce__client` : la jointure
       se fait côté BI ou via un modèle dédié (cf.
@@ -340,7 +337,7 @@ models:
       1 ligne par activité (`act_id`).
 
       [NOTES]
-      Source : fichier Excel daily nesp_co (rafraîchi 08:00 weekdays). Lien
+      Source : fichier Excel nesp_co. Lien
       client : `act_id_nessoft` (format `FR_<nessoft>`) ou `act_compte_id`
       (ID C4C). Pas de FK directe vers `dim_commerce__client` (sémantique
       conservée pour compatibilité BI). Contient des dates futures pour les

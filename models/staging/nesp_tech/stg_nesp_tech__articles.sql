@@ -56,9 +56,9 @@ cleaned_data as (
         end as date_intervention,
 
         -- Metadata
-        -- L'extracteur a changé deux fois de format ('YYYY-MM-DD HH:MM:SS+TZ',
-        -- puis nanosecondes, puis ISO 'T') : safe_cast couvre les formats ISO,
-        -- %E*S accepte les fractions de seconde de longueur libre (nanosecondes).
+        -- Le format du timestamp d'extraction varie ('YYYY-MM-DD HH:MM:SS+TZ', nanosecondes, ISO 'T') :
+        -- safe_cast couvre les formats ISO, %E*S accepte les fractions de seconde de longueur libre
+        -- (nanosecondes).
         coalesce(
             safe_cast(extracted_at as timestamp),
             safe.parse_timestamp('%Y-%m-%d %H:%M:%E*S%Ez', extracted_at)

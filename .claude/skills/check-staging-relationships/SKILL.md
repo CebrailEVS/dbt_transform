@@ -19,7 +19,7 @@ rapport, réduit à un décompte.
 ## Prérequis
 
 ```bash
-dbt parse                                    # produit target/manifest.json
+./dbt_venv/bin/dbt parse                     # produit target/manifest.json (.env chargé)
 ```
 
 Et le contrat de la source, généré côté `ingestion/` — ce dépôt ne peut pas interroger
