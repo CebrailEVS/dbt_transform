@@ -1776,6 +1776,13 @@ models:
               )
           config:
             severity: error
+      # Une conversion en code 5 doit trouver un tarif : sans date de fin, la fenêtre de
+      # validité de la grille ne s'applique pas et le montant effectif serait NULL.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "coalesce(convertir_code_5, '') != 'OUI' or montant_effectif is not null"
+          config:
+            severity: warn
 
   - name: fct_technique__credit_repair_warranty
     description: |

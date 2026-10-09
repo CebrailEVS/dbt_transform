@@ -114,6 +114,15 @@ seeds:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: ['key_ref_inter', 'valid_from']
+      # Deux générations d'une même clé ne doivent pas se chevaucher. Bornes inclusives
+      # dans les jointures : un chevauchement d'un seul jour (valid_to = valid_from
+      # suivant) n'est pas détecté ici ; le qualify des modèles garde alors la plus récente.
+      - dbt_utils.mutually_exclusive_ranges:
+          arguments:
+            lower_bound_column: valid_from
+            upper_bound_column: valid_to
+            partition_by: key_ref_inter
+            gaps: allowed
     columns:
       - name: type_code
         description: "Code intervention"

@@ -42,7 +42,8 @@ with machines_du_mois as (
             c.idcompany = cc.company_id
             and t.real_start_date > timestamp(date_trunc(date(cc.first_contract_date), month))
     where
-        t.idtask_status in (1, 4, 5, 7)  -- FAIT, VALIDE, ANOMALIE, ACQUITTE
+        t.code_status_record = '1'  -- enregistrement actif
+        and t.idtask_status in (1, 4, 5, 7)  -- FAIT, VALIDE, ANOMALIE, ACQUITTE
         and t.real_start_date is not null
 ),
 

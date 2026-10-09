@@ -304,3 +304,9 @@ models:
         description: Code produit de facturation associé à la clé (null si clé non trouvée).
       - name: tarif_factu
         description: Tarif (€) appliqué à l'intervention selon la clé de facturation (null si clé non trouvée).
+      - name: alias_obj_type_inter
+        description: Type d'intervention de la clé de facturation retenue (même génération tarifaire que tarif_factu).
+      - name: alias_obj_type_machine
+        description: Type de machine de la clé de facturation retenue (même génération tarifaire que tarif_factu).
+      - name: alias_obj_grp_machine
+        description: Groupe de machines de la clé de facturation retenue (même génération tarifaire que tarif_factu).

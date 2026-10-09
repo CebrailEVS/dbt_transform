@@ -92,15 +92,28 @@ with invendus_base as (
         t.updated_at, t.created_at, t.extracted_at
 ),
 
-ressources_vehicle as (
+-- Une tâche peut porter plusieurs ressources d'un même type. On retient UNE
+-- ligne entière (celle du plus petit idresources) pour que l'identifiant et le
+-- code désignent toujours la même ressource : des min() indépendants par
+-- colonne les dissociaient dès qu'il y avait deux affectations.
+ressources_vehicle_ranked as (
     select
         thr.idtask,
-        min(r.idresources) as resources_id,
-        min(r.code) as vehicle_code
+        r.idresources as resources_id,
+        r.code as vehicle_code,
+        row_number() over (partition by thr.idtask order by r.idresources) as rn
     from {{ ref('stg_oracle_neshu__task_has_resources') }} as thr
     inner join {{ ref('stg_oracle_neshu__resources') }} as r on thr.idresources = r.idresources
     where r.idresources_type = 3
-    group by thr.idtask
+),
+
+ressources_vehicle as (
+    select
+        idtask,
+        resources_id,
+        vehicle_code
+    from ressources_vehicle_ranked
+    where rn = 1
 ),
 
 invendus_enrichi as (

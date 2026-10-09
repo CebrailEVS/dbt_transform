@@ -109,7 +109,10 @@ final as (
         j.type_inter_libelle,
         j.key_factu,
         kf.prod_factu,
-        kf.tarif_factu
+        kf.tarif_factu,
+        kf.alias_obj_type_inter,
+        kf.alias_obj_type_machine,
+        kf.alias_obj_grp_machine
     from joined as j
     -- Tarif en vigueur À LA DATE DE L'INTERVENTION, et non tarif courant : la
     -- grille Nespresso change dans le temps (cf. onglet Paramètres du classeur de
@@ -139,6 +142,9 @@ select
     type_inter_libelle,
     key_factu,
     prod_factu,
-    tarif_factu
+    tarif_factu,
+    alias_obj_type_inter,
+    alias_obj_type_machine,
+    alias_obj_grp_machine
 
 from final

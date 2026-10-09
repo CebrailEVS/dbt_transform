@@ -390,7 +390,7 @@ models:
       [QUOI MÉTIER] Flux supply Neshu mensuels (stocks dépôts/véhicules + réceptions/livraisons/chargements).
       [COMMENT CONSTRUITE] Consolidation de 7 sources Oracle Neshu : inventaires (int_oracle_neshu__inventaire_tasks, prioritaires si VALIDE), stocks théoriques (stg_oracle_neshu_gcs__stock_theorique, fallback si pas d'inventaire), réceptions fournisseurs, livraisons clients, livraisons internes (véhicule/anim/prépa/périmé), chargements machines. Pour chaque source/mois, la date de référence inventaire est le dernier inventaire du mois sinon le premier des 5 jours du mois suivant. Agrégation mensuelle (date_trunc à month).
       [GRAIN] 1 ligne par mois_date (premier jour du mois).
-      [NOTES] stock_total = stock_depot + stock_vehicule (cohérence testée).
+      [NOTES] stock_total = stock_depot + stock_vehicule (cohérence testée). Aucun filtre sur l'état actif des ressources (état courant d'une dimension non historisée) : une ressource sortie du parc garde ses inventaires passés, et son stock théorique figé reste valorisé, même négatif (règle métier). Le fallback théorique porte sur les ressources (entity_type = resource : véhicules, et toute ressource qui porte un stock) ; les dépôts ne sont valorisés que par inventaire. stocks_theoriques_autre peut donc être négatif (test en warn). Mois du stock théorique = snapshot_date. Classement des inventaires par liste de codes : un code de source absent de la liste tombe dans stock_vehicule.
 
     columns:
 
@@ -511,6 +511,13 @@ models:
       - dbt_utils.expression_is_true:
           arguments:
             expression: "reception_fournisseur >= 0 and livraison_client >= 0"
+
+      # Le stock figé des ressources sorties du parc est inclus, même négatif : signalé, non bloquant.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "stocks_theoriques_autre >= 0"
+          config:
+            severity: warn
 
   - name: fct_supply_chain__couverture_stock_neshu
     description: |
