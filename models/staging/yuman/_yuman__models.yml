@@ -432,3 +432,20 @@ models:
                 field: user_id
               config:
                 severity: warn
+  - name: stg_yuman__suppliers
+    description: >
+      Fournisseurs clean depuis la table source yuman_evs_suppliers (référentiel
+      des fournisseurs de pièces TechCare : Nespresso, Brita, Animo…). Donne le
+      code et le nom des fournisseurs des bons de commande (supplier_id).
+    columns:
+      - name: supplier_id
+        description: Identifiant unique du fournisseur (clé de stg_yuman__purchase_orders.supplier_id)
+        tests:
+          - unique
+          - not_null
+
+      - name: supplier_code
+        description: Code du fournisseur dans Yuman
+
+      - name: supplier_name
+        description: Nom du fournisseur
