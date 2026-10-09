@@ -21,3 +21,20 @@ exposures:
     depends_on:
       - ref('fct_finance__pnl_bu')
       - ref('int_mssql_sage__pnl_bu')
+
+  - name: export_masse_salariale_roadman
+    label: "Envoi mensuel — masse salariale Roadman"
+    type: application
+    maturity: medium
+    description: >
+      Job Cloud Run export-finance-masse-salariale (dépôt export_finance) : chaque mois, dès que
+      la paie du mois précédent est comptabilisée dans Sage (journal PA), envoie par mail à la
+      direction financière un Excel de la masse salariale de la section NESOOOSAV (« NESHU SAV
+      ROADMAN »), ventilée Salaires / Variable / Charges Patronales, de janvier au dernier mois
+      de paie. Lit le mart pour les montants et le staging des écritures pour détecter la paie.
+    owner:
+      name: Cébrail Aksoy
+      email: cebrail.aksoy@evs-pro.com
+    depends_on:
+      - ref('fct_finance__pnl_section_mensuel')
+      - ref('stg_mssql_sage__f_ecriturec')

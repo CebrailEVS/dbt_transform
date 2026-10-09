@@ -67,6 +67,11 @@ models:
           - not_null
       - name: libelle_ecriture
         description: Libellé libre de l'écriture comptable.
+      - name: categorie_pnl_bu
+        description: >
+          Catégorie P&L détaillée rattachée au compte général (seed ref_mssql_sage__code_comptable_bu),
+          niveau fin sous macro_categorie_pnl_bu (ex. Salaires, Variable, Charges Patronales).
+          NULL = compte non mappé.
       - name: macro_categorie_pnl_bu
         description: >
           Macro-catégorie de P&L rattachée au compte général (seed ref_mssql_sage__code_comptable_bu).
