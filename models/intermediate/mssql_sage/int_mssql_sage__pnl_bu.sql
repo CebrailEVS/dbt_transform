@@ -71,6 +71,7 @@ mapped_with_fallback as (
 
         c.numero_compte_general,
         c.libelle_ecriture,
+        cbu.categorie_pnl_bu,
         cbu.macro_categorie_pnl_bu,
 
         c.sens_ecriture,
@@ -105,6 +106,7 @@ updated_2024 as (
         coalesce(u.code_analytique_bu, f.code_analytique_bu) as code_analytique_bu,
         f.numero_compte_general,
         f.libelle_ecriture,
+        f.categorie_pnl_bu,
         f.macro_categorie_pnl_bu,
         f.sens_ecriture,
         f.montant_analytique,
@@ -142,6 +144,7 @@ select
     code_analytique_bu,
     numero_compte_general,
     libelle_ecriture,
+    categorie_pnl_bu,
     macro_categorie_pnl_bu,
     sens_ecriture,
     montant_analytique,

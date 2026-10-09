@@ -81,6 +81,65 @@ models:
       - name: evolution_pct_ytd
         description: Évolution en pourcentage entre YTD N et YTD N-1
 
+  - name: fct_finance__pnl_section_mensuel
+    description: |
+      [QUOI MÉTIER] P&L mensuel au niveau le plus fin du pilotage analytique : par section analytique Sage et par compte général, avec sa catégorie et sa macro-catégorie P&L. Permet de suivre un poste (ex. masse salariale) pour une équipe donnée (ex. NESOOOSAV, roadmen SAV Neshu).
+      [COMMENT CONSTRUITE] int_mssql_sage__pnl_bu (écritures classes 6/7 ventilées, signe Sage conservé) agrégé par mois de facturation, section, BU et compte ; intitulé de section depuis stg_mssql_sage__f_comptea (plan 1) ; catégories depuis le seed ref_mssql_sage__code_comptable_bu.
+      [GRAIN] 1 ligne par (mois_date, code_analytique, code_analytique_bu, numero_compte_general). ~96k lignes depuis 2021. La BU est dans le grain : le remapping historique 2024 rattache certaines écritures d'une même section à deux BU.
+      [NOTES] Exclut les écritures sans ventilation analytique (pas de section) : elles restent dans fct_finance__pnl_bu (BU_NON_RENSEIGNEE). Pas de scénario avec/sans provisions CP : filtrer les comptes 641200 / 645800 si besoin. Le mois courant est partiel.
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - mois_date
+              - code_analytique
+              - code_analytique_bu
+              - numero_compte_general
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 50000
+            max_value: 300000
+          config:
+            severity: warn
+
+    columns:
+      - name: mois_date
+        description: Premier jour du mois de facturation (date_facturation tronquée au mois). Axe temporel.
+        tests:
+          - not_null
+      - name: code_analytique
+        description: Code de la section analytique Sage (ex. NESOOOSAV).
+        tests:
+          - not_null
+      - name: code_analytique_bu
+        description: >
+          Business Unit de la section (seed ref_mssql_sage__code_analytique_bu + repli préfixe +
+          remapping 2024). BU_NON_RENSEIGNEE si non mappée.
+        tests:
+          - not_null
+      - name: numero_compte_general
+        description: Numéro de compte général (classe 6 = charges, 7 = produits).
+        tests:
+          - not_null
+      - name: section_analytique_intitule
+        description: Intitulé de la section analytique dans Sage (ex. « NESHU SAV ROADMAN »).
+      - name: categorie_pnl_bu
+        description: >
+          Catégorie P&L détaillée du compte (ex. Salaires, Variable, Charges Patronales).
+          NULL = compte absent du seed de mapping.
+      - name: macro_categorie_pnl_bu
+        description: >
+          Macro-catégorie P&L du compte (Chiffre d'Affaires, Masse Salariale, Frais Directs &
+          Amortissements, Consommation MP & SSTT). NULL = compte non mappé.
+      - name: montant_signe
+        description: >
+          Montant (€) du mois, additif : crédit positif, débit négatif (somme = produits − charges ;
+          les charges sont donc négatives). Signe Sage conservé, un montant analytique négatif
+          (réaffectation) réduit la charge de la section.
+        tests:
+          - not_null
+
   - name: fct_finance__ecriture_non_ventilee
     description: |
       [QUOI MÉTIER] Liste des écritures comptables de charge (classe 6) ou produit (classe 7) sans aucune ventilation analytique dans Sage — la file des écritures restant à ventiler par la comptabilité, consommée par l'app compta.
