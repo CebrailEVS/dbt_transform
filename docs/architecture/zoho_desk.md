@@ -1,451 +1,131 @@
-# Architecture — Zoho Desk
+# Architecture — Zoho Desk (`zoho_desk`)
 
-> Dernière mise à jour : 2026-05-06
+> **Pipeline en pause.** Le scheduler `pipeline_zoho_desk` est déclaré `paused = true` dans
+> `infra/workflows_el.tf` : un run complet consomme l'essentiel du budget quotidien de crédits
+> de l'API Zoho, sans marge pour un second run le même jour. Le raw `prod_raw.zoho_desk_*` est
+> donc **figé** à la date du dernier run : tout ce qui suit décrit des données qui ne bougent
+> plus, et le test de récence du staging reste en avertissement tant que dure la pause. Avant
+> de relancer un run à la main, vérifier qu'aucun autre n'a tourné dans la journée.
 
----
+| | |
+|---|---|
+| Source dbt | `zoho_desk` — `models/staging/zoho_desk/_zoho_desk__sources.yml` |
+| Pipeline dlt | `ingestion/pipelines/zoho_desk` — API REST Zoho Desk, région EU ; périmètre dans `tables.py` |
+| Tables raw | `prod_raw.zoho_desk_*` |
+| Fraîcheur | [`docs/freshness.md`](../freshness.md) |
+| Cadence | [`docs/pipeline-schedule.md`](../pipeline-schedule.md) ; le workflow enchaîne l'extraction et `dbt build -s source:zoho_desk+` |
 
-## Vue d'ensemble
+**Modes de chargement** (`tables.py`) :
 
-Zoho Desk est le logiciel de support client utilisé pour gérer les tickets entrants
-(email, téléphone, chat, formulaire web). Ce pipeline extrait les données de l'API
-Zoho Desk (EU region) et les rend disponibles dans BigQuery pour l'analyse.
-
----
-
-## Flux de données
-
-```
-┌─────────────────┐     dlt (Python)     ┌──────────────────────┐
-│   API Zoho Desk │ ──────────────────►  │  prod_raw (BigQuery)  │
-│   EU region     │   extraction full    │  zoho_desk_*          │
-└─────────────────┘   write_disposition  └──────────┬───────────┘
-                        = merge/replace             │
-                                                    │ dbt staging
-                                                    ▼
-                                       ┌──────────────────────────┐
-                                       │  staging (BigQuery)       │
-                                       │  stg_zoho_desk__*         │
-                                       │  matérialisé en TABLE     │
-                                       └──────────────────────────┘
-```
-
-**Ce que fait chaque couche :**
-
-| Couche | Rôle | Localisation |
+| Mode | Tables raw | Conséquence |
 |---|---|---|
-| `prod_raw` | Données brutes telles que reçues de l'API — aucune transformation | `evs-datastack-prod.prod_raw` |
-| `staging` | Nettoyage, renommage des PKs, cast des types, documentation | `evs-datastack-prod.prod_staging` |
-| `intermediate` | Modèles événementiels par propriété + agrégations SLA réutilisables | `evs-datastack-prod.prod_intermediate` |
-| `marts` *(à venir)* | Métriques et dimensions BI-ready (modèle en étoile) | `evs-datastack-prod.prod_marts` |
+| `merge` sur `id` | `accounts`, `agents`, `contacts`, `departments`, `associated_tickets` (la table des tickets), `ticket_details`, `ticket_threads`, `ticket_conversations` | snapshot accumulé : un ticket sorti de la fenêtre de l'API, ou supprimé dans Zoho, reste dans le raw |
+| `merge` sur `_zoho_desk_associated_tickets_id` | `ticket_metrics` | `/metrics` ne rend pas d'`id` : la clé est la colonne injectée depuis le ticket parent |
+| `replace` | `ticket_history` | Zoho ne donne pas d'identifiant d'événement : rien sur quoi merger. La table ne contient que ce que le dernier run a lu |
+| sous-tables dlt | `ticket_history__event_info`, `ticket_metrics__agents_handled`, `ticket_metrics__staging_data`, `agents__associated_department_ids` | tableaux JSON aplatis par dlt ; suivent le mode de leur parent |
+
+Pas d'incrémental : `/associatedTickets` (le seul endpoint qui rende tous les tickets) ne donne
+pas `modifiedTime`. Chaque run relit tous les tickets, et fait plusieurs appels par ticket.
 
 ---
 
-## Modèle de données
+## Grain et clés
 
-### Diagramme des relations
-
-```mermaid
-erDiagram
-
-    stg_zoho_desk__departments {
-        string department_id PK
-        string name
-        boolean is_enabled
-    }
-
-    stg_zoho_desk__agents {
-        string agent_id PK
-        string _dlt_id
-        string email_id
-        string status
-    }
-
-    stg_zoho_desk__accounts {
-        string account_id PK
-        string account_name
-    }
-
-    stg_zoho_desk__contacts {
-        string contact_id PK
-        string email
-        string account_id FK
-    }
-
-    stg_zoho_desk__agent_departments {
-        string _dlt_id PK
-        string _dlt_parent_id FK
-        string department_id FK
-    }
-
-    stg_zoho_desk__tickets {
-        string ticket_id PK
-        string department_id FK
-        string assignee_id FK
-        string contact_id FK
-        string account_id FK
-        string status
-        timestamp created_time
-        timestamp closed_time
-    }
-
-    stg_zoho_desk__ticket_details {
-        string ticket_id PK
-        boolean is_over_due
-        boolean is_escalated
-        string sla_id
-    }
-
-    stg_zoho_desk__ticket_history {
-        string _dlt_id PK
-        string _zoho_desk_associated_tickets_id FK
-        string event_name
-        timestamp event_time
-    }
-
-    stg_zoho_desk__ticket_history_event_info {
-        string _dlt_id PK
-        string _dlt_parent_id FK
-        string property_name
-        string property_value__previous_value
-        string property_value__updated_value
-    }
-
-    stg_zoho_desk__ticket_metrics {
-        string ticket_id PK
-        string _dlt_id
-        int first_response_time_minutes
-        int resolution_time_minutes
-        int reopen_count
-        int reassign_count
-    }
-
-    stg_zoho_desk__ticket_metrics_agents_handled {
-        string _dlt_id PK
-        string _dlt_parent_id FK
-        string agent_id
-        string agent_name
-        int handling_time_minutes
-    }
-
-    stg_zoho_desk__ticket_metrics_staging_data {
-        string _dlt_id PK
-        string _dlt_parent_id FK
-        string status
-        int handled_time_minutes
-    }
-
-    %% Dimensions → Tickets
-    stg_zoho_desk__tickets }o--|| stg_zoho_desk__departments : "department_id"
-    stg_zoho_desk__tickets }o--|| stg_zoho_desk__agents : "assignee_id → agent_id"
-    stg_zoho_desk__tickets }o--|| stg_zoho_desk__contacts : "contact_id"
-    stg_zoho_desk__tickets }o--|| stg_zoho_desk__accounts : "account_id"
-
-    %% Contact → Account
-    stg_zoho_desk__contacts }o--|| stg_zoho_desk__accounts : "account_id"
-
-    %% Tickets → enrichissements 1:1
-    stg_zoho_desk__tickets ||--|| stg_zoho_desk__ticket_details : "ticket_id"
-
-    %% Tickets → historique 1:N
-    stg_zoho_desk__tickets ||--o{ stg_zoho_desk__ticket_history : "ticket_id"
-
-    %% Historique → détail événement 1:N
-    stg_zoho_desk__ticket_history ||--o{ stg_zoho_desk__ticket_history_event_info : "_dlt_id"
-
-    %% Tickets → métriques 1:1
-    stg_zoho_desk__tickets ||--|| stg_zoho_desk__ticket_metrics : "ticket_id"
-
-    %% Métriques → sous-tables 1:N
-    stg_zoho_desk__ticket_metrics ||--o{ stg_zoho_desk__ticket_metrics_agents_handled : "_dlt_id"
-    stg_zoho_desk__ticket_metrics ||--o{ stg_zoho_desk__ticket_metrics_staging_data : "_dlt_id"
-
-    %% Agent → départements (bridge)
-    stg_zoho_desk__agents ||--o{ stg_zoho_desk__agent_departments : "_dlt_id"
-    stg_zoho_desk__departments ||--o{ stg_zoho_desk__agent_departments : "department_id"
-```
-
----
-
-## Rôle de chaque table
-
-### Dimensions — les référentiels
-
-| Table | Ce qu'elle contient | Lignes (~) |
+| Modèle de staging | Grain | Clé, jointure |
 |---|---|---|
-| `stg_zoho_desk__accounts` | Entreprises clientes | 251 |
-| `stg_zoho_desk__contacts` | Personnes physiques (clients) liées à un compte | 3 362 |
-| `stg_zoho_desk__agents` | Membres de l'équipe support | 5 |
-| `stg_zoho_desk__departments` | Groupes organisationnels (ex : Service Client, Facturation) | 4 |
-| `stg_zoho_desk__agent_departments` | Table pont agent ↔ département (un agent peut appartenir à plusieurs départements) | 11 |
-
-### Facts — les événements
-
-| Table | Ce qu'elle contient | Lignes (~) |
-|---|---|---|
-| `stg_zoho_desk__tickets` | **Table centrale** — un ticket par ligne, avec tous ses attributs courants | 20 678 |
-| `stg_zoho_desk__ticket_details` | Enrichissement 1:1 : flags SLA, champs custom (`cf_*`), résolution | 20 678 |
-| `stg_zoho_desk__ticket_metrics` | Enrichissement 1:1 : durées SLA et compteurs (réponse, réouverture, réassignation) | 20 678 |
-| `stg_zoho_desk__ticket_history` | Journal d'audit : un événement par ligne (création, changement de statut, etc.) | 259 677 |
-| `stg_zoho_desk__ticket_history_event_info` | Détail de chaque événement : champ modifié, valeur avant, valeur après | 823 452 |
-| `stg_zoho_desk__ticket_metrics_agents_handled` | Agents ayant traité chaque ticket avec leur temps de traitement individuel | 33 608 |
-| `stg_zoho_desk__ticket_metrics_staging_data` | Temps passé par chaque ticket dans chaque statut Zoho ("staging" = étape de statut) | 46 663 |
+| `stg_zoho_desk__tickets` | 1 ticket | `ticket_id` (`id` renommé) ; FK `department_id`, `assignee_id` → agent, `contact_id`, `account_id` |
+| `stg_zoho_desk__ticket_details` | 1 ticket : champs personnalisés `cf_*`, résolution, drapeaux SLA | `ticket_id` |
+| `stg_zoho_desk__ticket_metrics` | 1 ticket : durées et compteurs calculés par Zoho | `ticket_id` ; `_dlt_id` vers ses sous-tables |
+| `stg_zoho_desk__ticket_metrics_agents_handled` | 1 agent × ticket, temps de traitement | `_dlt_parent_id = ticket_metrics._dlt_id` |
+| `stg_zoho_desk__ticket_metrics_staging_data` | 1 statut × ticket, temps passé (« staging » = étape de statut Zoho) | `_dlt_parent_id = ticket_metrics._dlt_id` |
+| `stg_zoho_desk__ticket_threads` | 1 échange (e-mail, chat) | `_zoho_desk_associated_tickets_id` → ticket |
+| `stg_zoho_desk__ticket_history` | 1 événement d'audit | `_dlt_id` ; `_zoho_desk_associated_tickets_id` → ticket |
+| `stg_zoho_desk__ticket_history_event_info` | 1 propriété modifiée par événement | `_dlt_parent_id = ticket_history._dlt_id` |
+| `stg_zoho_desk__agents`, `__departments`, `__accounts`, `__contacts` | référentiels | `<entité>_id` |
+| `stg_zoho_desk__agent_departments` | pont agent × département | `_dlt_parent_id = agents._dlt_id`, `department_id` |
 
 ---
 
-## Jointures clés
+## Pièges
 
-### Cas d'usage typiques
+**Nom de la clé ticket dans les tables enfants.** Les flux enfants (`ticket_details`,
+`ticket_metrics`, `ticket_threads`, `ticket_history`) tirent leur ticket de la ressource
+parente `associated_tickets` : la colonne s'appelle `_zoho_desk_associated_tickets_id`
+partout. Le staging la renomme en `ticket_id` sur `ticket_details` et `ticket_metrics`, et la
+garde telle quelle sur `ticket_threads` et `ticket_history`.
 
-**Ticket avec ses dimensions :**
-```sql
-select
-    t.ticket_id,
-    t.ticket_number,
-    t.status,
-    t.created_time,
-    d.name          as department,
-    a.name          as agent_name,
-    c.email         as contact_email,
-    acc.account_name
-from stg_zoho_desk__tickets        t
-left join stg_zoho_desk__departments   d   on d.department_id = t.department_id
-left join stg_zoho_desk__agents        a   on a.agent_id      = t.assignee_id
-left join stg_zoho_desk__contacts      c   on c.contact_id    = t.contact_id
-left join stg_zoho_desk__accounts      acc on acc.account_id  = t.account_id
-```
+**Sous-tables dlt : jointure par `_dlt_id`.** Une sous-table se joint à son parent par
+`_dlt_parent_id = parent._dlt_id`, jamais par un identifiant métier (agent ↔ département
+compris). `_dlt_id` est attribué par dlt au chargement : c'est une clé de jointure, pas un
+identifiant à conserver d'un run à l'autre, surtout sur `ticket_history`, réécrite à chaque run.
 
-**Tickets fermés en un mois donné** *(via l'historique — ne pas utiliser `closed_time`)* :
-```sql
-select
-    t.ticket_id,
-    h.event_time as closed_at
-from stg_zoho_desk__ticket_history           h
-join stg_zoho_desk__tickets                  t  on t.ticket_id = h._zoho_desk_associated_tickets_id
-join stg_zoho_desk__ticket_history_event_info ei on ei._dlt_parent_id = h._dlt_id
-where ei.property_name                 = 'Status'
-  and ei.property_value__updated_value = 'Closed'
-  and date_trunc(h.event_time, month)  = '2026-03-01'
-```
+**Historique incomplet, tickets complets.** `ticket_history` est en `replace`, les tickets en
+`merge`. Un run interrompu ou partiel réécrit l'historique avec ce qu'il a lu, sans retirer
+aucun ticket : les modèles d'événements et de SLA sont alors faux sans qu'aucun test ne casse.
+Règle : avant de lire un SLA, comparer le nombre de tickets distincts de `ticket_history` à
+celui de `stg_zoho_desk__tickets`.
 
-**Départements d'un agent :**
-```sql
-select
-    a.agent_id,
-    a.name    as agent_name,
-    d.name    as department_name
-from stg_zoho_desk__agents             a
-join stg_zoho_desk__agent_departments  ad on ad._dlt_parent_id = a._dlt_id
-join stg_zoho_desk__departments        d  on d.department_id   = ad.department_id
-```
+**`closed_time` ne donne pas les fermetures.** Il ne porte que la fermeture courante et vaut
+`NULL` si le ticket a été rouvert. Règle : compter fermetures et réouvertures depuis
+l'historique, via `int_zoho_desk__ticket_status_events`.
 
----
+**Bruit des fusions de tickets.** Une fusion dans l'interface Zoho ré-estampille toutes les
+propriétés du ticket (`event_name = 'TicketMergedMaster'`) sans changer de valeur. Règle : les
+modèles d'événements exposent `event_name` sans filtrer ; `int_zoho_desk__ticket_lifecycle_segments`
+ne garde que `TicketCreated` et `TicketUpdated`, et les fermetures de `int_zoho_desk__ticket_sla`
+que `TicketUpdated`. Tout nouveau consommateur doit filtrer de même.
 
-## Points d'attention
+**Valeur avant / après selon le type de propriété.** Une propriété scalaire (Status, Priority,
+Department) se lit dans `property_value__previous_value` / `__updated_value` ; une propriété
+objet (Case Owner) dans `…__previous_value__id` / `__name` et `…__updated_value__id` / `__name`.
+À la création, Zoho met parfois la valeur initiale dans `property_value` avec avant et après à
+`NULL` : `is_creation_event` dans `int_zoho_desk__ticket_status_events`.
 
-### `closed_time` ne suffit pas pour les métriques temporelles
-`closed_time` sur `stg_zoho_desk__tickets` ne contient que **la fermeture la plus récente**
-et est `NULL` si le ticket a été rouvert. Pour compter les tickets fermés par mois,
-utiliser `stg_zoho_desk__ticket_history` filtré sur `property_name = 'Status'`
-et `property_value__updated_value = 'Closed'`.
+**Valeurs de types mélangés.** `updatedValue` porte selon la propriété une date, un booléen ou
+du texte. Le pipeline l'épingle en texte (`colonnes_imbriquees` de `tables.py`) : laissé à
+l'inférence, dlt range une partie des valeurs dans des colonnes variantes que le staging ne lit
+pas. Toute valeur arrive en chaîne ; caster au moment de l'usage.
 
-### La jointure agent ↔ département passe par `_dlt_id`, pas `agent_id`
-`stg_zoho_desk__agent_departments` est une sous-table générée par dlt à partir
-d'un tableau JSON. La jointure vers l'agent se fait via la clé interne dlt :
-`agent_departments._dlt_parent_id = agents._dlt_id` — **pas** via `agent_id`.
+**Colonne absente du raw.** dlt ne crée une colonne que si une ligne la renseigne. Une colonne
+rarement remplie peut disparaître d'un run, et le staging qui la sélectionne casse
+(`Unrecognized name`). Règle : toute colonne sélectionnée par le staging et peu renseignée est
+épinglée dans `tables.py` du pipeline.
 
-### `ticket_details._zoho_desk_tickets_id` renommé en `ticket_id`
-Dans la source brute, la FK de `ticket_details` se nomme `_zoho_desk_tickets_id`
-(et non `_zoho_desk_associated_tickets_id` comme on pourrait s'y attendre).
-C'est un effet de bord du nommage interne du pipeline dlt.
-Dans le staging, cette colonne est renommée en `ticket_id` pour la cohérence.
+**Champs personnalisés `cf_*` en `STRING`.** L'API les rend en texte, y compris les dates et
+les booléens. Le staging ne les caste pas ; caster dans le modèle qui les utilise.
 
-### Les champs custom `cf_*` sont tous en `STRING`
-Même les champs qui contiennent des dates ou des booléens — c'est ainsi que
-l'API Zoho les retourne. Caster dans les modèles marts si nécessaire.
+**Sous-requête corrélée refusée par BigQuery.** Un calcul d'heures ouvrées en sous-requête
+corrélée sur `unnest(generate_date_array(...))` n'est pas planifiable à côté d'un `lead()` ou
+répété dans un même `select`. Règle : `cross join unnest` + `left join` des fériés +
+`group by`, comme dans `int_zoho_desk__ticket_lifecycle_segments` et `int_zoho_desk__ticket_sla`.
+
+**Écart d'une minute avec l'interface Zoho.** `timestamp_diff(..., minute)` tronque les
+secondes. Recalculer en secondes si l'écart compte.
 
 ---
 
-## Couche intermediate
+## Règles métier et leur source
 
-Les modèles intermediate consolident l'audit log brut de Zoho (`ticket_history`
-× `ticket_history_event_info`, dénormalisation forte) en vues métier
-exploitables : un modèle d'événements par type de propriété + une vue ticket
-"fat row" + des agrégations SLA. Aucune sémantique métier finale (closed /
-reopened / breached) n'est appliquée ici — ces règles sont laissées aux marts.
+| Règle | Source | Appliquée dans |
+|---|---|---|
+| Type de statut (`Open`, `On Hold`, fermé) d'un libellé Zoho | seed `ref_zoho_desk__status_mapping` | `int_zoho_desk__ticket_status_events` |
+| Heures ouvrées : lundi–vendredi, 9 h 00–17 h 30 heure de Paris, hors jours fériés | seed `ref_general__feries_metropole` | `int_zoho_desk__ticket_lifecycle_segments`, `int_zoho_desk__ticket_sla` |
+| Première réponse : premier échange sortant d'un agent, hors échange de description | choix interne | `int_zoho_desk__ticket_sla` |
+| Fermeture : passage d'un statut non fermé à un statut fermé ; réouverture : passage d'un statut fermé à un statut non fermé. L'interface Zoho appelle « rouvert » tout retour à « Nouveau » : ses compteurs diffèrent | choix interne | `int_zoho_desk__ticket_sla` |
+| Délai de résolution calculé deux fois, à la première et à la dernière fermeture, en minutes calendaires et ouvrées ; temps en attente isolé | choix interne, non aligné sur le tableau de bord Zoho | `int_zoho_desk__ticket_sla` |
+| Compte d'un ticket : celui du ticket, à défaut celui de son contact | choix interne | `int_zoho_desk__ticket_enriched` |
 
-### Diagramme de flux
+Pour ajouter un type d'événement (département, catégorie…) : un modèle intermediate par
+propriété, sur le modèle de `int_zoho_desk__ticket_priority_events`, plutôt qu'une table
+d'événements générique.
 
-```mermaid
-flowchart TB
-    subgraph staging["staging (couche existante)"]
-        stg_tickets[stg_zoho_desk__tickets]
-        stg_details[stg_zoho_desk__ticket_details]
-        stg_metrics[stg_zoho_desk__ticket_metrics]
-        stg_accounts[stg_zoho_desk__accounts]
-        stg_contacts[stg_zoho_desk__contacts]
-        stg_agents[stg_zoho_desk__agents]
-        stg_departments[stg_zoho_desk__departments]
-        stg_history[stg_zoho_desk__ticket_history]
-        stg_event_info[stg_zoho_desk__ticket_history_event_info]
-        stg_threads[stg_zoho_desk__ticket_threads]
-        seed_status[(ref_zoho_desk__status_mapping)]
-        seed_feries[(ref_general__feries_metropole)]
-    end
+---
 
-    subgraph intermediate["intermediate"]
-        int_enriched[int_zoho_desk__ticket_enriched<br/>1 ligne / ticket]
-        int_status[int_zoho_desk__ticket_status_events<br/>1 ligne / changement de statut]
-        int_priority[int_zoho_desk__ticket_priority_events<br/>1 ligne / changement de priorité]
-        int_assignee[int_zoho_desk__ticket_assignee_events<br/>1 ligne / changement de propriétaire]
-        int_segments[int_zoho_desk__ticket_lifecycle_segments<br/>1 ligne / segment de statut]
-        int_sla[int_zoho_desk__ticket_sla<br/>1 ligne / ticket — métriques SLA]
-    end
+## Consommateurs
 
-    %% Sources de ticket_enriched
-    stg_tickets --> int_enriched
-    stg_details --> int_enriched
-    stg_metrics --> int_enriched
-    stg_accounts --> int_enriched
-    stg_contacts --> int_enriched
-    stg_agents --> int_enriched
-    stg_departments --> int_enriched
+La chaîne s'arrête à l'intermediate : aucun mart ni application ne lit cette source. Liste à
+jour :
 
-    %% Sources des 3 modèles d'événements
-    stg_history --> int_status
-    stg_event_info --> int_status
-    seed_status --> int_status
-
-    stg_history --> int_priority
-    stg_event_info --> int_priority
-
-    stg_history --> int_assignee
-    stg_event_info --> int_assignee
-
-    %% Lifecycle segments construit à partir des status events
-    int_status --> int_segments
-    seed_feries --> int_segments
-
-    %% SLA agrège tout
-    int_enriched --> int_sla
-    stg_threads --> int_sla
-    int_status --> int_sla
-    int_segments --> int_sla
-    seed_feries --> int_sla
-
-    classDef seed fill:#fff3cd,stroke:#856404
-    classDef int fill:#d1ecf1,stroke:#0c5460,font-weight:bold
-    class seed_status,seed_feries seed
-    class int_enriched,int_status,int_priority,int_assignee,int_segments,int_sla int
+```bash
+dbt ls -s source:zoho_desk+ --resource-type model
 ```
-
-### Liste des modèles intermediate
-
-| Modèle | Grain | Source | Rôle |
-|---|---|---|---|
-| `int_zoho_desk__ticket_enriched` | 1 ticket | tickets + details + accounts (avec fallback contact) + metrics + departments + agents | Vue ticket complète — fondation des dim marts |
-| `int_zoho_desk__ticket_status_events` | 1 changement de statut | `ticket_history` × `event_info` filtrés sur `property_name='Status'` | Événements de statut + normalisation via seed `ref_zoho_desk__status_mapping` |
-| `int_zoho_desk__ticket_priority_events` | 1 changement de priorité | idem filtrés sur `property_name='Priority'` | Événements de priorité (escalades) |
-| `int_zoho_desk__ticket_assignee_events` | 1 changement d'agent | idem filtrés sur `property_name='Case Owner'` | Événements d'assignation (réassignations, charge agent) |
-| `int_zoho_desk__ticket_lifecycle_segments` | 1 intervalle de statut | `ticket_status_events` + `LEAD()` | Durées dans chaque statut (calendar + business hours) |
-| `int_zoho_desk__ticket_sla` | 1 ticket | threads + status_events + lifecycle_segments + enriched | Métriques SLA par ticket, en heures calendaires et ouvrées |
-
-### Pattern « 1 modèle par type d'événement »
-
-Chaque type d'événement métier (statut, priorité, propriétaire) a son propre
-modèle intermediate dédié, pas une table générique `ticket_changes` polymorphe.
-Trade-off retenu :
-
-- **Pro** : grain stable et clair, pas de décodage polymorphe (statuts =
-  scalaires, propriétaires = objets `__id`/`__name`), tests par modèle,
-  faible coût de maintenance par modèle.
-- **Con** : plusieurs modèles à construire si on ajoute de nouveaux types
-  d'événements.
-
-Pattern à reproduire pour ajouter un futur type d'événement (exemple :
-changements de département) :
-
-1. Filtrer `ticket_history__event_info` sur le `property_name` ciblé.
-2. Lire les valeurs prev/new dans les bonnes colonnes :
-   - **scalaires** (Status, Priority, Department, etc.) → `property_value__previous_value` / `__updated_value`
-   - **objets** (Case Owner, etc.) → `property_value__previous_value__id` / `__name` et `property_value__updated_value__id` / `__name`
-3. Gérer le cas "création" : Zoho stocke parfois la valeur initiale dans
-   `property_value` avec prev/new à `NULL` — utiliser `COALESCE` (cf. logique
-   `is_creation_event` dans `ticket_status_events`).
-4. Exposer la colonne `event_name` (depuis `ticket_history`) pour permettre
-   aux marts de filtrer le bruit des fusions.
-
-### Filtrage du bruit : `event_name = 'TicketMergedMaster'`
-
-Lors d'une fusion de tickets (action UI dans Zoho), le moteur d'audit
-ré-estampille **toutes les propriétés** du ticket (Status, Priority, Case
-Owner, etc.) sans qu'aucune valeur ne change réellement. Volumes constatés :
-
-| Propriété | Lignes `TicketUpdated` (réelles) | Lignes `TicketMergedMaster` (bruit) |
-|---|---|---|
-| Status | 40 514 | 1 009 |
-| Case Owner | 13 641 | 266 |
-| Priority | 12 816 | 41 |
-
-Les modèles intermediate exposent `event_name` mais **ne filtrent pas** : c'est
-aux marts de décider (ex : `WHERE event_name = 'TicketUpdated'` pour exclure
-les fusions). Le seul cas où l'intermediate filtre est
-`int_zoho_desk__ticket_lifecycle_segments`, qui exclut les `TicketMergedMaster`
-pour ne pas créer de faux segments.
-
-### Macro `business_minutes_between` : contrainte BigQuery
-
-La macro `macros/zoho_desk/business_minutes_between.sql` produit une
-**correlated subquery** (SELECT depuis `unnest(generate_date_array(...))` qui
-référence des colonnes externes). BigQuery refuse de la planifier dans deux
-cas :
-
-- alongside une `LEAD()` window function (cf. `ticket_lifecycle_segments`)
-- en présence de plusieurs appels dans le même SELECT (cf. `ticket_sla`)
-
-Erreur typique : `Correlated subqueries that reference other tables are not
-supported unless they can be de-correlated`.
-
-**Solution adoptée** : inliner la même logique via `CROSS JOIN UNNEST` +
-`LEFT JOIN holidays` + `GROUP BY` (pattern décorrélé). Les deux modèles
-concernés (`ticket_lifecycle_segments`, `ticket_sla`) implémentent cette
-variante. La macro reste disponible pour les cas simples (un seul appel,
-pas de window function adjacente).
-
-### Validation cross-checked
-
-Les métriques SLA ont été vérifiées sur 8 tickets contre l'activity log de la
-web app Zoho, incluant des cas limites :
-
-- multiples ré-ouvertures (#23073 : 4 closes / 3 reopens, 0 hold time)
-- longue attente client + spanning weekend (#23135 : 18 segments, fermé
-  hors heures ouvrées)
-- fusion de tickets (#23163 : 3 lignes `TicketMergedMaster` correctement taggées)
-- compte non rattaché → fallback via contact (#21952)
-
-Les requêtes types pour cross-checker un ticket sont documentées dans la
-mémoire personnelle Claude (`zoho_sla_verification_queries.md`, hors repo).
-
-### Limites connues
-
-- **Rounding minute** : `TIMESTAMP_DIFF(..., MINUTE)` tronque les secondes →
-  écart possible de ±1 min vs l'UI Zoho. Si nécessaire, recalculer en secondes
-  puis diviser.
-- **Règles SLA** : les définitions actuelles (premier close vs dernier close,
-  exclusion ou non du temps d'attente) sont des choix internes — en attente
-  de clarification du support Zoho sur leur dashboard officiel pour
-  alignement.
-- **Wording "rouvert" Zoho** : l'UI Zoho affiche "Ticket rouvert" pour toute
-  transition `En attente → Nouveau` ou `En cours → Nouveau`. Notre
-  `nb_reopens` est strict : il ne compte que les transitions `Clôturée → X`.
-
-### Pistes d'évolution
-
-Quand la business le demande, le pattern est facile à étendre. Idées
-potentielles classées par valeur :
-
-| Demande | Modèle à créer | Source |
-|---|---|---|
-| Tracking des breaches SLA | `int_zoho_desk__ticket_sla_breach_events` | `event_name = 'OvershotDueTime'` (2 612 lignes) |
-| Time-to-categorize | `int_zoho_desk__ticket_categorization_events` | `property_name LIKE 'Nature des%'` ou `'S/%'` |
-| Tickets bouncing entre départements | `int_zoho_desk__ticket_department_events` | `property_name = 'Department'` (22 368 lignes) |
-| Cycle archivage / suppression | `int_zoho_desk__ticket_archive_events` | `event_name IN ('TicketArchived', 'TicketDeleted', 'TicketRestored')` |

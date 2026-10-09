@@ -1,506 +1,146 @@
-# Architecture — MSSQL Sage
+# Architecture — MSSQL Sage (`mssql_sage`)
 
-> Dernière mise à jour : 2026-05-19
-
----
-
-## Vue d'ensemble
-
-Sage est l'ERP comptable et commercial du groupe. Ce pipeline extrait les
-données de la base **MSSQL Sage** via le pipeline dlt `mssql_sage` et les
-rend disponibles dans BigQuery pour le **pilotage financier** (P&L par
-Business Unit) et l'analyse commerciale Nunshen.
-
-Le pipeline couvre **deux domaines fonctionnels indépendants** qui partagent
-seulement la base Sage comme système source :
-
-**1. Comptabilité / P&L (toutes BU)**
-- **Écritures comptables** (`f_ecriturec`) — journal comptable officiel
-- **Écritures analytiques** (`f_ecriturea`) — ventilation des écritures sur les axes analytiques (BU, projets…)
-
-**2. Commerce Nunshen (BU Nunshen uniquement)**
-- **Comptes clients** (`f_comptet`) — clients Nunshen
-- **Lignes de vente** (`f_docligne`) — détail des ventes Nunshen
-- **Collaborateurs** (`f_collaborateur`) — commerciaux Nunshen
-
-> **Important** : ces deux blocs ne sont **pas reliés fonctionnellement**.
-> Le `ct_num` présent dans `f_ecriturec` représente n'importe quel tiers
-> Sage (clients toutes BU + fournisseurs), tandis que `f_comptet` ne contient
-> que les clients Nunshen. Une jointure sur `ct_num` entre ces deux blocs
-> est techniquement possible mais sémantiquement piégeuse.
-
-Cas d'usage principal : le mart `fct_finance__pnl_bu` produit un
-**P&L mensuel par BU** avec budget, YTD, N-1 et écarts, alimenté par Power BI.
-
----
-
-## Flux de données
-
-```
-┌─────────────────┐    pipeline dlt        ┌──────────────────────┐
-│   MSSQL Sage    │ ─────────────────────► │  prod_raw (BigQuery) │
-│   (on-prem)     │   mssql_sage           │  mssql_sage.dbo_*    │
-└─────────────────┘   (cf. infra/          └─────────┬───────────┘
-                        workflows_el.tf)             │ dbt staging
-                                                     ▼
-                                       ┌──────────────────────────┐
-                                       │  staging                 │
-                                       │  stg_mssql_sage__*       │
-                                       │  table                   │
-                                       └──────────┬───────────────┘
-                                                  │
-                              + seeds + source historic
-                                                  │
-                                                  ▼
-                                       ┌──────────────────────────────────────┐
-                                       │  intermediate                        │
-                                       │  int_mssql_sage__pnl_bu              │
-                                       │  int_mssql_sage__ecriture_non_       │
-                                       │     ventilee                        │
-                                       └──────────┬───────────────────────────┘
-                                                  │
-                              + seed ref_mssql_sage__pnl_budget
-                                                  │
-                                                  ▼
-                                       ┌──────────────────────────────────┐
-                                       │  marts                            │
-                                       │  fct_finance__pnl_bu              │
-                                       │  fct_finance__ecriture_non_       │
-                                       │     ventilee                     │
-                                       └──────────────────────────────────┘
-```
-
-**Ce que fait chaque couche :**
-
-| Couche | Rôle | Localisation |
-|---|---|---|
-| `prod_raw` | Données brutes Sage, telles que reçues du pipeline dlt | `evs-datastack-prod.prod_raw` |
-| `staging` | Cast des types, gestion du placeholder de date Sage `1753-01-01`, harmonisation des timestamps | `evs-datastack-prod.prod_staging` |
-| `intermediate` | Jointure écritures comptable ↔ analytique + résolution de la BU via seeds + fallback regex + override historique 2024 ; écritures non ventilées isolées | `evs-datastack-prod.prod_intermediate` |
-| `marts` | KPIs P&L mensuels avec budget, YTD, N-1, écarts et scénarios (avec/sans provisions CP) ; écritures sans ventilation analytique | `evs-datastack-prod.prod_marts` |
-
-**Fraîcheur (source freshness)** : tier *Standard* — warn 26h / error 48h sur
-`_extracted_at`, uniforme sur toutes les tables de la source.
-
----
-
-## Notions Sage utiles
-
-Quelques notions de comptabilité française que ce pipeline manipule :
-
-| Notion | Colonne staging | Explication |
-|---|---|---|
-| Compte général (`cg_num`) | `stg_mssql_sage__f_ecriturec.cg_num` | Plan Comptable Général. `6xxxxx` = charges, `7xxxxx` = produits. Le pipeline filtre **uniquement les classes 6 et 7** au niveau intermediate. |
-| Compte tiers (`ct_num`) | `stg_mssql_sage__f_ecriturec.ct_num` / `f_comptet.ct_num` | Code client ou fournisseur. Tous les `f_comptet` sont des **clients Nunshen**. |
-| Code analytique (`ca_num`) | `stg_mssql_sage__f_ecriturea.ca_num` | Axe analytique : préfixe identifiant la BU (NUN, HOR, OFF, NES, SAV, COM, PDET…). |
-| Sens d'écriture (`ec_sens`) | `stg_mssql_sage__f_ecriturec.ec_sens` | **0 = débit, 1 = crédit** (valeurs réelles vérifiées). La description du YAML staging mentionnant "1/2" est obsolète. |
-| Écriture comptable vs analytique | `f_ecriturec` (1 ligne) ↔ `f_ecriturea` (0..N lignes) | Une écriture comptable peut être ventilée sur **plusieurs lignes analytiques** (split BU). Inversement, certaines écritures n'ont pas de pendant analytique → `is_missing_analytical` dans l'intermediate. |
-| Placeholder date Sage | toute date Sage | Sage écrit `'1753-01-01'` pour "pas de date" → converti en `NULL` dans le staging. |
-
----
-
-## Modèle de données
-
-### Diagramme des relations
-
-Les deux domaines fonctionnels sont représentés séparément — il n'existe
-pas de FK exploitable entre eux.
-
-### Domaine Comptabilité / P&L
-
-```mermaid
-erDiagram
-
-    stg_mssql_sage__f_ecriturec {
-        int ec_no PK
-        int ec_no_link FK
-        string jo_num
-        string cg_num
-        string ct_num
-        int ec_sens
-        float ec_montant
-        timestamp ec_date
-    }
-
-    stg_mssql_sage__f_ecriturea {
-        int cb_marq PK
-        int ec_no FK
-        int n_analytique
-        int ea_ligne
-        string ca_num
-        float ea_montant
-        float ea_quantite
-    }
-
-    %% Écritures : analytique ventile la comptable
-    stg_mssql_sage__f_ecriturec ||--o{ stg_mssql_sage__f_ecriturea : "ec_no (0..N)"
-```
-
-`ct_num` est exposé sur `f_ecriturec` mais représente n'importe quel tiers
-Sage (client toutes BU ou fournisseur). Aucun référentiel tiers global n'est
-extrait dans ce pipeline.
-
-### Domaine Commerce Nunshen
-
-```mermaid
-erDiagram
-
-    stg_mssql_sage__f_comptet {
-        string ct_num PK
-        string ct_intitule
-        int ct_type
-        int co_no FK
-        string ligne_de_service
-        string typologie
-    }
-
-    stg_mssql_sage__f_collaborateur {
-        int co_no PK
-        string co_nom
-        string co_prenom
-        string co_fonction
-    }
-
-    stg_mssql_sage__f_docligne {
-        int dl_no PK
-        int cbco_no FK
-        int do_domaine
-        int do_type
-        string ct_num FK
-        timestamp do_date
-        float dl_montant_ht
-        float dl_montant_ttc
-    }
-
-    %% Comptes tiers → collaborateur (commercial attribué)
-    stg_mssql_sage__f_collaborateur ||--o{ stg_mssql_sage__f_comptet : "co_no"
-
-    %% Docligne → comptet (client)
-    stg_mssql_sage__f_comptet ||--o{ stg_mssql_sage__f_docligne : "ct_num"
-
-    %% Docligne → collaborateur (vendeur)
-    stg_mssql_sage__f_collaborateur ||--o{ stg_mssql_sage__f_docligne : "cbco_no"
-```
-
----
-
-## Rôle de chaque table
-
-### Comptabilité / P&L
-
-| Table | Ce qu'elle contient | Lignes (~) |
-|---|---|---|
-| `stg_mssql_sage__f_ecriturec` | **Journal comptable.** Une ligne = une écriture comptable. Partitionné sur `ec_date`, clusterisé sur `ec_no, cg_num`. | 302 523 |
-| `stg_mssql_sage__f_ecriturea` | **Ventilation analytique.** Une ligne = un éclatement d'une écriture comptable sur un axe analytique (BU). Partitionné sur `created_at`, clusterisé sur `ec_no`. | 187 011 |
-
-### Référentiels commerciaux (Nunshen)
-
-| Table | Ce qu'elle contient | Lignes (~) |
-|---|---|---|
-| `stg_mssql_sage__f_comptet` | Comptes clients Nunshen. | 12 156 |
-| `stg_mssql_sage__f_collaborateur` | Commerciaux Nunshen. | 166 |
-| `stg_mssql_sage__f_docligne` | Lignes de documents Sage (ventes + achats + stock). Filtrer `do_domaine = 0` pour les ventes pures. Partitionné sur `do_date`. Matérialisé en `table` (full refresh). | 326 910 |
-
----
-
-## Jointures clés
-
-### Cas d'usage typiques
-
-**Écriture comptable avec sa ventilation analytique :**
-```sql
-select
-    c.ec_no,
-    c.ec_date,
-    c.ec_intitule,
-    c.cg_num,
-    c.ec_sens,                       -- 0 = débit, 1 = crédit
-    c.ec_montant,
-    a.n_analytique,
-    a.ea_ligne,
-    a.ca_num                         as code_analytique,
-    a.ea_montant                     as montant_analytique
-from stg_mssql_sage__f_ecriturec c
-left join stg_mssql_sage__f_ecriturea a
-    on a.ec_no = c.ec_no
-where left(cast(c.cg_num as string), 1) in ('6', '7')   -- charges et produits uniquement
-```
-
-**Ventes Nunshen avec client et commercial :**
-```sql
-select
-    d.dl_no,
-    d.do_date,
-    d.do_piece,
-    d.dl_design,
-    d.dl_montant_ht,
-    cl.ct_intitule                   as client_name,
-    cl.categorisation_niv_1,
-    coll.co_nom || ' ' || coll.co_prenom as commercial
-from stg_mssql_sage__f_docligne d
-left join stg_mssql_sage__f_comptet      cl   on cl.ct_num = d.ct_num
-left join stg_mssql_sage__f_collaborateur coll on coll.co_no = d.cbco_no
-where d.do_domaine = 0          -- 0 = ventes (exclut stock interne et achats)
-  and d.do_date >= '2026-01-01'
-```
-
-**P&L direct depuis le mart (cas Power BI) :**
-```sql
-select annee, mois, bu, kpi, valeur, budget, ecart_vs_budget
-from prod_marts.fct_finance__pnl_bu
-where scenario = 'AVEC_PROVISIONS_CP'
-  and annee = 2026
-  and kpi in ('CA', 'MARGE_BRUTE', 'MARGE_NETTE')
-```
-
----
-
-## Points d'attention
-
-### `dbo_f_comptet`, `dbo_f_collaborateur`, `dbo_f_docligne` sont désormais en colonnes plates
-Ces trois tables arrivaient auparavant dans `prod_raw` avec une seule colonne
-`data` (string JSON à parser via `json_value`). Le nouvel extracteur dlt les
-expose en **colonnes plates**, cast explicitement en staging comme le reste
-de la source. Pas de blob JSON à gérer sur ce pipeline aujourd'hui.
-
-### Placeholder de date Sage : `1753-01-01`
-Sage utilise `1753-01-01` (date minimale SQL Server) comme placeholder
-"pas de date". Le staging `f_ecriturec` convertit explicitement ces valeurs
-en `NULL` pour `ec_echeance`, `ec_date_rappro` et `ec_date_regle`. À
-reproduire si tu ajoutes une nouvelle colonne date issue de Sage.
-
-### Sens d'écriture : valeurs réelles 0 / 1 (pas 1 / 2)
-La description du YAML staging dit "1 = débit, 2 = crédit" mais les valeurs
-réellement en base sont **0 (débit, 141 k lignes) et 1 (crédit, 161 k lignes)**.
-Le mart et l'intermediate utilisent bien 0/1 dans leurs `case when`. La doc
-YAML est à corriger.
-
-### Résolution de la BU : seed prioritaire + fallback regex
-Dans `int_mssql_sage__pnl_bu`, la Business Unit d'une écriture analytique
-est déterminée par cascade :
-1. **Seed** `ref_mssql_sage__code_analytique_bu` (mapping explicite `code → BU`)
-2. **Fallback regex** sur le préfixe du code analytique :
-   - `NUN%` → NUNSHEN
-   - `HOR%`, `OFF%`, `COM%` → COMMERCE
-   - `NES%` → NESHU
-   - `SAV%` → TECHNIQUE
-   - `PDET%` → PIECES DET
-3. **Override historique** : la source `historic.update_mssql_sage__analytique_2024`
-   réécrit la BU sur les écritures 2024 lorsqu'un mapping y est défini.
-
-BU produites aujourd'hui (>= 2023) : COMMERCE (39 k), NESHU (24 k), NUNSHEN
-(24 k), SUPPORT (19 k), TECHNIQUE (11 k), PIECES DET (654), ZSITUATION (344),
-**et 310 lignes sans BU** (flag `is_missing_bu_mapping = true` à surveiller).
-
-### Le signe du montant analytique est appliqué côté mart
-Le staging garde `ea_montant` brut. C'est l'intermediate qui calcule
-`montant_analytique_signe` selon la convention :
-- classe 6 (charges) + débit (0) → **négatif**
-- classe 6 + crédit (1) → **positif** (rare : annulation de charge)
-- classe 7 (produits) + débit (0) → **négatif** (rare : annulation de produit)
-- classe 7 + crédit (1) → **positif**
-
-Cela permet de sommer directement le `montant_analytique_signe` pour
-obtenir un P&L net (CA - charges).
-
-### Couverture des FK intra-domaine
-Comparaison faite via MCP — taux de match réel des relations à l'intérieur
-de chaque domaine :
-
-| Relation | Taux de match | Interprétation |
-|---|---|---|
-| `f_ecriturea.ec_no → f_ecriturec.ec_no` | testé en staging (100 % attendu) | Toute écriture analytique vient d'une écriture comptable |
-| `f_docligne.ct_num → f_comptet.ct_num` (domaine 0) | 100 % attendu | Voir gotcha ci-dessous : sans filtrage `do_domaine = 0`, 30 % d'orphelins illusoires |
-| `f_comptet.co_no → f_collaborateur.co_no` | 65 % (7 849 / 12 156) | 35 % des comptes ont `co_no = 0` (valeur sentinelle Sage « non assigné »). Voir gotcha ci-dessous. |
-
-Les jointures sur ces FK doivent systématiquement être en `LEFT JOIN`,
-jamais en `INNER JOIN`.
-
-> Ne pas tenter de joindre `f_ecriturec.ct_num` à `f_comptet.ct_num` : ce sont
-> deux espaces de codes tiers différents (toutes BU vs Nunshen). Les
-> coïncidences de valeurs ne sont pas sémantiquement fiables.
-
-### Comptes techniques `ZSITUATION` dans le P&L (344 lignes)
-Le code analytique `ZSITUATION` regroupe **toutes les écritures comptables
-de clôture / régularisation** : `CCA` (charges constatées d'avance), `FNP`
-(factures non parvenues), `AAR` (à recevoir), `Extourne` (annulation d'OD
-du mois précédent), `Refac` (refacturations internes flotte auto, services
-Suisse, etc.). Exemples observés sur 2026 :
-
-| Libellé | Compte | Montant |
-|---|---|---|
-| `CCA LOYER VEHICULE 04-2026` | 613520 | 38 445 € |
-| `Extourne CCA LOYER VEHICULE 03-2026` | 613520 | 37 603 € |
-| `ZS Refac flotte auto LCDP 04-2026` | 641100 | 10 000 € |
-| `FNP LOYER VEHICULE 03` | 613520 | 25 798 € |
-
-**À clarifier avec le contrôleur de gestion / DAF** : ces écritures sont
-théoriquement compensées sur deux mois consécutifs (CCA d'un mois +
-extourne le mois suivant ⇒ effet net = 0), mais à l'instant t elles peuvent
-fausser un P&L mensuel. Trois options à arbitrer :
-1. Les exclure du mart (`where code_analytique_bu != 'ZSITUATION'`)
-2. Les reclasser dans la BU réelle qu'elles concernent (LCDP, Suisse, etc.)
-3. Les conserver telles quelles si la convention métier l'exige
-
-### Couverture incomplète du seed budget `ref_mssql_sage__pnl_budget`
-Le mart `fct_finance__pnl_bu` filtre `annee >= 2024` et calcule
-écart budget + budget YTD pour chaque BU/mois/KPI. Le seed actuel ne couvre
-qu'une partie du périmètre :
-
-| BU | Années budgétées | Catégories couvertes |
-|---|---|---|
-| COMMERCE | 2025, 2026 | 2 sur 3 (manque une catégorie) |
-| NESHU | 2025, 2026 | 3 / 3 |
-| NUNSHEN | 2025, 2026 | 3 / 3 |
-| TECHNIQUE | 2025, 2026 | 3 / 3 |
-| SUPPORT / PIECES DET / ZSITUATION | aucune | aucune |
-| **2024 (toutes BU)** | **non couvert** | — |
-
-Conséquence : sur 2024 et pour les BU non budgétées, toutes les colonnes
-`budget`, `budget_ytd`, `ecart_vs_budget*` du mart sont `NULL`. À enrichir
-avec la DAF si Power BI doit afficher des écarts sur ces périmètres.
-
-### `f_docligne` mélange ventes, achats et mouvements de stock
-`f_docligne` agrège **trois types de documents Sage** que le pipeline expose
-désormais explicitement via les colonnes `do_domaine` et `do_type` :
-
-| `do_domaine` | Lignes (~) | Total HT | Sens |
-|---|---|---|---|
-| `0` | 224 901 | 10,2 M€ | **Ventes** (CT_Num = client Nunshen, jointure à `f_comptet` valide) |
-| `1` | 3 272 | 3,2 M€ | Achats / autre flux marginal |
-| `2` | **98 737** | 27,0 M€ | **Stock interne** (CT_Num = code d'entrepôt numérique, **pas** un client) |
-
-Les 98 737 lignes en `do_domaine = 2` sont les responsables des « 30 % de
-ventes orphelines » historiquement observés. Le `CT_Num` y prend des valeurs
-chiffrées (`1`, `2`, `3`, `7`, `8`…) qui sont en réalité des identifiants
-de dépôts Sage, pas des clients. Le `do_type` y vaut typiquement 20, 21,
-23, 24 ou 26 (entrée / sortie / transfert / ajustement / fabrication).
-
-**Conséquences pour les analystes** :
-- Pour un **P&L commercial Nunshen** : filtrer `do_domaine = 0` côté mart.
-- Pour une **analyse logistique** (rotation, mouvements inter-dépôts) :
-  filtrer `do_domaine = 2`.
-- Pour **ne pas casser** les jointures `ct_num → f_comptet` historiques :
-  toujours filtrer explicitement le domaine — ne pas joindre tel quel.
-
-Le staging ne filtre **pas** par domaine — il expose les trois pour
-permettre toutes les analyses en aval.
-
-### `co_no = 0` : valeur sentinelle pour « pas de commercial assigné »
-4 307 comptes (35 % de `f_comptet`) ont `co_no = 0`. Diagnostic posé via
-MCP :
-
-- **Ce n'est pas un commercial disparu** : la table `f_collaborateur` ne
-  contient aucune ligne avec `co_no = 0`. C'est la valeur sentinelle Sage
-  par défaut pour « non assigné ».
-- **Profil des comptes orphelins vs assignés** :
-
-  | | Orphelins | Avec commercial |
-  |---|---|---|
-  | Nombre | 4 307 | 7 849 |
-  | Avec email | **4,6 %** | 98,7 % |
-  | Avec téléphone | **4,4 %** | 98,2 % |
-  | Avec ligne de service | 70,6 % | 99,9 % |
-
-- **Activité commerciale quasi nulle** : 97 % des orphelins (4 188 / 4 307)
-  n'ont jamais généré de vente (`do_domaine = 0`). Les 3 % restants
-  cumulent 828 k€ HT sur l'histoire.
-- **Le champ custom `COMMERCIAL ORIGINE` n'est pas un fallback exploitable** :
-  vide ou NULL dans 99,98 % des cas.
-
-**Conclusion** : ce sont essentiellement des **prospects ou comptes
-coquilles** (importés sans contact ni commercial) et quelques résiduels
-ponctuels. Pas un défaut d'extraction, mais un état de la base Sage. Si
-un mart BI doit afficher uniquement les clients « vivants », filtrer
-`where co_no != 0`.
-
-### Champs Sage non documentés
-Le YAML source recense plusieurs champs marqués « non documenté Sage » sur
-`f_ecriturec` (`cb_hash*`, `cle_acs`, `ec_facture_guid`, `ec_payment_id`,
-`ec_pay_now_url`, etc.). Ils ne sont **pas exposés** dans le staging — à
-exploiter avec prudence, leur sémantique n'a pas été validée par l'éditeur.
-
----
-
-## Couche intermediate
-
-Deux modèles intermediate :
-- `int_mssql_sage__pnl_bu` consolide écritures comptable + analytique,
-  applique le mapping BU + le mapping catégorie comptable, et calcule le
-  montant analytique signé.
-- `int_mssql_sage__ecriture_non_ventilee` (éphémère) isole les écritures
-  classes 6/7 qui n'ont **aucune** ventilation analytique correspondante
-  dans `f_ecriturea` — le symétrique de `is_missing_analytical` mais au
-  niveau écriture plutôt qu'éclatement.
-
-### Diagramme de flux
-
-```mermaid
-flowchart TB
-    subgraph staging["staging"]
-        stg_ec[stg_mssql_sage__f_ecriturec<br/>journal comptable]
-        stg_ea[stg_mssql_sage__f_ecriturea<br/>ventilation analytique]
-    end
-
-    subgraph seeds["seeds (reference_data)"]
-        seed_ana[(ref_mssql_sage__code_analytique_bu)]
-        seed_cpt[(ref_mssql_sage__code_comptable_bu)]
-    end
-
-    subgraph external["source externe"]
-        hist[(historic.update_mssql_sage__<br/>analytique_2024)]
-    end
-
-    subgraph intermediate["intermediate"]
-        int_pnl[int_mssql_sage__pnl_bu<br/>1 ligne / éclatement analytique]
-    end
-
-    stg_ec --> int_pnl
-    stg_ea --> int_pnl
-    seed_ana --> int_pnl
-    seed_cpt --> int_pnl
-    hist --> int_pnl
-
-    classDef seed fill:#fff3cd,stroke:#856404
-    classDef ext fill:#f8d7da,stroke:#721c24
-    classDef int fill:#d1ecf1,stroke:#0c5460,font-weight:bold
-    class seed_ana,seed_cpt seed
-    class hist ext
-    class int_pnl int
-```
-
-### Modèle intermediate
-
-| Modèle | Grain | Source | Rôle |
-|---|---|---|---|
-| `int_mssql_sage__pnl_bu` | 1 ligne par éclatement analytique (ou 1 ligne par écriture comptable orpheline) | `f_ecriturec` (filtré classes 6/7) `LEFT JOIN` `f_ecriturea` + 2 seeds + override historic 2024 | Fondation du P&L : montant signé, BU résolue, catégorie comptable mappée, drapeaux `is_missing_*` pour la qualité de données |
-| `int_mssql_sage__ecriture_non_ventilee` | 1 ligne par écriture comptable classes 6/7 sans ventilation analytique | `f_ecriturec` filtré classes 6/7, exclusion anti-jointure sur `f_ecriturea` | Isole les écritures orphelines de toute ventilation, alimente `fct_finance__ecriture_non_ventilee` |
-
-### Choix de modélisation
-
-- **`LEFT JOIN` comptable → analytique** : préserve les écritures sans
-  ventilation analytique (visibles via `is_missing_analytical = true`),
-  utile pour repérer les oublis côté équipe finance.
-- **Override historique 2024 séparé** : permet de figer la BU sur des
-  écritures rectifiées a posteriori sans réécrire l'extraction Sage.
-- **Pas de filtre sur le scénario** dans l'intermediate : les scénarios
-  *AVEC/SANS provisions CP* sont gérés au niveau du mart, ce qui évite la
-  duplication des lignes en intermediate.
-
----
-
-## Marts consommateurs
-
-| Mart | Rôle BI |
+| | |
 |---|---|
-| `fct_finance__pnl_bu` | P&L mensuel par BU avec budget, YTD, N-1 et écarts. Deux scénarios : `AVEC_PROVISIONS_CP` et `SANS_PROVISIONS_CP` (ce dernier exclut les comptes `645800` et `641200`). 6 KPIs : CA, CONSOMMATION_MP_SSTT, MASSE_SALARIALE, FRAIS_DIRECTS_AMORTISSEMENTS, MARGE_BRUTE, MARGE_NETTE. Filtré `annee >= 2024`. |
-| `fct_finance__ecriture_non_ventilee` | Liste des écritures comptables (classes 6/7) sans ventilation analytique — filet de qualité de données pour l'équipe finance. |
+| Source dbt | `mssql_sage` — `models/staging/mssql_sage/_mssql_sage__sources.yml` |
+| Pipeline dlt | `ingestion/pipelines/mssql_sage` — SQL Server, base `EVS_PRO`, schéma `dbo` ; périmètre dans `tables.py` |
+| Tables raw | `prod_raw.dbo_f_*`, 15 tables, colonnes plates normalisées en snake_case |
+| Fraîcheur | [`docs/freshness.md`](../freshness.md) |
+| Cadence | [`docs/pipeline-schedule.md`](../pipeline-schedule.md) ; le workflow enchaîne l'extraction et `dbt build -s source:mssql_sage+` |
 
-### Seeds & sources auxiliaires
+**Modes de chargement** (`tables.py`) :
 
-| Type | Fichier / table | Rôle |
+| Mode | Tables | Conséquence en aval |
 |---|---|---|
-| Seed | `ref_mssql_sage__code_analytique_bu.csv` | Mapping `code_analytique → BU` explicite (prioritaire sur le fallback regex) |
-| Seed | `ref_mssql_sage__code_comptable_bu.csv` | Mapping `code_comptable → macro_categorie_pnl_bu` (CA, MP & SSTT, Masse Salariale, Frais Directs & Amortissements) |
-| Seed | `ref_mssql_sage__pnl_budget.csv` | Budget annuel par BU/mois/catégorie — alimente la colonne `budget` du mart |
-| Source externe | `historic.update_mssql_sage__analytique_2024` | Réécriture manuelle des BU sur les écritures 2024 (écritures rectifiées hors Sage) |
+| `replace` (snapshot complet) | faits `f_ecriturec`, `f_ecriturea`, `f_docligne` ; référentiels `f_comptet`, `f_collaborateur`, `f_compteg`, `f_comptea`, `f_article`, `f_docentete`, `f_nomenclat`, `f_depot`, `f_famille`, `f_artfourniss` | le raw ne contient que ce qui existe dans Sage au dernier run : une suppression ou une transformation de document y disparaît |
+| `append` (une photo par run) | `f_artstock`, `f_lotserie` | Sage n'a que l'état courant ; chaque run ajoute une photo complète, identifiée par `_extracted_at`. Le staging garde toutes les photos ; le choix d'une photo par jour se fait en aval |
+
+Le dossier `EVS_PRO` porte deux domaines qui ne partagent que la base :
+
+- **Comptabilité, toutes BU** : écritures générales et analytiques, plan comptable, sections
+  analytiques. Alimente le P&L par BU (`models/marts/finance/`).
+- **Gestion commerciale et stock, BU Nunshen seule** : documents, articles, stock, lots,
+  nomenclatures, tiers. Alimente l'application Cockpit Supply (`app_cockpit__nunshen_*`).
+
+---
+
+## Grain et clés
+
+| Table | Rôle | Grain / clé |
+|---|---|---|
+| `f_ecriturec` | Journal comptable | `ec_no` |
+| `f_ecriturea` | Ventilation analytique d'une écriture (0 à N lignes par `ec_no`) | `(ec_no, n_analytique, ea_ligne)` |
+| `f_compteg` | Plan comptable général, intitulé des comptes | `cg_num` |
+| `f_comptea` | Sections analytiques ; un seul plan analytique | `ca_num` |
+| `f_comptet` | Tiers du dossier : clients **et** fournisseurs (`ct_type`, 1 = fournisseur) | `ct_num` |
+| `f_collaborateur` | Collaborateurs (représentants commerciaux) | `co_no` |
+| `f_docentete` | En-têtes de documents : ventes, achats, stock, fabrication | `(do_type, do_piece)` |
+| `f_docligne` | Lignes de documents, mêmes domaines | `dl_no` |
+| `f_article` | Référentiel articles, champs libres Nunshen compris | `ar_ref` |
+| `f_famille` | Familles d'articles ; toutes de détail (`fa_type = 0`) | `fa_code_famille` |
+| `f_nomenclat` | Nomenclatures : lien composé → composant, avec quantité | `(ar_ref, no_ref_det)` en pratique |
+| `f_artfourniss` | Référence et tarif d'achat par article × fournisseur ; un fournisseur principal (`af_principal = 1`) | `(ar_ref, ct_num)` |
+| `f_depot` | Dépôts de stock | `de_no` |
+| `f_artstock` | Stock et valeur (CMUP) par article × dépôt, une photo par run | `extracted_at × ar_ref × de_no` |
+| `f_lotserie` | Lots et numéros de série : une ligne par mouvement de lot (entrée `dl_no_in`, sortie `dl_no_out`, 0 tant que le lot n'est pas sorti), une photo par run | aucune clé unique déclarée par Sage |
+
+`cb_marq` est l'identifiant technique Sage de chaque ligne. Sur les tables en `append`, il
+n'est unique **qu'à l'intérieur d'une photo**.
+
+---
+
+## Pièges
+
+**Écriture en double après une modification dans Sage.** Sage crée parfois un nouveau
+`cb_marq` lors d'une mise à jour au lieu de modifier la ligne. Règle : dédoublonner sur la clé
+métier en gardant le `cb_marq` le plus récent. Appliqué dans `stg_mssql_sage__f_ecriturec`
+(`ec_no`) et `stg_mssql_sage__f_ecriturea` (`ec_no, n_analytique, ea_ligne`) ; les référentiels
+portent le même `qualify` par prudence.
+
+**Date `1753-01-01`.** Sage écrit la date minimale de SQL Server pour « pas de date ». Règle :
+`nullif(<col>, timestamp('1753-01-01'))` en staging, à reproduire sur toute nouvelle colonne
+date.
+
+**Mauvais mois dans le P&L.** `ec_date` n'est pas la date de rattachement comptable. Règle : le
+mois du P&L vient de `date_facturation = jm_date + (ec_jour − 1) jours` (période + jour).
+Appliqué dans `int_mssql_sage__pnl_bu` et `int_mssql_sage__ecriture_non_ventilee`.
+
+**Signe du montant.** Le staging garde `ea_montant` brut. Règle : débit (`ec_sens = 0`) →
+négatif, crédit (`ec_sens = 1`) → positif, **sans `abs()`** : un montant analytique négatif est
+une réaffectation entre sections et doit inverser le sens. La somme de
+`montant_analytique_signe` donne le résultat net (produits − charges). Appliqué dans
+`int_mssql_sage__pnl_bu`.
+
+**Écritures sans ventilation analytique.** Une écriture de classe 6 ou 7 peut n'avoir aucune
+ligne dans `f_ecriturea`. Règle : `left join` comptable → analytique, drapeau
+`is_missing_analytical` ; ces écritures sont exclues du P&L par BU et listées à part dans
+`fct_finance__ecriture_non_ventilee` (bornée par la variable `ecriture_non_ventilee_floor`).
+
+**BU non résolue.** Une section absente du seed et sans préfixe connu n'a pas de BU. Règle :
+drapeau `is_missing_bu_mapping` dans l'intermediate, BU `BU_NON_RENSEIGNEE` dans
+`fct_finance__pnl_bu`. Corriger en ajoutant la section au seed, pas au `case` de préfixes.
+
+**Section `ZSITUATION`.** Elle regroupe les écritures de clôture et de régularisation (CCA, FNP,
+produits à recevoir, extournes, refacturations internes). Une écriture et son extourne tombent
+sur deux mois consécutifs : un mois isolé est faussé, le cumul non. Elle est conservée comme
+une BU distincte dans le P&L.
+
+**`f_docligne` mélange trois domaines.** `do_domaine` : 0 = vente, 1 = achat, 2 = stock. En
+domaine stock, `ct_num` est un **numéro de dépôt**, pas un tiers. Règle : toujours filtrer le
+domaine avant de joindre `f_comptet` ; le test `relationships` du staging est restreint à
+`do_domaine in (0, 1)`.
+
+**`f_comptet` n'est pas une liste de clients.** Elle porte les clients et les fournisseurs du
+dossier. Règle : filtrer sur `ct_type` pour une liste de clients ; joindre par le domaine du
+document (vente → client, achat → fournisseur). La jointure `f_ecriturec.ct_num → f_comptet`
+n'est ni utilisée ni testée : la valider avant de s'en servir.
+
+**`co_no = 0`.** Valeur Sage « aucun commercial assigné », absente de `f_collaborateur`.
+Règle : `left join` vers `f_collaborateur`, jamais `inner join`.
+
+**Dépôt 0.** Les lignes de document sans mouvement de stock portent `de_no = 0`, absent de
+`f_depot`. Règle : `left join` ; le test `relationships` exclut `de_no = 0`.
+
+**CA doublé par les kits.** Un kit facturé porte aussi les lignes de ses composants. Règle :
+ne compter que les lignes valorisées, `dl_valorise = 1`. Appliqué dans
+`app_cockpit__nunshen_vente_mensuelle` et `app_cockpit__nunshen_bl_client`.
+
+**Documents transformés.** En `replace`, une commande fournisseur réceptionnée ou une
+préparation de fabrication transformée en bon disparaît de `f_docentete` et de `f_docligne`.
+Règle : les types 12 (commande fournisseur) et 24 (préparation de fabrication) ne contiennent
+que les documents **ouverts** ; leur quantité est déjà le reste à livrer ou à produire. Aucun
+historique des commandes n'est conservé. Lire `app_cockpit__nunshen_commande_fournisseur` et
+`app_cockpit__nunshen_ordre_production`. Joindre lignes et en-têtes sur `(do_type, do_piece)` :
+`do_piece` seul n'est pas unique.
+
+**Photos de stock multiples.** Un run manuel ajoute une seconde photo le même jour. Règle : ne
+jamais sommer sur plusieurs photos ; choisir une photo explicitement. Stock : dernière
+extraction de chaque jour en heure de Paris (`app_cockpit__nunshen_stock_photo`). Lots : photo
+la plus récente (`app_cockpit__nunshen_stock_lot`, `app_cockpit__nunshen_reception`).
+
+---
+
+## Règles métier et leur source
+
+| Règle | Source | Appliquée dans |
+|---|---|---|
+| Périmètre du P&L : comptes généraux de classes 6 (charges) et 7 (produits) | plan comptable | `int_mssql_sage__pnl_bu` |
+| Catégorie P&L d'un compte (CA, MP & SSTT, masse salariale, frais directs & amortissements) | seed `ref_mssql_sage__code_comptable_bu` | `int_mssql_sage__pnl_bu` |
+| BU d'une section, par cascade : 1. seed ; 2. préfixe (`NUN` → NUNSHEN ; `HOR`, `OFF`, `COM` → COMMERCE ; `NES` → NESHU ; `SAV` → TECHNIQUE ; `PDET` → PIECES DET) ; 3. réécriture des écritures 2024 | seed `ref_mssql_sage__code_analytique_bu`, source `historic.update_mssql_sage__analytique_2024` (rectifications faites hors Sage) | `int_mssql_sage__pnl_bu` |
+| Scénario `SANS_PROVISIONS_CP` : exclut les comptes 645800 et 641200 (provisions congés payés) | finance | `fct_finance__pnl_bu` |
+| Budget mensuel par BU et catégorie ; une BU ou une année absente du seed a un budget `NULL`, pas 0 | seed `ref_mssql_sage__pnl_budget`, saisi à la main | `fct_finance__pnl_bu` |
+| CA Nunshen : factures (`do_type` 6 et 7) du domaine vente, lignes valorisées ; avoirs déjà signés | Sage | `app_cockpit__nunshen_vente_mensuelle` |
+| Stock disponible : dépôt NUNSHEN (`de_no = 1`) ; valeur de stock : tous dépôts, CMUP = `as_mont_sto / as_qte_sto` | métier Nunshen | `app_cockpit__nunshen_stock_photo` |
+| Lot en stock : ligne d'entrée (`ls_mvt_stock = 1`) avec quantité restante > 0 | Sage | `app_cockpit__nunshen_stock_lot` |
+| Article actif : `ar_sommeil = 0` ; champs libres `OUI`/`NON` typés en booléens en aval, pas en staging | Sage | `app_cockpit__nunshen_article` |
+
+---
+
+## Consommateurs
+
+Deux familles : le P&L de `models/marts/finance/` et les tables Nunshen de l'application
+Cockpit Supply (`models/apps/cockpit_supply/app_cockpit__nunshen_*`). Liste à jour :
+
+```bash
+dbt ls -s source:mssql_sage+ --resource-type model
+```

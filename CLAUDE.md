@@ -7,10 +7,11 @@ analyst (contribue aux marts).
 Cloud Workflows (repo `infra`) → Power BI.
 
 **dbt v2** (version : `requirements-lock.txt`), paquet `dbt` installé par pip. Moteur Rust livré
-comme extension CPython : Python ≥ 3.11 requis à l'exécution. Toujours appeler
-`./dbt_venv/bin/dbt` avec `.env` chargé (`set -a && . ./.env && set +a`) : un `dbt` nu peut
-résoudre une autre installation (dbt-core 1.x), que `require-dbt-version` refuse. Licence propriétaire gratuite de dbt Labs, choisie
-plutôt que `dbt-oss` (Apache 2.0) parce que ce dernier n'a pas `dbt lint`.
+comme extension CPython : Python ≥ 3.11 requis à l'exécution. Licence propriétaire gratuite de
+dbt Labs, choisie plutôt que `dbt-oss` (Apache 2.0) parce que ce dernier n'a pas `dbt lint`.
+
+Toujours appeler `./dbt_venv/bin/dbt` avec `.env` chargé (`set -a && . ./.env && set +a`) : un
+`dbt` nu peut résoudre une autre installation (dbt-core 1.x), que `require-dbt-version` refuse.
 
 | Sujet | Référence |
 |---|---|
@@ -124,8 +125,9 @@ SQL et entrée YAML dans la même PR.
 
 - **Staging** : une table source = un modèle, renommage passthrough, `description='…'` dans le
   `config()` (en plus du YAML).
-- **Intermediate** : logique métier alignée sur **une** source, uniquement des `ref()`. Le
-  croisement de sources se fait dans les marts. Description en YAML seulement.
+- **Intermediate** : logique métier alignée sur **une** source, uniquement des `ref()` (seule
+  exception : l'archive `historic`). Le croisement de sources se fait dans les marts. Description
+  en YAML seulement.
 - **Marts** — [`marts.md`](docs/conventions/marts.md) :
   1. description YAML en 4 blocs `[QUOI MÉTIER]` / `[COMMENT CONSTRUITE]` / `[GRAIN]` / `[NOTES]`,
      grain obligatoire ;
