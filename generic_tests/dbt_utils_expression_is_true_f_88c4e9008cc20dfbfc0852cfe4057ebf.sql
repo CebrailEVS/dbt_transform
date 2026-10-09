@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="stocks_theoriques_autre >= 0", model=get_where_subquery(ref('fct_supply_chain__flux_neshu'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

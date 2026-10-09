@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="coalesce(convertir_code_5, '') != 'OUI' or montant_effectif is not null", model=get_where_subquery(ref('fct_technique__intervention_retraitee'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

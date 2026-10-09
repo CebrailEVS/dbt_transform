@@ -49,16 +49,14 @@ with nesp_interventions as (
         delais.delai_heures_fin,
         delais.type_delai_debut as delai_tech,
         delais.type_delai_fin as delai_partenaire,
-        key_factu_obj.alias_obj_type_inter,
-        key_factu_obj.alias_obj_type_machine,
-        key_factu_obj.alias_obj_grp_machine
+        factu.alias_obj_type_inter,
+        factu.alias_obj_type_machine,
+        factu.alias_obj_grp_machine
     from `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__interventions_dedup` as dedup
     left join `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__facturation_interventions` as factu
         on dedup.n_planning = factu.n_planning
     left join `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__delais_interventions` as delais
         on dedup.n_planning = delais.n_planning
-    left join `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation` as key_factu_obj
-        on factu.key_factu = key_factu_obj.key_ref_inter
     where dedup.etat_intervention != 'annulée'
 ),
 

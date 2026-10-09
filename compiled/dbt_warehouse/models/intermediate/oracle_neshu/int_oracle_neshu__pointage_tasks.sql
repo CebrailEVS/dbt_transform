@@ -1,17 +1,28 @@
 
 
 with
-resources_roadman as (
+-- Une tâche peut porter plusieurs ressources d'un même type. On retient UNE
+-- ligne entière (celle du plus petit idresources) pour que l'identifiant et le
+-- code désignent toujours la même ressource : des min() indépendants par
+-- colonne les dissociaient dès qu'il y avait deux affectations.
+resources_roadman_ranked as (
     select
         thr.idtask,
-        min(r.idresources) as idresources_roadman,
-        min(r.code) as code_roadman
+        r.idresources as idresources_roadman,
+        r.code as code_roadman,
+        row_number() over (partition by thr.idtask order by r.idresources) as rn
     from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_resources` as thr
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__resources` as r
-        on
-            thr.idresources = r.idresources
-            and r.idresources_type = 2 -- Resources Roadman
-    group by thr.idtask
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__resources` as r on thr.idresources = r.idresources
+    where r.idresources_type = 2 -- roadman
+),
+
+resources_roadman as (
+    select
+        idtask,
+        idresources_roadman,
+        code_roadman
+    from resources_roadman_ranked
+    where rn = 1
 ),
 
 pointage as (
@@ -28,7 +39,8 @@ pointage as (
     from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task` as t
     inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_task` as lht on t.idtask = lht.idtask
     -- START_DAY & END_DAY uniquement
-    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label` as la on lht.idlabel = la.idlabel and la.idlabel in (2685, 2686)
+    -- Filtre sur le code du label, pas sur son id : les ids sont propres à chaque instance Oracle.
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label` as la on lht.idlabel = la.idlabel and la.code in ('START_DAY', 'END_DAY')
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_status` as ts on t.idtask_status = ts.idtask_status
     where
         t.idtask_type = 194 -- TASK TYPE POINTAGE

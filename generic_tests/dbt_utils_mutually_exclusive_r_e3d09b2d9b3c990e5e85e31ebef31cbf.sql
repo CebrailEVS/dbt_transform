@@ -1,0 +1,1 @@
+{{ dbt_utils.test_mutually_exclusive_ranges(gaps="allowed", lower_bound_column="valid_from", model=get_where_subquery(ref('ref_nesp_tech__key_facturation')), partition_by="key_ref_inter", upper_bound_column="valid_to") }}

@@ -252,7 +252,12 @@ select
 from effective as e
 left join `evs-datastack-prod`.`prod_staging`.`stg_yuman__users` as tech_eff
     on e.tech_yuman_id_effectif = tech_eff.user_id
+-- Tarif en vigueur à la date de l'intervention, comme dans
+-- int_nesp_tech__facturation_interventions ; à génération égale, la plus récente.
 left join `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__key_facturation` as kf_eff
-    on e.key_factu_effectif = kf_eff.key_ref_inter
+    on
+        e.key_factu_effectif = kf_eff.key_ref_inter
+        and date(e.date_fin, 'Europe/Paris') between kf_eff.valid_from and kf_eff.valid_to
+qualify row_number() over (partition by e.key_inter order by kf_eff.valid_from desc nulls last) = 1
     );
   
