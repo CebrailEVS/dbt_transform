@@ -88,7 +88,6 @@ snapshots:
       - Comparer les performances entre périodes
     config:
       meta:
-        owner: "Votre équipe data"
         contains_pii: false
         refresh_frequency: "daily run, monthly capture"
     
