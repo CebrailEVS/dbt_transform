@@ -40,6 +40,8 @@ exposures:
       - ref('app_cockpit__technique_stock_photo')
       - ref('app_cockpit__technique_stock_van')
       - ref('app_cockpit__technique_reference')
+      - ref('app_cockpit__technique_commande_fournisseur')
+      - ref('app_cockpit__technique_prix_achat')
       - ref('app_cockpit__neshu_produit')
       - ref('app_cockpit__neshu_societe')
       - ref('app_cockpit__neshu_machine')

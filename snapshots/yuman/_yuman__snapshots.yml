@@ -87,3 +87,34 @@ snapshots:
         tests:
           - unique
           - not_null
+
+  - name: snap_yuman__purchase_order_lines
+    description: |
+      Historique des lignes de bons de commande fournisseurs Yuman (TechCare), pour dater les réceptions.
+
+      L'API Yuman ne fournit que l'état courant d'une ligne (quantity_received, statut) : chaque
+      nouvelle version vue par ce snapshot correspond à une réception enregistrée dans Yuman depuis
+      la veille. Sert au taux de service fournisseur (« livré en une fois ») et au délai de livraison
+      TechCare de Cockpit Supply. Les dates ne valent qu'à partir de la mise en place du snapshot ;
+      l'historique antérieur reste dans les imports « Logs de produits » de l'application.
+
+      Stratégie check sur quantity_received et purchase_order_status ; une ligne supprimée dans Yuman
+      est clôturée (invalidate_hard_deletes).
+
+    columns:
+      - name: purchase_order_line_id
+        description: Identifiant Yuman de la ligne de bon de commande (clé)
+        tests:
+          - not_null
+
+      - name: quantity_received
+        description: Quantité reçue cumulée sur la ligne — TRACKED
+
+      - name: purchase_order_status
+        description: Statut du bon de commande — TRACKED
+
+      - name: dbt_valid_from
+        description: Début de validité de la version (première exécution du snapshot qui l'a vue)
+
+      - name: dbt_valid_to
+        description: Fin de validité de la version (NULL pour la version courante)
