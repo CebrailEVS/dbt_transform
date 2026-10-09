@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/ubuntu/.claude/hooks/guard-branch.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-branch.sh"
           }
         ]
       }
@@ -17,11 +17,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/mnt/data/transform/.claude/hooks/lint-sql.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lint-sql.sh"
           },
           {
             "type": "command",
-            "command": "/mnt/data/transform/.claude/hooks/parse-yaml.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/parse-yaml.sh"
           }
         ]
       }

@@ -150,7 +150,7 @@ CLAUDE.md         contexte projet et règles strictes
 ├── commands/     /build-source, /new-mart, /lint-fix, /freshness
 ├── skills/       audit-sources, audit-docs, check-staging-relationships, profile
 ├── agents/       mart-reviewer
-└── hooks/        dbt lint et dbt parse après édition, helpers d'auth MCP
+└── hooks/        garde-fou de branche avant commit/push, dbt lint et dbt parse après édition, helpers d'auth MCP
 ```
 
 Les hooks git de `.pre-commit-config.yaml` rejouent les mêmes contrôles pour les humains (cf. CONTRIBUTING § 1).
