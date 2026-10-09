@@ -712,11 +712,38 @@ models:
   - name: app_cockpit__technique_technicien
     description: |
       [QUOI MÉTIER] Référentiel des techniciens TechCare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_technique__technician réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] dim_technique__technician réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière), dont le dépôt de rattachement et le nom du stock du technicien (rattachement des mouvements « ST - … » au dépôt, à la place de l'import manuel « Export des utilisateurs »). Toutes les lignes.
       [GRAIN] 1 ligne par `user_id` (PK Yuman du technicien).
       [NOTES] lue via get_dim_technicians ; écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
       - name: user_id
+        tests:
+          - not_null
+          - unique
+
+  - name: app_cockpit__technique_commande_fournisseur
+    description: |
+      [QUOI MÉTIER] Lignes des bons de commande fournisseurs TechCare (Yuman), telles que lues par l'application Cockpit Supply : commandes en cours, achats et taux de service des fiches fournisseurs, retards, ISO.
+      [COMMENT CONSTRUITE] stg_yuman__purchase_orders joint à stg_yuman__suppliers, sans filtre de date (historique depuis 2024). Colonnes renommées comme la table d'import de l'app qu'elle remplace (import manuel « Bons de commande fournisseurs ») ; numéro sans zéros de tête ; dates en heure de Paris ; statuts aux libellés de l'export Yuman.
+      [GRAIN] 1 ligne par `purchase_order_line_id` (ligne de bon de commande).
+      [NOTES] Code et nom du fournisseur depuis stg_yuman__suppliers. Les règles de l'app (dépôt déduit de l'adresse de livraison, commandes en cours, exclusions) restent appliquées par l'app. Réservé à l'application, pas de rapport Power BI dessus.
+    columns:
+      - name: purchase_order_line_id
+        tests:
+          - not_null
+          - unique
+      - name: numero
+        tests:
+          - not_null
+
+  - name: app_cockpit__technique_prix_achat
+    description: |
+      [QUOI MÉTIER] Prix d'achat des articles TechCare, tels que lus par l'application Cockpit Supply pour valoriser les mouvements et le stock.
+      [COMMENT CONSTRUITE] stg_yuman__products (prix d'achat de la fiche article) ; un code article en double garde la fiche active la plus récemment modifiée ; dernier prix de bon de commande (stg_yuman__purchase_orders) en repli. Remplace l'onglet « PU HA » de l'import manuel « Fichier maître prix ».
+      [GRAIN] 1 ligne par `reference` (code article Yuman).
+      [NOTES] Prix vivant (fiche article du jour) ; un prix figé en fin d'année, si le pilote le retient pour la valorisation d'inventaire, se fera par snapshot ou seed annuel. Les règles de l'app (partenaires gratuits, prix Nespresso) restent appliquées par l'app. Réservé à l'application.
+    columns:
+      - name: reference
         tests:
           - not_null
           - unique

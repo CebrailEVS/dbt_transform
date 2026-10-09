@@ -64,6 +64,7 @@ de la CI/CD et des builds de dev. Le dev les lit en prod grâce au defer.
 | `snap_lcdp__device` | `dim_lcdp__device` | `check` |
 | `snap_yuman__storehouses` | `stg_yuman__storehouses` | `check` |
 | `snap_yuman__users` | `stg_yuman__users` | `check` |
+| `snap_yuman__purchase_order_lines` | `stg_yuman__purchase_orders` | `check` |
 
 Ils sont exposés en marts sous forme de dimension `_history` (cf. [marts.md § 3](marts.md#3-modélisation--schéma-en-étoile-strict)).
 

@@ -211,3 +211,14 @@ sources:
               - unique
               - not_null
             description: "Identifiant unique du bon du storehouses"
+
+      - name: yuman_evs_suppliers
+        description: "Table des fournisseurs Yuman - référentiel stable"
+        config:
+          freshness: null
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du fournisseur"

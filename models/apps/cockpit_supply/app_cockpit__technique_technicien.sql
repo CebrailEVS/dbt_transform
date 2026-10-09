@@ -5,6 +5,7 @@ select
     user_id,
     user_name,
     entrepot_rattachement,
+    storehouses_name,
     is_active,
     user_type
 from {{ ref('dim_technique__technician') }}
