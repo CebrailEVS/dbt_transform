@@ -79,13 +79,6 @@ le data analyst contribue aux `marts/`.
 
 ---
 
-## Organisation du repo
-
-Brouillons, exports et rapports ponctuels vont dans `tmp/`, ignoré par git. `scripts/` ne contient
-que les scripts utiles à toute l'équipe.
-
----
-
 ## Commandes courantes
 
 ```bash
