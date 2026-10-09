@@ -1,5 +1,5 @@
 target/
 dbt_packages/
+dbt_venv/
 logs/
-.venv/
-venv_dbt/
+models/_analysis/

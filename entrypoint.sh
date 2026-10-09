@@ -15,10 +15,10 @@
 #                                 "source:yuman_api+" (source + all descendants).
 #                                 Snapshots are always excluded from build — they
 #                                 run via DBT_COMMAND=snapshot only.
-#   DBT_SELECTOR_NAME           — named selector from selectors.yml (e.g.
-#                                 "passage_appro_fastlane"). Takes precedence over
-#                                 DBT_TAG_SELECTOR when set (mutually exclusive:
-#                                 dbt build uses --selector instead of --select).
+#   DBT_SELECTOR_NAME           — named selector from selectors.yml. Takes
+#                                 precedence over DBT_TAG_SELECTOR (mutually
+#                                 exclusive: --selector instead of --select).
+#   DBT_FULL_REFRESH            — "true" adds --full-refresh (manual runs only).
 # =============================================================================
 
 set -euo pipefail
@@ -28,16 +28,11 @@ dbt deps
 
 if [ -n "${DBT_SOURCE_SELECTOR:-}" ]; then
   echo "[dbt] Running source freshness: ${DBT_SOURCE_SELECTOR}"
-  # `dbt source freshness` rend 0 sur un WARN et 1 UNIQUEMENT sur le cas grave :
-  # seuil error_after franchi, ou requete de fraicheur en echec. Le `|| echo`
-  # d'origine transformait donc ce cas grave en ligne INFO, que rien ne regarde
-  # — alors que c'est le seul detecteur d'une journee de donnees definitivement
-  # perdue sur les sources non retroactives (cf. docs/freshness.md).
-  #
-  # On ecrit desormais sur stderr : Cloud Run route stderr en severity=ERROR, et
-  # l'alerte `cloud_run_job_failed` de infra/monitoring.tf la recupere sans
-  # qu'on ait a creer la moindre policy. Volontairement NON BLOQUANT : la donnee
-  # deja chargee doit continuer a se transformer, on veut le signal, pas l'arret.
+  # Exit 1 = seuil error_after franchi ou requête en échec : seul détecteur d'un
+  # jour perdu sur les sources non rétroactives (docs/freshness.md). Écrit sur
+  # stderr, que Cloud Run classe en ERROR et que l'alerte cloud_run_job_failed
+  # (infra/monitoring.tf) remonte. Non bloquant : la donnée déjà chargée doit
+  # continuer à se transformer.
   if ! dbt source freshness --select "${DBT_SOURCE_SELECTOR}"; then
     echo "[FRESHNESS-ERROR] ${DBT_SOURCE_SELECTOR} : seuil error_after franchi ou requete en echec — build poursuivi" >&2
   fi
@@ -56,11 +51,9 @@ else
   # Selection mode: a named selector (selectors.yml) takes precedence over the
   # inline --select. They are mutually exclusive — never pass both to dbt build.
   #
-  # --indirect-selection=cautious (selector mode = voie rapide / build partiel) :
-  # un test ne tourne que si TOUS ses modèles parents sont dans la sélection. Les
-  # tests relationships qui franchissent la frontière du sous-graphe (ex.
-  # task→task_type, company→company_type) sont donc ignorés ici et restent testés
-  # par le build nocturne complet — pas de flapping sur un build partiel.
+  # --indirect-selection=cautious (mode sélecteur = build partiel) : un test ne
+  # tourne que si TOUS ses parents sont sélectionnés, pour qu'un relationships
+  # franchissant le sous-graphe ne casse pas un build partiel.
   if [ -n "${DBT_SELECTOR_NAME:-}" ]; then
     SELECTION_ARGS=(--selector "${DBT_SELECTOR_NAME}" --indirect-selection cautious)
     echo "[dbt] Building via selector: ${DBT_SELECTOR_NAME} (indirect-selection=cautious)${FULL_REFRESH_FLAG:+ (full-refresh)}"

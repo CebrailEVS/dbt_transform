@@ -7,7 +7,7 @@
 #   pre-commit install        # installe TOUS les hooks ci-dessous (cf. default_install_hook_types)
 #
 # Hooks call ./dbt_venv/bin/* directly — single source of truth for tool versions
-# (dbt pinned in requirements.txt). No duplicated tool install here.
+# (dbt pinned in requirements-lock.txt). No duplicated tool install here.
 
 # Un seul `pre-commit install` pose les quatre types de hooks git.
 default_install_hook_types: [pre-commit, pre-push, post-merge, post-checkout]
