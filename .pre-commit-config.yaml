@@ -25,7 +25,9 @@ repos:
       - id: dbt-lint
         name: dbt lint (models)
         language: system
-        entry: bash -c 'set -a; [ -f .env ] && . ./.env; set +a; exec ./dbt_venv/bin/dbt lint "$@"' --
+        # unset GIT_* : dbt résout ses paquets (dont un paquet git) à chaque commande ; avec
+        # les variables qu'un hook git exporte, ses opérations git visent CE dépôt.
+        entry: bash -c 'unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX; set -a; [ -f .env ] && . ./.env; set +a; exec ./dbt_venv/bin/dbt lint "$@"' --
         files: ^models/.*\.sql$
         pass_filenames: true
 
@@ -33,7 +35,7 @@ repos:
       - id: dbt-parse
         name: dbt parse (whole project)
         language: system
-        entry: bash -c 'set -a; [ -f .env ] && . ./.env; set +a; exec ./dbt_venv/bin/dbt parse'
+        entry: bash -c 'unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX; set -a; [ -f .env ] && . ./.env; set +a; exec ./dbt_venv/bin/dbt parse'
         pass_filenames: false
         always_run: true
         stages: [pre-push]
