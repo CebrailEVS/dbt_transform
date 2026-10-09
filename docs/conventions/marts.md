@@ -14,7 +14,7 @@ Les marts sont rangés **par BU**, pas par source : `models/marts/<bu>/`.
 | Entité | au singulier, en snake_case, avec un nom **métier** (ni le nom de la source, ni celui du rapport) |
 | Suffixe de grain | seulement si le fait est agrégé au-dessus de son grain naturel : `_mensuel`, `_quinzaine` |
 | Suffixe de source | seulement en cas de collision dans une même BU : `fct_supply_chain__stock_neshu` / `_stock_yuman` |
-| YAML | `_<bu>__marts_models.yml` ; `_<bu>__marts_sources.yml` pour les tables externes Cloud Run |
+| YAML | `_<bu>__marts_models.yml` |
 
 Exemples : `dim_neshu__company`, `fct_neshu__consommation`, `fct_neshu__chargement_quinzaine`,
 `dim_technique__material`. Le nom du rapport Power BI va dans l'**exposure**, jamais dans le mart.
@@ -68,6 +68,35 @@ joindre. Le critère est **le grain et la cardinalité**, jamais la BU.
   `dim_neshu__device`.
 
 **Clés** : quand l'entité n'a pas de PK naturelle, surrogate par `dbt_utils.generate_surrogate_key`.
+
+### Dimension Oracle : pivot des labels
+
+Les ERP Oracle (NESHU, LCDP) portent leurs attributs dans un système de labels (EAV). Les `ref()`
+de staging restent par source ; la dim produite est par BU :
+
+```sql
+with entity_labels as (
+    select e.*, l.code as label_code, lf.code as label_family_code
+    from {{ ref('stg_oracle_neshu__entity') }} as e
+    left join {{ ref('stg_oracle_neshu__label_has_entity') }} as lhe
+        on e.identity = lhe.identity and lhe.idlabel is not null
+    left join {{ ref('stg_oracle_neshu__label') }} as l on lhe.idlabel = l.idlabel
+    left join {{ ref('stg_oracle_neshu__label_family') }} as lf on l.idlabel_family = lf.idlabel_family
+),
+
+aggregated_labels as (
+    select
+        ...,
+        max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active
+    from entity_labels
+    group by ...
+)
+
+select
+    ...,
+    coalesce(lower(is_active) = 'yes', false) as is_active
+from aggregated_labels
+```
 
 ## 4. Config
 

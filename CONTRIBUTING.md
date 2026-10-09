@@ -87,8 +87,8 @@ Les tables de `dbt_<toi>` expirent après 14 jours sans rebuild : pas de ménage
 | Branche | Usage |
 |---|---|
 | `master` | Production. Tout push déclenche un déploiement. |
-| `feature/<scope>/<description>` | Nouveau modèle ou fonctionnalité |
-| `fix/<scope>/<description>` | Correction |
+| `feature/<description>` | Nouveau modèle ou fonctionnalité |
+| `fix/<description>` | Correction |
 
 Format de commit : `type(scope): description`, avec `feat`, `fix`, `refactor`, `test`, `docs`
 ou `chore`. Exemple : `feat(neshu): add fct_neshu__passage_appro`.
@@ -96,11 +96,11 @@ ou `chore`. Exemple : `feat(neshu): add fct_neshu__passage_appro`.
 ### Cycle
 
 ```bash
-git checkout master && git pull
-git checkout -b feature/neshu/kpi-livraison
+git fetch origin master
+git checkout -b feature/kpi-livraison-neshu origin/master   # toujours depuis master à jour
 # ... développer, dbt build -s ..., dbt lint ...
 git commit -m "feat(neshu): add kpi livraison"
-git push -u origin feature/neshu/kpi-livraison     # puis ouvrir la PR sur GitHub
+git push -u origin feature/kpi-livraison-neshu      # puis ouvrir la PR sur GitHub
 ```
 
 Si `master` a avancé : `git rebase origin/master` puis `git push --force-with-lease`.
@@ -115,7 +115,9 @@ Au merge, seuls les modèles modifiés et leur aval sont reconstruits en prod.
 
 ### À plusieurs
 
-Chacun développe dans son dataset, et les PR sont relues par une autre personne. Après le merge
+Chacun développe dans son dataset. Les PR du data analyst sont relues et mergées par le data
+engineer ; celles du data engineer, sans second relecteur, passent par `/code-review` et, pour un
+mart, l'agent `mart-reviewer`. Après le merge
 d'un collègue : `git pull` sur `master` (le manifest suit tout seul), puis `git rebase origin/master`
 sur ta branche.
 Arrivée et départ d'un développeur : [docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs).
@@ -123,7 +125,7 @@ Arrivée et départ d'un développeur : [docs/environnements.md § 6](docs/envir
 ### Après le merge
 
 ```bash
-git checkout master && git pull && git branch -d feature/neshu/kpi-livraison
+git checkout master && git pull && git branch -d feature/kpi-livraison-neshu
 ```
 
 Le `git pull` met aussi à jour le manifest prod.
@@ -150,9 +152,15 @@ Règles : [docs/conventions/intermediate.md](docs/conventions/intermediate.md).
 1. `models/marts/<bu>/dim_<bu>__<entite>.sql` ou `fct_<bu>__<entite>.sql`.
 2. Entrée dans `_<bu>__marts_models.yml`, avec une description en 4 blocs
    (`[QUOI MÉTIER]`, `[COMMENT CONSTRUITE]`, `[GRAIN]`, `[NOTES]`) et les tests minimum.
-3. Schéma en étoile strict : un fait référence des dimensions, jamais un autre fait.
+3. Schéma en étoile strict : un fait référence des dimensions. Il ne s'appuie sur un autre fait
+   que pour l'agréger à un grain plus grossier ou l'étendre en 1:1 ([marts.md § 3](docs/conventions/marts.md#3-modélisation--schéma-en-étoile-strict)).
 
 Règles complètes et exemples : [docs/conventions/marts.md](docs/conventions/marts.md).
+
+### Un modèle pour une application
+Uniquement pour une application interne qui lit ses données telles quelles (pas pour Power BI) :
+`models/apps/<application>/app_<nom court>__<bu>_<entite>.sql`, exposure `type: application`
+à jour. Règles : [docs/conventions/apps.md](docs/conventions/apps.md).
 
 ### Une exposure (rapport Power BI)
 Dès qu'un rapport consomme un mart, le déclarer dans `models/exposures/<bu>.yml` :
@@ -179,9 +187,9 @@ Dès qu'un rapport consomme un mart, le déclarer dans `models/exposures/<bu>.ym
 Types et pièges : [docs/conventions/seeds-snapshots.md](docs/conventions/seeds-snapshots.md).
 
 ### Une source
-1. `models/staging/<source>/` avec `_<source>__sources.yml` (freshness) et `_<source>__models.yml`.
+1. `models/staging/<source>/` avec `_<source>__sources.yml` et `_<source>__models.yml`.
 2. Tags dans `dbt_project.yml`.
-3. Ligne dans le tableau des sources du [README](README.md).
+3. Ligne dans le tableau des sources du [README](README.md) et dans [docs/freshness.md](docs/freshness.md).
 
 ---
 

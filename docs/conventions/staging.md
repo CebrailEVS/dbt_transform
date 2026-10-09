@@ -26,8 +26,8 @@ qui lit `source()`.
 2. un `id` nu → `<entite>_id` (`id` → `ticket_id`) ;
 3. le préfixe par entité des noms génériques (`name`, `code`, `address`), **uniquement** si la
    source réutilise ces noms sur des entités jointes en aval. C'est le cas de Yuman
-   (`client_name`, `site_address`) : `int_yuman__demands_workorders_enriched` joint 9 entités
-   aux colonnes homonymes.
+   (`client_name`, `site_address`) : `int_yuman__demands_workorders_enriched` joint plusieurs
+   entités aux colonnes homonymes.
 
 ### Colonnes système
 
@@ -37,10 +37,12 @@ qui lit `source()`.
 | `created_at` | si la source a une date de création | `timestamp(<date_creation>)` |
 | `updated_at` | si la source a une date de modification | `timestamp(coalesce(<date_modif>, <date_creation>))` |
 
-`deleted_at` n'existe plus : dlt ne réplique pas les suppressions, la colonne venait de Meltano
-et était toujours `NULL`. Ne pas l'ajouter.
+Pas de `deleted_at` : dlt ne réplique pas les suppressions, la colonne serait toujours `NULL`.
 
-> Dette connue : `zoho_desk` expose encore `_extracted_at` sans le renommer.
+> Écarts connus, à corriger quand on touche le modèle :
+> - `zoho_desk` : pas d'`extracted_at`, son raw ne porte que `_dlt_load_id` (STRING) ;
+> - `stg_nesp_co__client`, `stg_gac__sinistres` : `_extracted_at` exposé sans renommage ;
+> - `stg_powerbi_activity__{datasets,events,reports,workspaces}` : `deleted_at` toujours `NULL`.
 
 Autres colonnes : snake_case, booléens `is_` / `has_`, timestamps `_at`, dates `_date`.
 
@@ -78,8 +80,8 @@ select * from cleaned_data
 ## 5. Matérialisation
 
 - `table` par défaut.
-- `incremental` (`merge`, `unique_key` obligatoire) pour les grosses tables de tâches Oracle, soit
-  6 modèles aujourd'hui (`stg_oracle_neshu__task`, `stg_oracle_lcdp__task`, `*_task_has_*`…) :
+- `incremental` (`merge`, `unique_key` obligatoire) pour les grosses tables de tâches Oracle
+  (`stg_oracle_*__task`, `*_task_has_*`) :
 
 ```sql
 {% if is_incremental() %}
@@ -112,7 +114,7 @@ columns:
 ```
 
 - PK composite → `dbt_utils.unique_combination_of_columns` au niveau du modèle.
-- Recommandé : `accepted_values` sur les statuts et les types.
+- Recommandé : `accepted_values` (`warn`) sur les statuts et les types.
 
 ## 8. Fraîcheur
 

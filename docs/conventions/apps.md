@@ -1,6 +1,6 @@
 # Couche `apps` — modèles de service d'une application
 
-Créée le 2026-10-08 pour l'application **Cockpit Supply** (`models/apps/cockpit_supply/`).
+Première application : **Cockpit Supply** (`models/apps/cockpit_supply/`).
 
 ## 1. Rôle
 
@@ -22,13 +22,13 @@ application) se modélise d'abord en mart, et le modèle `apps` s'appuie dessus 
 | Élément | Règle | Exemple |
 |---|---|---|
 | Dossier | `models/apps/<application>/` | `models/apps/cockpit_supply/` |
-| Modèle | `app_<application>__<bu>_<entité>` (préfixe obligatoire : tout cohabite dans un seul dataset en dev) | `app_cockpit__neshu_stock_photo` |
+| Modèle | `app_<nom court de l'application>__<bu>_<entité>` (préfixe obligatoire : tout cohabite dans un seul dataset en dev) | `app_cockpit__neshu_stock_photo` |
 | YAML | `_<application>__app_models.yml` | `_cockpit_supply__app_models.yml` |
 | Dataset | `+schema: app_<application>` dans `dbt_project.yml` → `prod_app_<application>` | `prod_app_cockpit_supply` |
 
 **Un modèle par BU** quand les sources diffèrent (Neshu, Cafés du Phare, TechCare) : les runs
-intraday Oracle Neshu et LCDP démarrent tous deux à 08:00 et 15:00 ; un modèle croisant les deux
-serait reconstruit par deux workflows à la même minute. Une synthèse inter-BU se fait en **vue**.
+intraday Oracle Neshu et LCDP peuvent partir à la même minute, et un modèle croisant les deux
+serait reconstruit par deux workflows en même temps. Une synthèse inter-BU se fait en **vue**.
 
 ## 3. Matérialisation
 
@@ -37,7 +37,7 @@ Toujours **explicite** dans `{{ config() }}` (le défaut du projet est `view`) :
 | Cas | Matérialisation |
 |---|---|
 | Sous-ensemble ou agrégat d'un mart, petit à moyen volume | `table` (partition sur la date filtrée par l'app, cluster sur ses clés de filtre) |
-| Dérivé des tâches Oracle à gros volume | `incremental` (`merge`) : les CTAS complets 3×/jour coûtent déjà ~9 Tio/30 j au projet |
+| Dérivé des tâches Oracle à gros volume | `incremental` (`merge`) : reconstruire ces tables en entier à chaque run intraday coûte cher |
 | Synthèse inter-BU | `view` |
 
 Pas de run dédié ni de selector : les modèles descendent de `source:<src>+` et sont reconstruits
@@ -46,8 +46,8 @@ par les workflows existants ; le tag `apps` / `<application>` sert aux builds ma
 ## 4. Documentation et tests
 
 - Description YAML en 4 blocs `[QUOI MÉTIER]` / `[COMMENT CONSTRUITE]` / `[GRAIN]` / `[NOTES]`, comme
-  les marts ; `[NOTES]` dit ce que le modèle **remplace** dans l'application et rappelle
-  « réservé à l'application, pas de rapport Power BI dessus ».
+  les marts ; `[NOTES]` dit quels écrans le lisent (sans compte de routes ni date de relevé) et
+  rappelle « réservé à l'application, pas de rapport Power BI dessus ».
 - Grain testé : `dbt_utils.unique_combination_of_columns` (error) ; `not_null` sur ses colonnes.
 - **Exposure obligatoire** `type: application` dans `models/exposures/<application>.yml`, listant
   tout ce que l'application lit (couche `apps` **et** marts / intermédiaires encore lus en direct) :
@@ -64,7 +64,7 @@ Avant le premier merge d'une nouvelle application :
 
 ## 6. Checklist PR
 
-- [ ] modèle dans `models/apps/<application>/`, préfixe `app_<application>__`, matérialisation explicite
+- [ ] modèle dans `models/apps/<application>/`, préfixe `app_<nom court>__`, matérialisation explicite
 - [ ] YAML 4 blocs + test du grain
 - [ ] exposure de l'application à jour
 - [ ] dataset et droits présents dans `infra/` (appliqués avant le merge)
