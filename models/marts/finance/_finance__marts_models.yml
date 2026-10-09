@@ -86,7 +86,7 @@ models:
       [QUOI MÉTIER] P&L mensuel au niveau le plus fin du pilotage analytique : par section analytique Sage et par compte général, avec sa catégorie et sa macro-catégorie P&L. Permet de suivre un poste (ex. masse salariale) pour une équipe donnée (ex. NESOOOSAV, roadmen SAV Neshu).
       [COMMENT CONSTRUITE] int_mssql_sage__pnl_bu (écritures classes 6/7 ventilées, signe Sage conservé) agrégé par mois de facturation, section, BU et compte ; intitulé de section depuis stg_mssql_sage__f_comptea (plan 1) ; catégories depuis le seed ref_mssql_sage__code_comptable_bu.
       [GRAIN] 1 ligne par (mois_date, code_analytique, code_analytique_bu, numero_compte_general). ~96k lignes depuis 2021. La BU est dans le grain : le remapping historique 2024 rattache certaines écritures d'une même section à deux BU.
-      [NOTES] Exclut les écritures sans ventilation analytique (pas de section) : elles restent dans fct_finance__pnl_bu (BU_NON_RENSEIGNEE). Pas de scénario avec/sans provisions CP : filtrer les comptes 641200 / 645800 si besoin. Le mois courant est partiel.
+      [NOTES] Exclut les écritures sans ventilation analytique (pas de section) : elles restent dans fct_finance__pnl_bu (BU_NON_RENSEIGNEE). Plan analytique 1 uniquement. Pas de scénario avec/sans provisions CP : filtrer les comptes 641200 / 645800 si besoin. Le mois courant est partiel. Pas de dimension section ni compte : codes portés en clair (pas de test relationships). Filtrer un poste sur categorie_pnl_bu, pas sur la macro : la catégorie Variable est rangée sous « Frais Directs & Amortissements » dans le seed.
 
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -100,6 +100,12 @@ models:
           arguments:
             min_value: 50000
             max_value: 300000
+          config:
+            severity: warn
+      # Un compte hors seed sort de tout filtre par catégorie, donc des exports : le signaler.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "categorie_pnl_bu is not null"
           config:
             severity: warn
 
@@ -127,11 +133,13 @@ models:
       - name: categorie_pnl_bu
         description: >
           Catégorie P&L détaillée du compte (ex. Salaires, Variable, Charges Patronales).
-          NULL = compte absent du seed de mapping.
+          NULL = compte absent du seed de mapping : il sort de tout filtre par catégorie, d'où
+          le test en warn (à compléter dans ref_mssql_sage__code_comptable_bu).
       - name: macro_categorie_pnl_bu
         description: >
           Macro-catégorie P&L du compte (Chiffre d'Affaires, Masse Salariale, Frais Directs &
-          Amortissements, Consommation MP & SSTT). NULL = compte non mappé.
+          Amortissements, Consommation MP & SSTT). NULL = compte non mappé, ou compte hors P&L
+          opérationnel (participation 691000, impôt sur les bénéfices 695000).
       - name: montant_signe
         description: >
           Montant (€) du mois, additif : crédit positif, débit négatif (somme = produits − charges ;

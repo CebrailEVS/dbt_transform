@@ -14,7 +14,10 @@ with ecritures as (
         montant_analytique_signe
     from {{ ref('int_mssql_sage__pnl_bu') }}
     -- Sans ventilation analytique, pas de section : ces écritures restent dans fct_finance__pnl_bu.
-    where not is_missing_analytical
+    -- Plan 1 explicite : un 2e plan analytique Sage doublerait les montants sans casser le grain.
+    where
+        not is_missing_analytical
+        and numero_plan_analytique = 1
 ),
 
 sections as (
