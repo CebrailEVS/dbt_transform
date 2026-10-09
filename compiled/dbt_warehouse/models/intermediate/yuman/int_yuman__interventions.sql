@@ -127,7 +127,7 @@ ref_machine as (
             lower(trim(machine)) as machine_clean,
             row_number() over (partition by lower(trim(machine_brut)) order by machine) as rn
         from `evs-datastack-prod`.`prod_reference`.`ref_yuman__machine_clean`
-    )
+    ) as ranked_machine
     where rn = 1
 ),
 

@@ -1,0 +1,1 @@
+{{ test_unique(column_name="status", model=get_where_subquery(ref('ref_zoho_desk__status_mapping'))) }}

@@ -69,7 +69,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '01a12000-e333-7100-a81e-67593030e128' as dbt_invocation_id
+    '01a12016-f231-7be0-a340-a486aec4fa05' as dbt_invocation_id
 from articles as a
 inner join interventions as i
     on a.n_planning = i.n_planning

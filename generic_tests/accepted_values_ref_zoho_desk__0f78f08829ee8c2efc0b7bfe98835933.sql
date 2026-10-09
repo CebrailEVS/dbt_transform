@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="status_type", model=get_where_subquery(ref('ref_zoho_desk__status_mapping')), values=["Open","On Hold","Closed"]) }}

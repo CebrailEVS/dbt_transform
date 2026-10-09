@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["metric","bucket_order"], model=get_where_subquery(ref('ref_zoho_desk__sla_buckets'))) }}

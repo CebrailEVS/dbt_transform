@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="upper_min", model=get_where_subquery(ref('ref_zoho_desk__sla_buckets'))) }}

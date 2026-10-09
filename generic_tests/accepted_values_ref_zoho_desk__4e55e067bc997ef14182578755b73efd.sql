@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="metric", model=get_where_subquery(ref('ref_zoho_desk__sla_buckets')), values=["first_response","resolution"]) }}
