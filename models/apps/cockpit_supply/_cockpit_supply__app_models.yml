@@ -543,6 +543,18 @@ models:
           - not_null
           - unique
 
+  - name: app_cockpit__lcdp_commande_fournisseur
+    description: |
+      [QUOI MÉTIER] Commandes fournisseurs Cafés du Phare (Distrilog), tel que lu par l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] int_oracle_lcdp__commande_fournisseur_tasks réduite aux mêmes colonnes que app_cockpit__neshu_commande_fournisseur. Lignes : tâches validées seulement (FAIT, VALIDE), comme pour Neshu ; toutes les commandes, livrées ou non (taux de service fournisseur).
+      [GRAIN] 1 ligne par task_product_id (ligne produit d'une commande fournisseur).
+      [NOTES] Taux de service des fiches fournisseurs Cafés du Phare (lot ISO P1, demande du 09/10/2026) ; destination_code LOG = Distribution Auto. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app. Réservé à l'application.
+    columns:
+      - name: task_product_id
+        tests:
+          - not_null
+          - unique
+
   - name: app_cockpit__neshu_invendu
     description: |
       [QUOI MÉTIER] Retraits d'invendus Neshu (retours machine), tel que lu par l'application Cockpit Supply.

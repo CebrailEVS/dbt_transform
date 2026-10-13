@@ -66,6 +66,7 @@ exposures:
       - ref('app_cockpit__lcdp_livraison_interne')
       - ref('app_cockpit__lcdp_livraison')
       - ref('app_cockpit__lcdp_reception')
+      - ref('app_cockpit__lcdp_commande_fournisseur')
       - ref('app_cockpit__lcdp_invendu')
       - ref('app_cockpit__lcdp_entree_fabrication')
       - ref('app_cockpit__lcdp_sortie_fabrication')
