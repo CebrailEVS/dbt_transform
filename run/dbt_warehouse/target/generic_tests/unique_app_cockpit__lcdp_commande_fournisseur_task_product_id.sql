@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select idcontract as unique_field
-  from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__contract`
-  where idcontract is not null
+  select task_product_id as unique_field
+  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_commande_fournisseur`
+  where task_product_id is not null
 
 )
 
