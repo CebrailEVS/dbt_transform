@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select id as unique_field
-  from `evs-datastack-prod`.`prod_raw`.`yuman_evs_suppliers`
-  where id is not null
+  select company_id as unique_field
+  from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__contrat_client`
+  where company_id is not null
 
 )
 

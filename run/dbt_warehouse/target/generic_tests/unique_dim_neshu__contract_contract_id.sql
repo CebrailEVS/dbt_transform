@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select supplier_id as unique_field
-  from `evs-datastack-prod`.`prod_staging`.`stg_yuman__suppliers`
-  where supplier_id is not null
+  select contract_id as unique_field
+  from `evs-datastack-prod`.`prod_marts`.`dim_neshu__contract`
+  where contract_id is not null
 
 )
 

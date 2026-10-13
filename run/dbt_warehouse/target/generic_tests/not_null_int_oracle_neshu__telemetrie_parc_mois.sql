@@ -13,9 +13,9 @@
 
 
 
-select supplier_id
-from `evs-datastack-prod`.`prod_staging`.`stg_yuman__suppliers`
-where supplier_id is null
+select mois
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__telemetrie_parc`
+where mois is null
 
 
 

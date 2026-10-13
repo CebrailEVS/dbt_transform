@@ -13,9 +13,9 @@
 
 
 
-select reference
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_prix_achat`
-where reference is null
+select company_code
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__pnl_client_mensuel`
+where company_code is null
 
 
 

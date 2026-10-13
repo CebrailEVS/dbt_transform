@@ -55,8 +55,9 @@ parsed_data as (
     select
         idcontract,
 
-        -- nombre_collab → conversion en entier
-        cast(nullif(trim(nombre_collab), '') as int64) as nombre_collab,
+        -- nombre_collab → conversion en entier ; saisie libre non numérique (ex. « NC »)
+        -- → NULL au lieu de Bad int64
+        safe_cast(trim(nombre_collab) as int64) as nombre_collab,
 
         -- garder la valeur brute telle quelle
         trim(engagement) as engagement_raw,

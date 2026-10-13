@@ -13,9 +13,9 @@
 
 
 
-select numero
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_commande_fournisseur`
-where numero is null
+select updated_at
+from `evs-datastack-prod`.`prod_marts`.`dim_neshu__contract`
+where updated_at is null
 
 
 
