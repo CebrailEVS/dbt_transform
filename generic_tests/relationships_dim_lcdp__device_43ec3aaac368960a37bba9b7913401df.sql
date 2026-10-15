@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="owner_company_id", field="company_id", model=get_where_subquery(ref('dim_lcdp__device')), to=ref('dim_lcdp__company')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

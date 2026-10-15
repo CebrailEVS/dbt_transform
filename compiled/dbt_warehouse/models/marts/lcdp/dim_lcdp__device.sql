@@ -7,13 +7,19 @@ with device_labels as (
         d.iddevice_type as device_type_id,
         d.code as device_code,
         d.name as device_name,
+        d.serial as device_serial_number,
+        d.comments as device_comment,
         d.last_installation_date,
+        date(d.purchase_date) as purchase_date,
+        d.purchase_cost,
         d.created_at,
         d.updated_at,
         d.idlocation as location_id,
         d.idcompany_customer as company_id,
         c.code as company_code,
         c.name as company_name,
+        d.idcompany_owner as owner_company_id,
+        o.name as owner_company_name,
         lo.access_info,
         ld.label_code,
         ld.label_text_fr,
@@ -23,6 +29,8 @@ with device_labels as (
         on d.iddevice = ld.iddevice
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` as c
         on d.idcompany_customer = c.idcompany
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` as o
+        on d.idcompany_owner = o.idcompany
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__location` as lo
         on d.idlocation = lo.idlocation
     where d.idcompany_customer is not null
@@ -64,13 +72,19 @@ aggregated_labels as (
         device_type_id,
         device_iddevice,
         company_id,
+        owner_company_id,
         location_id,
         device_code,
         device_name,
+        device_serial_number,
+        device_comment,
         company_code,
         company_name,
+        owner_company_name,
         access_info,
         last_installation_date,
+        purchase_date,
+        purchase_cost,
         created_at,
         updated_at,
         max(case when label_family_code = 'CATMACH' then label_text_fr end) as device_category,
@@ -96,13 +110,19 @@ aggregated_labels as (
         device_type_id,
         device_iddevice,
         company_id,
+        owner_company_id,
         location_id,
         device_code,
         device_name,
+        device_serial_number,
+        device_comment,
         company_code,
         company_name,
+        owner_company_name,
         access_info,
         last_installation_date,
+        purchase_date,
+        purchase_cost,
         created_at,
         updated_at
 )
@@ -113,13 +133,16 @@ select
     al.device_iddevice,
     al.device_type_id,
     al.company_id,
+    al.owner_company_id,
     al.location_id,
 
     -- Codes et noms
     al.device_code,
     al.device_name,
+    al.device_serial_number,
     al.company_code,
     al.company_name,
+    al.owner_company_name,
 
     -- Caractéristiques machine
     al.device_category,
@@ -143,6 +166,9 @@ select
     -- Localisation
     al.access_info as device_location,
 
+    -- Commentaire libre saisi dans l'ERP
+    al.device_comment,
+
     -- Roadman AFFECTÉ (état courant ERP, cf. CTE assigned_roadman).
     -- À ne pas confondre avec le roadman OBSERVÉ de fct_lcdp__chargement_sortie,
     -- qui est celui ayant réellement chargé la machine sur la semaine.
@@ -154,6 +180,10 @@ select
 
     -- Statut
     coalesce(lower(al.is_active) = 'yes', false) as is_active,
+
+    -- Achat
+    al.purchase_date,
+    al.purchase_cost,
 
     -- Dates
     al.last_installation_date,

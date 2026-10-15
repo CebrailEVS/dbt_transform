@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="device_material_status", model=get_where_subquery(ref('dim_neshu__device')), values=["S"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

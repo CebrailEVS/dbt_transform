@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="device_state", model=get_where_subquery(ref('dim_neshu__device')), values=["NEUF","OCCASION"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

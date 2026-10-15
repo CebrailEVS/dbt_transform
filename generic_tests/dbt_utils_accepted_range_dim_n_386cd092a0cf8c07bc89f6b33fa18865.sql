@@ -1,0 +1,1 @@
+{{ dbt_utils.test_accepted_range(column_name="purchase_cost", max_value=50000, min_value=0, model=get_where_subquery(ref('dim_neshu__device'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -24,6 +24,7 @@ cleaned_data as (
         name,
         serial,
         code_status_record,
+        nullif(trim(comments), '') as comments,
 
         -- Date liée à la machine
         timestamp(last_installation_date) as last_installation_date,
