@@ -209,10 +209,10 @@ models:
     # DEVICE
   - name: dim_neshu__device
     description: |
-      [QUOI MÉTIER] Dimension machine Neshu enrichie des labels métier et rattachée au client (company).
-      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__device filtré sur device_type_id=1 (machines), joint à stg_oracle_neshu__location pour device_location, et pivot des labels via stg_oracle_neshu__label_has_device : MARQUE, GAMME, CATEGORIE, MODECOMA, ISACTIVE. company_id avec relationship vers dim_neshu__company.
+      [QUOI MÉTIER] Dimension machine Neshu enrichie des labels métier, rattachée au client ou au dépôt qui la détient (company) et à son propriétaire, avec ses données d'achat (date, prix).
+      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu__device, hors machines sans société de rattachement et hors ghost-deletes ERP (code_status_record = -1). Joint à stg_oracle_neshu__company deux fois (rattachement via idcompany_customer, propriétaire via idcompany_owner) et à stg_oracle_neshu__location pour device_location. Pivot des labels via stg_oracle_neshu__label_has_device : MARQUE, GAMME, CATEGORIE, MODECOMA, ETAT_MACHINE, STATUT_MATERIEL, ISACTIVE, EQUIPEMENT_RESERVE.
       [GRAIN] 1 ligne par device_id.
-      [NOTES] device_iddevice = parent device (NULL si pas d'équipement parent). is_active converti en booléen.
+      [NOTES] device_iddevice = parent device (NULL si pas d'équipement parent). is_active et is_reserved convertis en booléens. Les labels exposent le code ERP, pas un libellé. company_id désigne le dépôt quand la machine est en stock (ex. « 06 - ATELIER RUNGIS DEPOT »). device_serial_number est le numéro de série constructeur, distinct de device_code (AS/MA/SP) et non unique : une machine assemblée (AS) reprend celui de sa machine de base (MA). purchase_cost vaut souvent 0, sans distinction à la source entre « non saisi » et « nul ». device_comment est du texte libre, qui peut contenir des noms de personnes. is_reserved vaut FALSE partout tant que la famille EQUIPEMENT_RESERVE (code OUI, comme dans l'ERP Nayka) n'est pas créée dans l'ERP Neshu.
     columns:
       - name: device_id
         description: "Identifiant unique de la machine"
@@ -221,7 +221,7 @@ models:
           - unique
 
       - name: device_type_id
-        description: "Type de machine (1 = machine, autres ignorés ici)"
+        description: "Type d'équipement ERP (1 = machine ; les autres types sont aussi présents dans la dim, sans filtre)"
 
       - name: device_iddevice
         description: "ID de la machine correspondant : vaut nulle si pas d'équipement parent, sinon l'ID de la machine parente"
@@ -235,6 +235,16 @@ models:
                 to: ref('dim_neshu__company')
                 field: company_id
 
+      - name: owner_company_id
+        description: "Identifiant de la société propriétaire de la machine (EVS, NESTLE, un client…). NULL si non renseigné dans l'ERP."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+
       - name: location_id
         description: "Identifiant de localisation"
 
@@ -247,8 +257,17 @@ models:
       - name: device_label
         description: "Libellé d'affichage = concaténation `device_code - device_name`."
 
+      - name: device_serial_number
+        description: "Numéro de série constructeur (champ serial de l'ERP). Distinct de device_code et non unique : une machine assemblée (AS) reprend celui de sa machine de base (MA)."
+
       - name: company_code
         description: "Code client associé à la machine"
+
+      - name: company_name
+        description: "Nom du client ou du dépôt auquel est rattachée la machine"
+
+      - name: owner_company_name
+        description: "Nom de la société propriétaire de la machine"
 
       - name: device_brand
         description: "Marque de la machine (label MARQUE)"
@@ -262,13 +281,54 @@ models:
       - name: device_economic_model
         description: "Modèle économique de la machine (label MODECOMA)"
 
+      - name: device_state
+        description: "État de la machine, NEUF ou OCCASION (label ETAT_MACHINE)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['NEUF', 'OCCASION']
+              config:
+                severity: warn
+
+      - name: device_material_status
+        description: "Statut du matériel, code ERP : S = en stock (label STATUT_MATERIEL). NULL si non renseigné."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['S']
+              config:
+                severity: warn
+
+      - name: device_location
+        description: "Informations d'accès au site de la machine (depuis la table location)"
+
+      - name: device_comment
+        description: "Commentaire libre saisi dans l'ERP. Peut contenir des noms de personnes : à n'afficher que là où il est utile."
+
       - name: is_active
         description: >
           Indique si la machine est considérée comme active selon le label ISACTIVE.
           TRUE si 'yes', sinon FALSE (converti en booléen).
 
-      - name: device_location
-        description: "Informations d'accès au site de la machine (depuis la table location)"
+      - name: is_reserved
+        description: >
+          Machine réservée pour un client (label EQUIPEMENT_RESERVE = OUI). Le client et l'échéance
+          se lisent dans device_comment. FALSE partout tant que la famille n'est pas créée dans
+          l'ERP Neshu.
+
+      - name: purchase_date
+        description: "Date d'achat de la machine"
+
+      - name: purchase_cost
+        description: "Prix d'achat de la machine saisi dans l'ERP (devise non renseignée à la source), additif sur le parc. 0 fréquent : la source ne distingue pas « non saisi » de « nul »."
+        tests:
+          # Borne large, au-dessus du plus cher des appareils connus : signale une saisie aberrante sans bloquer.
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 50000
+              config:
+                severity: warn
 
       - name: last_installation_date
         description: "Date de dernière installation de la machine"
