@@ -29,10 +29,14 @@ cleaned_data as (
         name,
         serial,
         code_status_record,
+        nullif(trim(comments), '') as comments,
 
         -- Date liée à la machine
         timestamp(last_installation_date) as last_installation_date,
         timestamp(purchase_date) as purchase_date,
+
+        -- Coût d'acquisition. 0 est fréquent à la source, qui ne distingue pas « non saisi » de « nul ».
+        cast(purchase_cost as float64) as purchase_cost,
 
         -- Timestamps harmonisés
         timestamp(creation_date) as created_at,

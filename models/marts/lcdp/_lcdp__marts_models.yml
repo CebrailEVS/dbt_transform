@@ -142,10 +142,10 @@ models:
   # DEVICE
   - name: dim_lcdp__device
     description: |
-      [QUOI MÉTIER] Dimension machine LCDP enrichie des labels métier (catégorie, état, types fontaine/broyeur/percolateur/SP).
-      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__device joint à stg_oracle_lcdp__company (company_code, company_name) et stg_oracle_lcdp__location (access_info → device_location). Pivot des labels via stg_oracle_lcdp__label_device (vue aplatie lcdp_v_label_device) sur les familles : CATMACH, MARQUE, ETAT_MACHINE, STATUT_MATERIEL, TYPEAUDIT, TYDA, LCDPMON, TYPFONT, TYPBROY, TYPPERCO, TYPSP, TYPDASA, MODSP, MARQSP, BADGE, ISACTIVE. ROADMAN AFFECTÉ (assigned_roadman_id / _code / _name) : résolu depuis stg_oracle_lcdp__contact_has_device → stg_oracle_lcdp__contact → dim_lcdp__resource, la jointure se faisant sur le CODE (contact.code = resources_code, resources_type='PERSON') car la source ne porte aucune FK idresources ; jointure sur la dim (et non le staging) pour garantir que la FK exposée résout dans la dimension à laquelle la BI se relie.
+      [QUOI MÉTIER] Dimension machine LCDP enrichie des labels métier (catégorie, état, types fontaine/broyeur/percolateur/SP), avec son propriétaire et ses données d'achat (date, prix).
+      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp__device joint à stg_oracle_lcdp__company deux fois (rattachement via idcompany_customer → company_code, company_name ; propriétaire via idcompany_owner → owner_company_name) et stg_oracle_lcdp__location (access_info → device_location). Pivot des labels via stg_oracle_lcdp__label_device (vue aplatie lcdp_v_label_device) sur les familles : CATMACH, MARQUE, ETAT_MACHINE, STATUT_MATERIEL, TYPEAUDIT, TYDA, LCDPMON, TYPFONT, TYPBROY, TYPPERCO, TYPSP, TYPDASA, MODSP, MARQSP, BADGE, ISACTIVE. ROADMAN AFFECTÉ (assigned_roadman_id / _code / _name) : résolu depuis stg_oracle_lcdp__contact_has_device → stg_oracle_lcdp__contact → dim_lcdp__resource, la jointure se faisant sur le CODE (contact.code = resources_code, resources_type='PERSON') car la source ne porte aucune FK idresources ; jointure sur la dim (et non le staging) pour garantir que la FK exposée résout dans la dimension à laquelle la BI se relie.
       [GRAIN] 1 ligne par device_id.
-      [NOTES] device_iddevice = parent device (hiérarchie). Les attributs label exposent le libellé FR (label_text_fr, ex. "DA CHAUD") au lieu du code (ex. "CATMACH01"). Exception : is_active reste basé sur le code (YES/NO) pour la conversion booléenne. is_active converti en booléen. ROADMAN AFFECTÉ — état COURANT, non historisable : contact_has_device ne porte ni date de création ni date de modification, on ne connaît donc que l'affectation d'aujourd'hui (une historisation nécessiterait un snapshot). À NE PAS CONFONDRE avec le roadman OBSERVÉ de fct_lcdp__chargement_sortie (celui qui a réellement chargé la machine dans la semaine) : un écart entre les deux est un signal métier (réaffectation de secteur, remplacement congés non répercuté dans l'ERP). COUVERTURE : renseigné sur la quasi-totalité du périmètre DA FROID Nayax mais peu sur le reste du parc — la colonne est donc majoritairement NULL sur le parc complet, c'est attendu. DÉPARTAGE : une machine peut porter 2 affectations dans l'ERP ; on retient le code le plus petit pour garantir 1 ligne par machine et une valeur stable d'un rebuild à l'autre (contact.ismain vaut 0 partout, inexploitable comme critère). Le test assert_lcdp__device_single_assigned_roadman (warn) rend ce nombre visible : s'il grimpe, la règle ne suffit plus et il faudra arbitrer avec l'exploitation.
+      [NOTES] device_serial_number est le numéro de série constructeur, distinct de device_code et non garanti unique. owner_company_id est peu renseigné dans l'ERP LCDP (environ 2 % du parc) : NULL est la norme. purchase_cost vaut souvent 0, sans distinction à la source entre « non saisi » et « nul », et porte au moins une saisie aberrante (M7243 à près de 3 M, test de borne en warn) : à exclure avant toute somme. purchase_date vaut 1900-01-01 sur quelques machines, date factice de la source. device_comment est du texte libre, qui peut contenir des noms de personnes. device_iddevice = parent device (hiérarchie). Les attributs label exposent le libellé FR (label_text_fr, ex. "DA CHAUD") au lieu du code (ex. "CATMACH01"). Exception : is_active reste basé sur le code (YES/NO) pour la conversion booléenne. is_active converti en booléen. ROADMAN AFFECTÉ — état COURANT, non historisable : contact_has_device ne porte ni date de création ni date de modification, on ne connaît donc que l'affectation d'aujourd'hui (une historisation nécessiterait un snapshot). À NE PAS CONFONDRE avec le roadman OBSERVÉ de fct_lcdp__chargement_sortie (celui qui a réellement chargé la machine dans la semaine) : un écart entre les deux est un signal métier (réaffectation de secteur, remplacement congés non répercuté dans l'ERP). COUVERTURE : renseigné sur la quasi-totalité du périmètre DA FROID Nayax mais peu sur le reste du parc — la colonne est donc majoritairement NULL sur le parc complet, c'est attendu. DÉPARTAGE : une machine peut porter 2 affectations dans l'ERP ; on retient le code le plus petit pour garantir 1 ligne par machine et une valeur stable d'un rebuild à l'autre (contact.ismain vaut 0 partout, inexploitable comme critère). Le test assert_lcdp__device_single_assigned_roadman (warn) rend ce nombre visible : s'il grimpe, la règle ne suffit plus et il faudra arbitrer avec l'exploitation.
     columns:
       - name: device_id
         description: "Identifiant unique du device"
@@ -168,6 +168,16 @@ models:
                 to: ref('dim_lcdp__company')
                 field: company_id
 
+      - name: owner_company_id
+        description: "ID de la société propriétaire de la machine. NULL sur la quasi-totalité du parc (peu renseigné dans l'ERP)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_lcdp__company')
+                field: company_id
+              config:
+                severity: warn
+
       - name: location_id
         description: "ID de la localisation"
 
@@ -177,11 +187,17 @@ models:
       - name: device_name
         description: "Nom du device"
 
+      - name: device_serial_number
+        description: "Numéro de série constructeur (champ serial de l'ERP), distinct de device_code et non garanti unique."
+
       - name: company_code
         description: "Code de l'entreprise cliente"
 
       - name: company_name
         description: "Nom de l'entreprise cliente"
+
+      - name: owner_company_name
+        description: "Nom de la société propriétaire de la machine"
 
       - name: device_category
         description: "Catégorie de la machine (label CATMACH)"
@@ -231,6 +247,9 @@ models:
       - name: device_location
         description: "Informations d'accès de la localisation"
 
+      - name: device_comment
+        description: "Commentaire libre saisi dans l'ERP. Peut contenir des noms de personnes : à n'afficher que là où il est utile."
+
       - name: assigned_roadman_id
         description: >
           Roadman AFFECTÉ à la machine (FK vers dim_lcdp__resource) — état COURANT
@@ -263,6 +282,20 @@ models:
         description: >
           Indique si le device est actif (label ISACTIVE).
           TRUE si 'yes', sinon FALSE.
+
+      - name: purchase_date
+        description: "Date d'achat de la machine. 1900-01-01 sur quelques machines : date factice saisie dans l'ERP."
+
+      - name: purchase_cost
+        description: "Prix d'achat de la machine saisi dans l'ERP (devise non renseignée à la source), additif sur le parc. 0 fréquent : la source ne distingue pas « non saisi » de « nul »."
+        tests:
+          # Borne large, au-dessus du plus cher des appareils connus : signale une saisie aberrante sans bloquer.
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 50000
+              config:
+                severity: warn
 
       - name: last_installation_date
         description: "Dernière date d'installation"
