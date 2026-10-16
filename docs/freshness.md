@@ -10,6 +10,7 @@ Référence unique du monitoring de fraîcheur : méthode, seuils et leur justif
 |---|---|---|---|---|
 | `oracle_neshu` | Critique | A · source | `_extracted_at` | 26h / 36h |
 | `oracle_lcdp` | Critique | A · source | `_extracted_at` | 26h / 36h |
+| `oracle_nayka` | Standard | A · source | `_extracted_at` | 26h / 48h ; tables en merge 7j / 30j |
 | `yuman_api` | Standard | A · source | `_extracted_at` | 26h / 48h |
 | `mssql_sage` | Standard | A · source | `_extracted_at` | 26h / 48h |
 | `powerbi_activity` | Standard | A · source | `_extracted_at` | 26h / 48h |
@@ -106,6 +107,22 @@ perte au-delà de 27 jours est irréversible.
 ### `oracle_*_gcs` — 26h / 48h
 Pipelines quotidiens de fin de soirée, LCDP après NESHU : l'écart entre deux chargements est de
 l'ordre de 24h.
+
+### `oracle_nayka` — 26h / 48h, tables en merge 7j / 30j
+La fraîcheur n'est vérifiée que par le workflow quotidien (lun-ven), juste après l'EL. Les tables
+en `replace` viennent alors d'être rechargées : leur âge se compte en minutes, et 48h signale un
+chargement manquant. Les référentiels gardent ce seuil : rechargés à chaque run, leur
+`_extracted_at` avance même sans modification, ce qui en fait un signal de santé valable.
+
+Les tables en `merge` (`task`, `task_has_product` et les trois jonctions) ne voient leur
+`_extracted_at` avancer que sur les lignes modifiées : leur âge mesure l'activité de Nayka, encore
+faible (souvent plus de 24h sur `task_has_amount`). D'où 7j / 30j. `error_after: null` ne marche
+pas pour retirer le seuil hérité de la source : il est ignoré, et `{count: null}` est refusé à
+l'exécution.
+
+Le workflow de purge du dimanche ne vérifie pas la fraîcheur (`DBT_SOURCE_SELECTOR` vide) : les
+tables en `replace` y ont environ 75h, et un `[FRESHNESS-ERROR]` sans objet salirait les logs
+chaque semaine.
 
 ### `nesp_co` activite / opportunite et `zoho_desk` — warn seul
 Seules sources sans seuil d'erreur : un retard y est signalé sans jamais bloquer la chaîne.

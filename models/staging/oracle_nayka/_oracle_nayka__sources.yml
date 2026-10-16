@@ -1,0 +1,118 @@
+version: 2
+
+sources:
+  - name: oracle_nayka
+    description: >
+      ERP Oracle Distrilog de Nayka (partenaire), extrait par dlt (pipeline `oracle_nayka`),
+      même structure que oracle_lcdp et oracle_neshu. Les dates Oracle sont l'heure de Paris
+      enregistrée sans fuseau (seul `_extracted_at` est en UTC) : le staging les convertit.
+      La table `string` (libellés traduits) n'est pas extraite : les colonnes `idstring*` ne
+      mènent nulle part.
+    database: "{{ var('raw_project') }}"
+    schema: "{{ var('raw_schema', 'prod_raw') }}"
+    config:
+      tags: ['oracle_nayka', 'source']
+      # Fraîcheur : tier Standard, vérifiée juste après l'EL quotidien. Cf. docs/freshness.md.
+      loaded_at_field: _extracted_at
+      freshness:
+        warn_after: {count: 26, period: hour}
+        error_after: {count: 48, period: hour}
+
+    tables:
+      - name: nayka_task_status
+        description: "Statuts des tâches (référentiel)."
+      - name: nayka_task_type
+        description: "Types de tâches (référentiel)."
+      - name: nayka_company_type
+        description: "Types de sociétés (référentiel)."
+      - name: nayka_contact_type
+        description: "Types de contacts (référentiel)."
+      - name: nayka_device_type
+        description: "Types d'équipements (référentiel)."
+      - name: nayka_location_type
+        description: "Types d'adresses (référentiel)."
+      - name: nayka_product_type
+        description: "Types de produits (référentiel)."
+      - name: nayka_resources_type
+        description: "Types de ressources (référentiel)."
+      - name: nayka_unit_type
+        description: "Types d'unités de produit (référentiel)."
+      - name: nayka_label_family
+        description: "Familles d'étiquettes (référentiel)."
+      - name: nayka_label
+        description: "Étiquettes, rattachées à une famille (référentiel)."
+      - name: nayka_civility
+        description: "Civilités des contacts (référentiel)."
+      - name: nayka_currency
+        description: "Devises (référentiel)."
+      - name: nayka_damping_type
+        description: "Modes d'amortissement des équipements (référentiel)."
+      - name: nayka_payment_condition
+        description: "Conditions de paiement (référentiel)."
+      - name: nayka_payment_type
+        description: "Modes de paiement (référentiel)."
+      - name: nayka_tax_region
+        description: "Régions fiscales TVA (référentiel)."
+      - name: nayka_company
+        description: "Sociétés : clients, fournisseurs, dépôts, agences."
+      - name: nayka_location
+        description: "Adresses."
+      - name: nayka_company_has_location
+        description: "Rattachement des adresses aux sociétés, par type d'adresse."
+      - name: nayka_contact
+        description: "Contacts : interlocuteurs des sociétés et utilisateurs de l'ERP."
+      - name: nayka_resources
+        description: "Ressources : personnes (roadmen, techniciens) et ressources système."
+      - name: nayka_product
+        description: "Produits, pièces, modèles de machines, moyens de paiement."
+      - name: nayka_product_unit
+        description: "Unités de conditionnement des produits."
+      - name: nayka_device
+        description: "Équipements : machines et accessoires du parc."
+      - name: nayka_contract
+        description: "Contrats clients."
+      - name: nayka_v_label_company
+        description: "Vue Oracle : étiquettes des sociétés, dénormalisées avec leur famille et leur libellé."
+      - name: nayka_v_label_device
+        description: "Vue Oracle : étiquettes des équipements, dénormalisées avec leur famille et leur libellé."
+      - name: nayka_v_label_product
+        description: "Vue Oracle : étiquettes des produits, dénormalisées avec leur famille et leur libellé."
+      - name: nayka_v_label_resources
+        description: "Vue Oracle : étiquettes des ressources, dénormalisées avec leur famille et leur libellé."
+      - name: nayka_label_has_contract
+        description: "Étiquettes posées sur les contrats (jonction)."
+      - name: nayka_task
+        description: "Tâches : documents commerciaux, mouvements de stock, interventions, planifications. Merge sur modification_date, purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}
+      - name: nayka_task_has_product
+        description: "Lignes produits des tâches. Merge sur modification_date (NULL inclus), purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}
+      - name: nayka_task_has_resources
+        description: "Ressources affectées aux tâches (jonction). Merge par le curseur de task (les lignes relues remplacent celles de leur tâche), purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}
+      - name: nayka_task_has_amount
+        description: "Montants HT et TVA des tâches, par taux (jonction). Merge par le curseur de task (les lignes relues remplacent celles de leur tâche), purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}
+      - name: nayka_label_has_task
+        description: "Étiquettes posées sur les tâches (jonction). Merge par le curseur de task (les lignes relues remplacent celles de leur tâche), purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}

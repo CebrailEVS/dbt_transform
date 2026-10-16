@@ -39,7 +39,7 @@ mart ne demande donc aucune modification d'orchestration.
 - La chaîne **`apptech`** n'est branchée sur aucun cron, volontairement : son
   build est déclenché par l'app Suivi Tech elle-même (événementiel).
 - Les workflows d'**export** et ceux dont la donnée n'entre pas dans dbt
-  (ex. `pipeline-oracle-nayka`, `pipeline-yuman-lcdp`) n'ont pas d'étape dbt.
+  (ex. `pipeline-yuman-lcdp`) n'ont pas d'étape dbt.
 
 ## 2. Trois régimes de cadence
 

@@ -34,8 +34,8 @@ qui lit `source()`.
 | Colonne | Règle | Construction |
 |---|---|---|
 | `extracted_at` | **obligatoire** : sert à la fraîcheur | `timestamp(_extracted_at)` (colonne posée par dlt) |
-| `created_at` | si la source a une date de création | `timestamp(<date_creation>)` |
-| `updated_at` | si la source a une date de modification | `timestamp(coalesce(<date_modif>, <date_creation>))` |
+| `created_at` | si la source a une date de création | `timestamp(<date_creation>)` ; ERP Oracle : voir plus bas |
+| `updated_at` | si la source a une date de modification | `timestamp(coalesce(<date_modif>, <date_creation>))` ; ERP Oracle : voir plus bas |
 
 Pas de `deleted_at` : dlt ne réplique pas les suppressions, la colonne serait toujours `NULL`.
 
@@ -44,7 +44,32 @@ Pas de `deleted_at` : dlt ne réplique pas les suppressions, la colonne serait t
 > - `stg_nesp_co__client`, `stg_gac__sinistres` : `_extracted_at` exposé sans renommage ;
 > - `stg_powerbi_activity__{datasets,events,reports,workspaces}` : `deleted_at` toujours `NULL`.
 
-Autres colonnes : snake_case, booléens `is_` / `has_`, timestamps `_at`, dates `_date`.
+### Dates des ERP Oracle
+
+Oracle (Distrilog) stocke l'heure de Paris sans fuseau, et dlt la charge en `TIMESTAMP` comme si
+c'était de l'UTC : l'instant est faux de 1 h l'hiver, de 2 h l'été. Le staging déclare le fuseau
+d'origine, y compris pour `created_at` et `updated_at`.
+
+| La colonne porte | Construction | Type |
+|---|---|---|
+| un instant (heure significative) | `timestamp(datetime(<col>), 'Europe/Paris')` | `TIMESTAMP` (UTC) |
+| une date calendaire (toujours à minuit) | `date(<col>)` | `DATE` |
+
+Une date calendaire convertie en instant recule d'un jour : minuit à Paris, c'est la veille en UTC.
+En aval, le jour métier d'un instant se prend avec `date(<col>, 'Europe/Paris')`. L'heure qui se
+répète au passage à l'heure d'hiver est ambiguë : BigQuery retient la première (heure d'été), la
+source n'ayant rien pour trancher.
+
+> Écart connu : `oracle_neshu` et `oracle_lcdp` écrivent encore `timestamp(<col>)`, soit l'heure de
+> Paris étiquetée UTC. À aligner.
+
+### Montants des ERP Oracle
+
+Un `NUMBER` Oracle sans précision arrive en `FLOAT64`. Les montants passent en `numeric`
+(`cast(<col> as numeric)`) : un flottant ne représente pas exactement les centimes.
+
+Autres colonnes : snake_case, booléens `is_` / `has_`, timestamps `_at`, dates `_date`. Une colonne
+que la source nomme déjà `is_` / `has_` est castée en `bool` : son nom promet un booléen.
 
 ## 4. Pattern SQL
 
@@ -63,8 +88,8 @@ cleaned_data as (
         cast(idcompany as int64) as idcompany,
         nullif(trim(code), '') as code,
         name,
-        timestamp(creation_date) as created_at,
-        timestamp(coalesce(modification_date, creation_date)) as updated_at,
+        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
+        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

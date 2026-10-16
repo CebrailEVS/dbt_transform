@@ -38,6 +38,7 @@ par dataset et par IAM. Voir [docs/environnements.md](docs/environnements.md).
 |---|---|---|
 | **oracle_neshu** | Oracle ERP (NESHU) | ERP principal : clients, machines, produits, tâches |
 | **oracle_lcdp** | Oracle ERP (LCDP) | ERP secondaire, même schéma qu'oracle_neshu |
+| **oracle_nayka** | Oracle ERP (Nayka) | ERP du partenaire Nayka, même schéma qu'oracle_neshu |
 | **yuman_api** | Yuman API | Interventions terrain : clients, sites, matériels, bons de travail |
 | **mssql_sage** | MSSQL Sage | Comptabilité : écritures, comptes tiers, collaborateurs |
 | **nesp_tech** | Nomad Repair API | Interventions techniques Nespresso, pièces détachées |
