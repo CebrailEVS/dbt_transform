@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idcivility", model=get_where_subquery(ref('stg_oracle_nayka__civility'))) }}

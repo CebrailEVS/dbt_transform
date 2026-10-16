@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="code", model=get_where_subquery(ref('stg_oracle_nayka__task_status')), values=["PREVU","FAIT","ENCOURS","ANNULE","VALIDE","ANOMALIE","ENATTENTE","ACQUITTE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

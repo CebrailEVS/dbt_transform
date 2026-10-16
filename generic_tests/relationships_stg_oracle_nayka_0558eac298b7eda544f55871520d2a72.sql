@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idlocation_type", field="idlocation_type", model=get_where_subquery(ref('stg_oracle_nayka__company_has_location')), to=ref('stg_oracle_nayka__location_type')) }}

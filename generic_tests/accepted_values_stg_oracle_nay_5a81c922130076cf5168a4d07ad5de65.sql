@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="type_product_source", model=get_where_subquery(ref('stg_oracle_nayka__task_has_product')), values=["COMPANY","DEVICE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

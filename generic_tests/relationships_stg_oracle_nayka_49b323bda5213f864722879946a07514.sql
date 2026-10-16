@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idtax_region", field="idtax_region", model=get_where_subquery(ref('stg_oracle_nayka__task_has_product')), to=ref('stg_oracle_nayka__tax_region')) }}

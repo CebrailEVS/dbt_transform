@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idlabel_family", field="idlabel_family", model=get_where_subquery(ref('stg_oracle_nayka__v_label_company')), to=ref('stg_oracle_nayka__label_family')) }}

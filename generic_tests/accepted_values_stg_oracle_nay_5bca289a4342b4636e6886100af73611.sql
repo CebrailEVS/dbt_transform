@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="real_planned", model=get_where_subquery(ref('stg_oracle_nayka__task_has_product')), values=["R","P"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="code_type", model=get_where_subquery(ref('stg_oracle_nayka__product_type')), values=["PRODUCT","PART","CALCULATED_PRODUCT","MODEL","PRICE_LINE","PAYMENT_MODE","GENERIC","COMMENT","HUMAN_RESOURCES","CONTAINER"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

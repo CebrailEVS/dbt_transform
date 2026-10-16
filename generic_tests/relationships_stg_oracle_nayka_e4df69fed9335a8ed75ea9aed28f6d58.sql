@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idproduct_type", field="idproduct_type", model=get_where_subquery(ref('stg_oracle_nayka__product')), to=ref('stg_oracle_nayka__product_type')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

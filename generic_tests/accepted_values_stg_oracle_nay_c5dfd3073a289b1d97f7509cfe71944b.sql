@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="code_type", model=get_where_subquery(ref('stg_oracle_nayka__location_type')), values=["MAIN","BILLING","POS","DELIVERY","SECONDARY","OLD","FEE","REFERENCE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

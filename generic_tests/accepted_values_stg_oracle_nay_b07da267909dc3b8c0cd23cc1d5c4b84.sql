@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="code", model=get_where_subquery(ref('stg_oracle_nayka__damping_type')), values=["LINEAR","DECREASING","LEASE-PURCHASE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

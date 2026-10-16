@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idcurrency", field="idcurrency", model=get_where_subquery(ref('stg_oracle_nayka__task')), to=ref('stg_oracle_nayka__currency')) }}

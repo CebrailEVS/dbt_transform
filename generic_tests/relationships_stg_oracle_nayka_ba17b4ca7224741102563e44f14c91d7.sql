@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idpayment_condition_facredev", field="idpayment_condition", model=get_where_subquery(ref('stg_oracle_nayka__company')), to=ref('stg_oracle_nayka__payment_condition')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

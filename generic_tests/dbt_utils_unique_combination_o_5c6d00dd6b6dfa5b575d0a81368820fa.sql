@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["idtask","idresources"], model=get_where_subquery(ref('stg_oracle_nayka__task_has_resources'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

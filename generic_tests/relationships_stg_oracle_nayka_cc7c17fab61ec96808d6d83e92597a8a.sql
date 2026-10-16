@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idresources", field="idresources", model=get_where_subquery(ref('stg_oracle_nayka__v_label_resources')), to=ref('stg_oracle_nayka__resources')) }}

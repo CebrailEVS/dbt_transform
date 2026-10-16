@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="code_status_record", model=get_where_subquery(ref('stg_oracle_nayka__product')), quote=false, values=[-1,0,1]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ test_unique(column_name="code", model=get_where_subquery(ref('stg_oracle_nayka__payment_type'))) }}

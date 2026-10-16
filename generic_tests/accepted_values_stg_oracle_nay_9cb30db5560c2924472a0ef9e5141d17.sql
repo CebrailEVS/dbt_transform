@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="coeff", model=get_where_subquery(ref('stg_oracle_nayka__task_type')), quote=false, values=[-1,0,1]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

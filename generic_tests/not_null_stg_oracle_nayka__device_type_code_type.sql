@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="code_type", model=get_where_subquery(ref('stg_oracle_nayka__device_type'))) }}

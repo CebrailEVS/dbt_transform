@@ -1,0 +1,1 @@
+{{ test_unique(column_name="idlocation_type", model=get_where_subquery(ref('stg_oracle_nayka__location_type'))) }}

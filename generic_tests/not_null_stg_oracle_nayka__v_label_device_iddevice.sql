@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="iddevice", model=get_where_subquery(ref('stg_oracle_nayka__v_label_device'))) }}

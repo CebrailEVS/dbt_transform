@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="task_status", model=get_where_subquery(ref('stg_oracle_nayka__task_has_resources'))) }}

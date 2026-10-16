@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idlabel", model=get_where_subquery(ref('stg_oracle_nayka__label_has_task'))) }}

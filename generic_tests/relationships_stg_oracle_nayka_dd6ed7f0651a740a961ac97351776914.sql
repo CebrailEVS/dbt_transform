@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idcontact_modification", field="idcontact", model=get_where_subquery(ref('stg_oracle_nayka__contact')), to=ref('stg_oracle_nayka__contact')) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idpayment_condition", model=get_where_subquery(ref('stg_oracle_nayka__payment_condition'))) }}

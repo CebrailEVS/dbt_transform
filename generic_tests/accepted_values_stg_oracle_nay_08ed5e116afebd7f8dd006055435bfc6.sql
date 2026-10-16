@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="code_type", model=get_where_subquery(ref('stg_oracle_nayka__device_type')), values=["DEVICE","GROUP","TELEMETRY","PAYMENTSYSTEM","COMMINTERFACE","KEY","PAYMENTTERMINAL","COFFER","BOAT","TRAILER","ENGINE","ACCESSORY"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

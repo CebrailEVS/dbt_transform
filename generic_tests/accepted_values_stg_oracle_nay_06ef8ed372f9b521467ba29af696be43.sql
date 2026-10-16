@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="code_type", model=get_where_subquery(ref('stg_oracle_nayka__contact_type')), values=["DEFAULT"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

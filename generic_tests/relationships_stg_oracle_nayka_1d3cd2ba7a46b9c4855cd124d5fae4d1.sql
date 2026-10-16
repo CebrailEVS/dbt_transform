@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idunit_type", field="idunit_type", model=get_where_subquery(ref('stg_oracle_nayka__product_unit')), to=ref('stg_oracle_nayka__unit_type')) }}

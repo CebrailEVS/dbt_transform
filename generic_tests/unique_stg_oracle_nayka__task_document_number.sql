@@ -1,0 +1,1 @@
+{{ test_unique(column_name="document_number", model=get_where_subquery(ref('stg_oracle_nayka__task'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

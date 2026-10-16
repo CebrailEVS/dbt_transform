@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["idcompany","idlabel_family"], model=get_where_subquery(ref('stg_oracle_nayka__v_label_company'))) }}{{ config({"meta":{},"severity":"WARN","tags":[],"where":"lf_exclus = 1"}) }}

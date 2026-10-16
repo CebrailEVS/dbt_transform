@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idcontract", field="idcontract", model=get_where_subquery(ref('stg_oracle_nayka__label_has_contract')), to=ref('stg_oracle_nayka__contract')) }}

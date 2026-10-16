@@ -1,0 +1,1 @@
+{{ test_unique(column_name="idcontact_type", model=get_where_subquery(ref('stg_oracle_nayka__contact_type'))) }}
