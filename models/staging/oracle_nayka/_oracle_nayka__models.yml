@@ -1826,7 +1826,7 @@ models:
               - idtask
               - idresources
               - task_status
-      # Une même affectation sous deux statuts trahit une ligne périmée (la jonction n'est jamais purgée).
+      # Garde-fou : une même affectation sous deux statuts trahirait une ligne périmée.
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
@@ -1836,7 +1836,7 @@ models:
             severity: warn
     columns:
       - name: idtask
-        description: "Tâche (PK composite avec idresources et task_status). Clé déclarée par Oracle, testée en warn : la jonction n'est jamais purgée. Une tâche supprimée y laisse ses lignes, et une ligne dont la clé change dans l'ERP y reste à côté de la nouvelle. Joindre à task en aval ne retire que le premier cas."
+        description: "Tâche (PK composite avec idresources et task_status). Clé déclarée par Oracle, testée en warn : une tâche supprimée dans l'ERP y laisse ses lignes jusqu'à la purge hebdomadaire. Joindre à task en aval."
         tests:
           - not_null
           - relationships:
@@ -1869,8 +1869,8 @@ models:
               - tax_rate
               - idtax
               - idtax_region
-      # Une même taxe sous deux taux trahit une ligne périmée (la jonction n'est jamais purgée) :
-      # la base HT de la tâche serait comptée deux fois.
+      # Garde-fou : une même taxe sous deux taux trahirait une ligne périmée, et la base HT de la
+      # tâche serait comptée deux fois.
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
@@ -1881,7 +1881,7 @@ models:
             severity: warn
     columns:
       - name: idtask
-        description: "Tâche (PK composite avec tax_rate, idtax et idtax_region). Clé déclarée par Oracle, testée en warn : la jonction n'est jamais purgée. Une tâche supprimée y laisse ses lignes, et une ligne dont la clé change dans l'ERP y reste à côté de la nouvelle. Joindre à task en aval ne retire que le premier cas."
+        description: "Tâche (PK composite avec tax_rate, idtax et idtax_region). Clé déclarée par Oracle, testée en warn : une tâche supprimée dans l'ERP y laisse ses lignes jusqu'à la purge hebdomadaire. Joindre à task en aval."
         tests:
           - not_null
           - relationships:
@@ -1928,7 +1928,7 @@ models:
               - idlabel
     columns:
       - name: idtask
-        description: "Tâche étiquetée (PK composite avec idlabel). Clé déclarée par Oracle, testée en warn : la jonction n'est jamais purgée. Une tâche supprimée y laisse ses lignes, et une ligne dont la clé change dans l'ERP y reste à côté de la nouvelle. Joindre à task en aval ne retire que le premier cas."
+        description: "Tâche étiquetée (PK composite avec idlabel). Clé déclarée par Oracle, testée en warn : une tâche supprimée dans l'ERP y laisse ses lignes jusqu'à la purge hebdomadaire. Joindre à task en aval."
         tests:
           - not_null
           - relationships:

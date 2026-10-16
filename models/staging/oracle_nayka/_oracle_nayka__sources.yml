@@ -96,21 +96,21 @@ sources:
             warn_after: {count: 7, period: day}
             error_after: {count: 30, period: day}
       - name: nayka_task_has_resources
-        description: "Ressources affectées aux tâches (jonction). Merge par le curseur de task, sans purge hebdomadaire."
+        description: "Ressources affectées aux tâches (jonction). Merge par le curseur de task (les lignes relues remplacent celles de leur tâche), purge hebdomadaire."
         config:
           # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
           freshness:
             warn_after: {count: 7, period: day}
             error_after: {count: 30, period: day}
       - name: nayka_task_has_amount
-        description: "Montants HT et TVA des tâches, par taux (jonction). Merge par le curseur de task, sans purge hebdomadaire."
+        description: "Montants HT et TVA des tâches, par taux (jonction). Merge par le curseur de task (les lignes relues remplacent celles de leur tâche), purge hebdomadaire."
         config:
           # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
           freshness:
             warn_after: {count: 7, period: day}
             error_after: {count: 30, period: day}
       - name: nayka_label_has_task
-        description: "Étiquettes posées sur les tâches (jonction). Merge par le curseur de task, sans purge hebdomadaire."
+        description: "Étiquettes posées sur les tâches (jonction). Merge par le curseur de task (les lignes relues remplacent celles de leur tâche), purge hebdomadaire."
         config:
           # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
           freshness:
