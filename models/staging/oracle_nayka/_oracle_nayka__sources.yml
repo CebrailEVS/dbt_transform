@@ -12,6 +12,11 @@ sources:
     schema: "{{ var('raw_schema', 'prod_raw') }}"
     config:
       tags: ['oracle_nayka', 'source']
+      # Fraîcheur : tier Standard, vérifiée juste après l'EL quotidien. Cf. docs/freshness.md.
+      loaded_at_field: _extracted_at
+      freshness:
+        warn_after: {count: 26, period: hour}
+        error_after: {count: 48, period: hour}
 
     tables:
       - name: nayka_task_status
@@ -78,11 +83,36 @@ sources:
         description: "Étiquettes posées sur les contrats (jonction)."
       - name: nayka_task
         description: "Tâches : documents commerciaux, mouvements de stock, interventions, planifications. Merge sur modification_date, purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}
       - name: nayka_task_has_product
         description: "Lignes produits des tâches. Merge sur modification_date (NULL inclus), purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}
       - name: nayka_task_has_resources
         description: "Ressources affectées aux tâches (jonction). Merge par le curseur de task, sans purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}
       - name: nayka_task_has_amount
         description: "Montants HT et TVA des tâches, par taux (jonction). Merge par le curseur de task, sans purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}
       - name: nayka_label_has_task
         description: "Étiquettes posées sur les tâches (jonction). Merge par le curseur de task, sans purge hebdomadaire."
+        config:
+          # Merge : _extracted_at ne bouge qu'avec l'activité de la source, d'où des seuils larges.
+          freshness:
+            warn_after: {count: 7, period: day}
+            error_after: {count: 30, period: day}
