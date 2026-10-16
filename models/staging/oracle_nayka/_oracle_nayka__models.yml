@@ -844,6 +844,10 @@ models:
                 field: idcompany
               config:
                 severity: warn
+      - name: idtax
+        description: "Taxe de vente par défaut. Table tax non extraite : sert à relier produits, lignes et montants des tâches."
+      - name: idtax_purchase
+        description: "Taxe d'achat par défaut. Table tax non extraite."
       - name: idcontact_creation
         description: "Utilisateur de l'ERP qui a créé la fiche."
         tests:
@@ -1451,6 +1455,470 @@ models:
               arguments:
                 to: ref('stg_oracle_nayka__contract')
                 field: idcontract
+      - name: idlabel
+        description: "Étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label')
+                field: idlabel
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__task
+    columns:
+      - name: idtask
+        description: "Identifiant de la tâche (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: task_idtask
+        description: "Tâche mère (document d’origine d’une transformation, planification parente…)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__task')
+                field: idtask
+      - name: idtask_type
+        description: "Type de tâche ; le type fonctionnel est task_type.code_type."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__task_type')
+                field: idtask_type
+      - name: idtask_status
+        description: "Statut de la tâche (PREVU, FAIT, VALIDE, ANNULE…)."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__task_status')
+                field: idtask_status
+      - name: idcompany_self
+        description: "Société émettrice, côté Nayka."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idcompany_peer
+        description: "Société tierce : client ou fournisseur."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: iddevice
+        description: "Équipement concerné."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__device')
+                field: iddevice
+      - name: idcontact
+        description: "Contact concerné. Clé non déclarée par Oracle."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+              config:
+                severity: warn
+      - name: idlocation
+        description: "Adresse de la tâche."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__location')
+                field: idlocation
+      - name: idcurrency
+        description: "Devise."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__currency')
+                field: idcurrency
+      - name: idcontact_creation
+        description: "Utilisateur de l'ERP qui a créé la tâche."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: idcontact_modification
+        description: "Utilisateur de l'ERP qui a modifié la tâche en dernier."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: idproduct_source
+        description: "Source du mouvement : une société ou un équipement selon type_product_source (le préfixe idproduct_ est trompeur)."
+      - name: type_product_source
+        description: "Nature de idproduct_source : COMPANY ou DEVICE."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['COMPANY', 'DEVICE']
+              config:
+                severity: warn
+      - name: idproduct_destination
+        description: "Destination du mouvement : une société ou un équipement selon type_product_destination."
+      - name: type_product_destination
+        description: "Nature de idproduct_destination : COMPANY ou DEVICE."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['COMPANY', 'DEVICE']
+              config:
+                severity: warn
+      - name: code
+        description: "Code de la tâche, rarement renseigné."
+      - name: prefix_document_number
+        description: "Préfixe du numéro de pièce (BL, A26, CC…)."
+      - name: document_number
+        description: "Numéro de pièce affiché dans l'ERP. Unicité non déclarée par Oracle."
+        tests:
+          - unique:
+              config:
+                severity: warn
+      - name: external_reference
+        description: "Référence externe."
+      - name: comments_self
+        description: "Commentaire interne."
+      - name: comments_peer
+        description: "Commentaire destiné au tiers."
+      - name: code_status_record
+        description: "Validité de l'enregistrement : 1 = actif, 0 ou -1 = désactivé ou non validé. Indépendant du statut de la tâche (une tâche ANNULE reste à 1). Non filtré ici ; le filtre `= 1` se pose en intermediate."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+                quote: false
+              config:
+                severity: warn
+      - name: locked
+        description: "1 si la tâche est verrouillée contre la modification."
+      - name: isobligatory
+        description: "1 si la tâche est obligatoire."
+      - name: use_mois_comptable
+        description: "1 si la tâche est rattachée à un mois comptable."
+      - name: is_vat_paid
+        description: "1 si la TVA est acquittée."
+      - name: sequence
+        description: "Ordre de la tâche dans sa série ou sa tournée."
+      - name: realized_percentage
+        description: "Pourcentage de réalisation."
+      - name: planed_ref_value
+        description: "Valeur de référence prévue."
+      - name: real_ref_value
+        description: "Valeur de référence réalisée : montant total du document calculé par l’ERP."
+      - name: ht_price
+        description: "Prix HT, champ personnalisé (balise HTPRICE du xml)."
+      - name: ttc_price
+        description: "Prix TTC, champ personnalisé (balise TTCPRICE du xml)."
+      - name: receiver
+        description: "Destinataire e-mail du document, champ personnalisé (balise RECEIVER du xml)."
+      - name: planed_start_date
+        description: "Début prévu (UTC)."
+      - name: planed_end_date
+        description: "Fin prévue (UTC)."
+      - name: real_start_date
+        description: "Début réel (UTC) : la date de référence d’une tâche."
+      - name: real_end_date
+        description: "Fin réelle (UTC). En 2099 sur une planification sans fin."
+      - name: application_start_date
+        description: "Début de la période d’application (UTC)."
+      - name: application_end_date
+        description: "Fin de la période d’application (UTC)."
+      - name: validation_date
+        description: "Validation de la tâche (UTC)."
+      - name: conversion_date
+        description: "Transformation en un autre document, commande en BL par exemple (UTC)."
+      - name: created_at
+        description: "Création dans l'ERP (UTC)."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC). Curseur de l'extraction incrémentale."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC). Ne bouge que sur les tâches modifiées : mesure l'activité, pas la santé du pipeline."
+
+  - name: stg_oracle_nayka__task_has_product
+    columns:
+      - name: idtask_has_product
+        description: "Identifiant de la ligne (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: idtask
+        description: "Tâche de la ligne. Purgée chaque semaine avec task : pas d’orphelin attendu."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__task')
+                field: idtask
+      - name: idproduct
+        description: "Produit."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__product')
+                field: idproduct
+      - name: idproduct_unit
+        description: "Unité de la ligne."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__product_unit')
+                field: idproduct_unit
+      - name: iddevice
+        description: "Équipement concerné (mouvement, installation)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__device')
+                field: iddevice
+      - name: idcontract
+        description: "Contrat de rattachement."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contract')
+                field: idcontract
+      - name: idcompany_peer
+        description: "Société tierce."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idlocation
+        description: "Adresse."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__location')
+                field: idlocation
+      - name: idtax
+        description: "Taxe appliquée. Table tax non extraite : relie la ligne aux montants de task_has_amount."
+      - name: idtax_region
+        description: "Région fiscale."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__tax_region')
+                field: idtax_region
+      - name: idtask_has_product_associed
+        description: "Ligne d'origine dans la chaîne des documents (ligne de commande d'une ligne de BL, par exemple) ; la ligne elle-même sur un document d'origine. Non testée : une ligne d'origine supprimée laisse une référence sans cible, ce qui est normal."
+      - name: idcontact_creation
+        description: "Utilisateur de l'ERP qui a créé la ligne. Clé non déclarée par Oracle."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+              config:
+                severity: warn
+      - name: idcontact_modification
+        description: "Utilisateur de l'ERP qui a modifié la ligne. Clé non déclarée par Oracle."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+              config:
+                severity: warn
+      - name: idproduct_source
+        description: "Source de la ligne : une société ou un équipement selon type_product_source."
+      - name: type_product_source
+        description: "Nature de idproduct_source : COMPANY ou DEVICE."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['COMPANY', 'DEVICE']
+              config:
+                severity: warn
+      - name: idproduct_destination
+        description: "Destination de la ligne : une société ou un équipement selon type_product_destination."
+      - name: type_product_destination
+        description: "Nature de idproduct_destination : COMPANY ou DEVICE."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['COMPANY', 'DEVICE']
+              config:
+                severity: warn
+      - name: code
+        description: "Code produit, figé à la saisie."
+      - name: name
+        description: "Libellé produit, figé à la saisie."
+      - name: real_planned
+        description: "R = ligne réalisée, P = ligne prévue."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['R', 'P']
+              config:
+                severity: warn
+      - name: sequence
+        description: "Ordre de la ligne dans la tâche."
+      - name: real_quantity
+        description: "Quantité, dans l’unité de la ligne."
+      - name: unit_code
+        description: "Code de l’unité, figé à la saisie."
+      - name: unit_text
+        description: "Libellé de l’unité, figé à la saisie."
+      - name: unit_coeff_multi
+        description: "Coefficient multiplicateur vers l’unité de base."
+      - name: unit_coeff_div
+        description: "Coefficient diviseur vers l’unité de base."
+      - name: unit_weight
+        description: "Poids unitaire."
+      - name: unit_volume
+        description: "Volume unitaire."
+      - name: tax_rate
+        description: "Taux de TVA, en pourcentage."
+      - name: tax_code
+        description: "Code de la taxe, figé à la saisie."
+      - name: tax_name
+        description: "Libellé de la taxe, figé à la saisie."
+      - name: sale_unit_price
+        description: "Prix de vente unitaire HT."
+      - name: sale_unit_price_tax
+        description: "Prix de vente unitaire TTC."
+      - name: net_price
+        description: "Prix unitaire net, remises déduites."
+      - name: packaging_price
+        description: "Prix du conditionnement."
+      - name: purchase_unit_price
+        description: "Prix d’achat unitaire."
+      - name: average_purchase_price
+        description: "Prix moyen d’achat pondéré à la date de la ligne."
+      - name: sale_amount_brut
+        description: "Montant brut HT de la ligne."
+      - name: sale_amount_net
+        description: "Montant net HT de la ligne."
+      - name: sale_amount_net_tax
+        description: "Montant net TTC de la ligne."
+      - name: tax_amount
+        description: "Montant de TVA de la ligne."
+      - name: discount_rate
+        description: "Taux de remise."
+      - name: amount_price_increase
+        description: "Montant de hausse de prix."
+      - name: amount_price_reduction
+        description: "Montant de baisse de prix."
+      - name: created_at
+        description: "Création dans l'ERP (UTC). Vide sur les lignes de mouvement."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP, à défaut la création (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__task_has_resources
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idtask
+              - idresources
+              - task_status
+    columns:
+      - name: idtask
+        description: "Tâche (PK composite avec idresources et task_status). Clé déclarée par Oracle, testée en warn : la jonction n'est pas purgée chaque semaine, une tâche supprimée y laisse ses lignes. Joindre à task en aval."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__task')
+                field: idtask
+              config:
+                severity: warn
+      - name: idresources
+        description: "Ressource affectée."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__resources')
+                field: idresources
+      - name: task_status
+        description: "Statut de l'affectation, partie de la PK déclarée par Oracle."
+        tests:
+          - not_null
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__task_has_amount
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idtask
+              - tax_rate
+              - idtax
+              - idtax_region
+    columns:
+      - name: idtask
+        description: "Tâche (PK composite avec tax_rate, idtax et idtax_region). Clé déclarée par Oracle, testée en warn : la jonction n'est pas purgée chaque semaine, une tâche supprimée y laisse ses lignes. Joindre à task en aval."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__task')
+                field: idtask
+              config:
+                severity: warn
+      - name: idtax
+        description: "Taxe, partie de la PK. Table tax non extraite."
+        tests:
+          - not_null
+      - name: idtax_region
+        description: "Région fiscale."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__tax_region')
+                field: idtax_region
+      - name: tax_rate
+        description: "Taux de TVA, en pourcentage."
+        tests:
+          - not_null
+      - name: tax_code
+        description: "Code de la taxe, figé à la saisie, rarement renseigné."
+      - name: tax_name
+        description: "Libellé de la taxe, figé à la saisie, rarement renseigné."
+      - name: amount_without_tax
+        description: "Base HT soumise à ce taux."
+      - name: tax_amount
+        description: "Montant de TVA à ce taux."
+      - name: percentage
+        description: "Part de cette base dans le total HT de la tâche, en pourcentage."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__label_has_task
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idtask
+              - idlabel
+    columns:
+      - name: idtask
+        description: "Tâche étiquetée (PK composite avec idlabel). Clé déclarée par Oracle, testée en warn : la jonction n'est pas purgée chaque semaine, une tâche supprimée y laisse ses lignes. Joindre à task en aval."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__task')
+                field: idtask
+              config:
+                severity: warn
       - name: idlabel
         description: "Étiquette."
         tests:

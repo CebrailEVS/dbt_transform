@@ -11,13 +11,16 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées, idstring et idtax / idtax_purchase (tables non
-    -- extraites), xml (requêtes SQL internes des produits calculés), paramétrage constant de l'ERP
-    -- (idinstance, audit_param_config_default, average_fill_sold_ratio, meter_reading).
+    -- Non reprises : colonnes jamais renseignées, idstring (table string non extraite), xml (requêtes
+    -- SQL internes des produits calculés), paramétrage constant de l'ERP (idinstance,
+    -- audit_param_config_default, average_fill_sold_ratio, meter_reading).
     select
         cast(idproduct as int64) as idproduct,
         cast(idproduct_type as int64) as idproduct_type,
         cast(idcompany_supplier as int64) as idcompany_supplier,
+        -- Table tax non extraite, mais idtax relie produits, lignes et montants des tâches.
+        cast(idtax as int64) as idtax,
+        cast(idtax_purchase as int64) as idtax_purchase,
         cast(idcontact_creation as int64) as idcontact_creation,
         cast(idcontact_modification as int64) as idcontact_modification,
 
