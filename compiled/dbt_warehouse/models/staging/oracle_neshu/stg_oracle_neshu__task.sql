@@ -35,15 +35,15 @@ cleaned_data as (
         cast(code_status_record as string) as code_status_record,
 
         -- Date de la tache
-        timestamp(real_start_date) as real_start_date,
-        timestamp(real_end_date) as real_end_date,
-        timestamp(planed_start_date) as planed_start_date,
-        timestamp(planed_end_date) as planed_end_date,
+        timestamp(datetime(real_start_date), 'Europe/Paris') as real_start_date,
+        timestamp(datetime(real_end_date), 'Europe/Paris') as real_end_date,
+        timestamp(datetime(planed_start_date), 'Europe/Paris') as planed_start_date,
+        timestamp(datetime(planed_end_date), 'Europe/Paris') as planed_end_date,
 
         -- Timestamps harmonisés
-        timestamp(creation_date) as created_at,
+        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
         -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
-        timestamp(coalesce(modification_date, creation_date)) as updated_at,
+        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

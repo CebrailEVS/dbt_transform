@@ -6,7 +6,7 @@ select
     task_product_id,
     task_id,
     task_status_code,
-    task_start_date,
+    timestamp(datetime(task_start_date, 'Europe/Paris')) as task_start_date,
     product_code,
     quantity,
     valuation

@@ -31,24 +31,24 @@
         "start": {
           "line": 38,
           "col": 10,
-          "index": 1655
+          "index": 1687
         },
         "stop": {
           "line": 38,
           "col": 45,
-          "index": 1690
+          "index": 1722
         }
       },
       "expanded_span": {
         "start": {
           "line": 33,
           "col": 10,
-          "index": 1463
+          "index": 1495
         },
         "stop": {
           "line": 33,
           "col": 70,
-          "index": 1523
+          "index": 1555
         }
       }
     },
@@ -57,24 +57,24 @@
         "start": {
           "line": 39,
           "col": 16,
-          "index": 1711
+          "index": 1743
         },
         "stop": {
           "line": 39,
           "col": 53,
-          "index": 1748
+          "index": 1780
         }
       },
       "expanded_span": {
         "start": {
           "line": 34,
           "col": 16,
-          "index": 1544
+          "index": 1576
         },
         "stop": {
           "line": 34,
           "col": 78,
-          "index": 1606
+          "index": 1638
         }
       }
     },
@@ -83,24 +83,24 @@
         "start": {
           "line": 41,
           "col": 16,
-          "index": 1804
+          "index": 1836
         },
         "stop": {
           "line": 41,
           "col": 54,
-          "index": 1842
+          "index": 1874
         }
       },
       "expanded_span": {
         "start": {
           "line": 36,
           "col": 16,
-          "index": 1662
+          "index": 1694
         },
         "stop": {
           "line": 36,
           "col": 79,
-          "index": 1725
+          "index": 1757
         }
       }
     },
@@ -109,24 +109,24 @@
         "start": {
           "line": 43,
           "col": 16,
-          "index": 1943
+          "index": 1975
         },
         "stop": {
           "line": 43,
           "col": 65,
-          "index": 1992
+          "index": 2024
         }
       },
       "expanded_span": {
         "start": {
           "line": 38,
           "col": 16,
-          "index": 1826
+          "index": 1858
         },
         "stop": {
           "line": 38,
           "col": 90,
-          "index": 1900
+          "index": 1932
         }
       }
     },
@@ -135,24 +135,24 @@
         "start": {
           "line": 45,
           "col": 16,
-          "index": 2048
+          "index": 2080
         },
         "stop": {
           "line": 45,
           "col": 56,
-          "index": 2088
+          "index": 2120
         }
       },
       "expanded_span": {
         "start": {
           "line": 40,
           "col": 16,
-          "index": 1956
+          "index": 1988
         },
         "stop": {
           "line": 40,
           "col": 81,
-          "index": 2021
+          "index": 2053
         }
       }
     }

@@ -101,13 +101,13 @@ select
 
     -- 💰 Opérationnel
     cost,
-    arrival,
-    departure,
+    timestamp(arrival) as arrival,
+    timestamp(datetime(departure, 'Europe/Paris')) as departure,
 
     code_status_record,
 
     -- 🕒 Dates
-    created_at,
-    updated_at
+    timestamp(datetime(created_at, 'Europe/Paris')) as created_at,
+    timestamp(datetime(updated_at, 'Europe/Paris')) as updated_at
 
 from aggregated_labels

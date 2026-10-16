@@ -22,7 +22,7 @@
 with ventes_telemetrie as (
 
     select
-        date_trunc(date(t.real_start_date), month) as mois,
+        date_trunc(date(t.real_start_date, 'Europe/Paris'), month) as mois,
         c.idcompany as company_id,
         c.code as company_code,
         thp.sale_amount_net,

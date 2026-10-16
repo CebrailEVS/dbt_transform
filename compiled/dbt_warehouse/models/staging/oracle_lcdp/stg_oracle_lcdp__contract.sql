@@ -36,13 +36,13 @@ cleaned_data as (
         name,
         code_status_record,
 
-        timestamp(original_start_date) as original_start_date,
-        timestamp(original_end_date) as original_end_date,
-        timestamp(current_end_date) as current_end_date,
-        timestamp(termination_date) as termination_date,
+        date(original_start_date) as original_start_date,
+        date(original_end_date) as original_end_date,
+        date(current_end_date) as current_end_date,
+        date(termination_date) as termination_date,
 
-        timestamp(creation_date) as created_at,
-        timestamp(coalesce(modification_date, creation_date)) as updated_at,
+        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
+        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

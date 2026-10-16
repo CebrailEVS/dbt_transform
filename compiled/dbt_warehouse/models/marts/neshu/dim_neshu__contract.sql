@@ -92,12 +92,12 @@ select
     engagement_clean,
     nombre_collab,
     is_active,
-    original_start_date,
-    original_end_date,
-    current_end_date,
-    termination_date,
-    created_at,
-    updated_at
+    timestamp(original_start_date) as original_start_date,
+    timestamp(original_end_date) as original_end_date,
+    timestamp(current_end_date) as current_end_date,
+    timestamp(termination_date) as termination_date,
+    timestamp(datetime(created_at, 'Europe/Paris')) as created_at,
+    timestamp(datetime(updated_at, 'Europe/Paris')) as updated_at
 from (
     select
         *,

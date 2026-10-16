@@ -122,12 +122,12 @@ select
     d.company_name,
     d.postal_code,
     d.city,
-    cc.first_contract_date,
+    timestamp(cc.first_contract_date) as first_contract_date,
     -- Typologie : client acquis dans l'année DU MOIS ANALYSÉ, et non de la date
     -- du calcul. C'est l'écart volontaire avec Distrilog qui rend le mart
     -- rejouable (cf. [NOTES]).
     case
-        when date_trunc(date(cc.first_contract_date), year) = date_trunc(m.mois, year)
+        when date_trunc(cc.first_contract_date, year) = date_trunc(m.mois, year)
             then 'GET'
         else 'OTHER'
     end as typologie,

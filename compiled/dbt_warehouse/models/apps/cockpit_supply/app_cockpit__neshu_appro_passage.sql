@@ -6,8 +6,8 @@
 -- UTC sans conversion) : repris tel quel, l'app le lit comme une heure locale.
 select
     task_id,
-    task_start_date,
-    task_end_date,
+    timestamp(datetime(task_start_date, 'Europe/Paris')) as task_start_date,
+    timestamp(datetime(task_end_date, 'Europe/Paris')) as task_end_date,
     roadman_code,
     company_id,
     company_code,

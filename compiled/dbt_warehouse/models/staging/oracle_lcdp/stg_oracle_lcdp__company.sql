@@ -21,9 +21,9 @@ cleaned_data as (
         siret,
 
         -- Timestamps harmonisés
-        timestamp(creation_date) as created_at,
+        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
         -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
-        timestamp(coalesce(modification_date, creation_date)) as updated_at,
+        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

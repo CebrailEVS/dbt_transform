@@ -27,16 +27,16 @@ cleaned_data as (
         nullif(trim(comments), '') as comments,
 
         -- Date liée à la machine
-        timestamp(last_installation_date) as last_installation_date,
-        timestamp(purchase_date) as purchase_date,
+        timestamp(datetime(last_installation_date), 'Europe/Paris') as last_installation_date,
+        date(purchase_date) as purchase_date,
 
         -- Coût d'acquisition. 0 est fréquent à la source, qui ne distingue pas « non saisi » de « nul ».
         cast(purchase_cost as float64) as purchase_cost,
 
         -- Timestamps harmonisés
-        timestamp(creation_date) as created_at,
+        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
         -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
-        timestamp(coalesce(modification_date, creation_date)) as updated_at,
+        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

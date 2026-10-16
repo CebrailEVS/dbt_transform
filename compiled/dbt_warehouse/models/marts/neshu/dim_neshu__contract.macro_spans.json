@@ -129,6 +129,58 @@
           "index": 897
         }
       }
+    },
+    {
+      "macro_span": {
+        "start": {
+          "line": 99,
+          "col": 5,
+          "index": 2942
+        },
+        "stop": {
+          "line": 99,
+          "col": 49,
+          "index": 2986
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 99,
+          "col": 5,
+          "index": 2980
+        },
+        "stop": {
+          "line": 99,
+          "col": 52,
+          "index": 3027
+        }
+      }
+    },
+    {
+      "macro_span": {
+        "start": {
+          "line": 100,
+          "col": 5,
+          "index": 3006
+        },
+        "stop": {
+          "line": 100,
+          "col": 49,
+          "index": 3050
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 100,
+          "col": 5,
+          "index": 3047
+        },
+        "stop": {
+          "line": 100,
+          "col": 52,
+          "index": 3094
+        }
+      }
     }
   ],
   "reclassify_spans": []

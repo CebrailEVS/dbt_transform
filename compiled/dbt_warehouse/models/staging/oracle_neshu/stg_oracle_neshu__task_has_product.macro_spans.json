@@ -55,26 +55,78 @@
     {
       "macro_span": {
         "start": {
+          "line": 55,
+          "col": 9,
+          "index": 2261
+        },
+        "stop": {
+          "line": 55,
+          "col": 46,
+          "index": 2298
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 46,
+          "col": 9,
+          "index": 1888
+        },
+        "stop": {
+          "line": 46,
+          "col": 59,
+          "index": 1938
+        }
+      }
+    },
+    {
+      "macro_span": {
+        "start": {
+          "line": 56,
+          "col": 9,
+          "index": 2322
+        },
+        "stop": {
+          "line": 56,
+          "col": 75,
+          "index": 2388
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 47,
+          "col": 9,
+          "index": 1962
+        },
+        "stop": {
+          "line": 47,
+          "col": 88,
+          "index": 2041
+        }
+      }
+    },
+    {
+      "macro_span": {
+        "start": {
           "line": 66,
           "col": 16,
-          "index": 2589
+          "index": 2615
         },
         "stop": {
           "line": 66,
           "col": 51,
-          "index": 2624
+          "index": 2650
         }
       },
       "expanded_span": {
         "start": {
           "line": 57,
           "col": 16,
-          "index": 2216
+          "index": 2268
         },
         "stop": {
           "line": 57,
           "col": 76,
-          "index": 2276
+          "index": 2328
         }
       }
     },
@@ -83,24 +135,24 @@
         "start": {
           "line": 71,
           "col": 1,
-          "index": 2692
+          "index": 2718
         },
         "stop": {
           "line": 80,
           "col": 12,
-          "index": 2958
+          "index": 2984
         }
       },
       "expanded_span": {
         "start": {
           "line": 62,
           "col": 1,
-          "index": 2344
+          "index": 2396
         },
         "stop": {
           "line": 71,
           "col": 1,
-          "index": 2636
+          "index": 2688
         }
       }
     }

@@ -17,7 +17,7 @@
 with parc_par_modele as (
 
     select
-        date_trunc(date(t.real_start_date), month) as mois,
+        date_trunc(date(t.real_start_date, 'Europe/Paris'), month) as mois,
         c.idcompany as company_id,
         c.code as company_code,
         p.code as model_code,
@@ -41,7 +41,7 @@ with parc_par_modele as (
     inner join `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__contrat_client` as cc
         on
             c.idcompany = cc.company_id
-            and t.real_start_date > timestamp(date_trunc(date(cc.first_contract_date), month))
+            and t.real_start_date > timestamp(date_trunc(cc.first_contract_date, month), 'Europe/Paris')
 
     where
         t.idtask_type in (271, 134)  -- DESTRUCTION, INSTALL MACHINE

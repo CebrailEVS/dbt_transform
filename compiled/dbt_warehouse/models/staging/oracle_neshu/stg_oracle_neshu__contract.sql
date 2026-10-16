@@ -94,13 +94,13 @@ cleaned_data as (
         p.engagement_raw,
         p.engagement_clean,
 
-        timestamp(c.original_start_date) as original_start_date,
-        timestamp(c.original_end_date) as original_end_date,
-        timestamp(c.current_end_date) as current_end_date,
-        timestamp(c.termination_date) as termination_date,
+        date(c.original_start_date) as original_start_date,
+        date(c.original_end_date) as original_end_date,
+        date(c.current_end_date) as current_end_date,
+        date(c.termination_date) as termination_date,
 
-        timestamp(c.creation_date) as created_at,
-        timestamp(coalesce(c.modification_date, c.creation_date)) as updated_at,
+        timestamp(datetime(c.creation_date), 'Europe/Paris') as created_at,
+        timestamp(datetime(coalesce(c.modification_date, c.creation_date)), 'Europe/Paris') as updated_at,
         timestamp(c._extracted_at) as extracted_at
 
     from source_data as c

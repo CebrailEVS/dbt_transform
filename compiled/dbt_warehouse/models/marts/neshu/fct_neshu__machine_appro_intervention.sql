@@ -352,11 +352,11 @@ select
     ac.company_code,
 
     -- Contexte appro
-    ac.last_appro_date,
+    timestamp(datetime(ac.last_appro_date, 'Europe/Paris')) as last_appro_date,
     ac.last_appro_roadman_code,
     ac.last_appro_gea_code,
     ac.days_since_last_appro,
-    ac.next_appro_date,
+    timestamp(datetime(ac.next_appro_date, 'Europe/Paris')) as next_appro_date,
     ac.next_appro_roadman_code,
     ac.next_appro_gea_code,
     ac.days_until_next_appro,

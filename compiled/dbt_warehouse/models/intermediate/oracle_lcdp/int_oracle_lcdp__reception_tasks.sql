@@ -110,7 +110,7 @@ select
     ch.commande_start_date,
 
     -- Délai de livraison fournisseur (commande -> réception)
-    date_diff(date(rb.task_start_date), date(ch.commande_start_date), day) as delivery_lead_time_days,
+    date_diff(date(rb.task_start_date, 'Europe/Paris'), date(ch.commande_start_date, 'Europe/Paris'), day) as delivery_lead_time_days,
     ch.commande_start_date is not null
     and rb.task_start_date >= ch.commande_start_date as is_lead_time_valid,
 

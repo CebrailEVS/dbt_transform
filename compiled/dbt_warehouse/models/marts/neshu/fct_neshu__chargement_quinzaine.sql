@@ -8,12 +8,12 @@ with base as (
         end) as product_type,
         cm.company_code,
         comp.company_name,
-        extract(year from cm.task_start_date) as annee_chgt,
+        extract(year from cm.task_start_date at time zone 'Europe/Paris') as annee_chgt,
         floor(
             date_diff(
-                date(cm.task_start_date),
+                date(cm.task_start_date, 'Europe/Paris'),
                 date_trunc(
-                    date_trunc(date(cm.task_start_date), year),
+                    date_trunc(date(cm.task_start_date, 'Europe/Paris'), year),
                     week (monday)
                 ),
                 day
@@ -44,7 +44,7 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '01a14513-815f-72d3-a6aa-6cc24813a1eb' as dbt_invocation_id  -- noqa: TMP
+    '01a1459e-ce6b-71d0-9098-d87bedf05d8a' as dbt_invocation_id  -- noqa: TMP
 from base
 group by
     product_type,

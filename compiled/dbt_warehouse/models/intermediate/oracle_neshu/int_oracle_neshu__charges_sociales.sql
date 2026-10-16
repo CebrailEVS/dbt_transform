@@ -13,7 +13,7 @@
 with source_data as (
 
     select
-        date_trunc(date(t.real_start_date), month) as mois,
+        date_trunc(date(t.real_start_date, 'Europe/Paris'), month) as mois,
         regexp_extract(t.xml, r'<COUTRM>([^<]*)</COUTRM>') as charges_texte,
         t.idtask,
         t.updated_at,

@@ -29,14 +29,40 @@
     {
       "macro_span": {
         "start": {
+          "line": 19,
+          "col": 5,
+          "index": 887
+        },
+        "stop": {
+          "line": 19,
+          "col": 40,
+          "index": 922
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 13,
+          "col": 5,
+          "index": 582
+        },
+        "stop": {
+          "line": 13,
+          "col": 53,
+          "index": 630
+        }
+      }
+    },
+    {
+      "macro_span": {
+        "start": {
           "line": 34,
           "col": 6,
-          "index": 1581
+          "index": 1568
         },
         "stop": {
           "line": 34,
           "col": 68,
-          "index": 1643
+          "index": 1630
         }
       },
       "expanded_span": {

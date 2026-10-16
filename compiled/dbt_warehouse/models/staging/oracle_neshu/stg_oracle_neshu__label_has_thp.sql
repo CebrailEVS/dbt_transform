@@ -21,7 +21,7 @@ cleaned_data as (
         cast(idtask_has_product as int64) as idtask_has_product,
 
         -- Timestamps harmonisés (standard DBT)
-        timestamp(_parent_modification_date) as updated_at,
+        timestamp(datetime(_parent_modification_date), 'Europe/Paris') as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

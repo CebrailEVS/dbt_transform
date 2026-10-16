@@ -12,7 +12,7 @@ with pointage_debut as (
         min(case
             when
                 label_code = 'START_DAY'
-                and format_timestamp('%H:%M:%S', date_pointage) >= '03:00:00'
+                and format_timestamp('%H:%M:%S', date_pointage, 'Europe/Paris') >= '03:00:00'
                 then date_pointage
         end) as date_pointage_debut
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__pointage_tasks`
@@ -91,11 +91,11 @@ select
     task_status_code,
 
     -- 3️⃣ Dates / Temps
-    date_pointage_debut,
-    date_pointage_fin,
+    timestamp(datetime(date_pointage_debut, 'Europe/Paris')) as date_pointage_debut,
+    timestamp(datetime(date_pointage_fin, 'Europe/Paris')) as date_pointage_fin,
     start_date_day,
-    task_start_date,
-    task_end_date,
+    timestamp(datetime(task_start_date, 'Europe/Paris')) as task_start_date,
+    timestamp(datetime(task_end_date, 'Europe/Paris')) as task_end_date,
 
     -- 4️⃣ Mesures / Flags
     passage_duration_min,
@@ -105,10 +105,10 @@ select
     pointage_missing_flag,
 
     -- 5️⃣ Métadonnées
-    created_at,
-    updated_at,
+    timestamp(datetime(created_at, 'Europe/Paris')) as created_at,
+    timestamp(datetime(updated_at, 'Europe/Paris')) as updated_at,
     current_timestamp() as dbt_updated_at,
-    '01a14513-815f-72d3-a6aa-6cc24813a1eb' as dbt_invocation_id  -- noqa: TMP
+    '01a1459e-ce6b-71d0-9098-d87bedf05d8a' as dbt_invocation_id  -- noqa: TMP
 
 from passage_appro
 -- Périmètre du rapport : PREVU / FAIT (ENCOURS déjà replié en FAIT) + ANOMALIE en flag.

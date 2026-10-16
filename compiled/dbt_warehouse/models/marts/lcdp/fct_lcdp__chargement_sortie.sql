@@ -61,7 +61,7 @@ vendable_groups as (
 chargement_tasks_scoped as (
     select
         c.device_id,
-        date_trunc(date(c.task_start_date), week (monday)) as week_start_date,
+        date_trunc(date(c.task_start_date, 'Europe/Paris'), week (monday)) as week_start_date,
         c.task_id,
         c.roadman_id,
         c.roadman_code,
@@ -74,7 +74,7 @@ chargement_tasks_scoped as (
         on trim(p.product_group) = v.product_group
     where
         c.device_id in (select dp.device_id from devices_perimeter as dp)
-        and date(c.task_start_date) >= date('2025-01-01')
+        and date(c.task_start_date, 'Europe/Paris') >= date('2025-01-01')
         -- Tâches réalisées uniquement, comme les invendus et la télémétrie en amont :
         -- l'intermediate chargement remonte aussi ANNULE et ANOMALIE.
         and c.task_status_code in ('FAIT', 'VALIDE')
@@ -127,12 +127,12 @@ chargement_roadman_weekly as (
 telemetry_weekly as (
     select
         t.device_id,
-        date_trunc(date(t.task_start_date), week (monday)) as week_start_date,
+        date_trunc(date(t.task_start_date, 'Europe/Paris'), week (monday)) as week_start_date,
         count(*) as nb_ventes
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__telemetry_tasks` as t
     where
         t.device_id in (select dp.device_id from devices_perimeter as dp)
-        and date(t.task_start_date) >= date('2025-01-01')
+        and date(t.task_start_date, 'Europe/Paris') >= date('2025-01-01')
     group by 1, 2
 ),
 
@@ -142,7 +142,7 @@ telemetry_weekly as (
 invendus_weekly as (
     select
         i.device_id,
-        date_trunc(date(i.task_start_date), week (monday)) as week_start_date,
+        date_trunc(date(i.task_start_date, 'Europe/Paris'), week (monday)) as week_start_date,
         sum(i.quantity) as qty_invendus
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__invendus_tasks` as i
     inner join `evs-datastack-prod`.`prod_marts`.`dim_lcdp__product` as p
@@ -151,7 +151,7 @@ invendus_weekly as (
         on trim(p.product_group) = v.product_group
     where
         i.device_id in (select dp.device_id from devices_perimeter as dp)
-        and date(i.task_start_date) >= date('2025-01-01')
+        and date(i.task_start_date, 'Europe/Paris') >= date('2025-01-01')
     group by 1, 2
 ),
 
@@ -162,12 +162,12 @@ invendus_weekly as (
 appro_weekly as (
     select
         a.device_id,
-        date_trunc(date(a.task_start_date), week (monday)) as week_start_date,
+        date_trunc(date(a.task_start_date, 'Europe/Paris'), week (monday)) as week_start_date,
         sum(a.is_done) as nb_passages_appro
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__appro_tasks_enriched` as a
     where
         a.device_id in (select dp.device_id from devices_perimeter as dp)
-        and date(a.task_start_date) >= date('2025-01-01')
+        and date(a.task_start_date, 'Europe/Paris') >= date('2025-01-01')
     group by 1, 2
 ),
 

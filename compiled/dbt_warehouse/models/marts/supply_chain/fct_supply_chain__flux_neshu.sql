@@ -13,12 +13,12 @@ with inventaire_base as (
         i.source_code,
         i.product_code,
         i.valuation,
-        date(i.task_start_date) as task_date,
-        date_trunc(date(i.task_start_date), month) as mois
+        date(i.task_start_date, 'Europe/Paris') as task_date,
+        date_trunc(date(i.task_start_date, 'Europe/Paris'), month) as mois
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__inventaire_tasks` as i
     where
         i.task_status_code = 'VALIDE'
-        and date(i.task_start_date) >= '2024-12-01'
+        and date(i.task_start_date, 'Europe/Paris') >= '2024-12-01'
 ),
 
 -- CTE inventaire_dates : calcul date de référence
@@ -125,7 +125,7 @@ flux_unifies as (
     from stock_theorique
     union all
     select
-        date(task_start_date) as flux_date,
+        date(task_start_date, 'Europe/Paris') as flux_date,
         valuation as valeur,
         null as valeur_theorique,
         case
@@ -140,10 +140,10 @@ flux_unifies as (
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__livraison_interne_tasks`
     where
         task_status_code in ('FAIT', 'VALIDE')
-        and date(task_start_date) between '2025-01-01' and '9999-12-31'
+        and date(task_start_date, 'Europe/Paris') between '2025-01-01' and '9999-12-31'
     union all
     select
-        date(task_start_date) as flux_date,
+        date(task_start_date, 'Europe/Paris') as flux_date,
         valuation as valeur,
         null as valeur_theorique,
         'RECEPTION_FOURNISSEUR' as flux_type
@@ -153,25 +153,25 @@ flux_unifies as (
         and destination_code not in (
             'DEPOTATELIERBORDEAUX', 'DEPOTATELIERLYON', 'DEPOTATELIERMARSEILLE', 'DEPOTATELIERRUNGIS'
         )
-        and date(task_start_date) between '2025-01-01' and '9999-12-31'
+        and date(task_start_date, 'Europe/Paris') between '2025-01-01' and '9999-12-31'
     union all
     select
-        date(task_start_date) as flux_date,
+        date(task_start_date, 'Europe/Paris') as flux_date,
         valuation as valeur,
         null as valeur_theorique,
         'LIVRAISON_CLIENT' as flux_type
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__livraison_tasks`
     where
         task_status_code in ('VALIDE', 'FAIT')
-        and date(task_start_date) between '2025-01-01' and '9999-12-31'
+        and date(task_start_date, 'Europe/Paris') between '2025-01-01' and '9999-12-31'
     union all
     select
-        date(task_start_date) as flux_date,
+        date(task_start_date, 'Europe/Paris') as flux_date,
         load_valuation as valeur,
         null as valeur_theorique,
         'CHARGEMENT_MACHINE' as flux_type
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__chargement_tasks`
-    where date(task_start_date) between '2025-01-01' and '9999-12-31'
+    where date(task_start_date, 'Europe/Paris') between '2025-01-01' and '9999-12-31'
 ),
 
 -- CTE agg : agrégation mensuelle
@@ -222,5 +222,5 @@ select
     livraison_prepa,
     livraison_interne_autre,
     current_timestamp() as dbt_updated_at,
-    '01a14513-815f-72d3-a6aa-6cc24813a1eb' as dbt_invocation_id
+    '01a1459e-ce6b-71d0-9098-d87bedf05d8a' as dbt_invocation_id
 from agg

@@ -10,7 +10,7 @@ with device_labels as (
         d.serial as device_serial_number,
         d.comments as device_comment,
         d.last_installation_date,
-        date(d.purchase_date) as purchase_date,
+        d.purchase_date,
         d.purchase_cost,
         d.created_at,
         d.updated_at,
@@ -136,7 +136,7 @@ select
     purchase_cost,
 
     -- 🕒 Dates
-    last_installation_date,
-    created_at,
-    updated_at
+    timestamp(datetime(last_installation_date, 'Europe/Paris')) as last_installation_date,
+    timestamp(datetime(created_at, 'Europe/Paris')) as created_at,
+    timestamp(datetime(updated_at, 'Europe/Paris')) as updated_at
 from aggregated_labels

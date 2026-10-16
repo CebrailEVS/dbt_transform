@@ -46,7 +46,7 @@ telemetry_agg as (
         on
             pa.device_id = t.device_id
             and t.task_start_date
-            between coalesce(pa.date_passage_precedent, timestamp('2024-12-30 00:00:00')) and pa.task_start_date
+            between coalesce(pa.date_passage_precedent, timestamp('2024-12-30 00:00:00', 'Europe/Paris')) and pa.task_start_date
     left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__product` as p
         on t.product_id = p.product_id
     group by 1, 2, 3, 4, 5
@@ -72,7 +72,7 @@ chargement_agg as (
     left join `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__chargement_tasks` as cm
         on
             pa.device_id = cm.device_id
-            and date(pa.task_start_date) = date(cm.task_start_date)
+            and date(pa.task_start_date, 'Europe/Paris') = date(cm.task_start_date, 'Europe/Paris')
             and cm.task_status_code in ('FAIT', 'VALIDE')
     left join `evs-datastack-prod`.`prod_marts`.`dim_neshu__product` as p
         on cm.product_id = p.product_id
@@ -87,7 +87,7 @@ chargement_agg as (
 fusion_telemetry_chargement as (
     select
         coalesce(t.device_id, c.device_id) as device_id,
-        date(coalesce(t.task_start_date, c.task_start_date)) as date_debut_passage_appro,
+        date(coalesce(t.task_start_date, c.task_start_date), 'Europe/Paris') as date_debut_passage_appro,
         min(coalesce(t.task_start_date, c.task_start_date)) as task_start_date_min,
         min(pa.date_passage_precedent) as date_passage_precedent,
         max(pa.roadman_code) as roadman_code,
@@ -119,8 +119,8 @@ fusion_telemetry_chargement as (
 select
     device_id,
     date_debut_passage_appro,
-    task_start_date_min,
-    date_passage_precedent,
+    timestamp(datetime(task_start_date_min, 'Europe/Paris')) as task_start_date_min,
+    timestamp(datetime(date_passage_precedent, 'Europe/Paris')) as date_passage_precedent,
     roadman_code,
     product_source_id,
     product_source_type,
@@ -132,6 +132,6 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '01a14513-815f-72d3-a6aa-6cc24813a1eb' as dbt_invocation_id  -- noqa: TMP
+    '01a1459e-ce6b-71d0-9098-d87bedf05d8a' as dbt_invocation_id  -- noqa: TMP
 
 from fusion_telemetry_chargement

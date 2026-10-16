@@ -8,7 +8,9 @@ with liste_machine_oracle as (
         d.device_name,
         concat('NESH_', company_code) as company_code,
         d.company_name,
-        d.last_installation_date,
+        -- dim_neshu__device rend l'heure de Paris (contrat gold) : on revient à l'instant UTC,
+        -- comparable à current_timestamp() et à Yuman.
+        timestamp(datetime(d.last_installation_date), 'Europe/Paris') as last_installation_date,
         d.created_at as device_created_at,
         d.updated_at as device_updated_at
     from `evs-datastack-prod`.`prod_marts`.`dim_neshu__device` as d
@@ -478,7 +480,7 @@ final as (
         device_name,
         company_code,
         company_name,
-        last_installation_date as device_last_installation_date,
+        timestamp(datetime(last_installation_date, 'Europe/Paris')) as device_last_installation_date,
         material_id,
         material_serial_number,
         client_code,
@@ -494,7 +496,7 @@ final as (
 
         -- Métadonnées dbt
         current_timestamp() as dbt_updated_at,
-        '01a14513-815f-72d3-a6aa-6cc24813a1eb' as dbt_invocation_id  -- noqa: TMP
+        '01a1459e-ce6b-71d0-9098-d87bedf05d8a' as dbt_invocation_id  -- noqa: TMP
 
     from deduplicated
     where rn = 1  -- Ne garder qu'une ligne par device_id

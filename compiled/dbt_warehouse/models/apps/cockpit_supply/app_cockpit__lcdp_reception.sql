@@ -9,7 +9,7 @@ select
     destination_code,
     product_code,
     task_status_code,
-    task_start_date,
+    timestamp(datetime(task_start_date, 'Europe/Paris')) as task_start_date,
     delivery_lead_time_days,
     is_lead_time_valid,
     quantity,

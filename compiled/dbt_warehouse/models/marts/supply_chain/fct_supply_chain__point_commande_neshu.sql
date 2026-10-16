@@ -96,7 +96,7 @@ delai_article as (
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__reception_tasks`
     where
         is_lead_time_valid
-        and date(task_start_date) >= date_sub(current_date('Europe/Paris'), interval 365 day)
+        and date(task_start_date, 'Europe/Paris') >= date_sub(current_date('Europe/Paris'), interval 365 day)
     group by product_id
 
 ),
@@ -108,7 +108,7 @@ delai_global as (
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__reception_tasks`
     where
         is_lead_time_valid
-        and date(task_start_date) >= date_sub(current_date('Europe/Paris'), interval 365 day)
+        and date(task_start_date, 'Europe/Paris') >= date_sub(current_date('Europe/Paris'), interval 365 day)
 
 ),
 
@@ -163,7 +163,7 @@ case when product_destination_id = 118 then 116 else product_destination_id end
     where
         task_status_code in ('FAIT', 'VALIDE')
         and delivery_status_code = 'EN_ATTENTE'
-        and date(task_start_date) >= date_sub(current_date('Europe/Paris'), interval 60 day)
+        and date(task_start_date, 'Europe/Paris') >= date_sub(current_date('Europe/Paris'), interval 60 day)
     group by company_id, product_id
 
 ),

@@ -28,10 +28,10 @@ cleaned_data as (
         altitude,
 
         -- Dates et timestamps
-        timestamp(localisation_date) as localisation_date,
+        timestamp(datetime(localisation_date), 'Europe/Paris') as localisation_date,
 
         -- Timestamps harmonisés
-        timestamp(modification_date) as updated_at,
+        timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

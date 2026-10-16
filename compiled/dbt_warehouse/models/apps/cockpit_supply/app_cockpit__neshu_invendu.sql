@@ -10,7 +10,7 @@ select
     vehicle_code,
     product_code,
     task_status_code,
-    task_start_date,
+    timestamp(datetime(task_start_date, 'Europe/Paris')) as task_start_date,
     unit_coeff_multi,
     quantity,
     valuation

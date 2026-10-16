@@ -239,24 +239,24 @@
         "start": {
           "line": 187,
           "col": 11,
-          "index": 6753
+          "index": 6781
         },
         "stop": {
           "line": 187,
           "col": 42,
-          "index": 6784
+          "index": 6812
         }
       },
       "expanded_span": {
         "start": {
           "line": 181,
           "col": 11,
-          "index": 6762
+          "index": 6790
         },
         "stop": {
           "line": 181,
           "col": 65,
-          "index": 6816
+          "index": 6844
         }
       }
     },
@@ -265,24 +265,24 @@
         "start": {
           "line": 188,
           "col": 11,
-          "index": 6831
+          "index": 6859
         },
         "stop": {
           "line": 188,
           "col": 56,
-          "index": 6876
+          "index": 6904
         }
       },
       "expanded_span": {
         "start": {
           "line": 182,
           "col": 11,
-          "index": 6863
+          "index": 6891
         },
         "stop": {
           "line": 182,
           "col": 86,
-          "index": 6938
+          "index": 6966
         }
       }
     }

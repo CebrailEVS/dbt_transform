@@ -5,7 +5,7 @@
 select
     task_id,
     roadman_code,
-    task_start_date,
+    timestamp(datetime(task_start_date, 'Europe/Paris')) as task_start_date,
     task_status_code
 from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__appro_tasks_enriched`
-where task_status_code in ('FAIT', 'VALIDE') and roadman_code is not null and task_start_date is not null and task_start_date >= timestamp('2026-01-01')
+where task_status_code in ('FAIT', 'VALIDE') and roadman_code is not null and task_start_date is not null and task_start_date >= timestamp('2026-01-01', 'Europe/Paris')

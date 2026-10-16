@@ -29,26 +29,78 @@
     {
       "macro_span": {
         "start": {
+          "line": 17,
+          "col": 5,
+          "index": 574
+        },
+        "stop": {
+          "line": 17,
+          "col": 54,
+          "index": 623
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 9,
+          "col": 5,
+          "index": 358
+        },
+        "stop": {
+          "line": 9,
+          "col": 57,
+          "index": 410
+        }
+      }
+    },
+    {
+      "macro_span": {
+        "start": {
+          "line": 18,
+          "col": 5,
+          "index": 648
+        },
+        "stop": {
+          "line": 18,
+          "col": 52,
+          "index": 695
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 10,
+          "col": 5,
+          "index": 435
+        },
+        "stop": {
+          "line": 10,
+          "col": 55,
+          "index": 485
+        }
+      }
+    },
+    {
+      "macro_span": {
+        "start": {
           "line": 36,
           "col": 6,
-          "index": 927
+          "index": 1031
         },
         "stop": {
           "line": 36,
           "col": 57,
-          "index": 978
+          "index": 1082
         }
       },
       "expanded_span": {
         "start": {
           "line": 28,
           "col": 6,
-          "index": 711
+          "index": 821
         },
         "stop": {
           "line": 28,
           "col": 87,
-          "index": 792
+          "index": 902
         }
       }
     }

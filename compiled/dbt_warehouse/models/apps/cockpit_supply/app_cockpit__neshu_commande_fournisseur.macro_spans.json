@@ -29,26 +29,52 @@
     {
       "macro_span": {
         "start": {
+          "line": 13,
+          "col": 5,
+          "index": 406
+        },
+        "stop": {
+          "line": 13,
+          "col": 54,
+          "index": 455
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 13,
+          "col": 5,
+          "index": 372
+        },
+        "stop": {
+          "line": 13,
+          "col": 57,
+          "index": 424
+        }
+      }
+    },
+    {
+      "macro_span": {
+        "start": {
           "line": 18,
           "col": 6,
-          "index": 498
+          "index": 551
         },
         "stop": {
           "line": 18,
           "col": 63,
-          "index": 555
+          "index": 608
         }
       },
       "expanded_span": {
         "start": {
           "line": 18,
           "col": 6,
-          "index": 464
+          "index": 520
         },
         "stop": {
           "line": 18,
           "col": 93,
-          "index": 551
+          "index": 607
         }
       }
     }

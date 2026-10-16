@@ -22,7 +22,7 @@ with machines_du_mois as (
 
     -- Une machine est amortie chez le client où elle a été vue dans le mois.
     select distinct
-        date_trunc(date(t.real_start_date), month) as mois,
+        date_trunc(date(t.real_start_date, 'Europe/Paris'), month) as mois,
         d.iddevice as device_id,
         d.code as device_code,
         c.idcompany as company_id,
@@ -35,7 +35,7 @@ with machines_du_mois as (
     inner join `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__contrat_client` as cc
         on
             c.idcompany = cc.company_id
-            and t.real_start_date > timestamp(date_trunc(date(cc.first_contract_date), month))
+            and t.real_start_date > timestamp(date_trunc(cc.first_contract_date, month), 'Europe/Paris')
     where
         t.code_status_record = '1'  -- enregistrement actif
         and t.idtask_status in (1, 4, 5, 7)  -- FAIT, VALIDE, ANOMALIE, ACQUITTE
@@ -52,7 +52,7 @@ dotation_machine as (
         m.company_code,
         case
             when date_add(
-                coalesce(date(d.start_date_credit), date(d.purchase_date)),
+                coalesce(date(d.start_date_credit, 'Europe/Paris'), d.purchase_date),
                 interval coalesce(d.damping_duration, 36) month
             ) < m.mois then 0
             else round(d.purchase_cost / coalesce(nullif(d.damping_duration, 0), 36), 2)
@@ -76,7 +76,7 @@ dotation_sous_equipements as (
         on m.device_id = dd.device_iddevice
         -- Seuls les sous-équipements dont l'amortissement court encore.
         and date_add(
-            coalesce(date(dd.start_date_credit), date(dd.purchase_date)),
+            coalesce(date(dd.start_date_credit, 'Europe/Paris'), dd.purchase_date),
             interval coalesce(dd.damping_duration, 60) month
         ) >= m.mois
     group by m.mois, m.device_id

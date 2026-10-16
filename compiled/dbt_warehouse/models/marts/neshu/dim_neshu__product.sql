@@ -158,7 +158,7 @@ select
     s.is_active,
     pu.purchase_unit_coeff,
     pu.purchase_unit_code,
-    s.created_at,
-    s.updated_at
+    timestamp(datetime(s.created_at, 'Europe/Paris')) as created_at,
+    timestamp(datetime(s.updated_at, 'Europe/Paris')) as updated_at
 from standardized as s
 left join purchase_unit as pu on s.product_id = pu.product_id

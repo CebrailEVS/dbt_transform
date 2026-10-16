@@ -51,6 +51,58 @@
           "index": 93
         }
       }
+    },
+    {
+      "macro_span": {
+        "start": {
+          "line": 50,
+          "col": 9,
+          "index": 2165
+        },
+        "stop": {
+          "line": 50,
+          "col": 46,
+          "index": 2202
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 45,
+          "col": 9,
+          "index": 1891
+        },
+        "stop": {
+          "line": 45,
+          "col": 59,
+          "index": 1941
+        }
+      }
+    },
+    {
+      "macro_span": {
+        "start": {
+          "line": 51,
+          "col": 9,
+          "index": 2226
+        },
+        "stop": {
+          "line": 51,
+          "col": 75,
+          "index": 2292
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 46,
+          "col": 9,
+          "index": 1965
+        },
+        "stop": {
+          "line": 46,
+          "col": 88,
+          "index": 2044
+        }
+      }
     }
   ],
   "reclassify_spans": []

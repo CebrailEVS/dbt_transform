@@ -80,8 +80,8 @@ last_done as (
         roadman_code as last_appro_roadman_code,
         gea_code as last_appro_gea_code,
         date_diff(
-            current_date(),
-            date(task_start_date),
+            current_date('Europe/Paris'),
+            date(task_start_date, 'Europe/Paris'),
             day
         ) as days_since_last_appro
     from last_done_ranked
@@ -123,8 +123,8 @@ next_planned as (
         roadman_code as next_appro_roadman_code,
         gea_code as next_appro_gea_code,
         date_diff(
-            date(task_start_date),
-            current_date(),
+            date(task_start_date, 'Europe/Paris'),
+            current_date('Europe/Paris'),
             day
         ) as days_until_next_appro
     from next_planned_ranked

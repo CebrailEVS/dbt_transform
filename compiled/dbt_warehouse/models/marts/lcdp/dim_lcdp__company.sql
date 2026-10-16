@@ -108,7 +108,7 @@ select
     country,
 
     -- Dates
-    created_at,
-    updated_at
+    timestamp(datetime(created_at, 'Europe/Paris')) as created_at,
+    timestamp(datetime(updated_at, 'Europe/Paris')) as updated_at
 
 from aggregated_labels

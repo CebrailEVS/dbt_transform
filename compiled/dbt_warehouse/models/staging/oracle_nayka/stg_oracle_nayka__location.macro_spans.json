@@ -51,6 +51,32 @@
           "index": 94
         }
       }
+    },
+    {
+      "macro_span": {
+        "start": {
+          "line": 32,
+          "col": 9,
+          "index": 880
+        },
+        "stop": {
+          "line": 32,
+          "col": 50,
+          "index": 921
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 27,
+          "col": 9,
+          "index": 704
+        },
+        "stop": {
+          "line": 27,
+          "col": 63,
+          "index": 758
+        }
+      }
     }
   ],
   "reclassify_spans": []

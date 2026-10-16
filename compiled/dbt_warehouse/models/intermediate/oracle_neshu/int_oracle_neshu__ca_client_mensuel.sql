@@ -11,7 +11,7 @@
 with facturation as (
 
     select
-        date_trunc(date(task_start_date), month) as mois,
+        date_trunc(date(task_start_date, 'Europe/Paris'), month) as mois,
         company_id,
         company_code,
         round(sum(if(ca_category = 'VENDING', ca_ht_eur, 0)), 2) as ca_vending_ht_eur,
