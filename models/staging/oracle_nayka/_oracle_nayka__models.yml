@@ -729,3 +729,440 @@ models:
         description: "Dernière modification dans l'ERP (UTC)."
       - name: extracted_at
         description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__resources
+    columns:
+      - name: idresources
+        description: "Identifiant de la ressource (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: idresources_type
+        description: "Type de ressource (personne, système…)."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__resources_type')
+                field: idresources_type
+      - name: idcontact
+        description: "Contact qui porte la ressource (la personne)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: idcompany
+        description: "Société de rattachement."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idcompany_storehouse
+        description: "Dépôt de stock de la ressource (son véhicule ou son entrepôt)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idcontact_creation
+        description: "Utilisateur de l'ERP qui a créé la fiche."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: idcontact_modification
+        description: "Utilisateur de l'ERP qui a modifié la fiche en dernier."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: code
+        description: "Code de la ressource : clé de rapprochement avec les autres flux (stock théorique…). Unicité non déclarée par Oracle."
+        tests:
+          - not_null
+          - unique:
+              config:
+                severity: warn
+      - name: name
+        description: "Nom de la ressource."
+      - name: code_status_record
+        description: "Validité de l'enregistrement : 1 = actif, 0 ou -1 = désactivé ou non validé. Non filtré ici ; le filtre `= 1` se pose en intermediate."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+                quote: false
+              config:
+                severity: warn
+      - name: dtl_hidden
+        description: "1 pour une ressource technique de l'ERP (DTL_*), masquée des écrans."
+      - name: base_rate
+        description: "Taux de base de la ressource."
+      - name: arrival
+        description: "Date d'arrivée de la ressource (UTC)."
+      - name: created_at
+        description: "Création dans l'ERP (UTC). Vide sur les ressources anciennes."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP, à défaut la création (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__product
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - code
+              - idproduct_type
+          config:
+            severity: warn
+    columns:
+      - name: idproduct
+        description: "Identifiant du produit (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: idproduct_type
+        description: "Type de produit (produit, pièce, modèle, moyen de paiement…). Clé non déclarée par Oracle."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__product_type')
+                field: idproduct_type
+              config:
+                severity: warn
+      - name: idcompany_supplier
+        description: "Fournisseur principal. Clé non déclarée par Oracle."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+              config:
+                severity: warn
+      - name: idcontact_creation
+        description: "Utilisateur de l'ERP qui a créé la fiche."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: idcontact_modification
+        description: "Utilisateur de l'ERP qui a modifié la fiche en dernier."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: code
+        description: "Code produit. Unique au sein d'un type seulement (CB existe en produit et en moyen de paiement)."
+        tests:
+          - not_null
+      - name: name
+        description: "Libellé du produit."
+      - name: commercial_name
+        description: "Nom commercial."
+      - name: external_reference
+        description: "Référence externe (fournisseur)."
+      - name: comments
+        description: "Commentaire libre."
+      - name: code_status_record
+        description: "Validité de l'enregistrement : 1 = actif, 0 ou -1 = désactivé ou non validé. Vide sur les produits calculés. Non filtré ici ; le filtre `= 1` se pose en intermediate."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+                quote: false
+              config:
+                severity: warn
+      - name: system
+        description: "1 si le produit est livré par l'ERP."
+      - name: tariff_without_tax
+        description: "Prix de vente HT. Négatif pour un produit de remboursement."
+      - name: tariff_with_tax
+        description: "Prix de vente TTC."
+      - name: purchase_unit_price
+        description: "Prix d'achat unitaire."
+      - name: average_purchase_price
+        description: "Prix moyen d'achat pondéré, calculé par l'ERP."
+      - name: stock_management
+        description: "1 si le produit est géré en stock."
+      - name: prohibited_purchase
+        description: "1 si l'achat du produit est interdit."
+      - name: prohibited_sale
+        description: "1 si la vente du produit est interdite."
+      - name: reconditionnable
+        description: "1 si le produit est reconditionnable."
+      - name: unconsign
+        description: "1 si le produit est déconsigné."
+      - name: traceability_required
+        description: "1 si le produit exige une traçabilité par lot."
+      - name: made_up
+        description: "Indicateur de produit composé."
+      - name: unsold
+        description: "Indicateur de suivi des invendus."
+      - name: weight
+        description: "Poids."
+      - name: created_at
+        description: "Création dans l'ERP (UTC)."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP, à défaut la création (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__product_unit
+    columns:
+      - name: idproduct_unit
+        description: "Identifiant de l'unité (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: idproduct
+        description: "Produit conditionné."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__product')
+                field: idproduct
+      - name: idunit_type
+        description: "Usage de l'unité (achat, vente, stock…)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__unit_type')
+                field: idunit_type
+      - name: code
+        description: "Code de l'unité (UNIT, BIB, 1/60…)."
+        tests:
+          - not_null
+      - name: base_unit
+        description: "1 si c'est l'unité de base du produit."
+      - name: coeff_multi
+        description: "Coefficient multiplicateur vers l'unité de base."
+      - name: coeff_div
+        description: "Coefficient diviseur vers l'unité de base."
+      - name: barcode
+        description: "Code-barres EAN."
+      - name: weight
+        description: "Poids de l'unité."
+      - name: volume
+        description: "Volume de l'unité."
+      - name: isactive
+        description: "1 si l'unité est active."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__device
+    columns:
+      - name: iddevice
+        description: "Identifiant de l'équipement (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: device_iddevice
+        description: "Équipement parent (un accessoire monté sur une machine)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__device')
+                field: iddevice
+      - name: iddevice_type
+        description: "Type d'équipement (machine, accessoire…)."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__device_type')
+                field: iddevice_type
+      - name: idmodel
+        description: "Modèle de l'équipement, un produit de type MODEL."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__product')
+                field: idproduct
+      - name: idcompany_customer
+        description: "Client chez qui l'équipement est placé, ou dépôt s'il est en stock."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idcompany_owner
+        description: "Propriétaire de l'équipement."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idcompany_supplier
+        description: "Fournisseur de l'équipement."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idlocation
+        description: "Adresse d'emplacement."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__location')
+                field: idlocation
+      - name: iddamping_type
+        description: "Mode d'amortissement."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__damping_type')
+                field: iddamping_type
+      - name: idcontact_creation
+        description: "Utilisateur de l'ERP qui a créé la fiche."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: idcontact_modification
+        description: "Utilisateur de l'ERP qui a modifié la fiche en dernier."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: code
+        description: "Code de l'équipement dans l'ERP. Unicité non déclarée par Oracle."
+        tests:
+          - not_null
+          - unique:
+              config:
+                severity: warn
+      - name: name
+        description: "Libellé de l'équipement, en pratique le nom du modèle."
+      - name: serial
+        description: "Numéro de série. Pas unique : un accessoire peut partager celui de sa machine."
+      - name: external_reference
+        description: "Référence externe (identifiant du module de télémétrie)."
+      - name: comments
+        description: "Commentaire libre (client et échéance d'une réservation, par exemple)."
+      - name: code_status_record
+        description: "Validité de l'enregistrement : 1 = actif, 0 ou -1 = désactivé ou non validé. Non filtré ici ; le filtre `= 1` se pose en intermediate."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+                quote: false
+              config:
+                severity: warn
+      - name: purchase_cost
+        description: "Prix d'achat."
+      - name: damping_duration
+        description: "Durée d'amortissement, en mois."
+      - name: purchase_date
+        description: "Date d'achat."
+      - name: start_date_guarantee
+        description: "Date de début de garantie."
+      - name: last_installation_date
+        description: "Dernière installation chez un client (instant UTC, malgré le suffixe _date de la source)."
+      - name: created_at
+        description: "Création dans l'ERP (UTC)."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP, à défaut la création (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__contract
+    columns:
+      - name: idcontract
+        description: "Identifiant du contrat (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: idcompany_self
+        description: "Société signataire côté Nayka."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idcompany_peer
+        description: "Société cliente."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idcontact_peer_signature
+        description: "Contact signataire côté client."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: idcontact_creation
+        description: "Utilisateur de l'ERP qui a créé le contrat."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: idcontact_modification
+        description: "Utilisateur de l'ERP qui a modifié le contrat en dernier."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: code
+        description: "Code du contrat. Unicité non déclarée par Oracle."
+        tests:
+          - not_null
+          - unique:
+              config:
+                severity: warn
+      - name: name
+        description: "Libellé du contrat."
+      - name: code_status_record
+        description: "Validité de l'enregistrement : 1 = actif, 0 ou -1 = désactivé ou non validé. Non filtré ici ; le filtre `= 1` se pose en intermediate."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+                quote: false
+              config:
+                severity: warn
+      - name: duration
+        description: "Durée initiale, en mois."
+      - name: renewable
+        description: "1 si le contrat est reconductible."
+      - name: renewable_duration
+        description: "Durée de reconduction, en mois."
+      - name: notice_period
+        description: "Préavis de résiliation, en mois."
+      - name: original_start_date
+        description: "Date de début du contrat."
+      - name: original_end_date
+        description: "Date de fin initiale."
+      - name: current_end_date
+        description: "Date de fin en vigueur, reconductions comprises."
+      - name: effectif
+        description: "Effectif du site client, champ personnalisé (balise EFFECTIF du xml). NULL si non communiqué (NC)."
+      - name: engagement_bib
+        description: "Engagement de volume en BIB, champ personnalisé (balise ENGAGEMENTBIB du xml). 0 = aucun engagement ; unité non précisée dans l'ERP."
+      - name: engagement_boissons
+        description: "Engagement de volume en boissons, champ personnalisé (balise ENGAGEMENTBOISSONS du xml). 0 = aucun engagement ; unité non précisée dans l'ERP."
+      - name: created_at
+        description: "Création dans l'ERP (UTC)."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP, à défaut la création (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."

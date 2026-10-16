@@ -56,3 +56,13 @@ sources:
         description: "Rattachement des adresses aux sociétés, par type d'adresse."
       - name: nayka_contact
         description: "Contacts : interlocuteurs des sociétés et utilisateurs de l'ERP."
+      - name: nayka_resources
+        description: "Ressources : personnes (roadmen, techniciens) et ressources système."
+      - name: nayka_product
+        description: "Produits, pièces, modèles de machines, moyens de paiement."
+      - name: nayka_product_unit
+        description: "Unités de conditionnement des produits."
+      - name: nayka_device
+        description: "Équipements : machines et accessoires du parc."
+      - name: nayka_contract
+        description: "Contrats clients."
