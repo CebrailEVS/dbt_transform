@@ -11,7 +11,9 @@ with liste_machine_oracle as (
         d.device_name,
         concat('NESH_', company_code) as company_code,
         d.company_name,
-        d.last_installation_date,
+        -- dim_neshu__device rend l'heure de Paris (contrat gold) : on revient à l'instant UTC,
+        -- comparable à current_timestamp() et à Yuman.
+        {{ paris_vers_utc('d.last_installation_date') }} as last_installation_date,
         d.created_at as device_created_at,
         d.updated_at as device_updated_at
     from {{ ref('dim_neshu__device') }} as d
@@ -481,7 +483,7 @@ final as (
         device_name,
         company_code,
         company_name,
-        last_installation_date as device_last_installation_date,
+        {{ utc_vers_paris_affichage('last_installation_date') }} as device_last_installation_date,
         material_id,
         material_serial_number,
         client_code,

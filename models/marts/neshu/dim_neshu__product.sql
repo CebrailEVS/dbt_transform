@@ -158,7 +158,7 @@ select
     s.is_active,
     pu.purchase_unit_coeff,
     pu.purchase_unit_code,
-    s.created_at,
-    s.updated_at
+    {{ utc_vers_paris_affichage('s.created_at') }} as created_at,
+    {{ utc_vers_paris_affichage('s.updated_at') }} as updated_at
 from standardized as s
 left join purchase_unit as pu on s.product_id = pu.product_id

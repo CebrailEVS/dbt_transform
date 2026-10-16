@@ -20,18 +20,18 @@ with pointage_unique_par_jour as (
         roadman_code,
         status_code,
         label_code,
-        date(date_pointage) as date_jour,
+        date(date_pointage, 'Europe/Paris') as date_jour,
         created_at,
         updated_at,
         extracted_at,
         min(case
-            when format_timestamp('%H:%M:%S', date_pointage) >= '03:00:00' then date_pointage
+            when format_timestamp('%H:%M:%S', date_pointage, 'Europe/Paris') >= '03:00:00' then date_pointage
         end) as premier_pointage
     from {{ ref('int_oracle_neshu__pointage_tasks') }}
     where label_code = 'START_DAY'
     group by
         task_id, company_id, resources_roadman_id, roadman_code,
-        status_code, label_code, date(date_pointage),
+        status_code, label_code, date(date_pointage, 'Europe/Paris'),
         created_at, updated_at, extracted_at
 ),
 
@@ -94,7 +94,7 @@ passage_with_metrics as (
         -- Dernière task_end_date du roadman pour ce jour (statut FAIT uniquement)
         max(case when pa.task_status_code = 'FAIT' then pa.task_end_date end)
             over (
-                partition by pa.resources_roadman_id, date(pa.task_start_date)
+                partition by pa.resources_roadman_id, date(pa.task_start_date, 'Europe/Paris')
                 order by pa.task_end_date
                 rows between unbounded preceding and unbounded following
             )
@@ -104,7 +104,7 @@ passage_with_metrics as (
         coalesce(
             pa.date_pointage,
             first_value(pa.task_start_date) over (
-                partition by pa.resources_roadman_id, date(pa.task_start_date)
+                partition by pa.resources_roadman_id, date(pa.task_start_date, 'Europe/Paris')
                 order by pa.task_start_date
                 rows between unbounded preceding and unbounded following
             )
@@ -112,43 +112,43 @@ passage_with_metrics as (
 
         -- Nombre de passages du roadman ce jour
         count(*) over (
-            partition by pa.resources_roadman_id, date(pa.task_start_date)
+            partition by pa.resources_roadman_id, date(pa.task_start_date, 'Europe/Paris')
         ) as daily_task_count,
 
         -- Temps moyen par passage du roadman ce jour
         avg(timestamp_diff(pa.task_end_date, pa.task_start_date, minute)) over (
-            partition by pa.resources_roadman_id, date(pa.task_start_date)
+            partition by pa.resources_roadman_id, date(pa.task_start_date, 'Europe/Paris')
         ) as avg_passage_duration_day,
 
         -- Numéro de passage dans la journée
         row_number() over (
-            partition by pa.resources_roadman_id, date(pa.task_start_date)
+            partition by pa.resources_roadman_id, date(pa.task_start_date, 'Europe/Paris')
             order by pa.task_start_date
         ) as passage_rank_of_day,
 
         -- Compteurs pour le roadman ce jour
         sum(pa.is_done) over (
-            partition by pa.resources_roadman_id, date(pa.task_start_date)
+            partition by pa.resources_roadman_id, date(pa.task_start_date, 'Europe/Paris')
         ) as done_count_roadman_day,
 
         sum(pa.is_planned) over (
-            partition by pa.resources_roadman_id, date(pa.task_start_date)
+            partition by pa.resources_roadman_id, date(pa.task_start_date, 'Europe/Paris')
         ) as planned_count_roadman_day,
 
         -- Taux de réalisation du roadman ce jour
         safe_divide(
             sum(pa.is_done) over (
-                partition by pa.resources_roadman_id, date(pa.task_start_date)
+                partition by pa.resources_roadman_id, date(pa.task_start_date, 'Europe/Paris')
             ),
             sum(pa.is_planned) over (
-                partition by pa.resources_roadman_id, date(pa.task_start_date)
+                partition by pa.resources_roadman_id, date(pa.task_start_date, 'Europe/Paris')
             )
         ) as taux_realisation_roadman_day,
 
         -- Taux de réalisation global du jour (tous roadmen)
         safe_divide(
-            sum(pa.is_done) over (partition by date(pa.task_start_date)),
-            sum(pa.is_planned) over (partition by date(pa.task_start_date))
+            sum(pa.is_done) over (partition by date(pa.task_start_date, 'Europe/Paris')),
+            sum(pa.is_planned) over (partition by date(pa.task_start_date, 'Europe/Paris'))
         ) as taux_realisation_global_day
 
     from passage_appro as pa
@@ -209,13 +209,13 @@ select
     task_status_code,
 
     -- 3️⃣ Dates / Temps
-    date_pointage,
+    {{ utc_vers_paris_affichage('date_pointage') }} as date_pointage,
     date_pointage_jour,
     start_date_day,
-    task_start_date,
-    task_end_date,
-    last_task_end_of_day,
-    effective_work_start,
+    {{ utc_vers_paris_affichage('task_start_date') }} as task_start_date,
+    {{ utc_vers_paris_affichage('task_end_date') }} as task_end_date,
+    {{ utc_vers_paris_affichage('last_task_end_of_day') }} as last_task_end_of_day,
+    {{ utc_vers_paris_affichage('effective_work_start') }} as effective_work_start,
 
     -- 4️⃣ Mesures / KPI
     is_planned,
@@ -246,8 +246,8 @@ select
     taux_realisation_global_day,
 
     -- 5️⃣ Métadonnées
-    created_at,
-    updated_at,
+    {{ utc_vers_paris_affichage('created_at') }} as created_at,
+    {{ utc_vers_paris_affichage('updated_at') }} as updated_at,
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,

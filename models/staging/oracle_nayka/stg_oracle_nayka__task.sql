@@ -59,19 +59,19 @@ cleaned_data as (
         regexp_extract(xml, r'<RECEIVER>([^<]*)</RECEIVER>') as receiver,
 
         -- Instants, malgré le suffixe _date de la source. real_end_date en 2099 = planification sans fin.
-        timestamp(datetime(planed_start_date), 'Europe/Paris') as planed_start_date,
-        timestamp(datetime(planed_end_date), 'Europe/Paris') as planed_end_date,
-        timestamp(datetime(real_start_date), 'Europe/Paris') as real_start_date,
-        timestamp(datetime(real_end_date), 'Europe/Paris') as real_end_date,
-        timestamp(datetime(validation_date), 'Europe/Paris') as validation_date,
-        timestamp(datetime(conversion_date), 'Europe/Paris') as conversion_date,
+        {{ paris_vers_utc('planed_start_date') }} as planed_start_date,
+        {{ paris_vers_utc('planed_end_date') }} as planed_end_date,
+        {{ paris_vers_utc('real_start_date') }} as real_start_date,
+        {{ paris_vers_utc('real_end_date') }} as real_end_date,
+        {{ paris_vers_utc('validation_date') }} as validation_date,
+        {{ paris_vers_utc('conversion_date') }} as conversion_date,
 
         -- Période d'application en jours calendaires : début à minuit, fin à 23:59:59.
         date(application_start_date) as application_start_date,
         date(application_end_date) as application_end_date,
 
-        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
-        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('creation_date') }} as created_at,
+        {{ paris_vers_utc('coalesce(modification_date, creation_date)') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

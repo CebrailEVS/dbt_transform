@@ -21,7 +21,7 @@ cleaned_data as (
         cast(enabled as int64) as enabled,
         cast(isdefault as int64) as isdefault,
         cast(system as int64) as system,  -- noqa: RF04
-        timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('modification_date') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

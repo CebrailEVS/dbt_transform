@@ -101,13 +101,13 @@ select
 
     -- 💰 Opérationnel
     cost,
-    arrival,
-    departure,
+    timestamp(arrival) as arrival,
+    {{ utc_vers_paris_affichage('departure') }} as departure,
 
     code_status_record,
 
     -- 🕒 Dates
-    created_at,
-    updated_at
+    {{ utc_vers_paris_affichage('created_at') }} as created_at,
+    {{ utc_vers_paris_affichage('updated_at') }} as updated_at
 
 from aggregated_labels

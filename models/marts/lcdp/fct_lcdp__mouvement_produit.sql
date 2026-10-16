@@ -18,7 +18,7 @@
 
 with chargement_daily as (
     select
-        date(c.task_start_date) as mouvement_date,
+        date(c.task_start_date, 'Europe/Paris') as mouvement_date,
         c.device_id,
         c.product_id,
         c.roadman_id,
@@ -46,7 +46,7 @@ with chargement_daily as (
 
 invendus_daily as (
     select
-        date(i.task_start_date) as mouvement_date,
+        date(i.task_start_date, 'Europe/Paris') as mouvement_date,
         i.device_id,
         i.product_id,
         i.roadman_id,
@@ -125,7 +125,7 @@ select
     m.montant_retire_eur,
     m.montant_invendus_eur,
 
-    m.updated_at
+    {{ utc_vers_paris_affichage('m.updated_at') }} as updated_at
 
 from mouvements as m
 left join {{ ref('dim_lcdp__device') }} as d on m.device_id = d.device_id

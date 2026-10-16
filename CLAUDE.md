@@ -149,6 +149,8 @@ SQL et entrée YAML dans la même PR.
 - **Partition** sur la date filtrée par Power BI (faits) ou par l'incrémental (staging) ;
   `data_type: 'date'` ou `'timestamp'`. Pas de partition sur les petites dimensions.
 - **Cluster** sur les FK les plus jointes ou filtrées, 4 au maximum.
+- **Fuseau** : stocker en UTC, afficher en heure de Paris ([`CONVENTIONS.md` § Fuseau horaire](CONVENTIONS.md#fuseau-horaire)).
+  `date(x)` sans fuseau sur un instant UTC donne la veille pour un événement entre 00 h et 02 h à Paris.
 - **Incrémental** :
   ```sql
   {{ config(materialized='incremental', unique_key='id', incremental_strategy='merge') }}

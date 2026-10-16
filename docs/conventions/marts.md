@@ -114,6 +114,10 @@ pousse dans BigQuery), et les tags dans `dbt_project.yml`.
 Partition sur la date filtrée dans Power BI ; cluster sur les FK les plus jointes (4 au maximum).
 Pas de partition sur les petites dimensions.
 
+Heures en sortie : un instant venu d'un ERP Oracle sort en heure de Paris par
+`utc_vers_paris_affichage`, et un jour métier par `date(x, 'Europe/Paris')`
+([CONVENTIONS.md § Fuseau horaire](../../CONVENTIONS.md#fuseau-horaire)).
+
 ## 5. Ordre des colonnes (grain-first)
 
 1. **Grain** : dimension temporelle → PK → FK du grain

@@ -65,8 +65,8 @@ cleaned_data as (
         cast(amount_price_increase as numeric) as amount_price_increase,
         cast(amount_price_reduction as numeric) as amount_price_reduction,
 
-        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
-        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('creation_date') }} as created_at,
+        {{ paris_vers_utc('coalesce(modification_date, creation_date)') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

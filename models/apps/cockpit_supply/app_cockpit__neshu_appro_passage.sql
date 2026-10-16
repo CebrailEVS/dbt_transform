@@ -14,8 +14,8 @@
 -- UTC sans conversion) : repris tel quel, l'app le lit comme une heure locale.
 select
     task_id,
-    task_start_date,
-    task_end_date,
+    {{ utc_vers_paris_affichage('task_start_date') }} as task_start_date,
+    {{ utc_vers_paris_affichage('task_end_date') }} as task_end_date,
     roadman_code,
     company_id,
     company_code,

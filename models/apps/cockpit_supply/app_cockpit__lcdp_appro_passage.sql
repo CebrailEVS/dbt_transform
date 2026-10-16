@@ -5,7 +5,7 @@
 select
     task_id,
     roadman_code,
-    task_start_date,
+    {{ utc_vers_paris_affichage('task_start_date') }} as task_start_date,
     task_status_code
 from {{ ref('int_oracle_lcdp__appro_tasks_enriched') }}
-where task_status_code in ('FAIT', 'VALIDE') and roadman_code is not null and task_start_date is not null and task_start_date >= timestamp('2026-01-01')
+where task_status_code in ('FAIT', 'VALIDE') and roadman_code is not null and task_start_date is not null and task_start_date >= timestamp('2026-01-01', 'Europe/Paris')

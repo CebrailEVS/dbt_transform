@@ -18,7 +18,7 @@ cleaned_data as (
         cast(vat_class as int64) as vat_class,
         cast(idcountry_self as int64) as idcountry_self,
         cast(idcountry_peer as int64) as idcountry_peer,
-        timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('modification_date') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

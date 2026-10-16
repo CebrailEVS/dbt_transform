@@ -61,7 +61,7 @@ telemetry_data as (
         p.product_type,
 
         -- Contexte
-        date(t.task_start_date) as consumption_date,
+        date(t.task_start_date, 'Europe/Paris') as consumption_date,
         'TELEMETRIE' as data_source,
 
         -- Mesure
@@ -82,7 +82,7 @@ telemetry_data as (
         d.device_economic_model,
         p.product_name, p.product_brand, p.product_family,
         p.product_group, p.product_type,
-        date(t.task_start_date)
+        date(t.task_start_date, 'Europe/Paris')
 ),
 
 chargement_data as (
@@ -114,7 +114,7 @@ chargement_data as (
         p.product_type,
 
         -- Contexte
-        date(l.task_start_date) as consumption_date,
+        date(l.task_start_date, 'Europe/Paris') as consumption_date,
         'CHARGEMENT' as data_source,
 
         -- Quantité (ajustée selon le conditionnement du produit, cf. seed)
@@ -138,7 +138,7 @@ chargement_data as (
         d.device_economic_model,
         p.product_name, p.product_brand, p.product_family,
         p.product_group, p.product_type,
-        date(l.task_start_date)
+        date(l.task_start_date, 'Europe/Paris')
 ),
 
 livraison_data as (
@@ -170,7 +170,7 @@ livraison_data as (
         p.product_type,
 
         -- Contexte
-        date(lt.task_start_date) as consumption_date,
+        date(lt.task_start_date, 'Europe/Paris') as consumption_date,
         'LIVRAISON' as data_source,
 
         -- Quantité (ajustée selon le conditionnement du produit, cf. seed)
@@ -194,7 +194,7 @@ livraison_data as (
         p.product_name, p.product_brand, p.product_family,
         p.product_group, p.product_type,
         c.company_code, c.company_name,
-        date(lt.task_start_date)
+        date(lt.task_start_date, 'Europe/Paris')
 ),
 
 -- Arbitrage des sources de consommation (télémétrie vs chargement).

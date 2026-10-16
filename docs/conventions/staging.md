@@ -52,16 +52,14 @@ d'origine, y compris pour `created_at` et `updated_at`.
 
 | La colonne porte | Construction | Type |
 |---|---|---|
-| un instant (heure significative) | `timestamp(datetime(<col>), 'Europe/Paris')` | `TIMESTAMP` (UTC) |
+| un instant (heure significative) | `{{ paris_vers_utc('<col>') }}` | `TIMESTAMP` (UTC) |
 | une date calendaire (toujours à minuit) | `date(<col>)` | `DATE` |
 
 Une date calendaire convertie en instant recule d'un jour : minuit à Paris, c'est la veille en UTC.
-En aval, le jour métier d'un instant se prend avec `date(<col>, 'Europe/Paris')`. L'heure qui se
+En aval, le jour métier d'un instant se prend avec `date(<col>, 'Europe/Paris')` (règle des autres
+couches : [CONVENTIONS.md § Fuseau horaire](../../CONVENTIONS.md#fuseau-horaire)). L'heure qui se
 répète au passage à l'heure d'hiver est ambiguë : BigQuery retient la première (heure d'été), la
 source n'ayant rien pour trancher.
-
-> Écart connu : `oracle_neshu` et `oracle_lcdp` écrivent encore `timestamp(<col>)`, soit l'heure de
-> Paris étiquetée UTC. À aligner.
 
 ### Montants des ERP Oracle
 
@@ -88,8 +86,8 @@ cleaned_data as (
         cast(idcompany as int64) as idcompany,
         nullif(trim(code), '') as code,
         name,
-        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
-        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('creation_date') }} as created_at,
+        {{ paris_vers_utc('coalesce(modification_date, creation_date)') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

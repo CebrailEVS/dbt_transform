@@ -32,13 +32,13 @@ cleaned_data as (
         cast(cost as float64) as cost,
 
         -- Timestamps harmonisés
-        timestamp(arrival) as arrival,
-        timestamp(departure) as departure,
+        date(arrival) as arrival,
+        {{ paris_vers_utc('departure') }} as departure,
 
         -- Timestamps harmonisés
-        timestamp(creation_date) as created_at,
+        {{ paris_vers_utc('creation_date') }} as created_at,
         -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
-        timestamp(coalesce(modification_date, creation_date)) as updated_at,
+        {{ paris_vers_utc('coalesce(modification_date, creation_date)') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

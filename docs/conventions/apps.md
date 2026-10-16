@@ -43,6 +43,10 @@ Toujours **explicite** dans `{{ config() }}` (le défaut du projet est `view`) :
 Pas de run dédié ni de selector : les modèles descendent de `source:<src>+` et sont reconstruits
 par les workflows existants ; le tag `apps` / `<application>` sert aux builds manuels.
 
+Heures : même contrat que les marts, l'heure de Paris dans un `TIMESTAMP` par
+`utc_vers_paris_affichage` ; l'app Cockpit l'affiche sans conversion
+([CONVENTIONS.md § Fuseau horaire](../../CONVENTIONS.md#fuseau-horaire)).
+
 ## 4. Documentation et tests
 
 - Description YAML en 4 blocs `[QUOI MÉTIER]` / `[COMMENT CONSTRUITE]` / `[GRAIN]` / `[NOTES]`, comme

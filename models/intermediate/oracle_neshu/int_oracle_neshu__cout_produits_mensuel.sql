@@ -26,7 +26,7 @@ with cout_charge as (
 
     -- Coût des produits mis en machine : montant HT constaté sur la tâche.
     select
-        date_trunc(date(t.real_start_date), month) as mois,
+        date_trunc(date(t.real_start_date, 'Europe/Paris'), month) as mois,
         c.idcompany as company_id,
         c.code as company_code,
         round(sum(tha.amount_without_tax), 2) as cout_produits_charges_ht_eur
@@ -48,7 +48,7 @@ cout_livre as (
     -- Coût des produits livrés en bon de livraison, au prix d'achat, converti
     -- dans l'unité de la ligne.
     select
-        date_trunc(date(t.real_start_date), month) as mois,
+        date_trunc(date(t.real_start_date, 'Europe/Paris'), month) as mois,
         c.idcompany as company_id,
         c.code as company_code,
         round(

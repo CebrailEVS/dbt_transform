@@ -15,7 +15,7 @@ select
     -- l'hiver et de 2 h l'été, et toute conversion en heure locale basculerait alors sur le
     -- LENDEMAIN — le batch tourne à 23:00. On déclare donc le fuseau d'origine.
     -- Le jour métier reste `snapshot_date` : lui ne porte ni heure ni fuseau.
-    timestamp(datetime(date_system), 'Europe/Paris') as date_system,
+    {{ paris_vers_utc('date_system') }} as date_system,
     resources_code,
     code_source as product_code,
     code_name as product_name,

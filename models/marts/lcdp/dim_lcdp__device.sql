@@ -10,7 +10,7 @@ with device_labels as (
         d.serial as device_serial_number,
         d.comments as device_comment,
         d.last_installation_date,
-        date(d.purchase_date) as purchase_date,
+        d.purchase_date,
         d.purchase_cost,
         d.created_at,
         d.updated_at,
@@ -186,9 +186,9 @@ select
     al.purchase_cost,
 
     -- Dates
-    al.last_installation_date,
-    al.created_at,
-    al.updated_at
+    {{ utc_vers_paris_affichage('al.last_installation_date') }} as last_installation_date,
+    {{ utc_vers_paris_affichage('al.created_at') }} as created_at,
+    {{ utc_vers_paris_affichage('al.updated_at') }} as updated_at
 
 from aggregated_labels as al
 left join assigned_roadman as ar

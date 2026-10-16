@@ -38,8 +38,8 @@ stock_actuel as (
 -- pour lisser les articles à faible rotation tout en gardant la saisonnalité
 fenetre_reference as (
     select
-        date_sub(date_trunc(date_sub(current_date(), interval 1 year), month), interval 1 month) as fenetre_debut,
-        date_add(date_trunc(date_sub(current_date(), interval 1 year), month), interval 2 month) as fenetre_fin
+        date_sub(date_trunc(date_sub(current_date('Europe/Paris'), interval 1 year), month), interval 1 month) as fenetre_debut,
+        date_add(date_trunc(date_sub(current_date('Europe/Paris'), interval 1 year), month), interval 2 month) as fenetre_fin
 ),
 
 fenetre_reference_jours as (
@@ -59,8 +59,8 @@ sorties_clients as (
     cross join fenetre_reference as f
     where
         t.task_status_code in ('FAIT', 'VALIDE')
-        and date(t.task_start_date) >= f.fenetre_debut
-        and date(t.task_start_date) < f.fenetre_fin
+        and date(t.task_start_date, 'Europe/Paris') >= f.fenetre_debut
+        and date(t.task_start_date, 'Europe/Paris') < f.fenetre_fin
     group by 1, 2
 ),
 
@@ -77,8 +77,8 @@ sorties_vehicules as (
         -- neutralisation des transferts inter-dépôts (relocalisation, pas une demande) :
         -- on ne garde que les sorties vers un véhicule (destination != COMPANY)
         and t.product_destination_type != 'COMPANY'
-        and date(t.task_start_date) >= f.fenetre_debut
-        and date(t.task_start_date) < f.fenetre_fin
+        and date(t.task_start_date, 'Europe/Paris') >= f.fenetre_debut
+        and date(t.task_start_date, 'Europe/Paris') < f.fenetre_fin
     group by 1, 2
 ),
 
@@ -133,7 +133,7 @@ couverture as (
 )
 
 select
-    current_date() as date_calcul,
+    current_date('Europe/Paris') as date_calcul,
     company_id,
     entity_code,
     entity_name,

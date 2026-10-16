@@ -74,7 +74,7 @@ select
     status_code,
     label_code,
     date_pointage,
-    date(date_pointage) as date_pointage_jour,
+    date(date_pointage, 'Europe/Paris') as date_pointage_jour,
     created_at,
     updated_at,
     extracted_at

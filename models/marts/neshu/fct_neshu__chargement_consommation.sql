@@ -55,7 +55,7 @@ telemetry_agg as (
         on
             pa.device_id = t.device_id
             and t.task_start_date
-            between coalesce(pa.date_passage_precedent, timestamp('2024-12-30 00:00:00')) and pa.task_start_date
+            between coalesce(pa.date_passage_precedent, timestamp('2024-12-30 00:00:00', 'Europe/Paris')) and pa.task_start_date
     left join {{ ref('dim_neshu__product') }} as p
         on t.product_id = p.product_id
     group by 1, 2, 3, 4, 5
@@ -81,7 +81,7 @@ chargement_agg as (
     left join {{ ref('int_oracle_neshu__chargement_tasks') }} as cm
         on
             pa.device_id = cm.device_id
-            and date(pa.task_start_date) = date(cm.task_start_date)
+            and date(pa.task_start_date, 'Europe/Paris') = date(cm.task_start_date, 'Europe/Paris')
             and cm.task_status_code in ('FAIT', 'VALIDE')
     left join {{ ref('dim_neshu__product') }} as p
         on cm.product_id = p.product_id
@@ -96,7 +96,7 @@ chargement_agg as (
 fusion_telemetry_chargement as (
     select
         coalesce(t.device_id, c.device_id) as device_id,
-        date(coalesce(t.task_start_date, c.task_start_date)) as date_debut_passage_appro,
+        date(coalesce(t.task_start_date, c.task_start_date), 'Europe/Paris') as date_debut_passage_appro,
         min(coalesce(t.task_start_date, c.task_start_date)) as task_start_date_min,
         min(pa.date_passage_precedent) as date_passage_precedent,
         max(pa.roadman_code) as roadman_code,
@@ -128,8 +128,8 @@ fusion_telemetry_chargement as (
 select
     device_id,
     date_debut_passage_appro,
-    task_start_date_min,
-    date_passage_precedent,
+    {{ utc_vers_paris_affichage('task_start_date_min') }} as task_start_date_min,
+    {{ utc_vers_paris_affichage('date_passage_precedent') }} as date_passage_precedent,
     roadman_code,
     product_source_id,
     product_source_type,

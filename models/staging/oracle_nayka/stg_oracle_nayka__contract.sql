@@ -46,8 +46,8 @@ cleaned_data as (
             replace(regexp_extract(xml, r'<ENGAGEMENTBOISSONS>([^<]*)</ENGAGEMENTBOISSONS>'), 'AUCUN', '0') as int64
         ) as engagement_boissons,
 
-        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
-        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('creation_date') }} as created_at,
+        {{ paris_vers_utc('coalesce(modification_date, creation_date)') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

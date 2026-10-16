@@ -20,7 +20,7 @@ with pointage_debut as (
         min(case
             when
                 label_code = 'START_DAY'
-                and format_timestamp('%H:%M:%S', date_pointage) >= '03:00:00'
+                and format_timestamp('%H:%M:%S', date_pointage, 'Europe/Paris') >= '03:00:00'
                 then date_pointage
         end) as date_pointage_debut
     from {{ ref('int_oracle_lcdp__pointage_tasks') }}
@@ -99,11 +99,11 @@ select
     task_status_code,
 
     -- 3️⃣ Dates / Temps
-    date_pointage_debut,
-    date_pointage_fin,
+    {{ utc_vers_paris_affichage('date_pointage_debut') }} as date_pointage_debut,
+    {{ utc_vers_paris_affichage('date_pointage_fin') }} as date_pointage_fin,
     start_date_day,
-    task_start_date,
-    task_end_date,
+    {{ utc_vers_paris_affichage('task_start_date') }} as task_start_date,
+    {{ utc_vers_paris_affichage('task_end_date') }} as task_end_date,
 
     -- 4️⃣ Mesures / Flags
     passage_duration_min,
@@ -113,8 +113,8 @@ select
     pointage_missing_flag,
 
     -- 5️⃣ Métadonnées
-    created_at,
-    updated_at,
+    {{ utc_vers_paris_affichage('created_at') }} as created_at,
+    {{ utc_vers_paris_affichage('updated_at') }} as updated_at,
     current_timestamp() as dbt_updated_at,
     '{{ invocation_id }}' as dbt_invocation_id  -- noqa: TMP
 

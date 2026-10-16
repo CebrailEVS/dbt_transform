@@ -52,8 +52,8 @@ cleaned_data as (
         cast(unit_coeff_div as float64) as unit_coeff_div,
 
         -- Timestamps harmonisés (standard DBT)
-        timestamp(creation_date) as created_at,
-        timestamp(coalesce(modification_date, creation_date)) as updated_at,
+        {{ paris_vers_utc('creation_date') }} as created_at,
+        {{ paris_vers_utc('coalesce(modification_date, creation_date)') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

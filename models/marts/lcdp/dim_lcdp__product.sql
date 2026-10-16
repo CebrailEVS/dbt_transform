@@ -73,7 +73,7 @@ select
     coalesce(lower(is_active) = 'yes', false) as is_active,
 
     -- Dates
-    created_at,
-    updated_at
+    {{ utc_vers_paris_affichage('created_at') }} as created_at,
+    {{ utc_vers_paris_affichage('updated_at') }} as updated_at
 
 from aggregated_labels
