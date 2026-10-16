@@ -1,0 +1,731 @@
+version: 2
+
+models:
+  - name: stg_oracle_nayka__task_status
+    columns:
+      - name: idtask_status
+        description: "Identifiant du statut (PK). Commence à 0 (PREVU)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code du statut."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['PREVU', 'FAIT', 'ENCOURS', 'ANNULE', 'VALIDE', 'ANOMALIE', 'ENATTENTE', 'ACQUITTE']
+              config:
+                severity: warn
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__task_type
+    columns:
+      - name: idtask_type
+        description: "Identifiant du type de tâche (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Libellé court du type, propre à l'instance. Pas unique : quelques codes sont en double."
+        tests:
+          - not_null
+      - name: code_type
+        description: "Type fonctionnel standard de l'ERP (CUSTDELIVERY, SUPPRECEPTION, TECHINTER…), commun aux instances Distrilog. Vide sur quelques types."
+      - name: coeff
+        description: "Sens des montants et quantités : 1, ou -1 pour un avoir. 0 sur quelques types."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+                quote: false
+              config:
+                severity: warn
+      - name: worked
+        description: "1 si le type compte comme du temps travaillé (0 pour une pause, un plein)."
+      - name: has_product
+        description: "1 si le type porte des lignes produits (task_has_product)."
+      - name: has_device
+        description: "1 si le type porte une machine."
+      - name: use_exercice
+        description: "1 si le type est rattaché à un exercice comptable (task.exercice_date)."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__company_type
+    columns:
+      - name: idcompany_type
+        description: "Identifiant du type de société (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Libellé court du type, propre à l'instance."
+        tests:
+          - not_null
+      - name: code_type
+        description: "Code standard de l'ERP, commun aux instances Distrilog : clé à utiliser en aval."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['SUPPLIER', 'CUSTOMER', 'AGENCY', 'SOCIETY', 'PROSPECT', 'STOREHOUSE', 'WORKSHOP', 'BANK', 'LABORATORY', 'SITE']
+              config:
+                severity: warn
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__contact_type
+    columns:
+      - name: idcontact_type
+        description: "Identifiant du type de contact (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Libellé court du type, propre à l'instance."
+        tests:
+          - not_null
+      - name: code_type
+        description: "Code standard de l'ERP, commun aux instances Distrilog : clé à utiliser en aval."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['DEFAULT']
+              config:
+                severity: warn
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__device_type
+    columns:
+      - name: iddevice_type
+        description: "Identifiant du type d'équipement (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Libellé court du type, propre à l'instance."
+        tests:
+          - not_null
+      - name: code_type
+        description: "Code standard de l'ERP, commun aux instances Distrilog : clé à utiliser en aval."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['DEVICE', 'GROUP', 'TELEMETRY', 'PAYMENTSYSTEM', 'COMMINTERFACE', 'KEY', 'PAYMENTTERMINAL', 'COFFER', 'BOAT', 'TRAILER', 'ENGINE', 'ACCESSORY']
+              config:
+                severity: warn
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__location_type
+    columns:
+      - name: idlocation_type
+        description: "Identifiant du type d'adresse (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Libellé court du type, propre à l'instance."
+        tests:
+          - not_null
+      - name: code_type
+        description: "Code standard de l'ERP, commun aux instances Distrilog : clé à utiliser en aval."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['MAIN', 'BILLING', 'POS', 'DELIVERY', 'SECONDARY', 'OLD', 'FEE', 'REFERENCE']
+              config:
+                severity: warn
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__product_type
+    columns:
+      - name: idproduct_type
+        description: "Identifiant du type de produit (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Libellé court du type, propre à l'instance."
+        tests:
+          - not_null
+      - name: code_type
+        description: "Code standard de l'ERP, commun aux instances Distrilog : clé à utiliser en aval."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['PRODUCT', 'PART', 'CALCULATED_PRODUCT', 'MODEL', 'PRICE_LINE', 'PAYMENT_MODE', 'GENERIC', 'COMMENT', 'HUMAN_RESOURCES', 'CONTAINER']
+              config:
+                severity: warn
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__resources_type
+    columns:
+      - name: idresources_type
+        description: "Identifiant du type de ressource (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Libellé court du type, propre à l'instance."
+        tests:
+          - not_null
+      - name: code_type
+        description: "Code standard de l'ERP, commun aux instances Distrilog : clé à utiliser en aval."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['SYSTEM', 'PERSON', 'VEHICLE', 'SUBCONTRACTOR', 'ROOM', 'ENDOWMENT', 'ETAG']
+              config:
+                severity: warn
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__unit_type
+    columns:
+      - name: idunit_type
+        description: "Identifiant du type d'unité (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Libellé court du type, propre à l'instance."
+        tests:
+          - not_null
+      - name: code_type
+        description: "Code standard de l'ERP, commun aux instances Distrilog : clé à utiliser en aval."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['PURCHASE', 'SALE', 'STORAGE', 'COMPONENTS', 'RESUPPLY', 'WEB']
+              config:
+                severity: warn
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__label_family
+    columns:
+      - name: idlabel_family
+        description: "Identifiant de la famille d'étiquettes (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code de la famille (ex. EQUIPEMENT_RESERVE, CODE_SECTEUR) : clé des pivots en aval."
+        tests:
+          - unique
+          - not_null
+      - name: exclus
+        description: "1 si la famille est exclusive : un objet n'y porte qu'une étiquette."
+      - name: required
+        description: "1 si l'ERP impose une étiquette de cette famille."
+      - name: system
+        description: "1 si la famille est livrée par l'ERP, 0 si elle a été créée par l'instance."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__label
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idlabel_family
+              - code
+          config:
+            severity: warn
+    columns:
+      - name: idlabel
+        description: "Identifiant de l'étiquette (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: idlabel_family
+        description: "Famille de l'étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label_family')
+                field: idlabel_family
+      - name: code
+        description: "Valeur de l'étiquette (ex. OUI, NON), unique au sein de sa famille seulement. Espaces de saisie retirés."
+        tests:
+          - not_null
+      - name: enabled
+        description: "1 si l'étiquette est active."
+      - name: isdefault
+        description: "1 si c'est la valeur par défaut de sa famille."
+      - name: system
+        description: "1 si l'étiquette est livrée par l'ERP, 0 si elle a été créée par l'instance."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__civility
+    columns:
+      - name: idcivility
+        description: "Identifiant de la civilité (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code de la civilité."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['MME', 'MLLE', 'M']
+              config:
+                severity: warn
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__currency
+    columns:
+      - name: idcurrency
+        description: "Identifiant de la devise (PK). 1 = EUR."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code ISO 4217 de la devise."
+        tests:
+          - unique
+          - not_null
+      - name: symbole
+        description: "Symbole d'affichage, absent pour une partie des devises."
+      - name: isactif
+        description: "1 si la devise est utilisable dans l'instance."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__damping_type
+    columns:
+      - name: iddamping_type
+        description: "Identifiant du mode d'amortissement (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code du mode d'amortissement."
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['LINEAR', 'DECREASING', 'LEASE-PURCHASE']
+              config:
+                severity: warn
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__payment_condition
+    columns:
+      - name: idpayment_condition
+        description: "Identifiant de la condition de paiement (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code de la condition (ex. FACT_30J)."
+        tests:
+          - unique
+          - not_null
+      - name: installment_days_number
+        description: "Délai d'échéance en jours."
+      - name: installment_month_day_number
+        description: "Jour du mois de l'échéance ; 0 si l'échéance n'est pas calée sur un jour fixe."
+      - name: multiple_installment
+        description: "Nombre d'échéances."
+      - name: is_active
+        description: "1 si la condition est utilisable."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__payment_type
+    columns:
+      - name: idpayment_type
+        description: "Identifiant du mode de paiement (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code du mode de paiement. Les modes créés par l'instance ont parfois un code numérique, leur libellé étant dans la table string, non extraite."
+        tests:
+          - unique
+          - not_null
+      - name: system
+        description: "1 si le mode est livré par l'ERP, NULL s'il a été créé par l'instance."
+      - name: is_active
+        description: "1 si le mode est utilisable."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__tax_region
+    columns:
+      - name: idtax_region
+        description: "Identifiant de la région fiscale (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code de la région fiscale (FRANCE, FRANCE EXO, BELGIQUE…)."
+        tests:
+          - unique
+          - not_null
+      - name: vat_class
+        description: "Classe de TVA de la région (0 = exonérée)."
+      - name: idcountry_self
+        description: "Pays du vendeur, code ISO 3166 numérique (250 = France)."
+      - name: idcountry_peer
+        description: "Pays du client, code ISO 3166 numérique."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__company
+    columns:
+      - name: idcompany
+        description: "Identifiant de la société (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: company_idcompany
+        description: "Société mère."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idcompany_type
+        description: "Type de société. Vide pour la société éditrice de l'ERP."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company_type')
+                field: idcompany_type
+      - name: iddeposit
+        description: "Dépôt de rattachement (une société de type STOREHOUSE) : l'agence logistique qui sert le client."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idpayment_condition
+        description: "Condition de paiement."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__payment_condition')
+                field: idpayment_condition
+      - name: idpayment_type
+        description: "Mode de paiement."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__payment_type')
+                field: idpayment_type
+      - name: idcontact_creation
+        description: "Utilisateur de l'ERP qui a créé la fiche."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: idcontact_modification
+        description: "Utilisateur de l'ERP qui a modifié la fiche en dernier."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: code
+        description: "Code société, saisi dans l'ERP. Unicité non déclarée par Oracle."
+        tests:
+          - not_null
+          - unique:
+              config:
+                severity: warn
+      - name: name
+        description: "Raison sociale ou nom du site."
+      - name: code_status_record
+        description: "Validité de l'enregistrement : 1 = actif, 0 ou -1 = désactivé ou non validé. Indépendant du statut métier. Non filtré ici : les lignes inactives restent cibles de clés étrangères ; le filtre `= 1` se pose en intermediate."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+                quote: false
+              config:
+                severity: warn
+      - name: comments
+        description: "Commentaire libre."
+      - name: email
+        description: "E-mail de la société."
+      - name: siren
+        description: "SIREN, sans espaces."
+      - name: siret
+        description: "SIRET, sans espaces."
+      - name: tax_number
+        description: "Numéro de TVA intracommunautaire, sans espaces."
+      - name: ht_ttc
+        description: "Mode de facturation : 0 = HT, 1 = TTC."
+      - name: vat_class
+        description: "Classe de TVA appliquée."
+      - name: vat_regime
+        description: "Régime de TVA."
+      - name: idcountry
+        description: "Pays, code ISO 3166 numérique (250 = France)."
+      - name: isparticulier
+        description: "1 si le client est un particulier."
+      - name: isassociation
+        description: "1 si le client est une association."
+      - name: balance
+        description: "Solde du compte client calculé par l'ERP."
+      - name: idpayment_type_facredev
+        description: "Mode de paiement des factures de redevance."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__payment_type')
+                field: idpayment_type
+              config:
+                severity: warn
+      - name: idpayment_condition_facredev
+        description: "Condition de paiement des factures de redevance."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__payment_condition')
+                field: idpayment_condition
+              config:
+                severity: warn
+      - name: ht_ttc_facredev
+        description: "Mode de facturation des redevances : 0 = HT, 1 = TTC."
+      - name: vat_class_facredev
+        description: "Classe de TVA des factures de redevance."
+      - name: idcountry_facredev
+        description: "Pays de facturation des redevances, code ISO 3166 numérique."
+      - name: effectif
+        description: "Effectif du site client, champ personnalisé (balise EFFECTIF du xml). NULL si non communiqué (NC)."
+      - name: installation_date
+        description: "Date d'installation chez le client, prévue ou réalisée : champ personnalisé (balise INSTALLATION du xml)."
+      - name: contract_end_date
+        description: "Date de fin de contrat."
+      - name: lost_date
+        description: "Date de perte du client."
+      - name: created_at
+        description: "Création dans l'ERP (UTC)."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP, à défaut la création (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__location
+    columns:
+      - name: idlocation
+        description: "Identifiant de l'adresse (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: "Code de l'adresse, rarement renseigné."
+      - name: name
+        description: "Nom de l'adresse ou du site."
+      - name: address1
+        description: "Ligne d'adresse 1."
+      - name: address2
+        description: "Ligne d'adresse 2."
+      - name: postal
+        description: "Code postal (texte : formats étrangers)."
+      - name: city
+        description: "Ville."
+      - name: country
+        description: "Pays, en libellé libre."
+      - name: access_info
+        description: "Informations d'accès au site."
+      - name: phone
+        description: "Téléphone du site."
+      - name: email
+        description: "E-mail du site."
+      - name: latitude
+        description: "Latitude, quand l'adresse est géolocalisée."
+      - name: longitude
+        description: "Longitude, quand l'adresse est géolocalisée."
+      - name: code_status_record
+        description: "Validité de l'enregistrement : 1 = actif, 0 ou -1 = désactivé ou non validé. Indépendant du statut métier. Non filtré ici : les lignes inactives restent cibles de clés étrangères ; le filtre `= 1` se pose en intermediate."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+                quote: false
+              config:
+                severity: warn
+      - name: idcontact_modification
+        description: "Utilisateur de l'ERP qui a modifié la fiche en dernier. Clé non déclarée par Oracle."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__company_has_location
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idcompany
+              - idlocation
+              - idlocation_type
+    columns:
+      - name: idcompany
+        description: "Société (PK composite avec idlocation et idlocation_type)."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idlocation
+        description: "Adresse."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__location')
+                field: idlocation
+      - name: idlocation_type
+        description: "Type d'adresse pour cette société (principale, facturation, livraison…)."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__location_type')
+                field: idlocation_type
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__contact
+    columns:
+      - name: idcontact
+        description: "Identifiant du contact (PK)."
+        tests:
+          - unique
+          - not_null
+      - name: idcompany
+        description: "Société du contact. Vide pour une partie des utilisateurs de l'ERP."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idcontact_type
+        description: "Type de contact."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact_type')
+                field: idcontact_type
+      - name: idcivility
+        description: "Civilité."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__civility')
+                field: idcivility
+      - name: idlocation
+        description: "Adresse du contact. Clé non déclarée par Oracle."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__location')
+                field: idlocation
+              config:
+                severity: warn
+      - name: code
+        description: "Code du contact dans l'ERP."
+        tests:
+          - not_null
+      - name: name
+        description: "Nom affiché du contact."
+      - name: first_name
+        description: "Prénom."
+      - name: last_name
+        description: "Nom de famille."
+      - name: qualite
+        description: "Fonction du contact."
+      - name: email
+        description: "E-mail du contact."
+      - name: mobile
+        description: "Téléphone mobile."
+      - name: phone
+        description: "Téléphone fixe."
+      - name: code_status_record
+        description: "Validité de l'enregistrement : 1 = actif, 0 ou -1 = désactivé ou non validé. Indépendant du statut métier. Non filtré ici : les lignes inactives restent cibles de clés étrangères ; le filtre `= 1` se pose en intermediate."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [-1, 0, 1]
+                quote: false
+              config:
+                severity: warn
+      - name: ismain
+        description: "1 si c'est le contact principal de sa société."
+      - name: idcontact_modification
+        description: "Utilisateur de l'ERP qui a modifié la fiche en dernier."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contact')
+                field: idcontact
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."

@@ -59,6 +59,9 @@ models:
       oracle_lcdp:
         +tags: ['oracle_lcdp']
 
+      oracle_nayka:
+        +tags: ['oracle_nayka']
+
       oracle_neshu_gcs:
         +tags: ['oracle_neshu_gcs']
 
