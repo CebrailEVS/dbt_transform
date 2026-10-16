@@ -1166,3 +1166,298 @@ models:
         description: "Dernière modification dans l'ERP, à défaut la création (UTC)."
       - name: extracted_at
         description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__v_label_company
+    tests:
+      # Clé primaire déclarée par Oracle sur label_has_company, dont la vue est la jointure.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idcompany
+              - idlabel
+      # Famille exclusive : une seule étiquette de la famille par objet, ce que supposent les pivots.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idcompany
+              - idlabel_family
+          config:
+            where: "lf_exclus = 1"
+            severity: warn
+    columns:
+      - name: idcompany
+        description: "Société étiquetée."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__company')
+                field: idcompany
+      - name: idlabel
+        description: "Étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label')
+                field: idlabel
+      - name: idlabel_family
+        description: "Famille de l'étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label_family')
+                field: idlabel_family
+      - name: lf_code
+        description: "Code de la famille (ex. CATEGORIE, CODE_SECTEUR) : colonne de pivot."
+        tests:
+          - not_null
+      - name: l_code
+        description: "Code de l'étiquette (ex. OUI, FONTAINE), espaces de saisie retirés."
+        tests:
+          - not_null
+      - name: l_text_fr
+        description: "Libellé français de l'étiquette, espaces de saisie retirés."
+      - name: l_enabled
+        description: "1 si l'étiquette est active."
+      - name: l_isdefault
+        description: "1 si c'est la valeur par défaut de sa famille."
+      - name: l_system
+        description: "1 si l'étiquette est livrée par l'ERP."
+      - name: lf_exclus
+        description: "1 si la famille est exclusive : une seule étiquette par objet."
+      - name: lf_required
+        description: "1 si l'ERP impose une étiquette de cette famille."
+      - name: lf_system
+        description: "1 si la famille est livrée par l'ERP."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__v_label_device
+    tests:
+      # Clé primaire déclarée par Oracle sur label_has_device, dont la vue est la jointure.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - iddevice
+              - idlabel
+      # Famille exclusive : une seule étiquette de la famille par objet, ce que supposent les pivots.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - iddevice
+              - idlabel_family
+          config:
+            where: "lf_exclus = 1"
+            severity: warn
+    columns:
+      - name: iddevice
+        description: "Équipement étiqueté."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__device')
+                field: iddevice
+      - name: idlabel
+        description: "Étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label')
+                field: idlabel
+      - name: idlabel_family
+        description: "Famille de l'étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label_family')
+                field: idlabel_family
+      - name: lf_code
+        description: "Code de la famille (ex. CATEGORIE, CODE_SECTEUR) : colonne de pivot."
+        tests:
+          - not_null
+      - name: l_code
+        description: "Code de l'étiquette (ex. OUI, FONTAINE), espaces de saisie retirés."
+        tests:
+          - not_null
+      - name: l_text_fr
+        description: "Libellé français de l'étiquette, espaces de saisie retirés."
+      - name: l_enabled
+        description: "1 si l'étiquette est active."
+      - name: l_isdefault
+        description: "1 si c'est la valeur par défaut de sa famille."
+      - name: l_system
+        description: "1 si l'étiquette est livrée par l'ERP."
+      - name: lf_exclus
+        description: "1 si la famille est exclusive : une seule étiquette par objet."
+      - name: lf_required
+        description: "1 si l'ERP impose une étiquette de cette famille."
+      - name: lf_system
+        description: "1 si la famille est livrée par l'ERP."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__v_label_product
+    tests:
+      # Clé primaire déclarée par Oracle sur label_has_product, dont la vue est la jointure.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idproduct
+              - idlabel
+      # Famille exclusive : une seule étiquette de la famille par objet, ce que supposent les pivots.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idproduct
+              - idlabel_family
+          config:
+            where: "lf_exclus = 1"
+            severity: warn
+    columns:
+      - name: idproduct
+        description: "Produit étiqueté."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__product')
+                field: idproduct
+      - name: idlabel
+        description: "Étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label')
+                field: idlabel
+      - name: idlabel_family
+        description: "Famille de l'étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label_family')
+                field: idlabel_family
+      - name: lf_code
+        description: "Code de la famille (ex. CATEGORIE, CODE_SECTEUR) : colonne de pivot."
+        tests:
+          - not_null
+      - name: l_code
+        description: "Code de l'étiquette (ex. OUI, FONTAINE), espaces de saisie retirés."
+        tests:
+          - not_null
+      - name: l_text_fr
+        description: "Libellé français de l'étiquette, espaces de saisie retirés."
+      - name: l_enabled
+        description: "1 si l'étiquette est active."
+      - name: l_isdefault
+        description: "1 si c'est la valeur par défaut de sa famille."
+      - name: l_system
+        description: "1 si l'étiquette est livrée par l'ERP."
+      - name: lf_exclus
+        description: "1 si la famille est exclusive : une seule étiquette par objet."
+      - name: lf_required
+        description: "1 si l'ERP impose une étiquette de cette famille."
+      - name: lf_system
+        description: "1 si la famille est livrée par l'ERP."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__v_label_resources
+    tests:
+      # Clé primaire déclarée par Oracle sur label_has_resources, dont la vue est la jointure.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idresources
+              - idlabel
+      # Famille exclusive : une seule étiquette de la famille par objet, ce que supposent les pivots.
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idresources
+              - idlabel_family
+          config:
+            where: "lf_exclus = 1"
+            severity: warn
+    columns:
+      - name: idresources
+        description: "Ressource étiquetée."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__resources')
+                field: idresources
+      - name: idlabel
+        description: "Étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label')
+                field: idlabel
+      - name: idlabel_family
+        description: "Famille de l'étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label_family')
+                field: idlabel_family
+      - name: lf_code
+        description: "Code de la famille (ex. CATEGORIE, CODE_SECTEUR) : colonne de pivot."
+        tests:
+          - not_null
+      - name: l_code
+        description: "Code de l'étiquette (ex. OUI, FONTAINE), espaces de saisie retirés."
+        tests:
+          - not_null
+      - name: l_text_fr
+        description: "Libellé français de l'étiquette, espaces de saisie retirés."
+      - name: l_enabled
+        description: "1 si l'étiquette est active."
+      - name: l_isdefault
+        description: "1 si c'est la valeur par défaut de sa famille."
+      - name: l_system
+        description: "1 si l'étiquette est livrée par l'ERP."
+      - name: lf_exclus
+        description: "1 si la famille est exclusive : une seule étiquette par objet."
+      - name: lf_required
+        description: "1 si l'ERP impose une étiquette de cette famille."
+      - name: lf_system
+        description: "1 si la famille est livrée par l'ERP."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__label_has_contract
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idcontract
+              - idlabel
+    columns:
+      - name: idcontract
+        description: "Contrat étiqueté (PK composite avec idlabel)."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__contract')
+                field: idcontract
+      - name: idlabel
+        description: "Étiquette."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__label')
+                field: idlabel
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."

@@ -66,3 +66,13 @@ sources:
         description: "Équipements : machines et accessoires du parc."
       - name: nayka_contract
         description: "Contrats clients."
+      - name: nayka_v_label_company
+        description: "Vue Oracle : étiquettes des sociétés, dénormalisées avec leur famille et leur libellé."
+      - name: nayka_v_label_device
+        description: "Vue Oracle : étiquettes des équipements, dénormalisées avec leur famille et leur libellé."
+      - name: nayka_v_label_product
+        description: "Vue Oracle : étiquettes des produits, dénormalisées avec leur famille et leur libellé."
+      - name: nayka_v_label_resources
+        description: "Vue Oracle : étiquettes des ressources, dénormalisées avec leur famille et leur libellé."
+      - name: nayka_label_has_contract
+        description: "Étiquettes posées sur les contrats (jonction)."
