@@ -22,7 +22,7 @@ cleaned_data as (
         cast(cast(has_product as int64) as bool) as has_product,
         cast(cast(has_device as int64) as bool) as has_device,
         cast(use_exercice as int64) as use_exercice,
-        timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('modification_date') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

@@ -33,7 +33,7 @@ cleaned_data as (
         cast(cast(ihm as int64) as boolean) as is_ihm,
 
         -- Timestamps harmonisés
-        timestamp(modification_date) as updated_at,
+        {{ paris_vers_utc('modification_date') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

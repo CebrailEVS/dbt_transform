@@ -9,7 +9,7 @@ select
     product_source_id,
     product_code,
     task_status_code,
-    task_start_date,
+    {{ utc_vers_paris_affichage('task_start_date') }} as task_start_date,
     quantity,
     valuation
 from {{ ref('int_oracle_lcdp__livraison_tasks') }}

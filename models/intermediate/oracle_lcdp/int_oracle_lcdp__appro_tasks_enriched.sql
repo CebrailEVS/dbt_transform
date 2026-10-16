@@ -75,7 +75,7 @@ enriched as (
         case when pa.task_status_code = 'ANOMALIE' then 1 else 0 end as is_anomaly,
 
         -- Dates
-        date(pa.task_start_date) as start_date_day,
+        date(pa.task_start_date, 'Europe/Paris') as start_date_day,
         pa.task_start_date,
         pa.task_end_date,
 

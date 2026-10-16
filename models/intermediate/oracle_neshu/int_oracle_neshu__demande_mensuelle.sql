@@ -21,7 +21,7 @@ with sorties_clients as (
         product_source_id as company_id,
         product_id,
         product_code,
-        date_trunc(date(task_start_date), month) as demande_mois,
+        date_trunc(date(task_start_date, 'Europe/Paris'), month) as demande_mois,
         quantity
     from {{ ref('int_oracle_neshu__livraison_tasks') }}
     where
@@ -41,7 +41,7 @@ sorties_vehicules as (
         product_source_id as company_id,
         product_id,
         product_code,
-        date_trunc(date(task_start_date), month) as demande_mois,
+        date_trunc(date(task_start_date, 'Europe/Paris'), month) as demande_mois,
         quantity
     from {{ ref('int_oracle_neshu__livraison_interne_tasks') }}
     where

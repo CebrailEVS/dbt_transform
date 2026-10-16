@@ -43,15 +43,15 @@ cleaned_data as (
         cast(code_status_record as string) as code_status_record,
 
         -- Date de la tache
-        timestamp(real_start_date) as real_start_date,
-        timestamp(real_end_date) as real_end_date,
-        timestamp(planed_start_date) as planed_start_date,
-        timestamp(planed_end_date) as planed_end_date,
+        {{ paris_vers_utc('real_start_date') }} as real_start_date,
+        {{ paris_vers_utc('real_end_date') }} as real_end_date,
+        {{ paris_vers_utc('planed_start_date') }} as planed_start_date,
+        {{ paris_vers_utc('planed_end_date') }} as planed_end_date,
 
         -- Timestamps harmonisés
-        timestamp(creation_date) as created_at,
+        {{ paris_vers_utc('creation_date') }} as created_at,
         -- Use COALESCE to ensure updated_at is never null, falling back to creation_date
-        timestamp(coalesce(modification_date, creation_date)) as updated_at,
+        {{ paris_vers_utc('coalesce(modification_date, creation_date)') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

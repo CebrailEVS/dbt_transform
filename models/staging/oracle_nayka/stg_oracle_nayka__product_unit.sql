@@ -24,7 +24,7 @@ cleaned_data as (
         cast(weight as float64) as weight,
         cast(volume as float64) as volume,
         cast(isactive as int64) as isactive,
-        timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('modification_date') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

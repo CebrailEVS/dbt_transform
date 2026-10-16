@@ -166,7 +166,7 @@ models:
       [QUOI MÉTIER] Chargements machines Neshu validés (articles chargés par les approvisionneurs dans les distributeurs), avec le client et la machine. Alimente les écrans Cockpit Supply « Contrôle des conditionnements », « Clients », flux des véhicules et bilan mensuel.
       [COMMENT CONSTRUITE] int_oracle_neshu__chargement_tasks filtrée sur les statuts FAIT et VALIDE (config.STATUS_VALIDES de l'app), jointe à dim_neshu__company (company_name) et dim_neshu__device (device_name, device_brand) sur leurs identifiants. Colonnes reprises sans transformation.
       [GRAIN] 1 ligne par task_product_id (article d'un bordereau de chargement).
-      [NOTES] L'app envoie des requêtes filtrées et ne reçoit que les résultats. Partition mensuelle sur task_start_date (UTC, comme les mois de l'app), clustering vehicle_code / task_id (filtre véhicule, détail d'un bordereau). Champs du bordereau (date, véhicule, approvisionneur, client, machine) constants par task_id. Réservé à l'application.
+      [NOTES] L'app envoie des requêtes filtrées et ne reçoit que les résultats. Partition mensuelle sur task_start_date (heure de Paris, contrat de sortie gold), clustering vehicle_code / task_id (filtre véhicule, détail d'un bordereau). Champs du bordereau (date, véhicule, approvisionneur, client, machine) constants par task_id. Réservé à l'application.
     columns:
       - name: task_product_id
         description: "Identifiant de la ligne article du bordereau (clé)"
@@ -178,7 +178,7 @@ models:
         tests:
           - not_null
       - name: task_start_date
-        description: "Date et heure du chargement (UTC), colonne de partition"
+        description: "Date et heure du chargement, heure de Paris (contrat de sortie gold), colonne de partition"
         tests:
           - not_null
       - name: task_status_code
@@ -223,7 +223,7 @@ models:
       [QUOI MÉTIER] Chargements machines Cafés du Phare Distribution Auto validés (articles chargés par les approvisionneurs dans les distributeurs). Alimente le flux des véhicules de tournée Cafés du Phare dans Cockpit Supply.
       [COMMENT CONSTRUITE] int_oracle_lcdp__chargement_tasks filtrée sur les statuts FAIT et VALIDE (config.STATUS_VALIDES de l'app). Colonnes reprises sans transformation.
       [GRAIN] 1 ligne par task_product_id (article d'un bordereau de chargement).
-      [NOTES] L'app lit le seul mois affiché. Partition mensuelle sur task_start_date (UTC, comme les mois de l'app). Même construction que app_cockpit__neshu_chargement, sans jointure client / machine (aucun écran n'en a besoin). Réservé à l'application.
+      [NOTES] L'app lit le seul mois affiché. Partition mensuelle sur task_start_date (heure de Paris, contrat de sortie gold). Même construction que app_cockpit__neshu_chargement, sans jointure client / machine (aucun écran n'en a besoin). Réservé à l'application.
     columns:
       - name: task_product_id
         description: "Identifiant de la ligne article du bordereau (clé)"
@@ -235,7 +235,7 @@ models:
         tests:
           - not_null
       - name: task_start_date
-        description: "Date et heure du chargement (UTC), colonne de partition"
+        description: "Date et heure du chargement, heure de Paris (contrat de sortie gold), colonne de partition"
         tests:
           - not_null
       - name: task_status_code
@@ -272,7 +272,7 @@ models:
       [QUOI MÉTIER] Passages des approvisionneurs Neshu chez les clients (une tâche d'approvisionnement validée). Alimente dans Cockpit Supply les heures de travail des approvisionneurs (premier et dernier passage du jour) et l'onglet Clients (passages chez un client sur une période).
       [COMMENT CONSTRUITE] int_oracle_neshu__appro_tasks_enriched filtrée sur les statuts FAIT et VALIDE (config.STATUS_VALIDES de l'app), avec approvisionneur et date renseignés. Colonnes reprises sans transformation.
       [GRAIN] 1 ligne par task_id (passage).
-      [NOTES] task_start_date et task_end_date sont en heure locale française dans la source malgré l'étiquette UTC du type TIMESTAMP : l'app les lit comme des heures locales sans conversion (comportement historique, cf. api/neshu.py). Les bornes propres à l'app (bornes de dates, pas de passage futur) sont appliquées par ses requêtes. Partition mensuelle sur task_start_date. Réservé à l'application.
+      [NOTES] task_start_date et task_end_date sont rendus en heure de Paris dans un TIMESTAMP (contrat de sortie gold, macro utc_vers_paris_affichage) : l'app les lit comme des heures locales, sans conversion (cf. api/neshu.py). Les bornes propres à l'app (bornes de dates, pas de passage futur) sont appliquées par ses requêtes. Partition mensuelle sur task_start_date. Réservé à l'application.
     columns:
       - name: task_id
         description: "Identifiant du passage (clé)"
@@ -280,11 +280,11 @@ models:
           - not_null
           - unique
       - name: task_start_date
-        description: "Début du passage, heure locale française (étiquette UTC sans conversion), colonne de partition"
+        description: "Début du passage, heure de Paris (contrat de sortie gold), colonne de partition"
         tests:
           - not_null
       - name: task_end_date
-        description: "Fin du passage, heure locale française"
+        description: "Fin du passage, heure de Paris (contrat de sortie gold)"
       - name: roadman_code
         description: "Approvisionneur"
         tests:

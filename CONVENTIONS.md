@@ -51,6 +51,21 @@ le détail vit dans une page par couche.
 
 ---
 
+## Fuseau horaire
+
+Stocker en UTC, afficher en heure de Paris.
+
+| Couche | Règle |
+|---|---|
+| Staging | Instants en `TIMESTAMP` UTC. Une source qui écrit l'heure de Paris sans fuseau (ERP Oracle) est convertie à l'entrée par `paris_vers_utc` ; une date calendaire devient une `DATE` ([staging.md](docs/conventions/staging.md#dates-des-erp-oracle)). |
+| Intermediate | Les instants restent en UTC. Un jour, une semaine ou un mois métier se calcule en heure de Paris : `date(x, 'Europe/Paris')`, `extract(year from x at time zone 'Europe/Paris')`, `current_date('Europe/Paris')`. |
+| Marts, apps | Les instants d'un ERP Oracle sortent en heure de Paris dans un `TIMESTAMP` (`utc_vers_paris_affichage`), que Power BI et l'app Cockpit affichent tels quels. Ce ne sont plus des instants : un mart qui calcule avec une heure lue dans une dim la repasse en UTC (`paris_vers_utc`) avant de la comparer à `current_timestamp()` ou à une autre source. |
+
+`date(x)` sans fuseau sur un instant UTC donne la veille pour un événement entre 00:00 et 02:00 à
+Paris : l'erreur ne casse rien et ne se voit pas.
+
+---
+
 ## Matérialisation
 
 | Couche | Défaut | Exception |

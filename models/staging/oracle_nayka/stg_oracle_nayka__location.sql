@@ -29,7 +29,7 @@ cleaned_data as (
         cast(longitude as float64) as longitude,
         cast(code_status_record as int64) as code_status_record,
         cast(idcontact_modification as int64) as idcontact_modification,
-        timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('modification_date') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

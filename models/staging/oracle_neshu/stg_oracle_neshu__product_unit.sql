@@ -42,7 +42,7 @@ cleaned_data as (
 
         -- Timestamps harmonisés (pas de date de création en source -> created_at null)
         cast(null as timestamp) as created_at,
-        timestamp(modification_date) as updated_at,
+        {{ paris_vers_utc('modification_date') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

@@ -947,8 +947,8 @@ models:
       1 ligne par task_id (1 appel SAV).
 
       [NOTES]
-      appel_date = date(appel_start_at) sans conversion de fuseau : l'ERP stocke l'heure locale
-      (Paris) étiquetée UTC ; l'heure affichée correspond à celle des exports ERP.
+      appel_date est le jour de l'appel en heure de Paris ; appel_start_at et appel_end_at sont rendus
+      en heure de Paris (contrat de sortie gold) : l'heure affichée est celle des exports ERP.
       resources_id est NULL quand aucune personne n'est affectée à l'appel. L'écran ERP
       affiche alors un libellé dérivé de la catégorie (TECHNIQUE, MAGASIN, COMMERCE…) : ce n'est
       pas une donnée en base, il n'est pas reproduit ici — la catégorie porte l'information.
@@ -962,7 +962,7 @@ models:
       des saisies ERP réelles ; leur suppression éventuelle se fait dans l'ERP.
     columns:
       - name: appel_date
-        description: "Date de l'appel (date de appel_start_at, heure locale)."
+        description: "Date de l'appel, jour en heure de Paris."
         tests:
           - not_null
       - name: task_id
@@ -1003,7 +1003,7 @@ models:
           - unique
           - not_null
       - name: appel_start_at
-        description: "Date et heure de début de l'appel (heure locale, cf. [NOTES])."
+        description: "Date et heure de début de l'appel, heure de Paris (cf. [NOTES])."
         tests:
           - not_null
       - name: appel_end_at

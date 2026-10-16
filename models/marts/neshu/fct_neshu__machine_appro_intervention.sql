@@ -352,11 +352,11 @@ select
     ac.company_code,
 
     -- Contexte appro
-    ac.last_appro_date,
+    {{ utc_vers_paris_affichage('ac.last_appro_date') }} as last_appro_date,
     ac.last_appro_roadman_code,
     ac.last_appro_gea_code,
     ac.days_since_last_appro,
-    ac.next_appro_date,
+    {{ utc_vers_paris_affichage('ac.next_appro_date') }} as next_appro_date,
     ac.next_appro_roadman_code,
     ac.next_appro_gea_code,
     ac.days_until_next_appro,

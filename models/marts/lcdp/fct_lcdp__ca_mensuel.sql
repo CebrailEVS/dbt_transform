@@ -32,14 +32,14 @@ with devices_perimeter as (
 nayax_monthly as (
     select
         t.device_id,
-        date_trunc(date(t.task_start_date), month) as month_start_date,
+        date_trunc(date(t.task_start_date, 'Europe/Paris'), month) as month_start_date,
         count(*) as nb_ventes_nayax,
         sum(t.sale_amount_net_eur) as ca_nayax_ht_eur,
         sum(t.sale_amount_net_tax_eur) as ca_nayax_ttc_eur
     from {{ ref('int_oracle_lcdp__telemetry_tasks') }} as t
     where
         t.device_id in (select dp.device_id from devices_perimeter as dp)
-        and date(t.task_start_date) >= date('2025-01-01')
+        and date(t.task_start_date, 'Europe/Paris') >= date('2025-01-01')
     group by 1, 2
 ),
 
@@ -47,13 +47,13 @@ nayax_monthly as (
 cash_monthly as (
     select
         c.device_id,
-        date_trunc(date(c.task_start_date), month) as month_start_date,
+        date_trunc(date(c.task_start_date, 'Europe/Paris'), month) as month_start_date,
         sum(c.ca_cash_ht_eur) as ca_cash_ht_eur,
         sum(c.ca_cash_eur) as ca_cash_ttc_eur
     from {{ ref('int_oracle_lcdp__comptage_tasks') }} as c
     where
         c.device_id in (select dp.device_id from devices_perimeter as dp)
-        and date(c.task_start_date) >= date('2025-01-01')
+        and date(c.task_start_date, 'Europe/Paris') >= date('2025-01-01')
     group by 1, 2
 ),
 

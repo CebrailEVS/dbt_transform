@@ -15,7 +15,7 @@
 select
     c.task_product_id,
     c.task_id,
-    c.task_start_date,
+    {{ utc_vers_paris_affichage('c.task_start_date') }} as task_start_date,
     c.task_status_code,
     c.load_type_code,
     c.task_location_info,

@@ -21,8 +21,8 @@
 with amplitude_par_jour as (
 
     select
-        date_trunc(date(t.real_start_date), month) as mois,
-        date(t.real_start_date) as jour,
+        date_trunc(date(t.real_start_date, 'Europe/Paris'), month) as mois,
+        date(t.real_start_date, 'Europe/Paris') as jour,
         c.idcompany as company_id,
         c.code as company_code,
         -- Amplitude de la journée, en minutes.

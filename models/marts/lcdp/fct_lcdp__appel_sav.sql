@@ -14,7 +14,7 @@ ressources as (
 
 select
     -- Grain
-    date(a.task_start_date) as appel_date,
+    date(a.task_start_date, 'Europe/Paris') as appel_date,
     a.task_id,
     a.company_id,
     a.device_id,
@@ -22,8 +22,8 @@ select
 
     -- Attributs d'affichage
     a.document_number as appel_numero,
-    a.task_start_date as appel_start_at,
-    a.task_end_date as appel_end_at,
+    {{ utc_vers_paris_affichage('a.task_start_date') }} as appel_start_at,
+    {{ utc_vers_paris_affichage('a.task_end_date') }} as appel_end_at,
     a.company_code,
     a.company_name,
     a.device_code,
@@ -44,8 +44,8 @@ select
     a.comments_peer,
 
     -- Métadonnées
-    a.created_at,
-    a.updated_at,
+    {{ utc_vers_paris_affichage('a.created_at') }} as created_at,
+    {{ utc_vers_paris_affichage('a.updated_at') }} as updated_at,
     a.extracted_at
 
 from appels as a

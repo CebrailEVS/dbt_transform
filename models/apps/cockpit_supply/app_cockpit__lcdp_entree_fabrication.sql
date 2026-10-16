@@ -5,7 +5,7 @@ select
     task_product_id,
     task_id,
     product_code,
-    task_start_date,
+    {{ utc_vers_paris_affichage('task_start_date') }} as task_start_date,
     source_code,
     destination_code,
     quantity,

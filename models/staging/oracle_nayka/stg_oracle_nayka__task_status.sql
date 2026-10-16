@@ -15,7 +15,7 @@ cleaned_data as (
     select
         cast(idtask_status as int64) as idtask_status,
         code,
-        timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('modification_date') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

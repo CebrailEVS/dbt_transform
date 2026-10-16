@@ -46,7 +46,7 @@ cleaned_data as (
         cast(percentage as float64) as percentage,
 
         -- Timestamps harmonisés (standard DBT)
-        timestamp(_parent_modification_date) as updated_at,
+        {{ paris_vers_utc('_parent_modification_date') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
 
     from source_data

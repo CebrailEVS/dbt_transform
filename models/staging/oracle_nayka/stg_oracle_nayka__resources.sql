@@ -26,9 +26,9 @@ cleaned_data as (
         cast(code_status_record as int64) as code_status_record,
         cast(dtl_hidden as int64) as dtl_hidden,
         cast(base_rate as numeric) as base_rate,
-        timestamp(datetime(arrival), 'Europe/Paris') as arrival,
-        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
-        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('arrival') }} as arrival,
+        {{ paris_vers_utc('creation_date') }} as created_at,
+        {{ paris_vers_utc('coalesce(modification_date, creation_date)') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )

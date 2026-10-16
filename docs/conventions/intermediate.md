@@ -48,6 +48,9 @@ select * from enriched
 
 Déduplication : `qualify row_number() over (partition by ... order by ...) = 1`.
 
+Les instants restent en UTC ; un jour ou un mois métier se calcule en heure de Paris
+(`date(x, 'Europe/Paris')`, [CONVENTIONS.md § Fuseau horaire](../../CONVENTIONS.md#fuseau-horaire)).
+
 ## 4. Matérialisation
 
 - `table` par défaut.

@@ -10,7 +10,7 @@ select
     vehicle_code,
     product_code,
     task_status_code,
-    task_start_date,
+    {{ utc_vers_paris_affichage('task_start_date') }} as task_start_date,
     unit_coeff_multi,
     quantity,
     valuation

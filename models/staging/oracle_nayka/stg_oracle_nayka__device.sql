@@ -39,10 +39,10 @@ cleaned_data as (
         -- Dates calendaires : à minuit dans la source (une saisie horodatée isolée sur la garantie).
         date(purchase_date) as purchase_date,
         date(start_date_guarantee) as start_date_guarantee,
-        timestamp(datetime(last_installation_date), 'Europe/Paris') as last_installation_date,
+        {{ paris_vers_utc('last_installation_date') }} as last_installation_date,
 
-        timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
-        timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,
+        {{ paris_vers_utc('creation_date') }} as created_at,
+        {{ paris_vers_utc('coalesce(modification_date, creation_date)') }} as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data
 )
