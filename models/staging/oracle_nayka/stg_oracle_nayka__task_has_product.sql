@@ -39,13 +39,13 @@ cleaned_data as (
         real_planned,
         cast(sequence as int64) as sequence,  -- noqa: RF04
 
-        real_quantity,
+        cast(real_quantity as float64) as real_quantity,
         unit_code,
         unit_text,
-        unit_coeff_multi,
-        unit_coeff_div,
-        unit_weight,
-        unit_volume,
+        cast(unit_coeff_multi as float64) as unit_coeff_multi,
+        cast(unit_coeff_div as float64) as unit_coeff_div,
+        cast(unit_weight as float64) as unit_weight,
+        cast(unit_volume as float64) as unit_volume,
 
         cast(tax_rate as numeric) as tax_rate,
         tax_code,

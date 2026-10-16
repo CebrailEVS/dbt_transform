@@ -121,7 +121,8 @@ pas pour retirer le seuil hérité de la source : il est ignoré, et `{count: nu
 l'exécution.
 
 Le workflow de purge du dimanche ne vérifie pas la fraîcheur (`DBT_SOURCE_SELECTOR` vide) : les
-tables en `replace` y ont environ 75h, l'alerte serait fausse chaque semaine.
+tables en `replace` y ont environ 75h, et un `[FRESHNESS-ERROR]` sans objet salirait les logs
+chaque semaine.
 
 ### `nesp_co` activite / opportunite et `zoho_desk` — warn seul
 Seules sources sans seuil d'erreur : un retard y est signalé sans jamais bloquer la chaîne.

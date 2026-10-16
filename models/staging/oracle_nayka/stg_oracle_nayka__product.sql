@@ -45,7 +45,7 @@ cleaned_data as (
         cast(traceability_required as int64) as traceability_required,
         cast(made_up as int64) as made_up,
         cast(unsold as int64) as unsold,
-        weight,
+        cast(weight as float64) as weight,
 
         timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
         timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,

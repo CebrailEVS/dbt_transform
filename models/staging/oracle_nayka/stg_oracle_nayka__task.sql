@@ -46,7 +46,7 @@ cleaned_data as (
         cast(locked as int64) as locked,
         cast(isobligatory as int64) as isobligatory,
         cast(use_mois_comptable as int64) as use_mois_comptable,
-        cast(is_vat_paid as int64) as is_vat_paid,
+        cast(cast(is_vat_paid as int64) as bool) as is_vat_paid,
         cast(sequence as int64) as sequence,  -- noqa: RF04
 
         cast(realized_percentage as numeric) as realized_percentage,
@@ -63,10 +63,12 @@ cleaned_data as (
         timestamp(datetime(planed_end_date), 'Europe/Paris') as planed_end_date,
         timestamp(datetime(real_start_date), 'Europe/Paris') as real_start_date,
         timestamp(datetime(real_end_date), 'Europe/Paris') as real_end_date,
-        timestamp(datetime(application_start_date), 'Europe/Paris') as application_start_date,
-        timestamp(datetime(application_end_date), 'Europe/Paris') as application_end_date,
         timestamp(datetime(validation_date), 'Europe/Paris') as validation_date,
         timestamp(datetime(conversion_date), 'Europe/Paris') as conversion_date,
+
+        -- Période d'application en jours calendaires : début à minuit, fin à 23:59:59.
+        date(application_start_date) as application_start_date,
+        date(application_end_date) as application_end_date,
 
         timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
         timestamp(datetime(coalesce(modification_date, creation_date)), 'Europe/Paris') as updated_at,

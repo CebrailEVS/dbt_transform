@@ -19,7 +19,7 @@ cleaned_data as (
         cast(installment_days_number as int64) as installment_days_number,
         cast(installment_month_day_number as int64) as installment_month_day_number,
         cast(multiple_installment as int64) as multiple_installment,
-        is_active,
+        cast(is_active as bool) as is_active,
         timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
         timestamp(_extracted_at) as extracted_at
     from source_data

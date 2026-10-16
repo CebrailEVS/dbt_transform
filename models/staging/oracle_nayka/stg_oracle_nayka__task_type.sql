@@ -19,8 +19,8 @@ cleaned_data as (
         code_type,
         cast(coeff as int64) as coeff,
         cast(worked as int64) as worked,
-        cast(has_product as int64) as has_product,
-        cast(has_device as int64) as has_device,
+        cast(cast(has_product as int64) as bool) as has_product,
+        cast(cast(has_device as int64) as bool) as has_device,
         cast(use_exercice as int64) as use_exercice,
         timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
         timestamp(_extracted_at) as extracted_at
