@@ -14,8 +14,13 @@ de ses écrans, au lieu de charger des marts entiers et de tout recalculer de so
 - **un dataset par application** : `prod_app_<application>` (ex. `prod_app_cockpit_supply`), lu par
   le seul compte de service de l'application (moindre privilège). Le compte `powerbi` n'y a pas accès.
 
-Ce n'est pas un raccourci pour éviter un mart : une donnée utile à plusieurs consommateurs (BI et
-application) se modélise d'abord en mart, et le modèle `apps` s'appuie dessus (`ref()`).
+**Indépendance vis-à-vis des marts** : un modèle `apps` part du staging ou de l'intermediate de sa
+source, jamais d'une dim ni d'un fait. La BI et l'application sont deux usages distincts : une colonne
+demandée par l'app ne s'ajoute pas à une dim, et un changement de dim ne modifie pas l'app. Le prix est
+une logique parfois dupliquée (pivot de labels, par exemple), assumé.
+
+> Écarts connus, à corriger quand on touche le modèle : les modèles `apps` qui lisent encore un mart
+> (`grep -l "ref('dim_\|ref('fct_" models/apps/*/*.sql`).
 
 ## 2. Nommage
 
@@ -36,7 +41,7 @@ Toujours **explicite** dans `{{ config() }}` (le défaut du projet est `view`) :
 
 | Cas | Matérialisation |
 |---|---|
-| Sous-ensemble ou agrégat d'un mart, petit à moyen volume | `table` (partition sur la date filtrée par l'app, cluster sur ses clés de filtre) |
+| Sous-ensemble ou agrégat du staging ou de l'intermediate, petit à moyen volume | `table` (partition sur la date filtrée par l'app, cluster sur ses clés de filtre) |
 | Dérivé des tâches Oracle à gros volume | `incremental` (`merge`) : reconstruire ces tables en entier à chaque run intraday coûte cher |
 | Synthèse inter-BU | `view` |
 

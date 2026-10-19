@@ -420,7 +420,7 @@ models:
   - name: app_cockpit__neshu_machine
     description: |
       [QUOI MÉTIER] Référentiel des machines Neshu (actives ou non), tel que lu par l'application Cockpit Supply : préventives TechCare et écran Équipements en stock (machines en dépôt ou en atelier, avec n° de série, propriétaire, achat et réservation).
-      [COMMENT CONSTRUITE] dim_neshu__device réduite aux colonnes utilisées par ces deux écrans. Toutes les lignes, sans filtre de dépôt ni de statut.
+      [COMMENT CONSTRUITE] Construit depuis le staging, indépendamment de dim_neshu__device : stg_oracle_neshu__device (hors machines sans société de rattachement et hors ghost-deletes ERP), pivot des labels (stg_oracle_neshu__label_has_device, label, label_family) et stg_oracle_neshu__company pour le dépôt ou client et pour le propriétaire. Colonnes limitées à celles des deux écrans. Pas de filtre de dépôt ni de statut.
       [GRAIN] 1 ligne par device_id.
       [NOTES] lue via get_dim_devices_neshu ; écrans : technique_terrain, équipements en stock. Le dépôt d'une machine en stock est company_code / company_name (ex. DEPOTATELIERRUNGIS / « 06 - ATELIER RUNGIS DEPOT ») ; company_code se rapproche de destination_code de app_cockpit__neshu_commande_fournisseur. Les labels sont des codes ERP (device_material_status S = en stock), contrairement à LCDP qui expose des libellés. Les règles de l'app (dépôts retenus, statuts, exclusions) restent appliquées par l'app. Réservé à l'application.
     columns:
@@ -613,7 +613,7 @@ models:
   - name: app_cockpit__lcdp_machine
     description: |
       [QUOI MÉTIER] Référentiel des machines Cafés du Phare, tel que lu par l'application Cockpit Supply : comptage par approvisionneur et catégorie, et écran Équipements en stock (machines en dépôt, avec n° de série, propriétaire et achat).
-      [COMMENT CONSTRUITE] dim_lcdp__device réduite aux colonnes utilisées par ces deux écrans. Toutes les lignes, sans filtre de dépôt ni de statut.
+      [COMMENT CONSTRUITE] Construit depuis le staging, indépendamment de dim_lcdp__device : stg_oracle_lcdp__device (hors machines sans société de rattachement), libellés des labels (stg_oracle_lcdp__label_device), stg_oracle_lcdp__company pour le dépôt ou client et pour le propriétaire, roadman affecté via stg_oracle_lcdp__contact_has_device → contact → resources (type PERSON, code le plus petit si deux affectations). Colonnes limitées à celles des deux écrans. Pas de filtre de dépôt ni de statut.
       [GRAIN] 1 ligne par device_id.
       [NOTES] lue via get_dim_devices_lcdp ; écrans : lcdp_pilotage, équipements en stock. Le dépôt d'une machine en stock est company_code / company_name (DEPOT ATELIER, DEPOT NEUF, DEPOT CASSE, DEPOT BOUTIQUE). Les labels sont des libellés (device_material_status « EN STOCK »), contrairement à Neshu qui expose des codes. Pas de champ de réservation : la famille n'existe pas dans l'ERP LCDP. Les règles de l'app (dépôts retenus, statuts, exclusions) restent appliquées par l'app. Réservé à l'application.
     columns:
