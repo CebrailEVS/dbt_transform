@@ -57,6 +57,8 @@ exposures:
       - ref('app_cockpit__neshu_commande_fournisseur')
       - ref('app_cockpit__neshu_invendu')
       - ref('app_cockpit__neshu_valorisation_parc_machine')
+      - ref('app_cockpit__neshu_equipement_stock')
+      - ref('app_cockpit__nayka_equipement_stock')
       - ref('app_cockpit__lcdp_produit')
       - ref('app_cockpit__lcdp_machine')
       - ref('app_cockpit__lcdp_ressource')

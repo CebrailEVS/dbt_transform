@@ -138,3 +138,31 @@ seeds:
         description: "Groupement machine associé."
         tests:
           - not_null
+
+  - name: ref_oracle_neshu__classe_modele_machine
+    description: >
+      Classification des modèles de machine Neshu (type « Machine » de Distrilog) pour l'écran Équipements en
+      stock de Cockpit Supply, fournie par le Supply (Classification_modeles_machines_Neshu.xlsx). Machine
+      principale ; machine comptoir ou à monter (posée sur comptoir ou montée sur une tour selon la
+      configuration) ; module ou composant (ne compte pas comme une machine). Un modèle absent de la liste est
+      « à classer » côté app et se fait classer par le Supply.
+    config:
+      column_types:
+        model_code: STRING
+        model_name: STRING
+        classe_machine: STRING
+    columns:
+      - name: model_code
+        description: "Code produit du modèle (stg_oracle_neshu__product.code, modèle porté par les machines de type 1)."
+        tests:
+          - not_null
+          - unique
+      - name: model_name
+        description: "Nom du modèle, tel qu'écrit dans la classification du Supply."
+      - name: classe_machine
+        description: "Classe du modèle."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Machine principale', 'Machine (comptoir ou à monter)', 'Module / composant']
