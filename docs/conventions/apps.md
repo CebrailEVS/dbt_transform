@@ -17,10 +17,16 @@ de ses écrans, au lieu de charger des marts entiers et de tout recalculer de so
 **Indépendance vis-à-vis des marts** : un modèle `apps` part du staging ou de l'intermediate de sa
 source, jamais d'une dim ni d'un fait. La BI et l'application sont deux usages distincts : une colonne
 demandée par l'app ne s'ajoute pas à une dim, et un changement de dim ne modifie pas l'app. Le prix est
-une logique parfois dupliquée (pivot de labels, par exemple), assumé.
+une logique parfois dupliquée (pivot de labels, chaîne de prévision…), assumé : une évolution de règle se
+reporte dans les deux.
 
-> Écarts connus, à corriger quand on touche le modèle : les modèles `apps` qui lisent encore un mart
-> (`grep -l "ref('dim_\|ref('fct_" models/apps/*/*.sql`).
+Où mettre une logique lue par plusieurs modèles `apps` :
+- **une seule source** → un `int_<source>__*` (ex. `int_oracle_neshu__stock_theorique`,
+  `int_oracle_neshu__point_commande`) ;
+- **plusieurs sources** (interdit en intermediate) → un modèle `apps` d'étape, non lu par l'application
+  et dit comme tel dans `[NOTES]` (ex. `app_cockpit__technique_rupture_depot_jour`).
+
+Contrôle : `grep -l "ref('dim_\|ref('fct_" models/apps/*/*.sql` ne doit rien renvoyer.
 
 ## 2. Nommage
 

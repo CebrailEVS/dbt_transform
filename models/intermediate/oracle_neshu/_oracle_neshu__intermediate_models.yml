@@ -2059,3 +2059,69 @@ models:
         description: "TRUE quand stock_at_date = 0."
       - name: dpa
         description: "Dernier prix d'achat, repli sur purchase_price s'il manque."
+
+  - name: int_oracle_neshu__product
+    description: |
+      [QUOI MÉTIER] Articles Neshu avec leurs labels métier et leur typologie standardisée, socle produit de la chaîne supply de l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] stg_oracle_neshu__product (types 1 et 5, hors ghost-deletes, date de création renseignée — celle du produit 1 reprise de sa modification), pivot des labels de stg_oracle_neshu__label_has_product (MARQUEP, PROPRIETAIRE, FAMILLE, BIO, PLANOETE, PLANOHIVER, HPALME, CLASSABC, EXPLOIT, GROUPE, LPTYPE, ISACTIVE), product_type standardisé, unité d'achat de stg_oracle_neshu__product_unit (idunit_type = 1 active).
+      [GRAIN] 1 ligne par product_id.
+      [NOTES] Même logique que dim_neshu__product, dupliquée volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). Une évolution de règle se reporte dans les deux. Le produit 1 est « indéfini » : tous ses attributs valent INDEFINI.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['product_id']
+
+  - name: int_oracle_neshu__classification_article
+    description: |
+      [QUOI MÉTIER] Classification article × dépôt pour le forecast et le réappro Neshu : comportement de demande (ADI / CV²), cycle de vie, ABC en valeur, saisonnalité, et méthode de prévision qui en découle.
+      [COMMENT CONSTRUITE] int_oracle_neshu__demande_mensuelle sur les 3 dépôts qui commandent au fournisseur (Rungis, Lyon, Marseille, depuis stg_oracle_neshu__company), articles Neshu de int_oracle_neshu__product hors familles non consommables et BADGENESHU, calendrier ref_general__calendrier_saison.
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
+      [NOTES] Même logique que fct_supply_chain__classification_article_neshu, dupliquée volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). Une évolution de règle se reporte dans les deux.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['company_id', 'product_id']
+
+  - name: int_oracle_neshu__prevision_demande
+    description: |
+      [QUOI MÉTIER] Prévision de demande mensuelle et journalière par dépôt et article Neshu, selon la méthode routée par la classification.
+      [COMMENT CONSTRUITE] int_oracle_neshu__classification_article × int_oracle_neshu__demande_mensuelle : moyenne des N derniers mois complets (var prevision_nb_mois_moyenne), référence saisonnière N-1, naïf ou 0 si exclu.
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
+      [NOTES] Même logique que fct_supply_chain__prevision_demande_neshu, dupliquée volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). Une évolution de règle se reporte dans les deux.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['company_id', 'product_id']
+
+  - name: int_oracle_neshu__erreur_prevision
+    description: |
+      [QUOI MÉTIER] Backtest « prévision rejouée vs réel » des articles Neshu : pour chaque mois cible passé, les trois méthodes de prévision rejouées sans voir le futur, comparées à la demande réelle.
+      [COMMENT CONSTRUITE] int_oracle_neshu__classification_article × int_oracle_neshu__demande_mensuelle, mois cibles depuis janvier 2024, couple pris à partir de son premier mois de demande.
+      [GRAIN] 1 ligne par (mois_cible, company_id, product_id) — reconstruit intégralement à chaque build.
+      [NOTES] Même logique que fct_supply_chain__erreur_prevision_neshu, dupliquée volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). Une évolution de règle se reporte dans les deux. prevision_retenue route selon la classification actuelle.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['mois_cible', 'company_id', 'product_id']
+
+  - name: int_oracle_neshu__point_commande
+    description: |
+      [QUOI MÉTIER] Point de commande Neshu par dépôt et article : stock de sécurité, quantité à commander et feu tricolore de réappro.
+      [COMMENT CONSTRUITE] int_oracle_neshu__prevision_demande, stock du dernier snapshot de int_oracle_neshu__stock_theorique (Strasbourg rattaché à Lyon), encours de int_oracle_neshu__commande_fournisseur_tasks, délais de int_oracle_neshu__reception_tasks, σ et biais d'erreur de int_oracle_neshu__erreur_prevision, conditionnement de int_oracle_neshu__product. Paramètres en var() dbt (z_service_*, encours_max_jours, revue_jours, sigma_erreur_min_mois, surstock_semaines*).
+      [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
+      [NOTES] Même logique que fct_supply_chain__point_commande_neshu, dupliquée volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). Une évolution de règle se reporte dans les deux. biais_mensuel peut différer du mart d'un centième (ordre de sommation flottante de avg()).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['company_id', 'product_id']
+
+  - name: int_oracle_neshu__couverture_stock
+    description: |
+      [QUOI MÉTIER] Couverture de stock des dépôts Neshu en jours, par rapport à la consommation du même mois l'an dernier, avec statut et quantité à commander.
+      [COMMENT CONSTRUITE] Stock du dernier jour de int_oracle_neshu__stock_theorique (hors rebus et périmés), sorties clients (int_oracle_neshu__livraison_tasks) et vers véhicules (int_oracle_neshu__livraison_interne_tasks) sur une fenêtre N-1 ± 1 mois, articles de int_oracle_neshu__product hors arrêtés.
+      [GRAIN] 1 ligne par (date_calcul, company_id, product_code).
+      [NOTES] Même logique que fct_supply_chain__couverture_stock_neshu, dupliquée volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). Une évolution de règle se reporte dans les deux.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['date_calcul', 'company_id', 'product_code']

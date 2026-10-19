@@ -12,4 +12,4 @@ select
     adi,
     cv2,
     valeur_12m
-from {{ ref('fct_supply_chain__classification_article_neshu') }}
+from {{ ref('int_oracle_neshu__classification_article') }}

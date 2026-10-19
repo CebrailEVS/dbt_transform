@@ -13,4 +13,4 @@ select
     conso_mensuelle_moy_n1,
     jours_couverture,
     qte_a_commander
-from {{ ref('fct_supply_chain__couverture_stock_neshu') }}
+from {{ ref('int_oracle_neshu__couverture_stock') }}
