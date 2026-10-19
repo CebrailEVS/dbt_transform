@@ -12,4 +12,4 @@ select
     adi,
     cv2,
     valeur_12m
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__classification_article_neshu`
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__classification_article`

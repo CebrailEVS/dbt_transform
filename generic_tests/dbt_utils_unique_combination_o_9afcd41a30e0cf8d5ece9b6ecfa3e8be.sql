@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["product_id"], model=get_where_subquery(ref('int_oracle_neshu__product'))) }}

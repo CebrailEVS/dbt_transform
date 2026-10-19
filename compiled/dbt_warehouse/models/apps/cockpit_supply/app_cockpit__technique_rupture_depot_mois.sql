@@ -18,7 +18,7 @@ with normalisees as (
     when starts_with(trim(reference), 'TWYD') or starts_with(trim(reference), 'TYWD') then 'TYWD'
     when starts_with(trim(reference), 'AUUM_') then 'AUUM'
 end as fournisseur
-    from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__rupture_depot_yuman`
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_rupture_depot_jour`
     where stock_date >= date_trunc(date_sub(current_date('Europe/Paris'), interval 1 year), year)
 )
 select

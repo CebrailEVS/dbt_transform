@@ -15,7 +15,7 @@ with lignes as (
         coalesce(qty_depot, 0) as qty_depot,
         coalesce(qty_vans_depot, 0) as qty_vans_depot,
         coalesce(is_out_of_stock_depot, false) as is_out_of_stock_depot
-    from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__rupture_depot_yuman`
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_rupture_depot_jour`
     where stock_date >= date_trunc(date_sub(current_date('Europe/Paris'), interval 1 year), year)
 ),
 normalisees as (

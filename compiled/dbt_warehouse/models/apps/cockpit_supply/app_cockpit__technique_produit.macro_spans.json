@@ -31,24 +31,24 @@
         "start": {
           "line": 10,
           "col": 6,
-          "index": 285
+          "index": 276
         },
         "stop": {
           "line": 10,
-          "col": 41,
-          "index": 320
+          "col": 38,
+          "index": 308
         }
       },
       "expanded_span": {
         "start": {
           "line": 10,
           "col": 6,
-          "index": 251
+          "index": 242
         },
         "stop": {
           "line": 10,
-          "col": 64,
-          "index": 309
+          "col": 63,
+          "index": 299
         }
       }
     }

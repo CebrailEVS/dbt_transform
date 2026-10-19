@@ -8,7 +8,7 @@ with lignes as (
         date_inventaire,
         stock_at_date,
         stock_inventaire
-    from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__stock_neshu`
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__stock_theorique`
     where
         date_inventaire is not null
         and date_system is not null

@@ -13,4 +13,4 @@ select
     conso_mensuelle_moy_n1,
     jours_couverture,
     qte_a_commander
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__couverture_stock_neshu`
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__couverture_stock`

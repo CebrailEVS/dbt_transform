@@ -1,6 +1,7 @@
 
 
--- Référentiel des articles Neshu, pour Cockpit Supply : seules les colonnes lues par l'app.
+-- Référentiel des articles Neshu pour Cockpit Supply, construit depuis l'intermediate (pas la dim) :
+-- seules les colonnes lues par l'app.
 select
     product_id,
     product_code,
@@ -16,4 +17,4 @@ select
     product_hpalme,
     product_bio,
     is_active
-from `evs-datastack-prod`.`prod_marts`.`dim_neshu__product`
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__product`

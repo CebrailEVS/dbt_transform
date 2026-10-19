@@ -17,4 +17,4 @@ select
     prevision_naive,
     erreur,
     erreur_absolue
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__erreur_prevision_neshu`
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__erreur_prevision`
