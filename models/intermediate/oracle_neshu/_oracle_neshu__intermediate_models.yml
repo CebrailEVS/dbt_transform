@@ -2041,3 +2041,21 @@ models:
         description: "Somme des dotations des sous-équipements encore en cours d'amortissement. Mesure additive."
       - name: montant_amortissement_eur
         description: "Machine + sous-équipements. Mesure additive."
+
+  - name: int_oracle_neshu__stock_theorique
+    description: |
+      [QUOI MÉTIER] Stock théorique journalier des produits Neshu, par véhicule roadman et par dépôt produits, préparé pour l'application Cockpit Supply indépendamment des marts.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_neshu_gcs__stock_theorique. Dépôts retenus : 01 à 05, 10 et 13 (entity_type = 'company') ; ressources de type VEHICLE hors ghost-deletes (entity_type = 'resource'), ce qui écarte la PERSON présente dans le stock. is_vehicle_active vient du label ISACTIVE de stg_oracle_neshu__resources (état courant, non filtrant), NULL pour les dépôts. is_out_of_stock dérivé de stock_at_date = 0. dpa repli sur purchase_price si manquant.
+      [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code).
+      [NOTES] Même logique que fct_supply_chain__stock_neshu, dupliquée volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). entity_type fait partie du grain : idcompany et idresources viennent de deux séquences Oracle distinctes. plus/moins = cumuls d'entrées/sorties depuis le dernier inventaire physique. date_system porte l'heure du batch ; filtrer sur snapshot_date.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['snapshot_date', 'entity_type', 'id_entity', 'product_code']
+    columns:
+      - name: is_vehicle_active
+        description: "Véhicule actif (label ISACTIVE = YES) : état COURANT de la ressource, non historisé, non filtrant. NULL pour un dépôt."
+      - name: is_out_of_stock
+        description: "TRUE quand stock_at_date = 0."
+      - name: dpa
+        description: "Dernier prix d'achat, repli sur purchase_price s'il manque."
