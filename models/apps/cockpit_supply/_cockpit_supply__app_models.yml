@@ -417,6 +417,114 @@ models:
           - not_null
           - unique
 
+  - name: app_cockpit__neshu_equipement_stock
+    description: |
+      [QUOI MÉTIER] Équipements Neshu en stock pour l'écran Supply « Équipements en stock » de Cockpit Supply : machines et terminaux de paiement présents dans les dépôts et ateliers, avec leur statut (disponible, réservé, à remettre en état, inactif à investiguer, rebut), leur valeur, leur ancienneté en stock et les contrôles qualité de la donnée ; plus les machines commandées et pas encore reçues.
+      [COMMENT CONSTRUITE] Depuis le staging, sans les marts. Équipements : stg_oracle_neshu__device de type Machine (1) ou paiement (4), rattachés aux dépôts 01, 06, 07, 08, 09, 10 (rebut), 11 (remise en état), 13 et 14 ; labels ISACTIVE, EQUIPEMENT_RESERVE et MARQUE ; modèle et prix de fiche article par stg_oracle_neshu__product ; classe du modèle par le seed ref_oracle_neshu__classe_modele_machine (classification du Supply). Commandes : int_oracle_neshu__commande_fournisseur_tasks sur les produits d'équipement (type 4), faites ou validées, livraison EN_ATTENTE ou LIVRE_PARTIEL ; reçu = lignes de BL fournisseur (stg_oracle_neshu__task_has_product, type 121) qui pointent vers la ligne de commande (idtask_has_product_associed).
+      [GRAIN] 1 ligne par ligne_id : un équipement (device_id) ou une ligne de commande non soldée.
+      [NOTES] Règles validées avec le Supply : statut = Rebut au dépôt 10, Inactif hors rebut (à investiguer) si inactif ailleurs, À remettre en état si actif au 11, Réservé si label EQUIPEMENT_RESERVE = OUI, Disponible sinon ; une commande de plus de 12 mois est « À solder ». Catégorie : un module ou composant sans parent est « Composant en stock », rattaché à un parent « Composant rattaché » ; un modèle absent de la classification est « À classer ». Doublons de code contrôlés sur tout le parc, doublons de série entre équipements actifs du périmètre. Réservé à l'application.
+    columns:
+      - name: ligne_id
+        description: "Clé de la ligne : equipement-<device_id> ou commande-<ligne de commande>."
+        tests:
+          - not_null
+          - unique
+      - name: ligne_type
+        description: "equipement = équipement présent dans un dépôt ; commande = ligne de commande fournisseur d'équipement non soldée."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['equipement', 'commande']
+      - name: categorie
+        description: "Machine principale, Machine (comptoir ou à monter), Composant en stock (module ou composant sans parent), Composant rattaché, Terminal de paiement, À classer (modèle absent de la classification du Supply)."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Machine principale', 'Machine (comptoir ou à monter)', 'Composant en stock', 'Composant rattaché', 'Terminal de paiement', 'À classer']
+              config:
+                severity: warn
+      - name: is_compte_machine
+        description: "TRUE pour une machine principale ou une machine comptoir ou à monter : seules ces lignes comptent comme machines. Composants et terminaux sont comptés à part."
+      - name: statut
+        description: "Disponible, Réservé, À remettre en état (actif au dépôt 11), Inactif hors rebut (à investiguer), Rebut ; pour une commande : Commandé, ou À solder si elle a plus de 12 mois."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Disponible', 'Réservé', 'À remettre en état', 'Inactif hors rebut (à investiguer)', 'Rebut', 'Commandé', 'À solder']
+              config:
+                severity: warn
+      - name: client_reservataire
+        description: "Commentaire ERP de l'équipement quand il est réservé : client et échéance y sont saisis. NULL sinon."
+      - name: owner_categorie
+        description: "Catégorie du propriétaire : EVS, Nestlé, Nespresso, Fournisseur (société de type fournisseur), Client, Non renseigné."
+      - name: date_entree_stock
+        description: "Date de dernière installation (Distrilog « installe » la machine au dépôt), sinon date d'achat. NULL pour une ligne de commande."
+      - name: anciennete_jours
+        description: "Jours écoulés depuis date_entree_stock, calculés au build (date de Paris)."
+      - name: quantite
+        description: "1 pour un équipement ; reste à recevoir (commandé − reçu) pour une ligne de commande. Les tuiles se calculent en sommant quantite et valeur."
+      - name: valeur
+        description: "Équipement : prix d'achat de la machine, sinon prix de la fiche article du modèle. Commande : reste à recevoir × prix de la commande (sinon prix du modèle). Un prix à 0 est traité comme absent."
+      - name: source_prix
+        description: "Origine de valeur : machine, modèle, commande ou aucun (valeur NULL)."
+      - name: has_anomalie
+        description: "TRUE si au moins un contrôle is_* est vrai (code ou série en double, inactif hors rebut, actif au rebut, sans propriétaire, sans série, équipement au dépôt produits, machine rattachée à un parent, incohérence de statut parent / enfant). Toujours FALSE pour une ligne de commande."
+
+  - name: app_cockpit__nayka_equipement_stock
+    description: |
+      [QUOI MÉTIER] Équipements Nayka en stock pour l'écran Supply « Équipements en stock » de Cockpit Supply : fontaines et terminaux de paiement présents dans les dépôts, avec leur statut, leur réservation (client et échéance), leur valeur, leur ancienneté et les contrôles qualité ; plus les équipements commandés et pas encore reçus.
+      [COMMENT CONSTRUITE] Depuis le staging Nayka, sans les marts. Équipements : stg_oracle_nayka__device de type Machine (1) ou paiement (4) rattachés à DEPOTLOGISTIQUERUNGIS, DEPOTLOGISTIQUEDARDILLY (stock), MARKETING (hors stock) et DEPOTREBUT (rebut) ; labels de stg_oracle_nayka__v_label_device (ISACTIVE, EQUIPEMENT_RESERVE, MARQUE_FOURNISSEUR). Commandes : tâches COMMANDE FOURNISSEUR faites ou validées, label STATUT_LIVRAISON EN_ATTENTE ou LIVRE_PARTIEL, produits d'équipement (type 4), destination dans ces dépôts ; reçu = lignes de BL FOURNISSEUR liées à la ligne de commande.
+      [GRAIN] 1 ligne par ligne_id : un équipement (device_id) ou une ligne de commande non soldée.
+      [NOTES] Mêmes colonnes et mêmes règles que app_cockpit__neshu_equipement_stock, pour que l'app puisse empiler les deux. Pas de dépôt de remise en état ni de dépôt produits chez Nayka. Catégorie PROVISOIRE en attendant la classification des modèles par le Supply : type Machine = machine principale, Accessoire = composant. DEPOTREBUT n'existe pas encore dans l'ERP : il sera pris en compte dès sa création. Réservé à l'application.
+    columns:
+      - name: ligne_id
+        description: "Clé de la ligne : equipement-<device_id> ou commande-<ligne de commande>."
+        tests:
+          - not_null
+          - unique
+      - name: ligne_type
+        description: "equipement = équipement présent dans un dépôt ; commande = ligne de commande fournisseur d'équipement non soldée."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['equipement', 'commande']
+      - name: categorie
+        description: "Machine principale (provisoire : tout le type Machine), Composant en stock, Terminal de paiement, À classer."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Machine principale', 'Composant en stock', 'Terminal de paiement', 'À classer']
+              config:
+                severity: warn
+      - name: is_compte_machine
+        description: "TRUE pour une machine principale ou une machine comptoir ou à monter : seules ces lignes comptent comme machines. Composants et terminaux sont comptés à part."
+      - name: statut
+        description: "Disponible, Réservé, À remettre en état (actif au dépôt 11), Inactif hors rebut (à investiguer), Rebut ; pour une commande : Commandé, ou À solder si elle a plus de 12 mois. Hors stock (marketing) au dépôt MARKETING."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Disponible', 'Réservé', 'À remettre en état', 'Inactif hors rebut (à investiguer)', 'Rebut', 'Commandé', 'À solder', 'Hors stock (marketing)']
+              config:
+                severity: warn
+      - name: client_reservataire
+        description: "Commentaire ERP de l'équipement quand il est réservé : client et échéance y sont saisis. NULL sinon."
+      - name: owner_categorie
+        description: "Catégorie du propriétaire : Nayka (société interne), Fournisseur, Client, Non renseigné."
+      - name: date_entree_stock
+        description: "Date de dernière installation (Distrilog « installe » la machine au dépôt), sinon date d'achat. NULL pour une ligne de commande."
+      - name: anciennete_jours
+        description: "Jours écoulés depuis date_entree_stock, calculés au build (date de Paris)."
+      - name: quantite
+        description: "1 pour un équipement ; reste à recevoir (commandé − reçu) pour une ligne de commande. Les tuiles se calculent en sommant quantite et valeur."
+      - name: valeur
+        description: "Équipement : prix d'achat de la machine, sinon prix de la fiche article du modèle. Commande : reste à recevoir × prix de la commande (sinon prix du modèle). Un prix à 0 est traité comme absent."
+      - name: source_prix
+        description: "Origine de valeur : machine, modèle, commande ou aucun (valeur NULL)."
+      - name: has_anomalie
+        description: "TRUE si au moins un contrôle is_* est vrai (code ou série en double, inactif hors rebut, actif au rebut, sans propriétaire, sans série, équipement au dépôt produits, machine rattachée à un parent, incohérence de statut parent / enfant). Toujours FALSE pour une ligne de commande."
+
   - name: app_cockpit__neshu_machine
     description: |
       [QUOI MÉTIER] Référentiel des machines Neshu (actives ou non), tel que lu par l'application Cockpit Supply : préventives TechCare et écran Équipements en stock (machines en dépôt ou en atelier, avec n° de série, propriétaire, achat et réservation).
