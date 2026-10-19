@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="statut", model=get_where_subquery(ref('app_cockpit__nayka_equipement_stock')), values=["Disponible","Réservé","À remettre en état","Inactif hors rebut (à investiguer)","Rebut","Commandé","À solder","Hors stock (marketing)"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="categorie", model=get_where_subquery(ref('app_cockpit__neshu_equipement_stock')), values=["Machine principale","Machine (comptoir ou à monter)","Composant en stock","Composant rattaché","Terminal de paiement","À classer"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="classe_machine", model=get_where_subquery(ref('ref_oracle_neshu__classe_modele_machine')), values=["Machine principale","Machine (comptoir ou à monter)","Module / composant"]) }}

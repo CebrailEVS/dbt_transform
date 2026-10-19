@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="ligne_type", model=get_where_subquery(ref('app_cockpit__nayka_equipement_stock')), values=["equipement","commande"]) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="classe_machine", model=get_where_subquery(ref('ref_oracle_neshu__classe_modele_machine'))) }}

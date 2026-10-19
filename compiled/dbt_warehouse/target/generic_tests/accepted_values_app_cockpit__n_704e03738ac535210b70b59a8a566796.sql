@@ -1,0 +1,22 @@
+
+    
+    
+
+with all_values as (
+
+    select
+        ligne_type as value_field,
+        count(*) as n_records
+
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_stock`
+    group by ligne_type
+
+)
+
+select *
+from all_values
+where value_field not in (
+    'equipement','commande'
+)
+
+

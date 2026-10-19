@@ -1,0 +1,1 @@
+{{ test_unique(column_name="ligne_id", model=get_where_subquery(ref('app_cockpit__nayka_equipement_stock'))) }}
