@@ -419,15 +419,35 @@ models:
 
   - name: app_cockpit__neshu_machine
     description: |
-      [QUOI MÉTIER] Référentiel des machines Neshu (actives ou non, pour les préventives TechCare), tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_neshu__device réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [QUOI MÉTIER] Référentiel des machines Neshu (actives ou non), tel que lu par l'application Cockpit Supply : préventives TechCare et écran Équipements en stock (machines en dépôt ou en atelier, avec n° de série, propriétaire, achat et réservation).
+      [COMMENT CONSTRUITE] dim_neshu__device réduite aux colonnes utilisées par ces deux écrans. Toutes les lignes, sans filtre de dépôt ni de statut.
       [GRAIN] 1 ligne par device_id.
-      [NOTES] lue via get_dim_devices_neshu ; écrans : technique_terrain. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
+      [NOTES] lue via get_dim_devices_neshu ; écrans : technique_terrain, équipements en stock. Le dépôt d'une machine en stock est company_code / company_name (ex. DEPOTATELIERRUNGIS / « 06 - ATELIER RUNGIS DEPOT ») ; company_code se rapproche de destination_code de app_cockpit__neshu_commande_fournisseur. Les labels sont des codes ERP (device_material_status S = en stock), contrairement à LCDP qui expose des libellés. Les règles de l'app (dépôts retenus, statuts, exclusions) restent appliquées par l'app. Réservé à l'application.
     columns:
       - name: device_id
         tests:
           - not_null
           - unique
+      - name: device_serial_number
+        description: "Numéro de série constructeur, distinct de device_code (AS/MA/SP) et non unique : une machine assemblée (AS) reprend celui de sa machine de base (MA)."
+      - name: company_code
+        description: "Code du client ou du dépôt qui détient la machine (ex. DEPOTATELIERRUNGIS)."
+      - name: company_name
+        description: "Nom du client ou du dépôt ; les dépôts sont numérotés (« 06 - ATELIER RUNGIS DEPOT », « 10 - REBUS DEPOT »)."
+      - name: owner_company_name
+        description: "Société propriétaire de la machine (EVS, NESTLE, un client…)."
+      - name: device_state
+        description: "NEUF ou OCCASION (label ETAT_MACHINE)."
+      - name: device_material_status
+        description: "Code ERP du statut matériel : S = en stock, NULL sinon (label STATUT_MATERIEL)."
+      - name: device_comment
+        description: "Commentaire libre saisi dans l'ERP ; pour une machine réservée, porte le client et l'échéance."
+      - name: is_reserved
+        description: "Machine réservée pour un client (label EQUIPEMENT_RESERVE = OUI). FALSE partout tant que la famille n'est pas créée dans l'ERP Neshu."
+      - name: purchase_date
+        description: "Date d'achat de la machine."
+      - name: purchase_cost
+        description: "Prix d'achat saisi dans l'ERP ; 0 fréquent (non saisi ou nul, la source ne distingue pas)."
 
   - name: app_cockpit__neshu_couverture_stock
     description: |
@@ -592,15 +612,33 @@ models:
 
   - name: app_cockpit__lcdp_machine
     description: |
-      [QUOI MÉTIER] Référentiel des machines Cafés du Phare (comptage par approvisionneur et catégorie), tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_lcdp__device réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [QUOI MÉTIER] Référentiel des machines Cafés du Phare, tel que lu par l'application Cockpit Supply : comptage par approvisionneur et catégorie, et écran Équipements en stock (machines en dépôt, avec n° de série, propriétaire et achat).
+      [COMMENT CONSTRUITE] dim_lcdp__device réduite aux colonnes utilisées par ces deux écrans. Toutes les lignes, sans filtre de dépôt ni de statut.
       [GRAIN] 1 ligne par device_id.
-      [NOTES] lue via get_dim_devices_lcdp ; écrans : lcdp_pilotage. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
+      [NOTES] lue via get_dim_devices_lcdp ; écrans : lcdp_pilotage, équipements en stock. Le dépôt d'une machine en stock est company_code / company_name (DEPOT ATELIER, DEPOT NEUF, DEPOT CASSE, DEPOT BOUTIQUE). Les labels sont des libellés (device_material_status « EN STOCK »), contrairement à Neshu qui expose des codes. Pas de champ de réservation : la famille n'existe pas dans l'ERP LCDP. Les règles de l'app (dépôts retenus, statuts, exclusions) restent appliquées par l'app. Réservé à l'application.
     columns:
       - name: device_id
         tests:
           - not_null
           - unique
+      - name: device_serial_number
+        description: "Numéro de série constructeur, distinct de device_code et non garanti unique."
+      - name: company_code
+        description: "Code du client ou du dépôt qui détient la machine."
+      - name: company_name
+        description: "Nom du client ou du dépôt (ex. DEPOT ATELIER)."
+      - name: owner_company_name
+        description: "Société propriétaire de la machine ; NULL sur la quasi-totalité du parc (peu saisi dans l'ERP LCDP)."
+      - name: device_state
+        description: "État de la machine (label ETAT_MACHINE, libellé)."
+      - name: device_material_status
+        description: "Statut matériel en libellé : EN STOCK, EN EXPLOITATION, CASSE… (label STATUT_MATERIEL)."
+      - name: device_comment
+        description: "Commentaire libre saisi dans l'ERP."
+      - name: purchase_date
+        description: "Date d'achat ; 1900-01-01 sur quelques machines (date factice de la source)."
+      - name: purchase_cost
+        description: "Prix d'achat saisi dans l'ERP ; 0 fréquent, et au moins une saisie aberrante (M7243) à exclure avant toute somme."
 
   - name: app_cockpit__lcdp_ressource
     description: |
