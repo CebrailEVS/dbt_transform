@@ -17,4 +17,4 @@ select
     prevision_naive,
     erreur,
     erreur_absolue
-from {{ ref('fct_supply_chain__erreur_prevision_neshu') }}
+from {{ ref('int_oracle_neshu__erreur_prevision') }}

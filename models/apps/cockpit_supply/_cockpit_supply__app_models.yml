@@ -10,7 +10,7 @@ models:
   - name: app_cockpit__neshu_stock_photo
     description: |
       [QUOI MÉTIER] Photos de stock Neshu dont l'application Cockpit Supply a besoin : pour chaque série (entité × article) et chaque mois, la dernière photo (stock de fin de mois, ou photo courante pour le mois en cours) et la première (repli de l'app quand la photo de fin de mois manque).
-      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_neshu : lignes dont snapshot_date est le min ou le max de la série (entity_type, id_entity, product_code) dans son mois. Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
+      [COMMENT CONSTRUITE] Sous-ensemble de int_oracle_neshu__stock_theorique (même contenu que fct_supply_chain__stock_neshu, sans dépendre du mart) : lignes dont snapshot_date est le min ou le max de la série (entity_type, id_entity, product_code) dans son mois. Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
       [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code), comme la table source, sur environ 2 jours par série et par mois.
       [NOTES] L'app applique elle-même ses règles de fin de mois (api, stock_snapshot_fin_mois) : ce modèle ne fait que lui fournir les jours nécessaires, d'où des chiffres strictement identiques. Bornes calculées PAR SÉRIE et non par jour global : l'app cherche la photo d'un groupe dans les seules lignes de ce groupe, et une série arrêtée en cours de mois (cas réel : café torréfié au dépôt VERT) doit garder sa dernière ligne. date_system tombe toujours le jour de snapshot_date. Les véhicules inactifs ne sont pas filtrés (l'app applique son propre filtre). Réservé à l'application : ne pas brancher de rapport Power BI dessus.
     columns:
@@ -68,7 +68,7 @@ models:
   - name: app_cockpit__lcdp_stock_photo
     description: |
       [QUOI MÉTIER] Photos de stock Cafés du Phare dont l'application Cockpit Supply a besoin : pour chaque série (entité × article) et chaque mois, la dernière et la première photo.
-      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_lcdp : lignes dont snapshot_date est le min ou le max de la série (entity_type, id_entity, product_code) dans son mois (même construction que app_cockpit__neshu_stock_photo). Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
+      [COMMENT CONSTRUITE] Sous-ensemble de int_oracle_lcdp__stock_theorique (même contenu que fct_supply_chain__stock_lcdp, sans dépendre du mart) : lignes dont snapshot_date est le min ou le max de la série (entity_type, id_entity, product_code) dans son mois (même construction que app_cockpit__neshu_stock_photo). Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
       [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code), sur environ 2 jours par mois.
       [NOTES] Règles de fin de mois, prix effectif et kg appliqués par l'app (api/lcdp.py). date_system tombe toujours le jour de snapshot_date. Réservé à l'application.
     columns:
@@ -126,7 +126,7 @@ models:
   - name: app_cockpit__neshu_inventaire_transition
     description: |
       [QUOI MÉTIER] Changements de date d'inventaire par entité Neshu et par article : chaque nouvel inventaire physique, avec le stock théorique de la veille. Alimente les indicateurs ISO « fréquence des inventaires » et « fiabilité des stocks » de Cockpit Supply.
-      [COMMENT CONSTRUITE] Historique journalier de fct_supply_chain__stock_neshu (lignes à date_inventaire et date_system renseignées, véhicules marqués inactifs exclus comme dans l'app), ordonné par date_system au sein de (entity_code, product_code) ; on garde la première ligne de chaque série et chaque ligne où date_inventaire change, avec la date d'inventaire et le stock théorique de la ligne précédente (LAG).
+      [COMMENT CONSTRUITE] Historique journalier de int_oracle_neshu__stock_theorique (lignes à date_inventaire et date_system renseignées, véhicules marqués inactifs exclus comme dans l'app), ordonné par date_system au sein de (entity_code, product_code) ; on garde la première ligne de chaque série et chaque ligne où date_inventaire change, avec la date d'inventaire et le stock théorique de la ligne précédente (LAG).
       [GRAIN] 1 ligne par (entity_code, product_code, date_system), restreinte aux premières lignes et aux changements de date d'inventaire.
       [NOTES] Reproduit exactement le calcul pandas de l'app (api/processus.py) qui exigeait tout l'historique journalier en mémoire : fréquence = nombre de dates d'inventaire distinctes par entité et par mois ; fiabilité = écart entre stock_at_date_precedent et stock_inventaire sur les lignes où is_premiere_ligne est faux. Liste des véhicules hors motif ^V\d+ (ARKEMA, STRASBOURG, RATP) reprise de la config de l'app (DESTINATIONS_VEHICULES_EXTRA). Réservé à l'application.
     columns:
@@ -164,7 +164,7 @@ models:
   - name: app_cockpit__neshu_chargement
     description: |
       [QUOI MÉTIER] Chargements machines Neshu validés (articles chargés par les approvisionneurs dans les distributeurs), avec le client et la machine. Alimente les écrans Cockpit Supply « Contrôle des conditionnements », « Clients », flux des véhicules et bilan mensuel.
-      [COMMENT CONSTRUITE] int_oracle_neshu__chargement_tasks filtrée sur les statuts FAIT et VALIDE (config.STATUS_VALIDES de l'app), jointe à dim_neshu__company (company_name) et dim_neshu__device (device_name, device_brand) sur leurs identifiants. Colonnes reprises sans transformation.
+      [COMMENT CONSTRUITE] int_oracle_neshu__chargement_tasks filtrée sur les statuts FAIT et VALIDE (config.STATUS_VALIDES de l'app), enrichie depuis le staging du nom du client (stg_oracle_neshu__company, types 1, 2, 4 et 6 hors ghost-deletes) et du nom et de la marque de la machine (stg_oracle_neshu__device et label MARQUE, machines rattachées hors ghost-deletes). Colonnes reprises sans transformation.
       [GRAIN] 1 ligne par task_product_id (article d'un bordereau de chargement).
       [NOTES] L'app envoie des requêtes filtrées et ne reçoit que les résultats. Partition mensuelle sur task_start_date (heure de Paris, contrat de sortie gold), clustering vehicle_code / task_id (filtre véhicule, détail d'un bordereau). Champs du bordereau (date, véhicule, approvisionneur, client, machine) constants par task_id. Réservé à l'application.
     columns:
@@ -325,7 +325,7 @@ models:
   - name: app_cockpit__technique_stock_photo
     description: |
       [QUOI MÉTIER] Photos de stock TechCare (dépôts ateliers et vans des techniciens) dont l'application Cockpit Supply a besoin : la photo du début de chaque mois (stocks d'ouverture et de clôture des flux) et la dernière photo de chaque zone dans chaque mois (stock courant, fin de mois des dépôts, CODIR).
-      [COMMENT CONSTRUITE] Sous-ensemble de fct_supply_chain__stock_yuman : toutes les lignes des jours qui sont soit le premier jour de photo du mois (toutes zones confondues), soit le dernier jour de photo de leur zone (colonne stock) dans le mois. Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
+      [COMMENT CONSTRUITE] Sous-ensemble du stock Yuman (stg_yuman_evs_sftp__stock_theorique, lignes à référence et zone renseignées) : toutes les lignes des jours qui sont soit le premier jour de photo du mois (toutes zones confondues), soit le dernier jour de photo de leur zone (colonne stock) dans le mois. Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
       [GRAIN] Celui de la source : 1 ligne par (stock_date, stock, reference), avec les quelques doublons de la source (l'app les additionne), sur environ 2 jours par zone et par mois.
       [NOTES] Bornes par ZONE et non par (zone × article) : chez Yuman une ligne absente vaut stock 0, une référence sortie d'une zone en cours de mois doit disparaître de sa photo de fin de mois (différence volontaire avec app_cockpit__neshu_stock_photo). Les règles de date restent appliquées par l'app ; ce modèle lui fournit seulement les jours nécessaires, d'où des chiffres identiques. Réservé à l'application.
     columns:
@@ -357,7 +357,7 @@ models:
   - name: app_cockpit__technique_stock_van
     description: |
       [QUOI MÉTIER] Stock quotidien des vans des techniciens TechCare, pièces présentes seulement. Sert à Cockpit Supply pour savoir, jour par jour, combien de vans actifs d'un dépôt détiennent une pièce en rupture au dépôt (taux de service historisé).
-      [COMMENT CONSTRUITE] Lignes de fct_supply_chain__stock_yuman dont la zone commence par « ST - » et dont la quantité est positive (filtre ligne à ligne), additionnées par (stock_date, stock, reference).
+      [COMMENT CONSTRUITE] Lignes du stock Yuman (stg_yuman_evs_sftp__stock_theorique, référence et zone renseignées) dont la zone commence par « ST - » et dont la quantité est positive (filtre ligne à ligne), additionnées par (stock_date, stock, reference).
       [GRAIN] 1 ligne par (stock_date, stock, reference).
       [NOTES] La correspondance van → dépôt et le choix des vans actifs restent dans l'app (référentiel des techniciens) : elle les passe en paramètres d'une requête qui regroupe par dépôt, fournisseur et article. Partition mensuelle sur stock_date. Réservé à l'application.
     columns:
@@ -383,7 +383,7 @@ models:
   - name: app_cockpit__technique_reference
     description: |
       [QUOI MÉTIER] Références connues du stock TechCare sur tout l'historique. Sert à Cockpit Supply pour retrouver la référence complète (EVS_NESPRESSO_ ou EVS_NESP_) d'un code article court, et donc son prix.
-      [COMMENT CONSTRUITE] Références distinctes de fct_supply_chain__stock_yuman.
+      [COMMENT CONSTRUITE] Références distinctes du stock Yuman (stg_yuman_evs_sftp__stock_theorique, référence et zone renseignées).
       [GRAIN] 1 ligne par reference.
       [NOTES] Toutes zones et tous jours : une référence vue un seul jour compte (elle change le préfixe retenu). Réservé à l'application.
     columns:
@@ -396,7 +396,7 @@ models:
   - name: app_cockpit__neshu_produit
     description: |
       [QUOI MÉTIER] Référentiel des articles Neshu, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_neshu__product réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] int_oracle_neshu__product (même contenu que dim_neshu__product : articles de type 1 et 5, typologie standardisée) réduite aux colonnes lues par l'app. Toutes les lignes.
       [GRAIN] 1 ligne par product_id.
       [NOTES] lue via get_dim_products, get_produits_actifs ; écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, lcdp_distrib, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, nunshen_partenaires, supply, technique_partenaires, v2_nav, v2_system. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -408,7 +408,7 @@ models:
   - name: app_cockpit__neshu_societe
     description: |
       [QUOI MÉTIER] Référentiel des sociétés Neshu (clients, fournisseurs, dépôts), tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_neshu__company réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] stg_oracle_neshu__company filtrée comme la dim (types 1, 2, 4 et 6, hors ghost-deletes) ; is_depot = type 6. Colonnes lues par l'app seulement.
       [GRAIN] 1 ligne par company_id.
       [NOTES] lue via get_commande_fournisseur, get_dim_company, get_livraison, get_reception ; écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, lcdp_distrib, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, nunshen_partenaires, supply, technique_partenaires, v2_nav, v2_system. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -420,7 +420,7 @@ models:
   - name: app_cockpit__neshu_machine
     description: |
       [QUOI MÉTIER] Référentiel des machines Neshu (actives ou non), tel que lu par l'application Cockpit Supply : préventives TechCare et écran Équipements en stock (machines en dépôt ou en atelier, avec n° de série, propriétaire, achat et réservation).
-      [COMMENT CONSTRUITE] dim_neshu__device réduite aux colonnes utilisées par ces deux écrans. Toutes les lignes, sans filtre de dépôt ni de statut.
+      [COMMENT CONSTRUITE] Construit depuis le staging, indépendamment de dim_neshu__device : stg_oracle_neshu__device (hors machines sans société de rattachement et hors ghost-deletes ERP), pivot des labels (stg_oracle_neshu__label_has_device, label, label_family) et stg_oracle_neshu__company pour le dépôt ou client et pour le propriétaire. Colonnes limitées à celles des deux écrans. Pas de filtre de dépôt ni de statut.
       [GRAIN] 1 ligne par device_id.
       [NOTES] lue via get_dim_devices_neshu ; écrans : technique_terrain, équipements en stock. Le dépôt d'une machine en stock est company_code / company_name (ex. DEPOTATELIERRUNGIS / « 06 - ATELIER RUNGIS DEPOT ») ; company_code se rapproche de destination_code de app_cockpit__neshu_commande_fournisseur. Les labels sont des codes ERP (device_material_status S = en stock), contrairement à LCDP qui expose des libellés. Les règles de l'app (dépôts retenus, statuts, exclusions) restent appliquées par l'app. Réservé à l'application.
     columns:
@@ -452,7 +452,7 @@ models:
   - name: app_cockpit__neshu_couverture_stock
     description: |
       [QUOI MÉTIER] Couverture de stock des dépôts Neshu, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] fct_supply_chain__couverture_stock_neshu réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] int_oracle_neshu__couverture_stock (copie applicative de fct_supply_chain__couverture_stock_neshu) réduite aux colonnes lues par l'app. Toutes les lignes.
       [GRAIN] 1 ligne par (date_calcul, company_id, product_code).
       [NOTES] lue via get_couverture ; écrans : _conformite, _pilotage, accueil, groupe, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, supply, v2_nav, v2_system. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     tests:
@@ -463,7 +463,7 @@ models:
   - name: app_cockpit__neshu_disponibilite_depot_mensuel
     description: |
       [QUOI MÉTIER] Disponibilité mensuelle des articles dans les dépôts Neshu, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] fct_supply_chain__disponibilite_article_neshu_depot_mensuel réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] Agrégat mensuel de int_oracle_neshu__stock_theorique sur les dépôts : jours observés, jours sans rupture, taux en % ; code dépôt du dernier jour du mois. Même calcul que fct_supply_chain__disponibilite_article_neshu_depot_mensuel.
       [GRAIN] 1 ligne par (mois, dépôt, article).
       [NOTES] lue via get_disponibilite ; écrans : _conformite, accueil, groupe, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, supply, v2_nav. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     tests:
@@ -474,7 +474,7 @@ models:
   - name: app_cockpit__neshu_disponibilite_vehicule_mensuel
     description: |
       [QUOI MÉTIER] Disponibilité mensuelle des articles dans les véhicules Neshu, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] fct_supply_chain__disponibilite_article_neshu_vehicule_mensuel réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] Agrégat mensuel de int_oracle_neshu__stock_theorique sur les véhicules : jours observés et jours sans rupture ; libellés et statut du véhicule du dernier jour du mois. Même calcul que fct_supply_chain__disponibilite_article_neshu_vehicule_mensuel.
       [GRAIN] 1 ligne par (mois, véhicule, article).
       [NOTES] lue via get_disponibilite_vehicule ; écrans : neshu_terrain. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     tests:
@@ -485,7 +485,7 @@ models:
   - name: app_cockpit__neshu_point_commande
     description: |
       [QUOI MÉTIER] Point de commande Neshu (« Commandes à passer »), tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] fct_supply_chain__point_commande_neshu réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] int_oracle_neshu__point_commande (copie applicative de fct_supply_chain__point_commande_neshu) réduite aux colonnes lues par l'app. Toutes les lignes.
       [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build, aligné sur la classification ② et la prévision ③.
       [NOTES] lue via get_articles_arretes_avec_stock_neshu, get_point_commande_neshu ; écrans : _conformite, _pilotage, _planappro, accueil, groupe, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, supply, v2_nav, v2_system. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     tests:
@@ -496,7 +496,7 @@ models:
   - name: app_cockpit__neshu_classification_article
     description: |
       [QUOI MÉTIER] Classification de la demande des articles Neshu (ADI / CV², saisonnalité), tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] fct_supply_chain__classification_article_neshu réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] int_oracle_neshu__classification_article (copie applicative de fct_supply_chain__classification_article_neshu) réduite aux colonnes lues par l'app. Toutes les lignes.
       [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
       [NOTES] lue via get_point_commande_neshu ; écrans : _conformite, _pilotage, _planappro, accueil, groupe, neshu_conformite, neshu_controles, neshu_partenaires, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, supply, v2_nav, v2_system. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     tests:
@@ -507,7 +507,7 @@ models:
   - name: app_cockpit__neshu_erreur_prevision
     description: |
       [QUOI MÉTIER] Erreur de prévision mensuelle des articles Neshu, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] fct_supply_chain__erreur_prevision_neshu réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] int_oracle_neshu__erreur_prevision (copie applicative de fct_supply_chain__erreur_prevision_neshu) réduite aux colonnes lues par l'app. Toutes les lignes.
       [GRAIN] 1 ligne par (mois_cible, company_id, product_id) — full rebuild quotidien.
       [NOTES] lue via get_erreur_prevision_neshu ; écrans : _conformite, groupe, neshu_prevision, supply, v2_nav. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     tests:
@@ -601,7 +601,7 @@ models:
   - name: app_cockpit__lcdp_produit
     description: |
       [QUOI MÉTIER] Référentiel des articles Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_lcdp__product réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] stg_oracle_lcdp__product filtrée comme la dim (types 1 et 5, date de création renseignée), libellés de stg_oracle_lcdp__label_product. Colonnes lues par l'app seulement.
       [GRAIN] 1 ligne par product_id.
       [NOTES] lue via get_dim_products_lcdp, get_produits_actifs_lcdp ; écrans : _flux, _pilotage, accueil, lcdp_distrib, lcdp_pilotage, lcdp_torrefaction, neshu_partenaires, nunshen_partenaires, supply, technique_partenaires. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -613,7 +613,7 @@ models:
   - name: app_cockpit__lcdp_machine
     description: |
       [QUOI MÉTIER] Référentiel des machines Cafés du Phare, tel que lu par l'application Cockpit Supply : comptage par approvisionneur et catégorie, et écran Équipements en stock (machines en dépôt, avec n° de série, propriétaire et achat).
-      [COMMENT CONSTRUITE] dim_lcdp__device réduite aux colonnes utilisées par ces deux écrans. Toutes les lignes, sans filtre de dépôt ni de statut.
+      [COMMENT CONSTRUITE] Construit depuis le staging, indépendamment de dim_lcdp__device : stg_oracle_lcdp__device (hors machines sans société de rattachement), libellés des labels (stg_oracle_lcdp__label_device), stg_oracle_lcdp__company pour le dépôt ou client et pour le propriétaire, roadman affecté via stg_oracle_lcdp__contact_has_device → contact → resources (type PERSON, code le plus petit si deux affectations). Colonnes limitées à celles des deux écrans. Pas de filtre de dépôt ni de statut.
       [GRAIN] 1 ligne par device_id.
       [NOTES] lue via get_dim_devices_lcdp ; écrans : lcdp_pilotage, équipements en stock. Le dépôt d'une machine en stock est company_code / company_name (DEPOT ATELIER, DEPOT NEUF, DEPOT CASSE, DEPOT BOUTIQUE). Les labels sont des libellés (device_material_status « EN STOCK »), contrairement à Neshu qui expose des codes. Pas de champ de réservation : la famille n'existe pas dans l'ERP LCDP. Les règles de l'app (dépôts retenus, statuts, exclusions) restent appliquées par l'app. Réservé à l'application.
     columns:
@@ -643,7 +643,7 @@ models:
   - name: app_cockpit__lcdp_ressource
     description: |
       [QUOI MÉTIER] Référentiel des ressources Cafés du Phare (véhicules), tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_lcdp__resource réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] stg_oracle_lcdp__resources de type PERSON ou VEHICLE (stg_oracle_lcdp__resources_type). Colonnes lues par l'app seulement.
       [GRAIN] 1 ligne par resources_id.
       [NOTES] lue via get_dim_resources_lcdp ; écrans : _flux, lcdp_distrib, lcdp_torrefaction, supply. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -655,7 +655,7 @@ models:
   - name: app_cockpit__lcdp_societe
     description: |
       [QUOI MÉTIER] Référentiel des sociétés Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_lcdp__company réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] stg_oracle_lcdp__company filtrée comme la dim (types 1, 2, 4 et 6). Colonnes lues par l'app seulement.
       [GRAIN] 1 ligne par company_id.
       [NOTES] lue via get_livraison_lcdp, get_reception_lcdp ; écrans : _conformite, _flux, _pilotage, accueil, groupe, lcdp_distrib, lcdp_pilotage, lcdp_torrefaction, neshu_partenaires, nunshen_partenaires, supply, technique_partenaires, v2_nav. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -667,7 +667,7 @@ models:
   - name: app_cockpit__lcdp_disponibilite_depot_mensuel
     description: |
       [QUOI MÉTIER] Disponibilité mensuelle des articles dans les dépôts Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] fct_supply_chain__disponibilite_article_lcdp_depot_mensuel réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] Agrégat mensuel de int_oracle_lcdp__stock_theorique sur les dépôts : jours observés, jours sans rupture, taux en % ; code dépôt du dernier jour du mois. Même calcul que fct_supply_chain__disponibilite_article_lcdp_depot_mensuel.
       [GRAIN] 1 ligne par (mois, dépôt, article).
       [NOTES] lue via get_disponibilite_lcdp ; écrans : supply. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     tests:
@@ -762,7 +762,7 @@ models:
   - name: app_cockpit__technique_technicien
     description: |
       [QUOI MÉTIER] Référentiel des techniciens TechCare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_technique__technician réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière), dont le dépôt de rattachement et le nom du stock du technicien (rattachement des mouvements « ST - … » au dépôt, à la place de l'import manuel « Export des utilisateurs »). Toutes les lignes.
+      [COMMENT CONSTRUITE] stg_yuman__users filtrée sur les techniciens (type technician, ou manager déclaré technicien), jointe à stg_yuman__storehouses ; colonnes lues par l'app, dont le dépôt de rattachement et le nom du stock du technicien (rattachement des mouvements « ST - … » au dépôt, à la place de l'import manuel « Export des utilisateurs »). Toutes les lignes.
       [GRAIN] 1 ligne par `user_id` (PK Yuman du technicien).
       [NOTES] lue via get_dim_technicians ; écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -801,7 +801,7 @@ models:
   - name: app_cockpit__technique_produit
     description: |
       [QUOI MÉTIER] Référentiel des articles TechCare (pièces interdites / obligatoires), tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] dim_technique__product réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] stg_yuman__products réduite aux colonnes lues par l'app. Toutes les lignes.
       [GRAIN] 1 ligne par `product_id` (PK).
       [NOTES] lue via _get_dim_technique_product ; écrans : _conformite, _flux, _planappro, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -813,7 +813,7 @@ models:
   - name: app_cockpit__technique_prix_nespresso
     description: |
       [QUOI MÉTIER] Prix unitaire de chaque pièce détachée Nespresso (système Nomad), utilisé par Cockpit Supply pour valoriser la consommation et le stock TechCare.
-      [COMMENT CONSTRUITE] Couples distincts (piece_ref_nomad, piece_prix_unitaire) de fct_technique__piece_detachee_pricing_nespresso, prix renseignés.
+      [COMMENT CONSTRUITE] Couples distincts (piece_ref_nomad, piece_prix_unitaire) du seed ref_nesp_tech__articles_prix pour les pièces posées lors des interventions « terminée signée » / « signature différée » des agences EVS (int_nesp_tech__articles_dedup, int_nesp_tech__interventions_dedup), prix renseignés.
       [GRAIN] 1 ligne par piece_ref_nomad (un seul prix par référence dans la source).
       [NOTES] Les noms et numéros des techniciens, inutiles à l'app, ne sont pas repris. Réservé à l'application.
     columns:
@@ -827,7 +827,7 @@ models:
   - name: app_cockpit__technique_conso_nespresso_mensuelle
     description: |
       [QUOI MÉTIER] Pièces Nespresso posées par les techniciens TechCare, par mois, référence et technicien. Base de tous les calculs mensuels de Cockpit Supply sur Nespresso : consommation par dépôt et par technicien, index saisonnier, facturation, forecast, ABC/XYZ.
-      [COMMENT CONSTRUITE] fct_technique__consommation_article_nespresso filtrée comme l'app (interventions « terminée signée » / « terminée non signée », date renseignée, codes de main-d'œuvre 0000001 et 0000100 exclus), agrégée par mois (date_heure_debut en UTC), référence normalisée (majuscules, sans espaces) et technician_id ; quantité sommée, libellé (unique par mois et référence).
+      [COMMENT CONSTRUITE] Agrégat de app_cockpit__technique_conso_nespresso_detail, donc filtré comme l'app (interventions « terminée signée » / « terminée non signée », date renseignée, codes de main-d'œuvre 0000001 et 0000100 exclus), agrégée par mois (date_heure_debut en UTC), référence normalisée (majuscules, sans espaces) et technician_id ; quantité sommée, libellé (unique par mois et référence).
       [GRAIN] 1 ligne par (mois, product_reference, technician_id), technician_id NULL compris.
       [NOTES] Le rattachement technicien → dépôt / nom et la valorisation restent dans l'app (référentiels et prix hors BigQuery) ; l'app regroupe ensuite au grain (mois, référence, dépôt). Réservé à l'application.
     tests:
@@ -838,7 +838,7 @@ models:
   - name: app_cockpit__technique_conso_nespresso_detail
     description: |
       [QUOI MÉTIER] Pièces Nespresso posées par les techniciens TechCare, ligne à ligne.
-      [COMMENT CONSTRUITE] Mêmes filtres que app_cockpit__technique_conso_nespresso_mensuelle, sans agrégation ; référence normalisée en product_reference, code_article brut conservé.
+      [COMMENT CONSTRUITE] int_nesp_tech__articles_dedup × int_nesp_tech__interventions_dedup (agences EVS), technicien retrouvé par son matricule Nomad dans stg_yuman__users ; interventions « terminée signée » / « terminée non signée », date renseignée, codes de main-d'œuvre 0000001 et 0000100 exclus ; référence normalisée en product_reference, code_article brut conservé.
       [GRAIN] 1 ligne par pièce posée lors d'une intervention (celui de la source).
       [NOTES] Jamais chargée en mémoire : l'app l'interroge à la demande (détail d'un mois pour l'export du flux TechCare, conso jour par jour d'une référence sur 12 mois glissants). Partition mensuelle sur date_heure_debut, clustering product_reference. Réservé à l'application.
     columns:
@@ -853,10 +853,21 @@ models:
       [GRAIN] 1 ligne par couple (demand_id, workorder_id) de la source, restreinte aux interventions ci-dessus.
       [NOTES] Les règles de l'app (machine actives, clients génériques exclus, statut de préventive selon la date du jour) restent dans l'app. Réservé à l'application.
 
+  - name: app_cockpit__technique_rupture_depot_jour
+    description: |
+      [QUOI MÉTIER] Rupture quotidienne de chaque référence attendue dans chaque dépôt TechCare, étape commune aux modèles rupture_depot_* de l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Même calcul que fct_supply_chain__rupture_depot_yuman, refait sans les marts : assortiment attendu = références consommées au moins 2 fois sur les 180 jours précédents par les techniciens du dépôt (bons Yuman réalisés ou en cours, via stg_yuman__workorder_products et int_yuman__demands_workorders_enriched ; poses Nespresso des agences EVS, via int_nesp_tech__*), hors pseudo-articles ; stock du jour ventilé dépôt / vans depuis stg_yuman_evs_sftp__stock_theorique ; techniciens et vans depuis stg_yuman__users et stg_yuman__storehouses.
+      [GRAIN] 1 ligne par (stock_date, depot, reference).
+      [NOTES] Étape interne : l'app lit les modèles rupture_depot_courant, _jour_vide et _mois, pas celui-ci. Une ligne absente de l'export Yuman vaut stock zéro. rupture_statut NULL si en stock ; STOCK_AILLEURS est informatif (pas de transfert inter-dépôt en pratique).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['stock_date', 'depot', 'reference']
+
   - name: app_cockpit__technique_rupture_depot_courant
     description: |
       [QUOI MÉTIER] Ruptures des dépôts TechCare au dernier jour connu : statut du jour des tuiles Dépôt, ISO et Vue d'ensemble de Cockpit Supply.
-      [COMMENT CONSTRUITE] Lignes de fct_supply_chain__rupture_depot_yuman au stock_date maximal, colonnes techniques exclues.
+      [COMMENT CONSTRUITE] Lignes de app_cockpit__technique_rupture_depot_jour au stock_date maximal.
       [GRAIN] 1 ligne par (depot, reference) au dernier stock_date.
       [NOTES] Dernière photo seulement, pas l'historique complet. Réservé à l'application.
     tests:
@@ -867,7 +878,7 @@ models:
   - name: app_cockpit__technique_rupture_depot_jour_vide
     description: |
       [QUOI MÉTIER] Jours où un dépôt TechCare n'a plus une référence en stock (seuls jours susceptibles d'être une rupture de service) : numérateur des taux de disponibilité de Cockpit Supply (tendance dépôt, disponibilité par article, CODIR).
-      [COMMENT CONSTRUITE] fct_supply_chain__rupture_depot_yuman depuis le 1er janvier N-1, références de fournisseur connu (macro cockpit_fournisseur_rupture_tech), code article (macro cockpit_code_article_rupture_tech), lignes à qty_depot <= 0 seulement.
+      [COMMENT CONSTRUITE] app_cockpit__technique_rupture_depot_jour depuis le 1er janvier N-1, références de fournisseur connu (macro cockpit_fournisseur_rupture_tech), code article (macro cockpit_code_article_rupture_tech), lignes à qty_depot <= 0 seulement.
       [GRAIN] 1 ligne par (stock_date, depot, reference).
       [NOTES] La règle de l'app (qualifier_rupture_tech) ne compte jamais en rupture un jour où le dépôt a du stock : ces jours ne servent qu'au dénominateur, compté dans app_cockpit__technique_rupture_depot_mois. L'app qualifie ces lignes (présence dans les vans actifs, filtre d'activité, pièces interdites). Réservé à l'application.
     tests:

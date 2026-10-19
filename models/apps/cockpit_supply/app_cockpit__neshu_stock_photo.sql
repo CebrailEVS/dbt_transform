@@ -17,7 +17,7 @@ with series as (
         *,
         snapshot_date = max(snapshot_date) over par_serie_mois as is_derniere_photo_mois,
         snapshot_date = min(snapshot_date) over par_serie_mois as is_premiere_photo_mois
-    from {{ ref('fct_supply_chain__stock_neshu') }}
+    from {{ ref('int_oracle_neshu__stock_theorique') }}
     window par_serie_mois as (
         partition by entity_type, id_entity, product_code, date_trunc(snapshot_date, month)
     )

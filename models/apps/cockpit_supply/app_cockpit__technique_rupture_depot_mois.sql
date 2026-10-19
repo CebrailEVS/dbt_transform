@@ -10,7 +10,7 @@ with normalisees as (
         depot,
         trim(reference) as reference,
         {{ cockpit_fournisseur_rupture_tech('trim(reference)') }} as fournisseur
-    from {{ ref('fct_supply_chain__rupture_depot_yuman') }}
+    from {{ ref('app_cockpit__technique_rupture_depot_jour') }}
     where stock_date >= date_trunc(date_sub(current_date('Europe/Paris'), interval 1 year), year)
 )
 select

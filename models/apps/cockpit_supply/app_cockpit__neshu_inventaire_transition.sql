@@ -11,7 +11,7 @@ with lignes as (
         date_inventaire,
         stock_at_date,
         stock_inventaire
-    from {{ ref('fct_supply_chain__stock_neshu') }}
+    from {{ ref('int_oracle_neshu__stock_theorique') }}
     where
         date_inventaire is not null
         and date_system is not null

@@ -31,4 +31,4 @@ select
     quantite_a_commander_conditionnee,
     date_calcul,
     is_article_arrete_avec_stock
-from {{ ref('fct_supply_chain__point_commande_neshu') }}
+from {{ ref('int_oracle_neshu__point_commande') }}

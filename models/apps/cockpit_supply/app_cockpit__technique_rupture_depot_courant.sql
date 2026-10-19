@@ -4,7 +4,7 @@
 -- Dépôt, ISO, Vue d'ensemble). L'app y applique ses règles (fournisseur, code article).
 with derniere as (
     select max(stock_date) as stock_date
-    from {{ ref('fct_supply_chain__rupture_depot_yuman') }}
+    from {{ ref('app_cockpit__technique_rupture_depot_jour') }}
 )
 select
     r.stock_date,
@@ -20,6 +20,6 @@ select
     r.qty_vans_total,
     r.qty_autres_depots,
     r.nb_conso_180j
-from {{ ref('fct_supply_chain__rupture_depot_yuman') }} as r
+from {{ ref('app_cockpit__technique_rupture_depot_jour') }} as r
 inner join derniere as d
     on r.stock_date = d.stock_date
