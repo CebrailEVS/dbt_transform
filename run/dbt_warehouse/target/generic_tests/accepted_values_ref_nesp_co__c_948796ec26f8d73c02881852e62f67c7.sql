@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        classe_machine as value_field,
+        co_statut as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_reference`.`ref_oracle_neshu__classe_modele_machine`
-    group by classe_machine
+    from `evs-datastack-prod`.`prod_reference`.`ref_nesp_co__commerciaux`
+    group by co_statut
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'Machine principale','Machine (comptoir ou à monter)','Module / composant'
+    'Actif','Inactif'
 )
 
 

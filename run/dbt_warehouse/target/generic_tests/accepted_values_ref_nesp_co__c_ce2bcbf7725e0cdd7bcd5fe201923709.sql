@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        statut as value_field,
+        co_fonction as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_equipement_stock`
-    group by statut
+    from `evs-datastack-prod`.`prod_reference`.`ref_nesp_co__commerciaux`
+    group by co_fonction
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'Disponible','Réservé','À remettre en état','Inactif hors rebut (à investiguer)','Inactif','Rebut','Commandé','À solder'
+    'ALL','alternant rs','commercial','commercial','fidelisation','manager'
 )
 
 

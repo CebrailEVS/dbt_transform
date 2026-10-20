@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select ligne_id as unique_field
-  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_stock`
-  where ligne_id is not null
+  select co_secteur as unique_field
+  from `evs-datastack-prod`.`prod_reference`.`ref_nesp_co__commerciaux`
+  where co_secteur is not null
 
 )
 
