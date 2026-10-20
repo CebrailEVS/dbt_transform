@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="type_commande", model=get_where_subquery(ref('app_cockpit__neshu_commande_delai')), values=["INTERNE","CLIENT"]) }}

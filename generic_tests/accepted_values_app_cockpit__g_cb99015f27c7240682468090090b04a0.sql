@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="calendrier", model=get_where_subquery(ref('app_cockpit__general_calendrier_ouvre')), values=["METROPOLE","ALSACE_MOSELLE"]) }}

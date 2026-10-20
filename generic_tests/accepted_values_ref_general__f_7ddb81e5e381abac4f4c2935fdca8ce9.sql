@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="nom_jour_ferie", model=get_where_subquery(ref('ref_general__feries_alsace_moselle')), values=["vendredi_saint","saint_etienne"]) }}

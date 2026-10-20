@@ -1,0 +1,1 @@
+{{ test_unique(column_name="date_ferie", model=get_where_subquery(ref('ref_general__feries_alsace_moselle'))) }}

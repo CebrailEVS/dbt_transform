@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="motif_exclusion", model=get_where_subquery(ref('app_cockpit__lcdp_commande_delai')), values=["ANNULEE","HORS_CHARGEMENT_VEHICULE","PREPARATION_SANS_MOBILE"]) }}

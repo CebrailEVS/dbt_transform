@@ -26,6 +26,8 @@ cleaned_data as (
         -- Colonnes numériques
         cast(purchase_unit_price as float64) as purchase_unit_price,
         cast(average_purchase_price as float64) as average_purchase_price,
+        -- 1 = article géré en stock (un badge ou un crédit de badge ne l'est pas)
+        cast(stock_management as int64) as stock_management,
 
         -- Timestamps harmonisés
         timestamp(datetime(creation_date), 'Europe/Paris') as created_at,
