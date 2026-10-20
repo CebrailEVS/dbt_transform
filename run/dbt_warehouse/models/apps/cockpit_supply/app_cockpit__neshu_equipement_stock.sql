@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] \u00c9quipements Neshu en stock pour l'\u00e9cran Supply \u00ab \u00c9quipements en stock \u00bb de Cockpit Supply : machines et terminaux de paiement pr\u00e9sents dans les d\u00e9p\u00f4ts et ateliers, avec leur statut (disponible, r\u00e9serv\u00e9, \u00e0 remettre en \u00e9tat, inactif \u00e0 investiguer, rebut), leur valeur, leur anciennet\u00e9 en stock et les contr\u00f4les qualit\u00e9 de la donn\u00e9e ; plus les machines command\u00e9es et pas encore re\u00e7ues.\n[COMMENT CONSTRUITE] Depuis le staging, sans les marts. \u00c9quipements : stg_oracle_neshu__device de type Machine (1) ou paiement (4), rattach\u00e9s aux d\u00e9p\u00f4ts 01, 06, 07, 08, 09, 10 (rebut), 11 (remise en \u00e9tat), 13 et 14 ; labels ISACTIVE, EQUIPEMENT_RESERVE et MARQUE ; mod\u00e8le et prix de fiche article par stg_oracle_neshu__product ; classe du mod\u00e8le par le seed ref_oracle_neshu__classe_modele_machine (classification du Supply). Commandes : int_oracle_neshu__commande_fournisseur_tasks sur les produits d'\u00e9quipement (type 4), faites ou valid\u00e9es, livraison EN_ATTENTE ou LIVRE_PARTIEL ; re\u00e7u = lignes de BL fournisseur (stg_oracle_neshu__task_has_product, type 121) qui pointent vers la ligne de commande (idtask_has_product_associed).\n[GRAIN] 1 ligne par ligne_id : un \u00e9quipement (device_id) ou une ligne de commande non sold\u00e9e.\n[NOTES] R\u00e8gles valid\u00e9es avec le Supply : statut = Rebut au d\u00e9p\u00f4t 10, Inactif hors rebut (\u00e0 investiguer) si inactif ailleurs, \u00c0 remettre en \u00e9tat si actif au 11, R\u00e9serv\u00e9 si label EQUIPEMENT_RESERVE = OUI, Disponible sinon ; une commande de plus de 12 mois est \u00ab \u00c0 solder \u00bb. Cat\u00e9gorie : un module ou composant sans parent est \u00ab Composant en stock \u00bb, rattach\u00e9 \u00e0 un parent \u00ab Composant rattach\u00e9 \u00bb ; un mod\u00e8le absent de la classification est \u00ab \u00c0 classer \u00bb. Doublons de code contr\u00f4l\u00e9s sur tout le parc, doublons de s\u00e9rie entre \u00e9quipements actifs du p\u00e9rim\u00e8tre. R\u00e9serv\u00e9 \u00e0 l'application.\n"""
+      description="""[QUOI M\u00c9TIER] \u00c9quipements Neshu en stock pour l'\u00e9cran Supply \u00ab \u00c9quipements en stock \u00bb de Cockpit Supply : machines et terminaux de paiement pr\u00e9sents dans les d\u00e9p\u00f4ts et ateliers, avec leur statut (disponible, r\u00e9serv\u00e9, \u00e0 remettre en \u00e9tat, inactif \u00e0 investiguer, rebut), leur valeur, leur anciennet\u00e9 en stock et les contr\u00f4les qualit\u00e9 de la donn\u00e9e ; plus les machines command\u00e9es et pas encore re\u00e7ues.\n[COMMENT CONSTRUITE] Depuis le staging, sans les marts. \u00c9quipements : stg_oracle_neshu__device de type Machine (1) ou paiement (4), rattach\u00e9s aux d\u00e9p\u00f4ts 01, 06, 07, 08, 09, 10 (rebut), 11 (remise en \u00e9tat), 13 et 14 ; labels ISACTIVE, EQUIPEMENT_RESERVE et MARQUE ; mod\u00e8le et prix de fiche article par stg_oracle_neshu__product ; classe du mod\u00e8le par le seed ref_oracle_neshu__classe_modele_machine (classification du Supply). Commandes : int_oracle_neshu__commande_fournisseur_tasks sur les produits d'\u00e9quipement (type 4), faites ou valid\u00e9es, livraison EN_ATTENTE ou LIVRE_PARTIEL ; re\u00e7u = lignes de BL fournisseur (stg_oracle_neshu__task_has_product, type 121) qui pointent vers la ligne de commande (idtask_has_product_associed).\n[GRAIN] 1 ligne par ligne_id : un \u00e9quipement (device_id) ou une ligne de commande non sold\u00e9e.\n[NOTES] R\u00e8gles valid\u00e9es avec le Supply : statut = Rebut au d\u00e9p\u00f4t 10, Inactif hors rebut (\u00e0 investiguer) si inactif ailleurs, \u00c0 remettre en \u00e9tat si actif au 11, R\u00e9serv\u00e9 si label EQUIPEMENT_RESERVE = OUI, Disponible sinon ; une commande de plus de 12 mois est \u00ab \u00c0 solder \u00bb. Un terminal de paiement inactif est \u00ab Inactif \u00bb, sans anomalie. Cat\u00e9gorie : la classe du mod\u00e8le (seed) prime sur le type Distrilog, d'o\u00f9 RHEA IRDA (module de relev\u00e9 infrarouge typ\u00e9 paiement) en composant ; un module ou composant sans parent est \u00ab Composant en stock \u00bb, rattach\u00e9 \u00e0 un parent \u00ab Composant rattach\u00e9 \u00bb ; un mod\u00e8le absent de la classification est \u00ab \u00c0 classer \u00bb. Valeur : valeur_comptee ne retient que le mat\u00e9riel propri\u00e9t\u00e9 d'EVS (et les commandes) ; valeur reste affich\u00e9e pour information. Doublons de code contr\u00f4l\u00e9s sur tout le parc, doublons de s\u00e9rie entre \u00e9quipements actifs du p\u00e9rim\u00e8tre. R\u00e9serv\u00e9 \u00e0 l'application.\n"""
     )
     as (
       
@@ -117,6 +117,9 @@ equipement as (
         -- Entrée en stock = dernière installation (Distrilog l'« installe » au dépôt), sinon date d'achat.
         coalesce(date(d.last_installation_date, 'Europe/Paris'), d.purchase_date) as date_entree_stock,
         d.device_iddevice is not null as is_rattache_parent,
+        -- Terminal de paiement = type paiement de Distrilog, sauf modèle classé composant par le Supply
+        -- (RHEA IRDA : module de relevé infrarouge, typé paiement dans l'ERP).
+        d.iddevice_type = 4 and coalesce(cl.classe_machine, '') != 'Module / composant' as is_terminal_paiement,
         countif(pc.is_active) over (partition by d.iddevice_type, pc.serial) as nb_actifs_meme_serie,
         coalesce(par.is_active = false and pc.is_active, false) as is_actif_sous_parent_inactif
     from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__device` as d
@@ -155,14 +158,16 @@ equipement_qualifie as (
     select
         e.*,
         case
-            when e.device_type_id = 4 then 'Terminal de paiement'
             when e.classe_modele = 'Module / composant' and e.is_rattache_parent then 'Composant rattaché'
             when e.classe_modele = 'Module / composant' then 'Composant en stock'
+            when e.is_terminal_paiement then 'Terminal de paiement'
             when e.classe_modele is not null then e.classe_modele
             else 'À classer'
         end as categorie,
+        -- Un terminal inactif n'est pas une anomalie (règle du Supply) : statut « Inactif », à part.
         case
             when e.depot_role = 'rebut' then 'Rebut'
+            when not e.is_active and e.is_terminal_paiement then 'Inactif'
             when not e.is_active then 'Inactif hors rebut (à investiguer)'
             when e.depot_role = 'remise_en_etat' then 'À remettre en état'
             when e.is_reserved then 'Réservé'
@@ -171,7 +176,7 @@ equipement_qualifie as (
         -- Contrôles qualité de la donnée (règles validées avec le Supply).
         cg.code is not null as is_code_double,
         e.serial_number is not null and e.is_active and e.nb_actifs_meme_serie > 1 as is_serie_double,
-        not e.is_active and e.depot_role != 'rebut' as is_inactif_hors_rebut,
+        not e.is_active and e.depot_role != 'rebut' and not e.is_terminal_paiement as is_inactif_hors_rebut,
         e.is_active and e.depot_role = 'rebut' as is_actif_au_rebut,
         e.owner_name is null as is_sans_proprietaire,
         e.serial_number is null as is_sans_serie,
@@ -283,6 +288,9 @@ select
     prix_achat_machine,
     prix_achat_modele,
     coalesce(prix_achat_machine, prix_achat_modele) as valeur,
+    -- Seul le matériel propriété d'EVS entre dans les totaux de valeur ; les autres propriétaires sont
+    -- affichés en quantité, leur valeur à titre d'information (règle du Supply).
+    if(owner_categorie = 'EVS', coalesce(prix_achat_machine, prix_achat_modele), 0) as valeur_comptee,
     case
         when prix_achat_machine is not null then 'machine'
         when prix_achat_modele is not null then 'modèle'
@@ -315,8 +323,8 @@ select
     cast(null as int64) as device_type_id,
     classe_modele,
     case
-        when type_modele = 4 then 'Terminal de paiement'
         when classe_modele = 'Module / composant' then 'Composant en stock'
+        when type_modele = 4 then 'Terminal de paiement'
         when classe_modele is not null then classe_modele
         else 'À classer'
     end as categorie,
@@ -346,6 +354,7 @@ select
     cast(null as float64) as prix_achat_machine,
     cast(null as float64) as prix_achat_modele,
     quantite_restante * prix_unitaire as valeur,
+    quantite_restante * prix_unitaire as valeur_comptee,
     source_prix,
     false as is_code_double,
     false as is_serie_double,

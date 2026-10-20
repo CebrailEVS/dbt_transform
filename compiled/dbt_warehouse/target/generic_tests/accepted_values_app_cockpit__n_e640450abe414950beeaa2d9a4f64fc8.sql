@@ -16,7 +16,7 @@ with all_values as (
 select *
 from all_values
 where value_field not in (
-    'Disponible','Réservé','À remettre en état','Inactif hors rebut (à investiguer)','Rebut','Commandé','À solder','Hors stock (marketing)'
+    'Disponible','Réservé','À remettre en état','Inactif hors rebut (à investiguer)','Inactif','Rebut','Commandé','À solder','Hors stock (marketing)'
 )
 
 

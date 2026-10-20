@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] \u00c9quipements Nayka en stock pour l'\u00e9cran Supply \u00ab \u00c9quipements en stock \u00bb de Cockpit Supply : fontaines et terminaux de paiement pr\u00e9sents dans les d\u00e9p\u00f4ts, avec leur statut, leur r\u00e9servation (client et \u00e9ch\u00e9ance), leur valeur, leur anciennet\u00e9 et les contr\u00f4les qualit\u00e9 ; plus les \u00e9quipements command\u00e9s et pas encore re\u00e7us.\n[COMMENT CONSTRUITE] Depuis le staging Nayka, sans les marts. \u00c9quipements : stg_oracle_nayka__device de type Machine (1) ou paiement (4) rattach\u00e9s \u00e0 DEPOTLOGISTIQUERUNGIS, DEPOTLOGISTIQUEDARDILLY (stock), MARKETING (hors stock) et DEPOTREBUT (rebut) ; labels de stg_oracle_nayka__v_label_device (ISACTIVE, EQUIPEMENT_RESERVE, MARQUE_FOURNISSEUR). Commandes : t\u00e2ches COMMANDE FOURNISSEUR faites ou valid\u00e9es, label STATUT_LIVRAISON EN_ATTENTE ou LIVRE_PARTIEL, produits d'\u00e9quipement (type 4), destination dans ces d\u00e9p\u00f4ts ; re\u00e7u = lignes de BL FOURNISSEUR li\u00e9es \u00e0 la ligne de commande.\n[GRAIN] 1 ligne par ligne_id : un \u00e9quipement (device_id) ou une ligne de commande non sold\u00e9e.\n[NOTES] M\u00eames colonnes et m\u00eames r\u00e8gles que app_cockpit__neshu_equipement_stock, pour que l'app puisse empiler les deux. Pas de d\u00e9p\u00f4t de remise en \u00e9tat ni de d\u00e9p\u00f4t produits chez Nayka. Cat\u00e9gorie PROVISOIRE en attendant la classification des mod\u00e8les par le Supply : type Machine = machine principale, Accessoire = composant. DEPOTREBUT n'existe pas encore dans l'ERP : il sera pris en compte d\u00e8s sa cr\u00e9ation. R\u00e9serv\u00e9 \u00e0 l'application.\n"""
+      description="""[QUOI M\u00c9TIER] \u00c9quipements Nayka en stock pour l'\u00e9cran Supply \u00ab \u00c9quipements en stock \u00bb de Cockpit Supply : fontaines, Base Cabinet et terminaux de paiement pr\u00e9sents dans les d\u00e9p\u00f4ts, avec leur statut, leur r\u00e9servation (client et \u00e9ch\u00e9ance), leur valeur, leur anciennet\u00e9 et les contr\u00f4les qualit\u00e9 ; plus les \u00e9quipements command\u00e9s et pas encore re\u00e7us.\n[COMMENT CONSTRUITE] Depuis le staging Nayka, sans les marts. \u00c9quipements : stg_oracle_nayka__device de type Machine (1), paiement (4) ou Accessoire (12, Base Cabinet) rattach\u00e9s \u00e0 DEPOTLOGISTIQUERUNGIS, DEPOTLOGISTIQUEDARDILLY (stock), MARKETING (hors stock) et DEPOTREBUT (rebut) ; labels de stg_oracle_nayka__v_label_device (ISACTIVE, EQUIPEMENT_RESERVE, MARQUE_FOURNISSEUR). Commandes : t\u00e2ches COMMANDE FOURNISSEUR faites ou valid\u00e9es, label STATUT_LIVRAISON EN_ATTENTE ou LIVRE_PARTIEL, produits d'\u00e9quipement (type 4), destination dans ces d\u00e9p\u00f4ts ; re\u00e7u = lignes de BL FOURNISSEUR li\u00e9es \u00e0 la ligne de commande.\n[GRAIN] 1 ligne par ligne_id : un \u00e9quipement (device_id) ou une ligne de commande non sold\u00e9e.\n[NOTES] M\u00eames colonnes et m\u00eames r\u00e8gles que app_cockpit__neshu_equipement_stock, pour que l'app puisse empiler les deux. Pas de d\u00e9p\u00f4t de remise en \u00e9tat ni de d\u00e9p\u00f4t produits chez Nayka. Cat\u00e9gorie par type Distrilog, valid\u00e9e par le Supply : Machine (fontaine) = machine principale, Accessoire (Base Cabinet) = composant, paiement = terminal. valeur_comptee ne retient que le mat\u00e9riel propri\u00e9t\u00e9 de Nayka (et les commandes). DEPOTREBUT n'existe pas encore dans l'ERP : il sera pris en compte d\u00e8s sa cr\u00e9ation. R\u00e9serv\u00e9 \u00e0 l'application.\n"""
     )
     as (
       
@@ -53,8 +53,8 @@ parc as (
     group by d.iddevice, d.device_iddevice, d.code, d.serial
 ),
 
--- Catégorie provisoire, en attendant la classification des modèles Nayka par le Supply : déduite du type
--- Distrilog des équipements qui portent le modèle (Machine -> machine principale, Accessoire -> composant).
+-- Classification validée par le Supply : le type Distrilog suffit chez Nayka (Machine = fontaine = machine
+-- principale, Accessoire = Base Cabinet = composant, paiement = terminal).
 type_par_modele as (
     select
         d.idmodel,
@@ -112,7 +112,7 @@ equipement as (
         on d.idcompany_owner = o.idcompany
     where
         coalesce(d.code_status_record, 0) != -1
-        and d.iddevice_type in (1, 4)  -- machines et terminaux de paiement
+        and d.iddevice_type in (1, 4, 12)  -- fontaines, terminaux de paiement et Base Cabinet
 ),
 
 code_global as (
@@ -132,10 +132,16 @@ parent_avec_enfant_actif as (
 equipement_qualifie as (
     select
         e.*,
-        case when e.device_type_id = 4 then 'Terminal de paiement' else 'Machine principale' end as categorie,
+        case
+            when e.device_type_id = 12 and e.is_rattache_parent then 'Composant rattaché'
+            when e.device_type_id = 12 then 'Composant en stock'
+            when e.device_type_id = 4 then 'Terminal de paiement'
+            else 'Machine principale'
+        end as categorie,
         case
             when e.depot_role = 'rebut' then 'Rebut'
             when e.depot_role = 'hors_stock' then 'Hors stock (marketing)'
+            when not e.is_active and e.device_type_id = 4 then 'Inactif'
             when not e.is_active then 'Inactif hors rebut (à investiguer)'
             when e.is_reserved then 'Réservé'
             else 'Disponible'
@@ -143,7 +149,7 @@ equipement_qualifie as (
         -- Contrôles qualité de la donnée (mêmes règles que Neshu ; pas de dépôt produits chez Nayka).
         cg.code is not null as is_code_double,
         e.serial_number is not null and e.is_active and e.nb_actifs_meme_serie > 1 as is_serie_double,
-        not e.is_active and e.depot_role != 'rebut' as is_inactif_hors_rebut,
+        not e.is_active and e.depot_role != 'rebut' and e.device_type_id != 4 as is_inactif_hors_rebut,
         e.is_active and e.depot_role = 'rebut' as is_actif_au_rebut,
         e.owner_name is null as is_sans_proprietaire,
         e.serial_number is null as is_sans_serie,
@@ -284,6 +290,9 @@ select
     prix_achat_machine,
     prix_achat_modele,
     coalesce(prix_achat_machine, prix_achat_modele) as valeur,
+    -- Seul le matériel propriété de la société (Nayka) entre dans les totaux de valeur ; les autres
+    -- propriétaires sont affichés en quantité, leur valeur à titre d'information (règle du Supply).
+    if(owner_categorie = 'Nayka', coalesce(prix_achat_machine, prix_achat_modele), 0) as valeur_comptee,
     case
         when prix_achat_machine is not null then 'machine'
         when prix_achat_modele is not null then 'modèle'
@@ -347,6 +356,7 @@ select
     cast(null as float64) as prix_achat_machine,
     cast(null as float64) as prix_achat_modele,
     quantite_restante * prix_unitaire as valeur,
+    quantite_restante * prix_unitaire as valeur_comptee,
     source_prix,
     false as is_code_double,
     false as is_serie_double,

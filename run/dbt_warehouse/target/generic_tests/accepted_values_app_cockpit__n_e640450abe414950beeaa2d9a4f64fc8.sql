@@ -17,7 +17,7 @@ with all_values as (
         statut as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_equipement_stock`
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_stock`
     group by statut
 
 )
@@ -25,7 +25,7 @@ with all_values as (
 select *
 from all_values
 where value_field not in (
-    'Disponible','Réservé','À remettre en état','Inactif hors rebut (à investiguer)','Rebut','Commandé','À solder'
+    'Disponible','Réservé','À remettre en état','Inactif hors rebut (à investiguer)','Inactif','Rebut','Commandé','À solder','Hors stock (marketing)'
 )
 
 
