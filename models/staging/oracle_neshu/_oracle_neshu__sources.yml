@@ -126,6 +126,23 @@ sources:
               - not_null
             description: "Identifiant du task"
 
+      # TASK_HISTORIC - Journal des actions, en ajout seul côté dlt
+      - name: evs_task_historic
+        description: "Historique des actions sur les tâches : une ligne par action, sans clé, jamais modifiée. Garde les lignes que l'ERP purge."
+        columns:
+          - name: idtask
+            tests:
+              - not_null
+            description: "Identifiant de la tâche"
+          - name: idhistoric_action
+            tests:
+              - not_null
+            description: "Identifiant de l'action"
+          - name: modification_date
+            tests:
+              - not_null
+            description: "Date de l'action, heure de Paris sans fuseau"
+
       # ═══════════════════════════════════════════════════════════════════
       # OPERATIONAL DIMENSIONS - Medium freshness (26h/36h)
       # ═══════════════════════════════════════════════════════════════════
@@ -404,6 +421,19 @@ sources:
           - name: code
             description: "Code type entreprise"
 
+      - name: evs_historic_action
+        description: "Actions de l'historique des tâches - référentiel stable"
+        config:
+          freshness: null
+        columns:
+          - name: idhistoric_action
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de l'action"
+          - name: code
+            description: "Code de l'action, pas unique : le libellé distingue les actions homonymes"
+
       - name: evs_label
         description: "Labels référentiel"
         config:
@@ -511,3 +541,36 @@ sources:
             description: "Nom du paramètre - composante de la clé ('coefficient', ...)"
           - name: value
             description: "Valeur du paramètre, en texte : 1 sur FACT CLIENT, -1 sur AVOIR"
+
+      - name: evs_treatment_by_batch
+        description: "Traitements par lot de l'ERP - référentiel stable"
+        config:
+          freshness: null
+        columns:
+          - name: idtreatment_by_batch
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du traitement par lot"
+
+      # ═══════════════════════════════════════════════════════════════════
+      # TABLE SYSTÈME dlt - Un chargement complet porte status = 0
+      # ═══════════════════════════════════════════════════════════════════
+
+      - name: _dlt_loads
+        description: "Chargements dlt de prod_raw, tous pipelines confondus. Seuls les chargements complets y figurent : un run échoué au chargement n'y laisse pas de ligne."
+        config:
+          loaded_at_field: inserted_at
+        columns:
+          - name: load_id
+            # warn : table partagée, l'anomalie d'un autre pipeline ne doit pas bloquer neshu
+            tests:
+              - unique:
+                  config:
+                    severity: warn
+              - not_null:
+                  config:
+                    severity: warn
+            description: "Identifiant du chargement, porté par _dlt_load_id dans chaque table raw"
+          - name: status
+            description: "0 = chargement complet"

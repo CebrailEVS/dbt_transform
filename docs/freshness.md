@@ -32,6 +32,10 @@ Une source dont le pipeline est en pause (`paused = true` dans `infra/workflows_
 `label_family`, `product_unit`, `*_categories`). Toute table portant des événements mérite un
 seuil, quitte à le mettre très large.
 
+**`_dlt_loads`**, déclarée dans `oracle_neshu` pour ne lire que les chargements dlt complets, n'a
+pas d'`_extracted_at` : elle prend `loaded_at_field: inserted_at`. Elle couvre tous les pipelines de
+`prod_raw`, donc reste fraîche tant que l'un d'eux charge.
+
 > Écart connu : sont aussi en `null` des tables qui évoluent (`lcdp_contract`, `*_string`,
 > `lcdp_v_label_*`, `yuman_evs_products`, `yuman_evs_products_storehouses`). À corriger dans
 > les `_<source>__sources.yml`.

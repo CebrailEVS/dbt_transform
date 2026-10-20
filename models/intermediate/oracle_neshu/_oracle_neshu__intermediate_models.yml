@@ -2125,3 +2125,74 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: ['date_calcul', 'company_id', 'product_code']
+
+  - name: int_oracle_neshu__task_historic_metier
+    description: |
+      [QUOI MÉTIER] Historique des actions sur les tâches métier de l'ERP Neshu (passages appro, factures, avoirs, mouvements, commandes, interventions...) : qui a fait quoi sur une tâche, et dans quel état elle était après chaque action.
+      [COMMENT CONSTRUITE] stg_oracle_neshu__task_historic sans les types techniques AUDITTELE (3) et SYS_EXEC (243), ni les actions sans tâche (IDTASK corrompu dans l'ERP). Les lignes identiques de la source sont regroupées en une action, comptée dans nb_lignes_source. Libellés de l'action, du statut et du type joints depuis leurs référentiels.
+      [GRAIN] 1 ligne par action distincte (task_historic_id).
+      [NOTES] Aucun ordre au sein d'une seconde : une création écrit plusieurs actions au même instant. L'historique d'une tâche supprimée est conservé, action de suppression comprise : joindre stg_oracle_neshu__task en externe. Les lignes de synchro EasyMobile n'ont pas de type (task_type_id NULL) et sont gardées. Avant is_historique_complet, l'ERP n'historisait que des fragments : n'y mesurer aucun délai.
+    columns:
+      - name: task_historic_id
+        description: "Clé de l'action : hachage de toutes ses colonnes."
+        tests:
+          - unique
+          - not_null
+      - name: task_id
+        description: "Tâche concernée. FK → stg_oracle_neshu__task, absente quand la tâche a été supprimée."
+        tests:
+          - not_null
+      - name: historic_action_id
+        description: "Action. FK → stg_oracle_neshu__historic_action."
+        tests:
+          - not_null
+      - name: task_status_id
+        description: "Statut de la tâche APRÈS l'action. FK → stg_oracle_neshu__task_status ; des lignes anciennes portent des valeurs hors référentiel, dont task_status_code est NULL."
+      - name: task_type_id
+        description: "Type de la tâche. FK → stg_oracle_neshu__task_type ; NULL sur les lignes de synchro EasyMobile."
+      - name: task_source_id
+        description: "Tâche liée : l'origine pour ADD_CLONING, ADD_TRANSFORMATION ou ADD_AUTO_PLANIFIED, la CIBLE pour TRANSFORM_TO. FK → stg_oracle_neshu__task."
+      - name: user_id
+        description: "Compte ERP auteur de l'action (table ihm_user, non répliquée)."
+      - name: treatment_by_batch_id
+        description: "Traitement par lot à l'origine de l'action. FK → stg_oracle_neshu__treatment_by_batch."
+      - name: instance_id
+        description: "Instance de l'ERP qui a écrit l'action."
+      - name: device_id
+        description: "Machine de la tâche au moment de l'action. FK → stg_oracle_neshu__device."
+      - name: company_id
+        description: "Tiers de la tâche au moment de l'action. FK → stg_oracle_neshu__company."
+      - name: historic_action_code
+        description: "Code technique de l'action. Pas unique : lire historic_action_libelle pour distinguer les actions homonymes."
+      - name: historic_action_libelle
+        description: "Libellé français de l'action."
+      - name: task_status_code
+        description: "Code du statut après l'action : PREVU, FAIT, ENCOURS (commencé), ANNULE, VALIDE, ANOMALIE, ENATTENTE, ACQUITTE."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PREVU', 'FAIT', 'ENCOURS', 'ANNULE', 'VALIDE', 'ANOMALIE', 'ENATTENTE', 'ACQUITTE']
+              config:
+                severity: warn
+      - name: task_type_code
+        description: "Code du type de tâche."
+      - name: document_number
+        description: "Numéro du document au moment de l'action, NULL tant qu'il n'est pas attribué."
+      - name: resource_ids
+        description: "Ressources affectées au moment de l'action : identifiants de stg_oracle_neshu__resources séparés par des virgules."
+      - name: custom_data
+        description: "Données personnalisées de la ligne d'historique."
+      - name: task_start_date
+        description: "Début réel de la tâche au moment de l'action (UTC)."
+      - name: task_end_date
+        description: "Fin réelle de la tâche au moment de l'action (UTC)."
+      - name: is_historique_complet
+        description: "true quand l'action est postérieure au démarrage de l'historisation complète de l'ERP."
+      - name: nb_lignes_source
+        description: "Nombre de lignes identiques de la source qui portent cette action. Ne mesure rien de métier."
+      - name: created_at
+        description: "Instant de l'action (UTC)."
+        tests:
+          - not_null
+      - name: extracted_at
+        description: "Extraction dlt la plus récente des lignes regroupées, curseur de l'incrémental."

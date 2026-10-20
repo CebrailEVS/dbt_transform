@@ -116,6 +116,22 @@ select * from cleaned_data
 Pour tester un changement sur un incrémental : `dbt clone -s <modele>` puis `dbt run -s <modele>`.
 C'est le vrai `MERGE` qui s'exécute, pas un `--full-refresh`.
 
+### Table d'historique sans clé : l'ajout seul
+
+`stg_oracle_neshu__task_historic` n'a pas de clé : la source écrit des doublons exacts légitimes,
+et dlt la charge en ajout seul. D'où trois écarts au modèle ci-dessus :
+
+- `incremental` (`merge`) **sans `unique_key`** : dbt insère les lignes nouvelles sans rien fusionner ;
+- un filtre sur `extracted_at` **sans fenêtre de rattrapage** : sans clé, une ligne relue serait doublée ;
+- la lecture des seuls chargements dlt complets (`_dlt_load_id` présent dans `_dlt_loads`,
+  `status = 0`) : un run qui échoue après le chargement de la table y laisse des lignes que sa relance
+  réajoute.
+
+La date de l'action y est `created_at` : la ligne naît à l'action et ne change plus. Pas de test
+d'unicité ; le regroupement des doublons se fait en intermediate. Un rechargement complet du raw
+réécrit chaque ligne avec un `extracted_at` neuf : le modèle se reconstruit alors en
+`--full-refresh`, sinon il doublerait. La purge du samedi le fait déjà.
+
 ## 6. Description
 
 **Obligatoire dans le `config()`** (une ligne : quoi + source). Une description YAML
