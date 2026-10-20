@@ -141,8 +141,9 @@ seeds:
 
   - name: ref_oracle_neshu__classe_modele_machine
     description: >
-      Classification des modèles de machine Neshu (type « Machine » de Distrilog) pour l'écran Équipements en
-      stock de Cockpit Supply, fournie par le Supply (Classification_modeles_machines_Neshu.xlsx). Machine
+      Classification des modèles d'équipement Neshu pour l'écran Équipements en stock de Cockpit Supply, fournie
+      par le Supply : modèles du type « Machine » de Distrilog (Classification_modeles_machines_Neshu.xlsx), modèles
+      commandés, anciens modèles du rebut, et RHEA IRDA (module de relevé infrarouge typé paiement). Machine
       principale ; machine comptoir ou à monter (posée sur comptoir ou montée sur une tour selon la
       configuration) ; module ou composant (ne compte pas comme une machine). Un modèle absent de la liste est
       « à classer » côté app et se fait classer par le Supply.
@@ -153,7 +154,7 @@ seeds:
         classe_machine: STRING
     columns:
       - name: model_code
-        description: "Code produit du modèle (stg_oracle_neshu__product.code, modèle porté par les machines de type 1)."
+        description: "Code produit du modèle (stg_oracle_neshu__product.code) porté par les équipements ou commandé."
         tests:
           - not_null
           - unique
