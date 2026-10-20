@@ -1409,3 +1409,168 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: ['date_inventaire', 'depot_id']
+
+  - name: app_cockpit__general_calendrier_ouvre
+    description: |
+      [QUOI MÉTIER] Calendrier des jours ouvrés de Cockpit Supply : lundi à vendredi hors jours fériés, pour la France métropolitaine et pour l'Alsace-Moselle (Vendredi saint et 26 décembre en plus). Sert aux délais en jours ouvrés et aux durées hors week-ends et jours fériés.
+      [COMMENT CONSTRUITE] Toutes les dates des années couvertes par ref_general__feries_metropole, croisées avec les deux calendriers ; jours fériés de ref_general__feries_metropole, plus ref_general__feries_alsace_moselle pour l'Alsace-Moselle.
+      [GRAIN] 1 ligne par (calendrier, jour).
+      [NOTES] Lu par les délais de traitement des commandes (ISO). Au-delà de la dernière année du seed métropole, aucune ligne : prolonger le seed avant. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: calendrier
+        description: "METROPOLE ou ALSACE_MOSELLE"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [METROPOLE, ALSACE_MOSELLE]
+      - name: jour
+        description: "Date du jour"
+        tests:
+          - not_null
+      - name: nom_jour_ferie
+        description: "Nom du jour férié, vide sinon"
+      - name: is_jour_ouvre
+        description: "Vrai du lundi au vendredi hors jour férié du calendrier"
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['calendrier', 'jour']
+
+  - name: app_cockpit__neshu_commande_delai
+    description: |
+      [QUOI MÉTIER] Commandes Neshu et horodatage de leurs étapes, pour les indicateurs ISO de traitement des commandes : commandes internes des approvisionneurs (chargement des véhicules) et commandes clients. Délai de prise en charge (création → première impression), préparée dans les délais (création → fin de préparation), durée de préparation (impression → fin, attente dans la pile comprise), expédiée dans les délais (clients).
+      [COMMENT CONSTRUITE] Commandes (types 100 client, 132 interne) de stg_oracle_neshu__task depuis septembre 2023. Impression = première action PRINT (86) de int_oracle_neshu__task_historic_metier. Document suivant = cible de TRANSFORM_TO (111) de l'historique, à défaut le même dossier (task_idtask) : mouvement de stock (161) pour une commande interne, BL (101) et facture (102) pour une commande client. Article stocké = stg_oracle_neshu__product.stock_management = 1. Heures de Paris (utc_vers_paris_affichage).
+      [GRAIN] 1 ligne par commande (commande_id), commandes créées depuis le 01/09/2023 (historique complet depuis le 31/08/2023).
+      [NOTES] Les délais, leurs seuils (app_config) et la conformité sont calculés par l'app avec app_cockpit__general_calendrier_ouvre. Une commande non imprimée a imprime_le vide : exclue de la prise en charge et de la durée, gardée dans « préparée dans les délais ». motif_exclusion vide = commande dans le périmètre. Aucun identifiant de personne : indicateurs d'équipe seulement. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: commande_id
+        description: "Identifiant de la tâche commande (idtask)"
+        tests:
+          - not_null
+      - name: type_commande
+        description: "INTERNE (commande d'approvisionneur, 132) ou CLIENT (commande client, 100)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [INTERNE, CLIENT]
+      - name: depot_code
+        description: "Code du dépôt d'origine (société source), vide si la source n'est pas un dépôt"
+      - name: calendrier
+        description: "Calendrier des jours ouvrés : ALSACE_MOSELLE pour le dépôt de Strasbourg, METROPOLE sinon"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [METROPOLE, ALSACE_MOSELLE]
+      - name: statut_code
+        description: "Statut actuel de la commande dans Distrilog (PREVU, FAIT, VALIDE, ANNULE…)"
+      - name: cree_le
+        description: "Création de la commande dans l'ERP (heure de Paris)"
+        tests:
+          - not_null
+      - name: imprime_le
+        description: "Première impression de la commande par le dépôt = prise en charge (heure de Paris), vide si jamais imprimée"
+      - name: preparation_fin_le
+        description: "Fin de préparation (heure de Paris) : création du mouvement de stock (interne) ou du BL (client), vide si pas encore préparée"
+      - name: expedie_le
+        description: "Expédition d'une commande client = création du BL (heure de Paris), vide pour une commande interne"
+      - name: facture_le
+        description: "Première facture d'une commande client (heure de Paris)"
+      - name: motif_exclusion
+        description: "Vide = dans le périmètre. ANNULEE ; HORS_CHARGEMENT_VEHICULE (interne qui ne va pas d'un dépôt vers un véhicule) ; SANS_ARTICLE_STOCKE (client sans article stocké : badges…) ; FACTUREE_SANS_BL (client avec article stocké facturée sans BL)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: [ANNULEE, HORS_CHARGEMENT_VEHICULE, SANS_ARTICLE_STOCKE, FACTUREE_SANS_BL]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['commande_id']
+
+  - name: app_cockpit__lcdp_commande_delai
+    description: |
+      [QUOI MÉTIER] Commandes internes des approvisionneurs Cafés du Phare (chargement des véhicules) et horodatage de leurs étapes, pour les indicateurs ISO de traitement des commandes : prise en charge (création → début de préparation), préparée dans les délais (création → fin de préparation), durée de préparation (début → fin).
+      [COMMENT CONSTRUITE] Commandes internes (132) de stg_oracle_lcdp__task et mouvement de stock (161) du même dossier (task_idtask). Le mouvement est créé au bureau avant la préparation ; la préparation sur terminal mobile date son début et sa fin réels (real_start_date < real_end_date). Heures de Paris (utc_vers_paris_affichage).
+      [GRAIN] 1 ligne par commande interne (commande_id).
+      [NOTES] Préparation datée seulement depuis la mise en place du terminal mobile au dépôt (mi-août 2026) : avant, les commandes sont exclues (PREPARATION_SANS_MOBILE). Les commandes clients ne sont pas saisies dans Distrilog (non mesurables). Les délais, leurs seuils et la conformité sont calculés par l'app avec app_cockpit__general_calendrier_ouvre. Aucun identifiant de personne. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: commande_id
+        description: "Identifiant de la tâche commande interne (idtask)"
+        tests:
+          - not_null
+      - name: type_commande
+        description: "Toujours INTERNE"
+        tests:
+          - not_null
+      - name: depot_code
+        description: "Code du dépôt d'origine (société source)"
+      - name: calendrier
+        description: "Calendrier des jours ouvrés : METROPOLE"
+        tests:
+          - not_null
+      - name: statut_code
+        description: "Statut actuel de la commande dans Distrilog"
+      - name: cree_le
+        description: "Création de la commande dans l'ERP (heure de Paris)"
+        tests:
+          - not_null
+      - name: mouvement_cree_le
+        description: "Création du mouvement de stock au bureau logistique (heure de Paris)"
+      - name: preparation_debut_le
+        description: "Début de la préparation sur le terminal mobile (heure de Paris)"
+      - name: preparation_fin_le
+        description: "Fin de la préparation sur le terminal mobile (heure de Paris), vide si pas encore préparée"
+      - name: motif_exclusion
+        description: "Vide = dans le périmètre. ANNULEE ; HORS_CHARGEMENT_VEHICULE (transfert vers la boutique ou entre dépôts) ; PREPARATION_SANS_MOBILE (mouvement terminé sans terminal mobile)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: [ANNULEE, HORS_CHARGEMENT_VEHICULE, PREPARATION_SANS_MOBILE]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['commande_id']
+
+  - name: app_cockpit__nunshen_commande_delai
+    description: |
+      [QUOI MÉTIER] Commandes clients Nunshen (bons de commande Sage, intragroupe compris) et date de leurs étapes, pour les indicateurs ISO de traitement des commandes : préparation lancée (BC → préparation de livraison) et expédiée (BC → BL), en jours ouvrés.
+      [COMMENT CONSTRUITE] Lignes d'articles de vente de stg_mssql_sage__f_docligne (BC, PL, BL, factures ; mêmes filtres que app_cockpit__nunshen_bl_client) regroupées par n° de BC : la ligne transformée recopie n° et date du BC, de la PL et du BL ; une pièce ouverte porte son propre n° et sa date. Première date de chaque étape. BC annulés = statut 1 dans stg_mssql_sage__f_docentete.
+      [GRAIN] 1 ligne par bon de commande (commande_numero), BC datés depuis le 01/01/2024.
+      [NOTES] Sage ne garde que le jour (pas l'heure) et la préparation validée est le BL lui-même. Pièces sans BC (devis transformé en préparation, BL direct) absentes. Les délais, leurs seuils et la conformité sont calculés par l'app avec app_cockpit__general_calendrier_ouvre. Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: commande_numero
+        description: "N° du bon de commande Sage"
+        tests:
+          - not_null
+      - name: calendrier
+        description: "Calendrier des jours ouvrés : METROPOLE"
+        tests:
+          - not_null
+      - name: commande_date
+        description: "Date du bon de commande"
+        tests:
+          - not_null
+      - name: preparation_lancee_date
+        description: "Date de la première préparation de livraison, vide si pas encore lancée"
+      - name: expedition_date
+        description: "Date du premier BL, vide si pas encore expédiée"
+      - name: nb_bl
+        description: "Nombre de BL de la commande (livraisons partielles)"
+      - name: is_intragroupe
+        description: "Vrai si la commande a été facturée en intragroupe (facture « ZZ… »)"
+      - name: motif_exclusion
+        description: "Vide = dans le périmètre ; ANNULEE (bon de commande annulé)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: [ANNULEE]
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['commande_numero']

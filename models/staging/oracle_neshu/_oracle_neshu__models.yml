@@ -378,6 +378,8 @@ models:
         description: "Nom produit"
       - name: purchase_unit_price
         description: "Prix d'achat unitaire"
+      - name: stock_management
+        description: "1 = article géré en stock, 0 = non stocké (badges, crédits de badge…)"
 
   - name: stg_oracle_neshu__product_unit
     description: "Unités de conditionnement par produit depuis Oracle. idunit_type=1 = unité d'achat (conditionnement de commande fournisseur) ; coeff_multi = nb d'unités de base par conditionnement."
