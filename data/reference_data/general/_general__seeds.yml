@@ -27,6 +27,40 @@ seeds:
         tests:
           - not_null
 
+  - name: ref_general__feries_alsace_moselle
+    description: >
+      Jours fériés propres à l'Alsace-Moselle (Vendredi saint et 26 décembre), EN PLUS de ceux de
+      ref_general__feries_metropole : le calendrier d'Alsace-Moselle est l'union des deux seeds.
+      Vendredi saint = lundi de Pâques de ref_general__feries_metropole moins 3 jours. Mêmes années
+      que le seed métropole.
+    config:
+      column_types:
+        annee: INT64
+        mois: STRING
+        date_ferie: DATE
+        nom_jour_ferie: STRING
+    columns:
+      - name: annee
+        description: "Année"
+        tests:
+          - not_null
+      - name: mois
+        description: "Mois en toutes lettres, même orthographe que ref_general__feries_metropole"
+        tests:
+          - not_null
+      - name: date_ferie
+        description: "Date du jour férié"
+        tests:
+          - not_null
+          - unique
+      - name: nom_jour_ferie
+        description: "Nom du jour férié"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [vendredi_saint, saint_etienne]
+
   - name: ref_general__calendrier_saison
     description: >
       Calendrier saisonnier hebdomadaire (été / hiver) de la logistique NESHU (Cockpit Supply,
