@@ -731,3 +731,99 @@ models:
           - not_null
       - name: text
         description: "Le libellé traduit, à lire avec langage_code = 'fr_FR'"
+
+  - name: stg_oracle_neshu__task_historic
+    description: "Historique des actions sur les tâches, nettoyé depuis la base Oracle : une ligne par action (création, changement de statut, de date, de produits, synchro EasyMobile, traitement par lot, suppression), avec la tâche telle qu'elle est après l'action. Ni clé ni déduplication : la source écrit des doublons exacts légitimes, regroupés en intermediate. Ajout seul : une ligne que l'ERP purge reste ici."
+    columns:
+      - name: idtask
+        description: "Tâche concernée. Pas de test relationships vers stg_oracle_neshu__task : l'historique d'une tâche supprimée est conservé. NULL sur des synchros EasyMobile dont l'ERP porte un IDTASK corrompu (octets nuls)."
+        tests:
+          - not_null:
+              config:
+                where: "idhistoric_action not in (129, 130, 131)"
+      - name: idhistoric_action
+        description: "Action. FK → stg_oracle_neshu__historic_action."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__historic_action')
+                field: idhistoric_action
+              config:
+                severity: warn
+      - name: idtask_status
+        description: "Statut de la tâche APRÈS l'action → stg_oracle_neshu__task_status. Des lignes anciennes portent des valeurs hors référentiel, d'où l'absence de test relationships."
+      - name: idtask_type
+        description: "Type de la tâche. FK → stg_oracle_neshu__task_type. NULL sur les lignes de synchro EasyMobile."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__task_type')
+                field: idtask_type
+              config:
+                severity: warn
+      - name: idtask_source
+        description: "Tâche liée : l'origine pour un clonage, une transformation ou une création planifiée ; la CIBLE pour l'action TRANSFORM_TO."
+      - name: iduser
+        description: "Compte ERP auteur de l'action (table ihm_user, non répliquée)."
+      - name: idtreatment_by_batch
+        description: "Traitement par lot à l'origine de l'action. FK → stg_oracle_neshu__treatment_by_batch."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__treatment_by_batch')
+                field: idtreatment_by_batch
+              config:
+                severity: warn
+      - name: idinstance
+        description: "Instance de l'ERP qui a écrit la ligne."
+      - name: iddevice
+        description: "Machine de la tâche au moment de l'action."
+      - name: idcompany_peer
+        description: "Tiers de la tâche au moment de l'action."
+      - name: document_number
+        description: "Numéro du document au moment de l'action, NULL tant qu'il n'est pas attribué."
+      - name: resources
+        description: "Ressources affectées au moment de l'action : identifiants de stg_oracle_neshu__resources séparés par des virgules."
+      - name: custom_data
+        description: "Données personnalisées de la ligne d'historique."
+      - name: real_start_date
+        description: "Début réel de la tâche au moment de l'action (UTC)."
+      - name: real_end_date
+        description: "Fin réelle de la tâche au moment de l'action (UTC)."
+      - name: created_at
+        description: "Instant de l'action (UTC). La ligne naît à l'action et ne change plus."
+        tests:
+          - not_null
+      - name: extracted_at
+        description: "Extraction dlt de la ligne, curseur de l'incrémental."
+        tests:
+          - not_null
+
+  - name: stg_oracle_neshu__historic_action
+    description: "Actions de l'historique des tâches, nettoyées depuis la base Oracle. Décode idhistoric_action de stg_oracle_neshu__task_historic."
+    columns:
+      - name: idhistoric_action
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant de l'action"
+      - name: idstring
+        description: "Libellé de l'action → stg_oracle_neshu__string, à lire avec langage_code = 'fr_FR'"
+      - name: code
+        description: "Code technique de l'action. Pas unique : MODIFY_STATUS ou TREATMENT_BY_BATCH couvrent plusieurs actions, que le libellé distingue."
+
+  - name: stg_oracle_neshu__treatment_by_batch
+    description: "Traitements par lot de l'ERP, nettoyés depuis la base Oracle. Décode idtreatment_by_batch de stg_oracle_neshu__task_historic."
+    columns:
+      - name: idtreatment_by_batch
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant du traitement par lot"
+      - name: idstring_treatment
+        description: "Libellé du traitement → stg_oracle_neshu__string, à lire avec langage_code = 'fr_FR'"
+      - name: idstring_comments
+        description: "Commentaire du traitement → stg_oracle_neshu__string"
+      - name: code
+        description: "Code technique du traitement"
