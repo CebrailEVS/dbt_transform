@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idhistoric_action", model=get_where_subquery(source('oracle_neshu', 'evs_task_historic'))) }}

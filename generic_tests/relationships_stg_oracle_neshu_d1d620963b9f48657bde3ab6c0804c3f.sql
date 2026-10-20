@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idhistoric_action", field="idhistoric_action", model=get_where_subquery(ref('stg_oracle_neshu__task_historic')), to=ref('stg_oracle_neshu__historic_action')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

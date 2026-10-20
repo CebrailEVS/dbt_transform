@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="task_status_code", model=get_where_subquery(ref('int_oracle_neshu__task_historic_metier')), values=["PREVU","FAIT","ENCOURS","ANNULE","VALIDE","ANOMALIE","ENATTENTE","ACQUITTE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

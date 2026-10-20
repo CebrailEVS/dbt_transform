@@ -1,0 +1,1 @@
+{{ test_unique(column_name="task_historic_id", model=get_where_subquery(ref('int_oracle_neshu__task_historic_metier'))) }}

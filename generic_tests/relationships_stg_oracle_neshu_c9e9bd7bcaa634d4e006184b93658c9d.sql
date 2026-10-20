@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="idtreatment_by_batch", field="idtreatment_by_batch", model=get_where_subquery(ref('stg_oracle_neshu__task_historic')), to=ref('stg_oracle_neshu__treatment_by_batch')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

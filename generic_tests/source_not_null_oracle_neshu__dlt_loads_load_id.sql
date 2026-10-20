@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="load_id", model=get_where_subquery(source('oracle_neshu', '_dlt_loads'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

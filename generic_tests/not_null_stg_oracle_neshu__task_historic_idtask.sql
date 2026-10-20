@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idtask", model=get_where_subquery(ref('stg_oracle_neshu__task_historic'))) }}{{ config({"meta":{},"tags":[],"where":"idhistoric_action not in (129, 130, 131)"}) }}

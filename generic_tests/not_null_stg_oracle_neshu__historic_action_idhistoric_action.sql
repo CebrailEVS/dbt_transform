@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="idhistoric_action", model=get_where_subquery(ref('stg_oracle_neshu__historic_action'))) }}

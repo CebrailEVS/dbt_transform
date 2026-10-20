@@ -1,0 +1,1 @@
+{{ test_unique(column_name="idtreatment_by_batch", model=get_where_subquery(ref('stg_oracle_neshu__treatment_by_batch'))) }}
