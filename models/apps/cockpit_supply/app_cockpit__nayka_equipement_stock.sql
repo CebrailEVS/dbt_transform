@@ -39,8 +39,8 @@ parc as (
     group by d.iddevice, d.device_iddevice, d.code, d.serial
 ),
 
--- Catégorie provisoire, en attendant la classification des modèles Nayka par le Supply : déduite du type
--- Distrilog des équipements qui portent le modèle (Machine -> machine principale, Accessoire -> composant).
+-- Classification validée par le Supply : le type Distrilog suffit chez Nayka (Machine = fontaine = machine
+-- principale, Accessoire = Base Cabinet = composant, paiement = terminal).
 type_par_modele as (
     select
         d.idmodel,
@@ -98,7 +98,7 @@ equipement as (
         on d.idcompany_owner = o.idcompany
     where
         coalesce(d.code_status_record, 0) != -1
-        and d.iddevice_type in (1, 4)  -- machines et terminaux de paiement
+        and d.iddevice_type in (1, 4, 12)  -- fontaines, terminaux de paiement et Base Cabinet
 ),
 
 code_global as (
@@ -118,10 +118,16 @@ parent_avec_enfant_actif as (
 equipement_qualifie as (
     select
         e.*,
-        case when e.device_type_id = 4 then 'Terminal de paiement' else 'Machine principale' end as categorie,
+        case
+            when e.device_type_id = 12 and e.is_rattache_parent then 'Composant rattaché'
+            when e.device_type_id = 12 then 'Composant en stock'
+            when e.device_type_id = 4 then 'Terminal de paiement'
+            else 'Machine principale'
+        end as categorie,
         case
             when e.depot_role = 'rebut' then 'Rebut'
             when e.depot_role = 'hors_stock' then 'Hors stock (marketing)'
+            when not e.is_active and e.device_type_id = 4 then 'Inactif'
             when not e.is_active then 'Inactif hors rebut (à investiguer)'
             when e.is_reserved then 'Réservé'
             else 'Disponible'
@@ -129,7 +135,7 @@ equipement_qualifie as (
         -- Contrôles qualité de la donnée (mêmes règles que Neshu ; pas de dépôt produits chez Nayka).
         cg.code is not null as is_code_double,
         e.serial_number is not null and e.is_active and e.nb_actifs_meme_serie > 1 as is_serie_double,
-        not e.is_active and e.depot_role != 'rebut' as is_inactif_hors_rebut,
+        not e.is_active and e.depot_role != 'rebut' and e.device_type_id != 4 as is_inactif_hors_rebut,
         e.is_active and e.depot_role = 'rebut' as is_actif_au_rebut,
         e.owner_name is null as is_sans_proprietaire,
         e.serial_number is null as is_sans_serie,
@@ -270,6 +276,9 @@ select
     prix_achat_machine,
     prix_achat_modele,
     coalesce(prix_achat_machine, prix_achat_modele) as valeur,
+    -- Seul le matériel propriété de la société (Nayka) entre dans les totaux de valeur ; les autres
+    -- propriétaires sont affichés en quantité, leur valeur à titre d'information (règle du Supply).
+    if(owner_categorie = 'Nayka', coalesce(prix_achat_machine, prix_achat_modele), 0) as valeur_comptee,
     case
         when prix_achat_machine is not null then 'machine'
         when prix_achat_modele is not null then 'modèle'
@@ -333,6 +342,7 @@ select
     cast(null as float64) as prix_achat_machine,
     cast(null as float64) as prix_achat_modele,
     quantite_restante * prix_unitaire as valeur,
+    quantite_restante * prix_unitaire as valeur_comptee,
     source_prix,
     false as is_code_double,
     false as is_serie_double,
