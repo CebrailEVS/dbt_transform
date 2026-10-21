@@ -874,14 +874,20 @@ models:
   - name: app_cockpit__technique_technicien
     description: |
       [QUOI MÉTIER] Référentiel des techniciens TechCare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] stg_yuman__users filtrée sur les techniciens (type technician, ou manager déclaré technicien), jointe à stg_yuman__storehouses ; colonnes lues par l'app, dont le dépôt de rattachement et le nom du stock du technicien (rattachement des mouvements « ST - … » au dépôt, à la place de l'import manuel « Export des utilisateurs »). Toutes les lignes.
+      [COMMENT CONSTRUITE] stg_yuman__users filtrée sur les techniciens (type technician, ou manager déclaré technicien), jointe à stg_yuman__storehouses ; colonnes lues par l'app, dont le dépôt de rattachement et le nom du stock du technicien (rattachement des mouvements « ST - … » au dépôt, à la place de l'import manuel « Export des utilisateurs »), et le matricule Nomad (nomad_id, champ ID NOMAD de la fiche). Toutes les lignes.
       [GRAIN] 1 ligne par `user_id` (PK Yuman du technicien).
-      [NOTES] lue via get_dim_technicians ; écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
+      [NOTES] lue via get_dim_technicians ; écrans : _conformite, _flux, _pilotage, _planappro, accueil, groupe, supply, technique_partenaires, technique_pilotage, technique_stocks, technique_terrain, v2_nav. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Seuls les techniciens Yuman y figurent : un technicien Nomad sans fiche Yuman reliée n'y est pas (pas de technicien sans van) ; son code et son nom sont portés par app_cockpit__technique_conso_nespresso_detail. Réservé à l'application.
     columns:
       - name: user_id
         tests:
           - not_null
           - unique
+      - name: nomad_id
+        description: "Matricule Nomad du technicien (format TEC-00000), champ ID NOMAD de sa fiche Yuman en majuscules sans espaces ; NULL si non renseigné. Clé de rapprochement avec nomad_id de app_cockpit__technique_conso_nespresso_detail"
+        tests:
+          - unique:
+              config:
+                severity: warn
 
   - name: app_cockpit__technique_commande_fournisseur
     description: |
@@ -949,14 +955,34 @@ models:
 
   - name: app_cockpit__technique_conso_nespresso_detail
     description: |
-      [QUOI MÉTIER] Pièces Nespresso posées par les techniciens TechCare, ligne à ligne.
-      [COMMENT CONSTRUITE] int_nesp_tech__articles_dedup × int_nesp_tech__interventions_dedup (agences EVS), technicien retrouvé par son matricule Nomad dans stg_yuman__users ; interventions « terminée signée » / « terminée non signée », date renseignée, codes de main-d'œuvre 0000001 et 0000100 exclus ; référence normalisée en product_reference, code_article brut conservé.
-      [GRAIN] 1 ligne par pièce posée lors d'une intervention (celui de la source).
-      [NOTES] Jamais chargée en mémoire : l'app l'interroge à la demande (détail d'un mois pour l'export du flux TechCare, conso jour par jour d'une référence sur 12 mois glissants). Partition mensuelle sur date_heure_debut, clustering product_reference. Réservé à l'application.
+      [QUOI MÉTIER] Pièces Nespresso posées par les techniciens TechCare, ligne à ligne, avec le n° d'intervention et le technicien Nomad de chaque pose.
+      [COMMENT CONSTRUITE] int_nesp_tech__articles_dedup × int_nesp_tech__interventions_dedup (agences EVS), technicien retrouvé par son matricule Nomad dans stg_yuman__users ; interventions « terminée signée » / « terminée non signée », date renseignée, codes de main-d'œuvre 0000001 et 0000100 exclus ; référence normalisée en product_reference, code_article brut conservé. N° d'intervention Nomad (n_planning) en num_intervention ; code et nom Nomad du technicien de la pose (n_tech, nom_tech, prenom_tech) en nomad_id et technician_name, remis en majuscules au format du référentiel Yuman.
+      [GRAIN] 1 ligne par (num_intervention, code_article) : pièce posée lors d'une intervention (celui de la source).
+      [NOTES] Jamais chargée en mémoire : l'app l'interroge à la demande (détail d'un mois pour l'export du flux TechCare, conso jour par jour d'une référence sur 12 mois glissants, poses une à une des sorties anormales TechCare, nombre d'interventions par pièce). technician_id NULL quand le matricule Nomad n'est dans aucune fiche Yuman : nomad_id et technician_name restent renseignés. Partition mensuelle sur date_heure_debut, clustering product_reference. Réservé à l'application, pas de rapport Power BI dessus.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['num_intervention', 'code_article']
     columns:
       - name: date_heure_debut
         tests:
           - not_null
+      - name: num_intervention
+        description: "N° d'intervention Nomad (n_planning, 7 chiffres, sans préfixe), celui que le technicien saisit dans l'observation Yuman « ASTREINTE <n°> »"
+        tests:
+          - not_null
+      - name: nomad_id
+        description: "Matricule Nomad du technicien de la pose (format TEC-00000), renseigné même sans fiche Yuman reliée ; même format que nomad_id de app_cockpit__technique_technicien"
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: technician_name
+        description: "Nom Nomad du technicien de la pose (NOM PRÉNOM, majuscules, espaces nettoyés), renseigné même quand technician_id est NULL"
+        tests:
+          - not_null:
+              config:
+                severity: warn
 
   - name: app_cockpit__technique_intervention
     description: |
