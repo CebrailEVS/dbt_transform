@@ -968,7 +968,7 @@ models:
         tests:
           - not_null
       - name: num_intervention
-        description: "N° d'intervention Nomad (n_planning, 7 chiffres, sans préfixe), celui que le technicien saisit dans l'observation Yuman « ASTREINTE <n°> »"
+        description: "N° d'intervention Nomad (n_planning, 7 chiffres, sans préfixe), celui que le technicien saisit dans l'observation Yuman « ASTREINTE <n°> ». Format ^[0-9]{7}$ contrôlé par le test singulier assert_app_cockpit__technique_num_intervention_format : Cockpit Supply rapproche une pose d'astreinte de sa régularisation Yuman sur ce n°, une autre longueur (ou des zéros de tête, perdus au cast INT64 du staging) casserait ce rapprochement sans erreur ; un préfixe non numérique fait déjà échouer ce cast. En échec, le job dbt échoue (alerte du Pôle Data) sans bloquer la construction des tables de l'app"
         tests:
           - not_null
       - name: nomad_id
