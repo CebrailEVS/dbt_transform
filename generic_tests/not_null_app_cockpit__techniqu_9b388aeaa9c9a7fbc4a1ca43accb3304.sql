@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="technician_name", model=get_where_subquery(ref('app_cockpit__technique_conso_nespresso_detail'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

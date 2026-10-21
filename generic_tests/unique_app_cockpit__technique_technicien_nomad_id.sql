@@ -1,0 +1,1 @@
+{{ test_unique(column_name="nomad_id", model=get_where_subquery(ref('app_cockpit__technique_technicien'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

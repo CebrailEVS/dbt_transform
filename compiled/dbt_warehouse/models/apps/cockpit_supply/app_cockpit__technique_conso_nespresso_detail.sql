@@ -21,7 +21,15 @@ select
     coalesce(upper(trim(concat('EVS_NESPRESSO_', upper(a.code_article)))), 'NONE') as product_reference,
     t.user_id as technician_id,
     a.nom_article,
-    coalesce(a.quantite_article, 0) as qty_consommee
+    coalesce(a.quantite_article, 0) as qty_consommee,
+    -- N° d'intervention Nomad, celui que le technicien saisit dans Yuman (« ASTREINTE <n°> ») pour régulariser.
+    cast(a.n_planning as string) as num_intervention,
+    -- Technicien Nomad de la pose, renseigné même sans fiche Yuman reliée. Le staging passe code et nom en
+    -- minuscules : remis au format du référentiel Yuman (TEC-00000, NOM PRÉNOM en majuscules).
+    upper(a.n_tech) as nomad_id,
+    nullif(upper(trim(regexp_replace(
+        concat(coalesce(a.nom_tech, ''), ' ', coalesce(a.prenom_tech, '')), r'\s+', ' '
+    ))), '') as technician_name
 from `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__articles_dedup` as a
 inner join `evs-datastack-prod`.`prod_intermediate`.`int_nesp_tech__interventions_dedup` as i
     on a.n_planning = i.n_planning

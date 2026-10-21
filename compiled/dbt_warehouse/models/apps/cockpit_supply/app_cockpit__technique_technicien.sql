@@ -9,7 +9,10 @@ select
     u.entrepot_rattachement,
     s.storehouses_name,
     u.is_active,
-    u.user_type
+    u.user_type,
+    -- Matricule Nomad (champ ID NOMAD de la fiche Yuman), clé des poses Nespresso : majuscules sans espaces,
+    -- comme nomad_id de app_cockpit__technique_conso_nespresso_detail, pour une comparaison directe.
+    upper(trim(u.nomad_id)) as nomad_id
 from `evs-datastack-prod`.`prod_staging`.`stg_yuman__users` as u
 left join `evs-datastack-prod`.`prod_staging`.`stg_yuman__storehouses` as s
     on u.user_id = s.storehouses_id

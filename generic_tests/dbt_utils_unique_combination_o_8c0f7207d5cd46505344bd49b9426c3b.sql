@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["num_intervention","code_article"], model=get_where_subquery(ref('app_cockpit__technique_conso_nespresso_detail'))) }}
