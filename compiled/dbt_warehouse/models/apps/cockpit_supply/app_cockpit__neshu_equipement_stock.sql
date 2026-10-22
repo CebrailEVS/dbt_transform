@@ -37,7 +37,8 @@ parc as (
         nullif(trim(d.serial), '') as serial,
         coalesce(lower(max(case when lf.code = 'ISACTIVE' then l.code end)) = 'yes', false) as is_active,
         coalesce(upper(max(case when lf.code = 'EQUIPEMENT_RESERVE' then l.code end)) = 'OUI', false) as is_reserved,
-        max(case when lf.code = 'MARQUE' then l.code end) as device_brand
+        max(case when lf.code = 'MARQUE' then l.code end) as device_brand,
+        max(case when lf.code = 'CATEGORIE' then l.code end) as categorie_distrilog
     from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__device` as d
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__label_has_device` as lhd
         on d.iddevice = lhd.iddevice
@@ -78,6 +79,7 @@ equipement as (
         cl.classe_machine as classe_modele,
         pc.serial as serial_number,
         pc.device_brand,
+        pc.categorie_distrilog,
         par.code as parent_device_code,
         dp.depot_code,
         dp.depot_name,
@@ -249,6 +251,7 @@ select
     device_type_id,
     classe_modele,
     categorie,
+    categorie_distrilog,
     categorie in ('Machine principale', 'Machine (comptoir ou à monter)') as is_compte_machine,
     serial_number,
     device_brand,
@@ -314,6 +317,7 @@ select
         when classe_modele is not null then classe_modele
         else 'À classer'
     end as categorie,
+    cast(null as string) as categorie_distrilog,
     coalesce(classe_modele in ('Machine principale', 'Machine (comptoir ou à monter)'), false) as is_compte_machine,
     cast(null as string) as serial_number,
     cast(null as string) as device_brand,

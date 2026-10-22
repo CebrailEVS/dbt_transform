@@ -13,9 +13,9 @@
 
 
 
-select nomad_id
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_conso_nespresso_detail`
-where nomad_id is null
+select statut
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_stock`
+where statut is null
 
 
 

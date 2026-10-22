@@ -31,7 +31,8 @@ parc as (
         coalesce(lower(max(case when lb.lf_code = 'ISACTIVE' then lb.l_code end)) = 'yes', false) as is_active,
         coalesce(upper(max(case when lb.lf_code = 'EQUIPEMENT_RESERVE' then lb.l_code end)) = 'OUI', false)
             as is_reserved,
-        max(case when lb.lf_code = 'MARQUE_FOURNISSEUR' then lb.l_code end) as device_brand
+        max(case when lb.lf_code = 'MARQUE_FOURNISSEUR' then lb.l_code end) as device_brand,
+        max(case when lb.lf_code = 'CATEGORIE' then lb.l_code end) as categorie_distrilog
     from `evs-datastack-prod`.`prod_staging`.`stg_oracle_nayka__device` as d
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_nayka__v_label_device` as lb
         on d.iddevice = lb.iddevice
@@ -61,6 +62,7 @@ equipement as (
         d.iddevice_type as device_type_id,
         pc.serial as serial_number,
         pc.device_brand,
+        pc.categorie_distrilog,
         par.code as parent_device_code,
         dp.depot_code,
         dp.depot_name,
@@ -251,6 +253,7 @@ select
     device_type_id,
     cast(null as string) as classe_modele,
     categorie,
+    categorie_distrilog,
     categorie = 'Machine principale' as is_compte_machine,
     serial_number,
     device_brand,
@@ -316,6 +319,7 @@ select
         when type_modele = 12 then 'Composant en stock'
         else 'À classer'
     end as categorie,
+    cast(null as string) as categorie_distrilog,
     coalesce(type_modele = 1, false) as is_compte_machine,
     cast(null as string) as serial_number,
     cast(null as string) as device_brand,
