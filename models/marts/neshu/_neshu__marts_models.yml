@@ -1771,7 +1771,7 @@ models:
       - name: calcule_le
         description: "Horodatage du run qui a produit la ligne. Voir [NOTES] (7)."
 
-  - name: fct_neshu__intervention_technique
+  - name: fct_neshu__intervention_roadman
     description: >
       [QUOI MÉTIER]
       Interventions techniques NESHU sur les distributeurs : entretien (détartrage, lavage sanitaire)
@@ -1812,12 +1812,12 @@ models:
       - dbt_utils.expression_is_true:
           arguments:
             expression: "device_id is not null or objet_intervent is null"
-          name: fct_neshu__intervention_technique_device_requis_si_classee
+          name: fct_neshu__intervention_roadman_device_requis_si_classee
       # Une machine sans modèle est un défaut de saisie ERP : il est signalé sans bloquer le build.
       - dbt_utils.expression_is_true:
           arguments:
             expression: "modele_equipement_id is not null or device_id is null"
-          name: fct_neshu__intervention_technique_modele_requis_si_machine
+          name: fct_neshu__intervention_roadman_modele_requis_si_machine
           config:
             severity: warn
     columns:
