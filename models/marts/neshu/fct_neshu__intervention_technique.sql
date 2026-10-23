@@ -37,9 +37,10 @@ select
 
     -- FK
     i.device_id,
+    i.modele_equipement_id,
     i.company_id,
     i.resources_id,
-    i.product_id,
+    i.product_id as piece_id,
 
     -- Attributs d'affichage
     i.document_number,
@@ -51,7 +52,7 @@ select
     r.gea_code,
     -- Agence = dépôt de rattachement actuel de l'intervenant, pas celui du client.
     a.company_name as agence,
-    i.product_code,
+    i.product_code as piece_code,
 
     -- Statut et labels : code + libellé fr_FR
     i.task_status_code,

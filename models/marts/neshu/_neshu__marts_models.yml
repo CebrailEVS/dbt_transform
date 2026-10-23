@@ -206,6 +206,108 @@ models:
       - name: updated_at
         description: "Date de dernière mise à jour du produit dans la source"
 
+  - name: dim_neshu__piece
+    description: >
+      [QUOI MÉTIER]
+      Dimension des pièces détachées Neshu : filtres à eau, bouteilles de CO2, modules de
+      distribution. Sert de FK aux faits qui portent une pièce (intervention technique).
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_neshu__product filtré sur le type 2 (PIECE), hors ghost-deletes ERP
+      (code_status_record = -1). Statut actif lu dans le label ISACTIVE (seul label des pièces),
+      nom du fournisseur lu dans stg_oracle_neshu__company. Instants en heure de Paris.
+
+      [GRAIN]
+      1 ligne par piece_id (produit de type 2). 9 pièces en octobre 2026.
+
+      [NOTES]
+      Les produits de types 1 et 5 sont dans dim_neshu__product, les modèles d'équipement (type 4)
+      dans dim_neshu__modele_equipement. Les pièces sont encore peu suivies dans Oracle (une
+      quarantaine de tâches depuis mai 2025).
+    columns:
+      - name: piece_id
+        description: "Identifiant ERP de la pièce (product.idproduct). PK."
+        tests:
+          - unique
+          - not_null
+      - name: supplier_company_id
+        description: "Fournisseur de la pièce. FK → dim_neshu__company. Non renseigné aujourd'hui."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: piece_code
+        description: "Code de la pièce (ex. EVS_NESPRESSO_BESTMAXV)."
+      - name: piece_name
+        description: "Libellé de la pièce (ex. FILTRE BWT BESTMAX V)."
+      - name: piece_commercial_name
+        description: "Nom commercial de la pièce, quand il est saisi."
+      - name: supplier_name
+        description: "Nom du fournisseur."
+      - name: is_active
+        description: "TRUE si le label ISACTIVE vaut YES, sinon FALSE."
+      - name: purchase_unit_price
+        description: "Prix d'achat unitaire de la pièce, en euros."
+      - name: created_at
+        description: "Création de la pièce dans l'ERP, en heure de Paris."
+      - name: updated_at
+        description: "Dernière modification de la pièce dans l'ERP, en heure de Paris."
+
+  - name: dim_neshu__modele_equipement
+    description: >
+      [QUOI MÉTIER]
+      Dimension des modèles d'équipement Neshu : modèles de distributeurs, de terminaux de paiement
+      et de mobilier (ex. MOMENTO 100, NAYAX ONYX, MEUBLE NESHU). Sert de FK aux faits qui portent
+      une machine.
+
+      [COMMENT CONSTRUITE]
+      stg_oracle_neshu__product filtré sur le type 4 (MODELE), hors ghost-deletes ERP
+      (code_status_record = -1). La vue Oracle `model` n'est pas répliquée : device.idmodel pointe
+      directement product.idproduct. Statut actif lu dans le label ISACTIVE (seul label des modèles),
+      nom du fournisseur lu dans stg_oracle_neshu__company. Instants en heure de Paris.
+
+      [GRAIN]
+      1 ligne par modele_equipement_id (produit de type 4). 139 modèles en octobre 2026.
+
+      [NOTES]
+      Un même modèle peut équiper des machines de types différents (distributeur et accessoire,
+      terminal de paiement et télémétrie) : le type de machine reste dans dim_neshu__device.
+      device_name de dim_neshu__device reprend le plus souvent le nom du modèle.
+    columns:
+      - name: modele_equipement_id
+        description: "Identifiant ERP du modèle (product.idproduct, pointé par device.idmodel). PK."
+        tests:
+          - unique
+          - not_null
+      - name: supplier_company_id
+        description: "Fournisseur du modèle (renseigné sur un peu plus de la moitié). FK → dim_neshu__company."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: modele_equipement_code
+        description: "Code du modèle (ex. OPTIBEANX12)."
+      - name: modele_equipement_name
+        description: "Libellé du modèle (ex. OPTIBEAN X 12)."
+      - name: modele_equipement_commercial_name
+        description: "Nom commercial du modèle, rarement saisi."
+      - name: supplier_name
+        description: "Nom du fournisseur (ex. NESPRESSO, RHEAVENDORS, BLUPURA)."
+      - name: is_active
+        description: "TRUE si le label ISACTIVE vaut YES, sinon FALSE."
+      - name: purchase_unit_price
+        description: "Prix d'achat unitaire du modèle, en euros (renseigné sur environ deux tiers)."
+      - name: created_at
+        description: "Création du modèle dans l'ERP, en heure de Paris."
+      - name: updated_at
+        description: "Dernière modification du modèle dans l'ERP, en heure de Paris."
+
     # DEVICE
   - name: dim_neshu__device
     description: |
@@ -1680,7 +1782,9 @@ models:
       Fait mince sur int_oracle_neshu__inter_technique_tasks (tâches de type 131, statuts FAIT /
       VALIDE / ANNULE / ANOMALIE), qui porte les labels en code + libellé fr_FR. Ajoute les noms
       d'affichage depuis dim_neshu__device, dim_neshu__company et dim_neshu__resource : code
-      roadman, code GEA et agence (dépôt de rattachement de l'intervenant). Instants en heure de Paris.
+      roadman, code GEA et agence (dépôt de rattachement de l'intervenant). FK vers le modèle de la
+      machine (dim_neshu__modele_equipement) et vers la pièce (dim_neshu__piece). Instants en heure
+      de Paris.
 
       [GRAIN]
       1 ligne par task_id (intervention). Environ 3 200 lignes en octobre 2026, +450 par mois.
@@ -1708,6 +1812,13 @@ models:
           arguments:
             expression: "device_id is not null or objet_intervent is null"
           name: fct_neshu__intervention_technique_device_requis_si_classee
+      # Une machine sans modèle est un défaut de saisie ERP : il est signalé sans bloquer le build.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "modele_equipement_id is not null or device_id is null"
+          name: fct_neshu__intervention_technique_modele_requis_si_machine
+          config:
+            severity: warn
     columns:
       # --- GRAIN ---
       - name: intervention_date
@@ -1732,6 +1843,15 @@ models:
                 field: device_id
               config:
                 severity: warn
+      - name: modele_equipement_id
+        description: "Modèle actuel de la machine. FK → dim_neshu__modele_equipement. NULL si la machine est NULL."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__modele_equipement')
+                field: modele_equipement_id
+              config:
+                severity: warn
       - name: company_id
         description: "Client au moment de l'intervention (peut différer du client actuel de la machine). FK → dim_neshu__company."
         tests:
@@ -1752,11 +1872,17 @@ models:
                 field: resources_id
               config:
                 severity: warn
-      - name: product_id
+      - name: piece_id
         description: >
-          Identifiant ERP de la pièce liée à l'intervention (produit de type 2, pièces détachées :
-          filtre à eau, bouteille de CO2). Quasi toujours NULL. Pas une FK vers dim_neshu__product,
-          qui ne garde que les articles de types 1 et 5.
+          Pièce liée à l'intervention (filtre à eau, bouteille de CO2). FK → dim_neshu__piece. Quasi
+          toujours NULL : une intervention n'a en général pas de ligne produit.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__piece')
+                field: piece_id
+              config:
+                severity: warn
 
       # --- ATTRIBUTS D'AFFICHAGE ---
       - name: document_number
@@ -1777,7 +1903,7 @@ models:
         description: >
           Dépôt de rattachement actuel de l'intervenant (ex. « 01 - RUNGIS DEPOT PRODUITS »), lu
           via resources.company_storehouse. Ce n'est pas l'agence du client.
-      - name: product_code
+      - name: piece_code
         description: "Code de la pièce liée à l'intervention."
 
       # --- STATUT ET LABELS ---
