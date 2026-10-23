@@ -1667,3 +1667,183 @@ models:
         description: "Marge nette rapportée au CA total, en %. NON additif."
       - name: calcule_le
         description: "Horodatage du run qui a produit la ligne. Voir [NOTES] (7)."
+
+  - name: fct_neshu__intervention_technique
+    description: >
+      [QUOI MÉTIER]
+      Interventions techniques NESHU sur les distributeurs : entretien (détartrage, lavage sanitaire)
+      et dépannage de 1er niveau, faits par les roadmen pendant leur tournée, et plus rarement par les
+      GEA. Une ligne par intervention, avec la machine, le client, l'intervenant, la classification
+      (objet, détail), le statut de traitement et le diagnostic saisi.
+
+      [COMMENT CONSTRUITE]
+      Fait mince sur int_oracle_neshu__inter_technique_tasks (tâches de type 131, statuts FAIT /
+      VALIDE / ANNULE / ANOMALIE), qui porte les labels en code + libellé fr_FR. Ajoute les noms
+      d'affichage depuis dim_neshu__device, dim_neshu__company et dim_neshu__resource : code
+      roadman, code GEA et agence (dépôt de rattachement de l'intervenant). Instants en heure de Paris.
+
+      [GRAIN]
+      1 ligne par task_id (intervention). Environ 3 200 lignes en octobre 2026, +450 par mois.
+
+      [NOTES]
+      Processus actif en continu depuis mars 2026 (400 à 500 interventions par mois) ; avant, des
+      tâches ponctuelles (dont 104 en juillet 2025). Classification à deux niveaux : objet_intervent (C1 à C8) puis
+      objet_intervent_detail, à lire ensemble (un code de détail n'est pas unique d'une famille à
+      l'autre). C4 (OC04) = entretien, résolu sur place à 98 % ; les autres objets relèvent du
+      dépannage, transmis à la technique (TOTECH) dans environ 80 % des cas. company_id est le client
+      au moment de l'intervention, qui peut différer du client actuel de la machine. roadman_code,
+      gea_code et agence décrivent l'intervenant aujourd'hui (non historisés). task_end_date suit
+      task_start_date de quelques secondes à quelques minutes, avec des valeurs aberrantes : aucune
+      durée d'intervention exploitable.
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 3000
+            max_value: 50000
+          config:
+            severity: warn
+      # Exception au not_null de device_id : quelques tâches anciennes ou annulées, sans machine ni
+      # classification. Une intervention classée porte toujours une machine.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "device_id is not null or objet_intervent is null"
+          name: fct_neshu__intervention_technique_device_requis_si_classee
+    columns:
+      # --- GRAIN ---
+      - name: intervention_date
+        description: "Jour de l'intervention, en heure de Paris (date de task_start_date)."
+        tests:
+          - not_null
+      - name: task_id
+        description: "Identifiant de la tâche d'intervention Oracle (EVS.TASK). PK."
+        tests:
+          - unique
+          - not_null
+
+      # --- FK ---
+      - name: device_id
+        description: >
+          Distributeur concerné. FK → dim_neshu__device. NULL sur 5 tâches anciennes ou annulées,
+          sans classification (cf. test device_requis_si_classee).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__device')
+                field: device_id
+              config:
+                severity: warn
+      - name: company_id
+        description: "Client au moment de l'intervention (peut différer du client actuel de la machine). FK → dim_neshu__company."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: resources_id
+        description: "Intervenant : roadman (fonction APPRO, très majoritaire) ou GEA. FK → dim_neshu__resource."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__resource')
+                field: resources_id
+              config:
+                severity: warn
+      - name: product_id
+        description: >
+          Identifiant ERP de la pièce liée à l'intervention (produit de type 2, pièces détachées :
+          filtre à eau, bouteille de CO2). Quasi toujours NULL. Pas une FK vers dim_neshu__product,
+          qui ne garde que les articles de types 1 et 5.
+
+      # --- ATTRIBUTS D'AFFICHAGE ---
+      - name: document_number
+        description: "N° de pièce de l'intervention affiché dans l'ERP (préfixe IC)."
+      - name: device_code
+        description: "Code de la machine (numéro de série)."
+      - name: device_name
+        description: "Nom / modèle de la machine (dim_neshu__device)."
+      - name: company_code
+        description: "Code client."
+      - name: company_name
+        description: "Nom du client (dim_neshu__company)."
+      - name: roadman_code
+        description: "Code de l'intervenant (resources_code de dim_neshu__resource)."
+      - name: gea_code
+        description: "Code GEA de l'intervenant."
+      - name: agence
+        description: >
+          Dépôt de rattachement actuel de l'intervenant (ex. « 01 - RUNGIS DEPOT PRODUITS »), lu
+          via resources.company_storehouse. Ce n'est pas l'agence du client.
+      - name: product_code
+        description: "Code de la pièce liée à l'intervention."
+
+      # --- STATUT ET LABELS ---
+      - name: task_status_code
+        description: "Statut de la tâche : FAIT (très majoritaire), ANNULE, ANOMALIE ; VALIDE autorisé, absent des données."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [FAIT, VALIDE, ANNULE, ANOMALIE]
+      - name: statut_inter
+        description: >
+          Statut de traitement : TERMINATED (traitée sur place), TOTECH (transmise à la technique),
+          NULL (non saisi).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [TERMINATED, TOTECH]
+      - name: statut_inter_label
+        description: "Libellé français du statut de traitement : « Terminé », « Transmettre à la technique »."
+      - name: objet_intervent
+        description: >
+          Catégorie de l'intervention : OC01 (C1 - distribution / écoulement), OC02 (C2 - Nayax),
+          OC03 (C3 - fuite externe), OC04 (C4 - détartrage / entretien, majoritaire), OC05 (C5 -
+          électrique / électronique), OC06 (C6 - divers), OC07 (C7 - casse / vol), OC08 (C8 -
+          température), NULL (non saisi).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [OC01, OC02, OC03, OC04, OC05, OC06, OC07, OC08]
+      - name: objet_intervent_label
+        description: "Libellé français de la catégorie (ex. « C4 - détartrage / entretien »)."
+      - name: objet_intervent_detail
+        description: >
+          Détail de la catégorie (famille « Détail Cx » de même numéro que l'objet). À lire avec
+          objet_intervent. Ex. pour OC04 : DC0401 demande de détartrage, DC0402 inter préventive,
+          DC0403 entretien requis, DC0404 lavage sanitaire.
+      - name: objet_intervent_detail_label
+        description: "Libellé français du détail, préfixé de sa catégorie (ex. « C04-04 : Lavage Sanitaire »)."
+      - name: affichage
+        description: "Affichage posé sur la machine : PASAFFICHAGE (majoritaire), OUPS (triangle « OUPS »), NULL."
+      - name: affichage_label
+        description: "Libellé français de l'affichage."
+      - name: facturation
+        description: "Consigne de facturation : NE_PAS_FACTURER, A_FACTURER, NULL (cas général, aucune consigne)."
+      - name: facturation_label
+        description: "Libellé français de la consigne de facturation."
+
+      # --- COMMENTAIRES ---
+      - name: comments_peer
+        description: "Diagnostic saisi par l'intervenant (texte libre, un peu moins d'une intervention sur deux)."
+      - name: comments_self
+        description: "Commentaire interne EVS (texte libre, rare)."
+
+      # --- DATES ---
+      - name: task_start_date
+        description: "Début réel de l'intervention, en heure de Paris."
+        tests:
+          - not_null
+      - name: task_end_date
+        description: >
+          Fin réelle de l'intervention, en heure de Paris. Suit le début de quelques secondes à
+          quelques minutes (médiane 37 s), avec des valeurs aberrantes : ce n'est pas une durée
+          d'intervention.
+
+      # --- MÉTADONNÉES ---
+      - name: created_at
+        description: "Création de la tâche dans l'ERP, en heure de Paris."
+      - name: updated_at
+        description: "Dernière modification de la tâche dans l'ERP, en heure de Paris."
