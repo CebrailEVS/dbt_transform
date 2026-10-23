@@ -1762,8 +1762,8 @@ models:
 
       [NOTES]
       Diffère de int_oracle_neshu__inter_techinique_tasks : ici pas de ligne produit, un technicien
-      rattaché (resources_id), labels statut_inter / objet_intervent / device_cancel_reason (pas de
-      dc04/mission_type), et **aucun filtre sur objet_intervent** (neshu filtrait OC04).
+      rattaché (resources_id), et seuls statut_inter / objet_intervent / device_cancel_reason sont
+      pivotés. Aucun filtre sur objet_intervent, comme chez neshu.
       Une tâche peut porter deux statuts (ex. TERMINATED + TOTECH) :
       TERMINATED l'emporte.
       L'incrémental filtre sur task.updated_at : un label modifié sans que la tâche le soit n'est

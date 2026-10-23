@@ -169,7 +169,7 @@ intervention_prev_dlog as (
         max(task_end_date) as last_preventive_date
     from {{ ref('int_oracle_neshu__inter_techinique_tasks') }}
     where
-        dc04 = 'DC0402'
+        objet_intervent_detail = 'DC0402'
         and task_status_code = 'FAIT'
     group by device_code
 ),
