@@ -1,1 +1,0 @@
-{{ test_accepted_values(column_name="facturation", model=get_where_subquery(ref('int_oracle_neshu__inter_techinique_tasks')), values=["A_FACTURER","NE_PAS_FACTURER"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

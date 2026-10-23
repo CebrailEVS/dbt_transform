@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="affichage", model=get_where_subquery(ref('int_oracle_neshu__inter_technique_tasks')), values=["PASAFFICHAGE","OUPS"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

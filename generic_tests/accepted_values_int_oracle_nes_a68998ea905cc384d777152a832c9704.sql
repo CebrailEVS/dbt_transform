@@ -1,1 +1,0 @@
-{{ test_accepted_values(column_name="statut_inter", model=get_where_subquery(ref('int_oracle_neshu__inter_techinique_tasks')), values=["TERMINATED","TOTECH"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
