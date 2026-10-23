@@ -1761,7 +1761,7 @@ models:
       1 ligne par task_id (intervention).
 
       [NOTES]
-      Diffère de int_oracle_neshu__inter_techinique_tasks : ici pas de ligne produit, un technicien
+      Diffère de int_oracle_neshu__inter_technique_tasks : ici pas de ligne produit, un technicien
       rattaché (resources_id), et seuls statut_inter / objet_intervent / device_cancel_reason sont
       pivotés. Aucun filtre sur objet_intervent, comme chez neshu.
       Une tâche peut porter deux statuts (ex. TERMINATED + TOTECH) :

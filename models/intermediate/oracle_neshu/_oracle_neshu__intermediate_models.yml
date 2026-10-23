@@ -1278,7 +1278,7 @@ models:
           - not_null
 
 
-  - name: int_oracle_neshu__inter_techinique_tasks
+  - name: int_oracle_neshu__inter_technique_tasks
     description: >
       [QUOI MÉTIER]
       Interventions techniques NESHU sur les distributeurs (curatif et préventif) : une ligne par
@@ -1287,7 +1287,8 @@ models:
 
       [COMMENT CONSTRUITE]
       stg_oracle_neshu__task (idtask_type = 131 INTERVENTION TECHNIQUE, statuts FAIT/VALIDE/ANNULE/
-      ANOMALIE, code_status_record = '1', real_start_date renseignée) enrichi company/device/product.
+      ANOMALIE, code_status_record = '1', real_start_date renseignée) enrichi company/device/product
+      et de l'intervenant (ressource PERSON de task_has_resources).
       Les labels EAV (label_has_task × label × label_family) sont pivotés en colonnes, leur libellé
       lu dans stg_oracle_neshu__string (fr_FR, via label.idstring). L'objet OCxx est apparié à son
       détail, lu dans la famille DCxx de même numéro.
@@ -1317,8 +1318,14 @@ models:
         description: "Client (peer company). FK → dim_neshu__company."
       - name: product_id
         description: "Produit / pièce liée à l'intervention (via task_has_product). FK → dim_neshu__product. Quasi toujours NULL : ces interventions n'ont en général pas de ligne produit."
+      - name: resources_id
+        description: >
+          Intervenant : la ressource PERSON de la tâche, roadman (fonction APPRO, très majoritaire)
+          ou GEA. Une seule par tâche. FK → dim_neshu__resource.
 
       # --- CODES ---
+      - name: document_number
+        description: "N° de pièce de l'intervention affiché dans l'ERP (préfixe IC)."
       - name: company_code
         description: "Code client de l'entreprise."
       - name: device_code
@@ -1413,6 +1420,14 @@ models:
           Valeurs : EASYUPLOAD (import Easyupload), NULL (tâche saisie dans l'ERP ou l'app).
       - name: integration_type_label
         description: "Libellé français du mode d'intégration."
+
+      # --- INFOS MÉTIER ---
+      - name: comments_self
+        description: "Commentaire interne EVS sur l'intervention (texte libre, rarement rempli)."
+      - name: comments_peer
+        description: >
+          Diagnostic saisi par l'intervenant (texte libre, rempli sur un peu moins de la moitié des
+          interventions) : panne constatée, action faite, demande à la technique.
 
       # --- DATES ---
       - name: task_start_date

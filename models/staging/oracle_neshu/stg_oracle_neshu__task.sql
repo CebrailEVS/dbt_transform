@@ -30,8 +30,12 @@ cleaned_data as (
         cast(idproduct_destination as int64) as idproduct_destination,
 
         -- Colonnes texte et types
+        cast(document_number as string) as document_number, -- n° de pièce affiché dans l'ERP (ex. ICRSOLLEAU0)
         type_product_source,
         type_product_destination,
+        -- Cast explicite : le modèle est incrémental, un MERGE ne tolère pas un changement de type du raw.
+        cast(comments_self as string) as comments_self,
+        cast(comments_peer as string) as comments_peer,
         -- Zone XML libre de la tâche, exposée brute : le XML est laissé brut ; il est parsé en aval
         -- quand un modèle en a besoin. Porte notamment /ZONE/COUTRM, l'enveloppe mensuelle de charges
         -- sociales (type 242).
