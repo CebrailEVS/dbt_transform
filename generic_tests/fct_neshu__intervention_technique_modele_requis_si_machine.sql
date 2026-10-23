@@ -1,1 +1,0 @@
-{{ dbt_utils.test_expression_is_true(expression="modele_equipement_id is not null or device_id is null", model=get_where_subquery(ref('fct_neshu__intervention_technique'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

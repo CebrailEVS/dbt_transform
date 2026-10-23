@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="piece_id", field="piece_id", model=get_where_subquery(ref('fct_neshu__intervention_roadman')), to=ref('dim_neshu__piece')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

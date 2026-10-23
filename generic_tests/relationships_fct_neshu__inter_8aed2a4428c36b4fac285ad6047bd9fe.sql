@@ -1,1 +1,0 @@
-{{ test_relationships(column_name="modele_equipement_id", field="modele_equipement_id", model=get_where_subquery(ref('fct_neshu__intervention_technique')), to=ref('dim_neshu__modele_equipement')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

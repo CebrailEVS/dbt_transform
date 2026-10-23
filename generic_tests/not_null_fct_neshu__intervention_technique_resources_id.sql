@@ -1,1 +1,0 @@
-{{ test_not_null(column_name="resources_id", model=get_where_subquery(ref('fct_neshu__intervention_technique'))) }}

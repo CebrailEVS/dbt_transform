@@ -1,1 +1,0 @@
-{{ test_accepted_values(column_name="statut_inter", model=get_where_subquery(ref('fct_neshu__intervention_technique')), values=["TERMINATED","TOTECH"]) }}
