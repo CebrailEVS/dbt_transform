@@ -273,9 +273,10 @@ models:
       1 ligne par modele_equipement_id (produit de type 4). 139 modèles en octobre 2026.
 
       [NOTES]
-      Un même modèle peut équiper des machines de types différents (distributeur et accessoire,
-      terminal de paiement et télémétrie) : le type de machine reste dans dim_neshu__device.
-      device_name de dim_neshu__device reprend le plus souvent le nom du modèle.
+      Le type de machine (distributeur, terminal de paiement, accessoire…) reste dans
+      dim_neshu__device. En pratique un modèle correspond à un seul type, à une exception près
+      (BASE CABINET REFILL, 2 machines de types différents). device_name de dim_neshu__device
+      reprend le plus souvent le nom du modèle.
     columns:
       - name: modele_equipement_id
         description: "Identifiant ERP du modèle (product.idproduct, pointé par device.idmodel). PK."
