@@ -1314,10 +1314,12 @@ models:
           - not_null
       - name: device_id
         description: "Distributeur (machine) concerné par l'intervention. FK → dim_neshu__device."
+      - name: modele_equipement_id
+        description: "Modèle de la machine (device.idmodel, produit de type 4). FK → dim_neshu__modele_equipement."
       - name: company_id
         description: "Client (peer company). FK → dim_neshu__company."
       - name: product_id
-        description: "Produit / pièce liée à l'intervention (via task_has_product). FK → dim_neshu__product. Quasi toujours NULL : ces interventions n'ont en général pas de ligne produit."
+        description: "Pièce liée à l'intervention (via task_has_product, produit de type 2). FK → dim_neshu__piece. Quasi toujours NULL : ces interventions n'ont en général pas de ligne produit."
       - name: resources_id
         description: >
           Intervenant : la ressource PERSON de la tâche, roadman (fonction APPRO, très majoritaire)
