@@ -1281,24 +1281,29 @@ models:
   - name: int_oracle_neshu__inter_techinique_tasks
     description: >
       [QUOI MÉTIER]
-      Interventions de petite maintenance technique NESHU (préventif) : une ligne par intervention
-      sur un distributeur, avec son statut et sa classification (labels). Orientées petites
-      opérations ; les cas non résolus sur place sont escaladés à l'équipe technique
-      (statut_inter = TOTECH).
+      Interventions techniques NESHU sur les distributeurs (curatif et préventif) : une ligne par
+      intervention, avec son statut, sa classification (objet + détail) et tous ses labels, chacun
+      en code et en libellé français.
 
       [COMMENT CONSTRUITE]
       stg_oracle_neshu__task (idtask_type = 131 INTERVENTION TECHNIQUE, statuts FAIT/VALIDE/ANNULE/
-      ANOMALIE, code_status_record = '1') enrichi company/device/product, puis pivot des labels EAV
-      (label_has_task × label × label_family) en colonnes : statut_inter, dc04, mission_type,
-      objet_intervent. Filtré sur objet_intervent = 'OC04' (intervention préventive).
+      ANOMALIE, code_status_record = '1', real_start_date renseignée) enrichi company/device/product.
+      Les labels EAV (label_has_task × label × label_family) sont pivotés en colonnes, leur libellé
+      lu dans stg_oracle_neshu__string (fr_FR, via label.idstring). L'objet OCxx est apparié à son
+      détail, lu dans la famille DCxx de même numéro.
 
       [GRAIN]
       1 ligne par task_id (intervention).
 
       [NOTES]
-      Pas de notion de flux produit (ni source/destination, ni quantité/valorisation) : c'est un
-      modèle d'évènement/statut d'intervention. Les codes de labels (statut_inter, dc04…) sont des
-      référentiels métier Oracle.
+      Classification à deux niveaux : objet_intervent (8 catégories C1 à C8) puis
+      objet_intervent_detail (familles « Détail C1 » à « Détail C8 », une valeur par tâche). Les
+      codes de détail ne sont pas uniques d'une famille à l'autre (DC04 est aussi un détail de C1) :
+      filtrer sur le couple objet + détail, ou sur un code propre à une famille (DC0402).
+      Une tâche peut porter deux objets (rare) : on garde celui qui a un détail, puis le plus petit
+      code. Deux statuts (TERMINATED + TOTECH, rare) : TERMINATED l'emporte, comme chez LCDP.
+      Seules les familles listées sont pivotées : une nouvelle famille Oracle n'apparaît pas sans
+      modifier le modèle. Pas de flux produit (ni quantité ni valorisation).
     columns:
       # --- IDENTIFIANTS ---
       - name: task_id
@@ -1311,7 +1316,7 @@ models:
       - name: company_id
         description: "Client (peer company). FK → dim_neshu__company."
       - name: product_id
-        description: "Produit / pièce liée à l'intervention (via task_has_product). FK → dim_neshu__product. Souvent NULL (ces interventions de petite maintenance n'ont en général pas de ligne produit)."
+        description: "Produit / pièce liée à l'intervention (via task_has_product). FK → dim_neshu__product. Quasi toujours NULL : ces interventions n'ont en général pas de ligne produit."
 
       # --- CODES ---
       - name: company_code
@@ -1322,8 +1327,8 @@ models:
         description: "Code métier du produit / pièce."
       - name: task_status_code
         description: >
-          Code du statut de la tâche. Valeurs : FAIT (réalisé, très majoritaire), ANNULE
-          (et, autorisés par le filtre, VALIDE / ANOMALIE).
+          Code du statut de la tâche. Valeurs : FAIT (réalisé, très majoritaire), ANNULE, ANOMALIE
+          (VALIDE autorisé par le filtre, absent des données).
         tests:
           - accepted_values:
               arguments:
@@ -1331,29 +1336,91 @@ models:
               config:
                 severity: warn
 
-      # --- LABELS PIVOTÉS (référentiels métier) ---
+      # --- LABELS (code + libellé fr_FR) ---
       - name: statut_inter
         description: >
-          Statut de traitement de l'intervention (label de famille 'Statut inter'). Valeurs :
-          TERMINATED (traitée / clôturée sur place, majoritaire), TOTECH (non résolue sur place →
-          renvoyée à l'équipe technique), NULL. La famille comporte aussi UNTREATED et
-          WAITING_PIECE (absents de ce périmètre filtré).
-      - name: dc04
-        description: >
-          Code de classification de l'intervention (label de famille 'DC04'). Valeurs :
-          DC0404 (majoritaire), DC0401, DC0403, DC0402, NULL.
-      - name: mission_type
-        description: "Type de mission (label de famille 'MISSION_TYPE'). Quasi constant : INTER TECHNIQUE (ou NULL)."
+          Statut de traitement de l'intervention (famille 'Statut inter'). Valeurs : TERMINATED
+          (Terminé, traitée sur place), TOTECH (Transmettre à la technique : non résolue, escaladée),
+          NULL. UNTREATED et WAITING_PIECE existent mais sont désactivés.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [TERMINATED, TOTECH]
+              config:
+                severity: warn
+      - name: statut_inter_label
+        description: "Libellé français du statut : « Terminé », « Transmettre à la technique »."
       - name: objet_intervent
-        description: "Objet de l'intervention (label de famille 'Objet intervent'). Toujours OC04 ici (filtre du modèle = préventif)."
+        description: >
+          Catégorie de l'intervention (famille 'Objet intervent'). Valeurs : OC01 (C1 - problème de
+          distribution ou d'écoulement), OC02 (C2 - problème Nayax), OC03 (C3 - fuite externe), OC04
+          (C4 - détartrage / entretien, majoritaire), OC05 (C5 - problème électrique / électronique),
+          OC06 (C6 - divers), OC07 (C7 - casse / vol), OC08 (C8 - problème de température), NULL.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [OC01, OC02, OC03, OC04, OC05, OC06, OC07, OC08]
+              config:
+                severity: warn
+      - name: objet_intervent_label
+        description: "Libellé français de la catégorie, tel que saisi dans l'ERP (ex. « C4 - détartrage / entretien »)."
+      - name: objet_intervent_detail
+        description: >
+          Détail de la catégorie, lu dans la famille DCxx de même numéro que objet_intervent
+          (« Détail C1 » à « Détail C8 »). NULL si aucun objet ou aucun détail saisi. Code non unique
+          entre familles : à lire avec objet_intervent. Ex. pour OC04 : DC0401 (demande de
+          détartrage), DC0402 (inter préventive), DC0403 (entretien requis), DC0404 (lavage
+          sanitaire, majoritaire).
+      - name: objet_intervent_detail_label
+        description: "Libellé français du détail, préfixé de sa catégorie (ex. « C04-04 : Lavage Sanitaire »)."
+      - name: mission_type
+        description: "Type de mission (famille 'MISSION_TYPE', commune à tous les types de tâche). Ici INTER TECHNIQUE ou NULL."
+      - name: mission_type_label
+        description: "Libellé français du type de mission : « Intervention technique »."
+      - name: affichage
+        description: >
+          Affichage posé sur la machine (famille 'AFFICHAGE'). Valeurs : PASAFFICHAGE (pas
+          d'affichage, majoritaire), OUPS (mise en place du triangle « OUPS »), NULL.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [PASAFFICHAGE, OUPS]
+              config:
+                severity: warn
+      - name: affichage_label
+        description: "Libellé français de l'affichage."
+      - name: facturation
+        description: >
+          Consigne de facturation (famille 'FACTURATION'). Valeurs : NE_PAS_FACTURER, A_FACTURER,
+          NULL (cas général : aucune consigne saisie).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [A_FACTURER, NE_PAS_FACTURER]
+              config:
+                severity: warn
+      - name: facturation_label
+        description: "Libellé français de la consigne de facturation."
+      - name: device_cancel_reason
+        description: >
+          Cause d'annulation machine (famille 'DEVICE_CANCEL_REASON'). Valeur : OTHERS (Autres),
+          surtout sur les tâches ANNULE ; NULL sinon. AUTO_CANCEL existe mais est désactivé.
+      - name: device_cancel_reason_label
+        description: "Libellé français de la cause d'annulation."
+      - name: integration_type
+        description: >
+          Mode de création de la tâche par intégration de fichier (famille 'INTEGRATION_TYPE').
+          Valeurs : EASYUPLOAD (import Easyupload), NULL (tâche saisie dans l'ERP ou l'app).
+      - name: integration_type_label
+        description: "Libellé français du mode d'intégration."
 
       # --- DATES ---
       - name: task_start_date
-        description: "Date et heure réelle de début de l'intervention."
+        description: "Instant réel de début de l'intervention (UTC)."
         tests:
           - not_null
       - name: task_end_date
-        description: "Date et heure réelle de fin de l'intervention."
+        description: "Instant réel de fin de l'intervention (UTC)."
 
       # --- MÉTADONNÉES ---
       - name: updated_at
