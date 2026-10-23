@@ -127,8 +127,7 @@ la dernière section liste ce qui diffère côté LCDP. Stock théorique : `orac
 Tout ce qui précède s'applique à `oracle_lcdp` (`stg_oracle_lcdp__*`, `int_oracle_lcdp__*`), sauf :
 
 - **Types de tâche propres** : 130 appel SAV, 30 comptage, 296 entrée et 297 sortie fabrication.
-- **Nommage** : `int_oracle_lcdp__inter_technique_tasks` ; côté NESHU le modèle s'appelle
-  réellement `int_oracle_neshu__inter_techinique_tasks` (coquille dans le nom).
+- **Nommage** : `int_oracle_lcdp__inter_technique_tasks`, symétrique de `int_oracle_neshu__inter_technique_tasks`.
 - **Pas de dimension contrat** : ni `dim_lcdp__contract`, ni staging de `label_has_contract`.
 - **Staging incrémentaux** : `task` et `task_has_product` seulement ; `task_has_amount` est une
   table, `label_has_thp` et `task_type_has_config` n'existent pas.

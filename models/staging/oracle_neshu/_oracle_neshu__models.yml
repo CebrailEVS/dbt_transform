@@ -530,6 +530,12 @@ models:
         description: "nom de la table de la source (DEVICE / COMPANY etc)"
       - name: TYPE_PRODUCT_DESTINATION
         description: "nom de la table de la destination (DEVICE / COMPANY etc)"
+      - name: document_number
+        description: "N° de pièce affiché dans l'ERP (ex. ICRSOLLEAU0 pour une intervention technique)"
+      - name: comments_self
+        description: "Commentaire interne EVS sur la tâche (texte libre)"
+      - name: comments_peer
+        description: "Commentaire saisi pour le tiers sur la tâche (texte libre) ; sur une intervention technique, diagnostic du roadman"
       - name: code_status_record
         description: "Code status de la tâche ( 1 = validé, 0 ou -1 = non validé)"
       - name: real_start_date
