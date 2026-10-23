@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="task_status_code", model=get_where_subquery(ref('fct_neshu__intervention_technique')), values=["FAIT","VALIDE","ANNULE","ANOMALIE"]) }}

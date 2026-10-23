@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="supplier_company_id", field="company_id", model=get_where_subquery(ref('dim_neshu__piece')), to=ref('dim_neshu__company')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

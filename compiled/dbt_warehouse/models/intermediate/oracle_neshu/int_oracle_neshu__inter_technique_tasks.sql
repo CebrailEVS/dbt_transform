@@ -118,6 +118,7 @@ select
     -- Identifiants
     t.idtask as task_id,
     t.iddevice as device_id,
+    d.idmodel as modele_equipement_id,
     t.idcompany_peer as company_id,
     thp.idproduct as product_id,
     i.resources_id,

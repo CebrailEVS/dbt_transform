@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="objet_intervent", model=get_where_subquery(ref('fct_neshu__intervention_technique')), values=["OC01","OC02","OC03","OC04","OC05","OC06","OC07","OC08"]) }}

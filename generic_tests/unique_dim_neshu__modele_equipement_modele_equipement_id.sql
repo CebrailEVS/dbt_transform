@@ -1,0 +1,1 @@
+{{ test_unique(column_name="modele_equipement_id", model=get_where_subquery(ref('dim_neshu__modele_equipement'))) }}
