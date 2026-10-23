@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        categorie as value_field,
+        objet_intervent as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_stock`
-    group by categorie
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__inter_techinique_tasks`
+    group by objet_intervent
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'Machine principale','Composant en stock','Composant rattaché','Terminal de paiement','À classer'
+    'OC01','OC02','OC03','OC04','OC05','OC06','OC07','OC08'
 )
 
 

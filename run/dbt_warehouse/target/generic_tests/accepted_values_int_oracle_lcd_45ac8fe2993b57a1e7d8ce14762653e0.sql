@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        statut as value_field,
+        task_status_code as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_equipement_stock`
-    group by statut
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__inter_technique_tasks`
+    group by task_status_code
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'Disponible','Réservé','À remettre en état','Inactif hors rebut (à investiguer)','Inactif','Rebut','Commandé','À solder'
+    'FAIT','ANNULE','PREVU','ENCOURS','ANOMALIE','VALIDE','ACQUITTE','ENATTENTE'
 )
 
 

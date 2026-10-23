@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        statut as value_field,
+        facturation as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_stock`
-    group by statut
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__inter_techinique_tasks`
+    group by facturation
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'Disponible','Réservé','À remettre en état','Inactif hors rebut (à investiguer)','Inactif','Rebut','Commandé','À solder','Hors stock (marketing)'
+    'A_FACTURER','NE_PAS_FACTURER'
 )
 
 

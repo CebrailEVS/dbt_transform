@@ -13,9 +13,9 @@
 
 
 
-select ligne_id
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_stock`
-where ligne_id is null
+select created_at
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__inter_technique_tasks`
+where created_at is null
 
 
 

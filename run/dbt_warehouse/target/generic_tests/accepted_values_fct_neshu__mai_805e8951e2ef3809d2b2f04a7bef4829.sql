@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        ligne_type as value_field,
+        status_inter as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_equipement_stock`
-    group by ligne_type
+    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__maintenance_preventive`
+    group by status_inter
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'equipement','commande'
+    'Ouvert','Planifie','Aucune'
 )
 
 

@@ -13,9 +13,9 @@
 
 
 
-select statut
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_stock`
-where statut is null
+select retard_bol
+from `evs-datastack-prod`.`prod_marts`.`fct_neshu__maintenance_preventive`
+where retard_bol is null
 
 
 

@@ -166,7 +166,7 @@ intervention_prev_dlog as (
         max(task_end_date) as last_preventive_date
     from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_neshu__inter_techinique_tasks`
     where
-        dc04 = 'DC0402'
+        objet_intervent_detail = 'DC0402'
         and task_status_code = 'FAIT'
     group by device_code
 ),
@@ -496,7 +496,7 @@ final as (
 
         -- Métadonnées dbt
         current_timestamp() as dbt_updated_at,
-        '01a16276-5246-7bd1-8301-793dc89a5a89' as dbt_invocation_id  -- noqa: TMP
+        '01a16804-9db7-7a42-983b-699855ca89bf' as dbt_invocation_id  -- noqa: TMP
 
     from deduplicated
     where rn = 1  -- Ne garder qu'une ligne par device_id
