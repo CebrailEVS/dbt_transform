@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="technician_id is not null or intervention_state != 'REALISEE'", model=get_where_subquery(ref('fct_neshu__intervention_technique'))) }}

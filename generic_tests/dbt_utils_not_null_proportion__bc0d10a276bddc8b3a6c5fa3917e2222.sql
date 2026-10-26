@@ -1,0 +1,1 @@
+{{ dbt_utils.test_not_null_proportion(at_least=0.95, column_name="material_id", model=get_where_subquery(ref('fct_neshu__intervention_technique'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

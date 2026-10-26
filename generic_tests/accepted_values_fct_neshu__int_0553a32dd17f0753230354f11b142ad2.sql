@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="demand_status", model=get_where_subquery(ref('fct_neshu__intervention_technique')), values=["Open","Accepted","Rejected","Closed"]) }}

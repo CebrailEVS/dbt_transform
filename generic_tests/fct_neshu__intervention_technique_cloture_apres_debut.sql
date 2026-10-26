@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="date_done >= date_started", model=get_where_subquery(ref('fct_neshu__intervention_technique'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

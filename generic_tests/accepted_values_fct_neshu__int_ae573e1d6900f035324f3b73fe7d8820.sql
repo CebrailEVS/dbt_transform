@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="client_category", model=get_where_subquery(ref('fct_neshu__intervention_technique')), values=["PREMIUM","VIP","OR","ARGENT","BRONZE"]) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="workorder_type", model=get_where_subquery(ref('fct_neshu__intervention_technique')), values=["Reactive","Preventive","Installation"]) }}

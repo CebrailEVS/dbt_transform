@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        product_en_exploitation as value_field,
+        client_category as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_produit`
-    group by product_en_exploitation
+    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__intervention_technique`
+    group by client_category
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'OUI','NON','FLUX DIRECT'
+    'PREMIUM','VIP','OR','ARGENT','BRONZE'
 )
 
 

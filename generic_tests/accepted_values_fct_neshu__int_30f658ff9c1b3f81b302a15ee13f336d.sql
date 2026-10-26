@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="workorder_status", model=get_where_subquery(ref('fct_neshu__intervention_technique')), values=["Scheduled","In progress","Closed"]) }}
