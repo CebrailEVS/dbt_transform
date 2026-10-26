@@ -1974,3 +1974,287 @@ models:
         description: "Création de la tâche dans l'ERP, en heure de Paris."
       - name: updated_at
         description: "Dernière modification de la tâche dans l'ERP, en heure de Paris."
+
+  - name: fct_neshu__intervention_technique
+    description: >
+      [QUOI MÉTIER]
+      Interventions des techniciens NESHU, gérées dans Yuman : curatives, préventives,
+      installations, désinstallations et travaux d'atelier. Une ligne par demande d'intervention,
+      quel que soit son état (réalisée, planifiée, en pause, rejetée…), avec le client, le site, le
+      matériel et le technicien vus par Yuman. Pendant de fct_neshu__intervention_roadman, qui porte
+      les interventions de 1er niveau des roadmen.
+
+      [COMMENT CONSTRUITE]
+      int_yuman__demands_workorders_enriched filtré sur partner_name = 'NESHU'. Tout ce qui est
+      affiché vient de Yuman ; la catégorie client (PREMIUM, VIP…) est retirée du nom et mise dans
+      client_category. Statut actif du matériel et du technicien lu dans dim_technique__material et
+      dim_technique__technician. Les identifiants Distrilog servent seulement de pont vers les dims
+      Neshu : machine par material_serial_number = 'NESH_' || device_code, modèle via device.idmodel,
+      client par client_code = 'NESH_' || company_code. Instants en heure de Paris.
+
+      [GRAIN]
+      1 ligne par demand_id (demande Yuman NESHU). Environ 10 900 lignes depuis décembre 2023.
+
+      [NOTES]
+      device_id est NULL sur environ 3 % des demandes : moitié sans matériel (travaux d'atelier
+      surtout), moitié avec un numéro de série Yuman qui ne correspond à aucune machine Distrilog
+      (saisie sans préfixe NESH_ ou machine absente de Distrilog). company_id est NULL pour quelques codes clients absents
+      de Distrilog (environ 1 %). Le client interne NESH_EVS (agences et ateliers, environ 470
+      demandes, surtout des remises en état) est rattaché à EVS PROFESSIONNEL FRANCE : à exclure pour
+      une analyse des clients externes. Le lien avec une escalade roadman précise n'est pas fait :
+      les deux faits se croisent par device_id, company_id et la date. Les instants sont en heure de
+      Paris, alors que fct_neshu__workorder_delai sort les mêmes instants Yuman en UTC (1 à 2 h
+      d'écart). Statuts actifs, équipe et agence du technicien sont ceux d'aujourd'hui, pas ceux du
+      jour de l'intervention.
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 10000
+            max_value: 100000
+          config:
+            severity: warn
+      # Exception au not_null de technician_id : une demande ouverte, rejetée ou non réalisée peut
+      # ne pas avoir de technicien. Une intervention réalisée en a toujours un.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "technician_id is not null or intervention_state != 'REALISEE'"
+          name: fct_neshu__intervention_technique_technicien_requis_si_realisee
+      # Une machine sans modèle est un défaut de saisie ERP : il est signalé sans bloquer le build.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "modele_equipement_id is not null or device_id is null"
+          name: fct_neshu__intervention_technique_modele_requis_si_machine
+          config:
+            severity: warn
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "date_done >= date_started"
+          name: fct_neshu__intervention_technique_cloture_apres_debut
+          config:
+            severity: warn
+    columns:
+      # --- GRAIN ---
+      - name: demand_date
+        description: "Jour de création de la demande, en heure de Paris."
+        tests:
+          - not_null
+      - name: demand_id
+        description: "Identifiant de la demande Yuman. PK."
+        tests:
+          - unique
+          - not_null
+
+      # --- FK YUMAN ---
+      - name: workorder_id
+        description: "Bon de travail Yuman. NULL tant que la demande n'a pas de bon (demande ouverte ou rejetée)."
+      - name: client_id
+        description: "Client Yuman. FK → dim_technique__client."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_technique__client')
+                field: client_id
+              config:
+                severity: warn
+      - name: site_id
+        description: "Site d'intervention Yuman. FK → dim_technique__site."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_technique__site')
+                field: site_id
+              config:
+                severity: warn
+      - name: material_id
+        description: >
+          Matériel Yuman. FK → dim_technique__material. NULL sur environ 2 % des demandes, surtout
+          des préparations et remises en état en atelier.
+        tests:
+          # NULL légitime (travaux d'atelier) : on surveille le taux plutôt que d'exiger not_null.
+          - dbt_utils.not_null_proportion:
+              arguments:
+                at_least: 0.95
+              config:
+                severity: warn
+          - relationships:
+              arguments:
+                to: ref('dim_technique__material')
+                field: material_id
+              config:
+                severity: warn
+      - name: technician_id
+        description: >
+          Technicien Yuman. FK → dim_technique__technician (user_id). NULL possible si la demande est
+          ouverte, rejetée ou non réalisée (cf. test technicien_requis_si_realisee). Un bon de
+          janvier 2024 est affecté à un compte qui n'est pas technicien : relationships en warn.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_technique__technician')
+                field: user_id
+              config:
+                severity: warn
+
+      # --- FK DISTRILOG (pont vers les dims Neshu) ---
+      - name: company_id
+        description: >
+          Client Distrilog, retrouvé par client_code = 'NESH_' || company_code. FK →
+          dim_neshu__company. NESH_EVS = EVS PROFESSIONNEL FRANCE (société interne). NULL si le code
+          n'existe pas dans Distrilog.
+        tests:
+          # Rattachement par code : une dérive du préfixe NESH_ ferait chuter le taux sans erreur.
+          - dbt_utils.not_null_proportion:
+              arguments:
+                at_least: 0.95
+              config:
+                severity: warn
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__company')
+                field: company_id
+              config:
+                severity: warn
+      - name: device_id
+        description: >
+          Machine Distrilog, retrouvée par material_serial_number = 'NESH_' || device_code. FK →
+          dim_neshu__device. NULL si le numéro de série n'est pas retrouvé ou sans matériel.
+        tests:
+          # Rattachement par n° de série : une dérive du préfixe NESH_ ferait chuter le taux sans erreur.
+          - dbt_utils.not_null_proportion:
+              arguments:
+                at_least: 0.95
+              config:
+                severity: warn
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__device')
+                field: device_id
+              config:
+                severity: warn
+      - name: modele_equipement_id
+        description: "Modèle actuel de la machine Distrilog. FK → dim_neshu__modele_equipement. NULL si device_id est NULL."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__modele_equipement')
+                field: modele_equipement_id
+              config:
+                severity: warn
+
+      # --- CODES ET NOMS (YUMAN) ---
+      - name: workorder_number
+        description: "N° du bon de travail affiché dans Yuman."
+      - name: client_code
+        description: "Code client Yuman (NESH_ + code client Distrilog ; NESH_EVS = agences et ateliers EVS)."
+      - name: client_name
+        description: "Nom du client Yuman, sans le suffixe de catégorie (« … - PREMIUM »)."
+      - name: client_category
+        description: "Segment commercial du client : PREMIUM, VIP, OR, ARGENT, BRONZE ; NULL si non renseigné."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [PREMIUM, VIP, OR, ARGENT, BRONZE]
+      - name: is_client_active
+        description: "True si le client est actif aujourd'hui dans Yuman (état actuel, pas celui du jour de la demande)."
+      - name: site_code
+        description: "Code du site Yuman."
+      - name: site_name
+        description: "Nom du site d'intervention."
+      - name: site_postal_code
+        description: "Code postal du site, tel que saisi dans Yuman."
+      - name: material_serial_number
+        description: "N° de série du matériel dans Yuman (NESH_ + code machine Distrilog quand il est bien saisi)."
+      - name: material_name
+        description: "Nom du matériel dans Yuman."
+      - name: material_category
+        description: "Désignation / modèle du matériel dans Yuman (ex. MGZ, MINITOWER MOMENTO), liste ouverte."
+      - name: material_brand
+        description: "Marque du matériel (Nespresso, Nestlé, Animo…)."
+      - name: is_material_active
+        description: "True si le matériel est actif aujourd'hui dans Yuman (dim_technique__material, état actuel). NULL sans matériel."
+      - name: workorder_technician_name
+        description: "Nom du technicien affecté au bon."
+      - name: technician_equipe
+        description: "Équipe actuelle du technicien : IDF P1P2, AURA EST, BORDEAUX ; NULL sans technicien ou hors mapping."
+      - name: technician_agency_stock
+        description: "Agence de stock actuelle du technicien : Rungis, Lyon, Bordeaux, Strasbourg ; NULL sans technicien ou hors mapping."
+      - name: is_technician_active
+        description: "True si le technicien est actif aujourd'hui dans Yuman (dim_technique__technician, état actuel). NULL sans technicien."
+
+      # --- INTERVENTION ---
+      - name: intervention_state
+        description: >
+          État métier de l'intervention : REALISEE, NON_REALISEE (bon clos avec un motif de
+          non-intervention), EN_COURS, EN_PAUSE, PLANIFIEE, DEMANDE_OUVERTE (pas encore de bon),
+          DEMANDE_REJETEE, AUTRE (filet, vide aujourd'hui).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [REALISEE, NON_REALISEE, EN_COURS, EN_PAUSE, PLANIFIEE, DEMANDE_OUVERTE, DEMANDE_REJETEE, AUTRE]
+      - name: has_been_paused
+        description: >
+          True si le bon a été mis en pause au moins une fois, pause en cours ou passée : Yuman garde
+          les champs de pause après la reprise. Pause en cours = intervention_state EN_PAUSE.
+      - name: demand_status
+        description: "Statut de la demande Yuman : Open, Accepted, Rejected, Closed."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [Open, Accepted, Rejected, Closed]
+      - name: demand_category_name
+        description: >
+          Catégorie de la demande, « <TYPE> <DÉLAI/PROG> - NESHU » (ex. CURATIVE J+2, PREVENTIVE PROG,
+          INSTALLATION PROG, REMISE EN ETAT ATELIER J+10, PREPARATION ATELIER PROG).
+      - name: workorder_status
+        description: "Statut du bon Yuman : Scheduled, In progress, Closed ; NULL sans bon."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [Scheduled, In progress, Closed]
+      - name: workorder_category
+        description: "Catégorie du bon, même motif que demand_category_name ; NULL sans bon."
+      - name: workorder_type
+        description: "Type natif du bon Yuman : Reactive, Preventive, Installation ; NULL sans bon."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [Reactive, Preventive, Installation]
+
+      # --- TEXTES ---
+      - name: demand_description
+        description: "Description de la demande (texte libre ; reprend souvent le diagnostic du roadman, signé « RM <nom> »)."
+      - name: demand_reject_comment
+        description: "Commentaire de rejet de la demande (renseigné quand demand_status = Rejected)."
+      - name: workorder_report
+        description: "Rapport d'intervention du technicien (texte libre)."
+      - name: workorder_motif_non_intervention
+        description: "Motif de non-intervention : Erreur de saisie, Résolue client, Résolue roadman. Renseigné ⇒ NON_REALISEE."
+      - name: workorder_detail_non_intervention
+        description: "Détail de la non-intervention (texte libre)."
+      - name: workorder_raison_mise_en_pause
+        description: "Raison de la mise en pause : PB Stock véhicule, PB stock agence, PB technique non résolu."
+      - name: workorder_explication_mise_en_pause
+        description: "Explication de la mise en pause (texte libre)."
+
+      # --- CHRONOLOGIE ---
+      - name: demand_created_at
+        description: "Création de la demande, en heure de Paris."
+      - name: workorder_date_creation
+        description: "Date de création du bon (champ Yuman, renseigné sur environ deux bons sur trois)."
+      - name: date_planned
+        description: "Date planifiée du bon, en heure de Paris."
+      - name: date_started
+        description: "Début du bon, en heure de Paris."
+      - name: date_done
+        description: "Clôture du bon, en heure de Paris. NULL tant que le bon n'est pas clos."
+      - name: intervention_date
+        description: >
+          Jour de clôture du bon, en heure de Paris. Pour une intervention réalisée, c'est le jour du
+          passage du technicien ; NULL tant que le bon n'est pas clos.
+
+      # --- MÉTADONNÉES ---
+      - name: demand_updated_at
+        description: "Dernière modification de la demande, en heure de Paris."
