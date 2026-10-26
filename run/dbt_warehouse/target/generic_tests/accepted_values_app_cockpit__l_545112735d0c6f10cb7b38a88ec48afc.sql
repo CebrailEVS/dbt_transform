@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        objet_intervent as value_field,
+        product_en_exploitation as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__intervention_roadman`
-    group by objet_intervent
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_produit`
+    group by product_en_exploitation
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'OC01','OC02','OC03','OC04','OC05','OC06','OC07','OC08'
+    'OUI','NON','FLUX DIRECT'
 )
 
 

@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select task_id as unique_field
-  from `evs-datastack-prod`.`prod_marts`.`fct_neshu__intervention_roadman`
-  where task_id is not null
+  select product_id as unique_field
+  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_produit`
+  where product_id is not null
 
 )
 
