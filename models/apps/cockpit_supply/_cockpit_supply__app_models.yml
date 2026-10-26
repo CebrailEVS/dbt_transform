@@ -725,6 +725,16 @@ models:
         tests:
           - not_null
           - unique
+      - name: product_group
+        description: "Groupe produit (label GROUPRO, libellé rogné) : CAFE GRAIN, THE NUNSHEN, SNACK, BOISSON FROIDE, BOISSON CHAUDE, ACCESSOIRE, NESPRESSO… NULL si non saisi."
+      - name: product_en_exploitation
+        description: "Champ « EN EXPLOITATION » de la fiche article (label ENEXPL) : OUI (stocké et suivi au quotidien), NON (boutique, facturation, machines… sans suivi quotidien), FLUX DIRECT (produits frais, machines, références éphémères). NULL tant qu'il n'est pas saisi ; l'app traite NULL comme non suivi."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['OUI', 'NON', 'FLUX DIRECT']
+              config:
+                severity: warn
 
   - name: app_cockpit__lcdp_machine
     description: |

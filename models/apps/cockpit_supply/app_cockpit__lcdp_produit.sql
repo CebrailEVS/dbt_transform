@@ -8,8 +8,11 @@ with labels as (
     select
         idproduct,
         max(case when label_family_code = 'FAMIPRO' then label_text_fr end) as product_family,
-        max(case when label_family_code = 'GROUPRO' then label_text_fr end) as product_group,
+        -- Libellé saisi avec une espace finale sur un groupe (« ACCESSOIRE ») : rogné pour le regroupement.
+        max(case when label_family_code = 'GROUPRO' then trim(label_text_fr) end) as product_group,
         max(case when label_family_code = 'BIO' then label_text_fr end) as product_bio,
+        -- Champ « EN EXPLOITATION » : OUI = article stocké et suivi au quotidien ; NULL tant qu'il n'est pas saisi.
+        max(case when label_family_code = 'ENEXPL' then trim(label_text_fr) end) as product_en_exploitation,
         max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active
     from {{ ref('stg_oracle_lcdp__label_product') }}
     group by idproduct
@@ -22,6 +25,7 @@ select
     lb.product_family,
     lb.product_group,
     lb.product_bio,
+    lb.product_en_exploitation,
     coalesce(lower(lb.is_active) = 'yes', false) as is_active
 from {{ ref('stg_oracle_lcdp__product') }} as p
 left join labels as lb
