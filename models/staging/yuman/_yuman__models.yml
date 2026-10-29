@@ -432,6 +432,9 @@ models:
                 field: user_id
               config:
                 severity: warn
+                # Ateliers physiques (Rungis, Lyon, Strasbourg, Bordeaux) : sans utilisateur
+                # propriétaire, ils échappent par construction à la règle storehouses_id = user_id.
+                where: "storehouses_id not in (1891, 311335, 311336, 311337)"
   - name: stg_yuman__suppliers
     description: >
       Fournisseurs clean depuis la table source yuman_evs_suppliers (référentiel
