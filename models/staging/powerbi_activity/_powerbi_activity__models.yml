@@ -64,22 +64,13 @@ models:
           est la seule activité qui mesure une consultation.
         tests:
           - not_null
-          # Liste fermée côté API mais susceptible de s'enrichir (nouveaux types
-          # d'activité Power BI) → warn : un drift est une information, pas une panne.
-          - accepted_values:
+          # Les marts ne lisent que ces deux activités : si l'une disparaît (renommage Microsoft,
+          # extraction cassée), consultations ou rafraîchissements tombent à zéro sans erreur.
+          # Fenêtre de 3 jours : ViewReport peut manquer un jour de week-end.
+          - dbt_expectations.expect_column_distinct_values_to_contain_set:
               arguments:
-                values:
-                  - ViewReport
-                  - RefreshDataset
-                  - GenerateScreenshot
-                  - GetSnapshots
-                  - ExportReport
-                  - UpdateApp
-                  - InstallApp
-                  - GetCloudSupportedDatasources
-                  - SetScheduledRefresh
-                  - ExportArtifact
-                  - ExportArtifactDownload
+                value_set: ['ViewReport', 'RefreshDataset']
+                row_condition: "created_at >= timestamp_sub(current_timestamp(), interval 3 day)"
               config:
                 severity: warn
 
