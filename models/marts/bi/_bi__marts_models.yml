@@ -200,11 +200,15 @@ models:
           (cf. en-tête).
         tests: [not_null]
       - name: user_domain
-        description: "Domaine de l'UPN : evs-pro.com ou neshu.com. Permet de segmenter les deux entités sans désigner de personne."
+        description: >
+          Domaine de l'UPN : evs-pro.com, neshu.com, ou l'un des deux domaines de LCDP
+          (expresso-service.com, lescafesduphare.com), qui forment une seule entité : les regrouper
+          pour compter LCDP. Permet de segmenter les entités sans désigner de personne.
         tests:
+          # Domaines du groupe : un domaine inconnu signale un rapport consulté hors du groupe.
           - accepted_values:
               arguments:
-                values: ['evs-pro.com', 'neshu.com']
+                values: ['evs-pro.com', 'neshu.com', 'expresso-service.com', 'lescafesduphare.com']
               config:
                 severity: warn
       - name: consumption_method
