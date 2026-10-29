@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_column_distinct_values_to_contain_set(column_name="activity", model=get_where_subquery(ref('stg_powerbi_activity__events')), row_condition="created_at >= timestamp_sub(current_timestamp(), interval 3 day)", value_set=["ViewReport","RefreshDataset"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -16,7 +16,7 @@ with all_values as (
 select *
 from all_values
 where value_field not in (
-    'evs-pro.com','neshu.com'
+    'evs-pro.com','neshu.com','expresso-service.com','lescafesduphare.com'
 )
 
 

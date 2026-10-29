@@ -1,1 +1,1 @@
-{{ test_relationships(column_name="ar_ref", field="ar_ref", model=get_where_subquery(ref('stg_mssql_sage__f_lotserie')), to=ref('stg_mssql_sage__f_article')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
+{{ test_relationships(column_name="ar_ref", field="ar_ref", model=get_where_subquery(ref('stg_mssql_sage__f_lotserie')), to=ref('stg_mssql_sage__f_article')) }}{{ config({"meta":{},"severity":"WARN","tags":[],"where":"extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)"}) }}

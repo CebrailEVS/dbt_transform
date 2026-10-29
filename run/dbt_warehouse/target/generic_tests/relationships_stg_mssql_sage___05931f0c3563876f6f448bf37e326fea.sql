@@ -12,14 +12,14 @@
     
 
 with child as (
-    select storehouses_id as from_field
-    from (select * from `evs-datastack-prod`.`prod_staging`.`stg_yuman__storehouses` where storehouses_id not in (1891, 311335, 311336, 311337)) dbt_subquery
-    where storehouses_id is not null
+    select dl_no_in as from_field
+    from (select * from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_lotserie` where extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)) dbt_subquery
+    where dl_no_in is not null
 ),
 
 parent as (
-    select user_id as to_field
-    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__users`
+    select dl_no as to_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne`
 )
 
 select

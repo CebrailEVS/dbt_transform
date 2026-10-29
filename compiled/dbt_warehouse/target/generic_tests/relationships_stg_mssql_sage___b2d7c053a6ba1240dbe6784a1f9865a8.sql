@@ -4,7 +4,7 @@
 
 with child as (
     select dl_no_out as from_field
-    from (select * from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_lotserie` where dl_no_out != 0) dbt_subquery
+    from (select * from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_lotserie` where dl_no_out != 0 and extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)) dbt_subquery
     where dl_no_out is not null
 ),
 

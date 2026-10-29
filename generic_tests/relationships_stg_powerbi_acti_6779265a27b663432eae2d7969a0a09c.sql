@@ -1,1 +1,1 @@
-{{ test_relationships(column_name="dataset_id", field="dataset_id", model=get_where_subquery(ref('stg_powerbi_activity__events')), to=ref('stg_powerbi_activity__datasets')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
+{{ test_relationships(column_name="dataset_id", field="dataset_id", model=get_where_subquery(ref('stg_powerbi_activity__events')), to=ref('stg_powerbi_activity__datasets')) }}{{ config({"meta":{},"severity":"WARN","tags":[],"where":"created_at >= timestamp_sub(current_timestamp(), interval 3 day)"}) }}

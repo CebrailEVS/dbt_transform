@@ -1,1 +1,1 @@
-{{ test_relationships(column_name="dl_no_in", field="dl_no", model=get_where_subquery(ref('stg_mssql_sage__f_lotserie')), to=ref('stg_mssql_sage__f_docligne')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
+{{ test_relationships(column_name="dl_no_in", field="dl_no", model=get_where_subquery(ref('stg_mssql_sage__f_lotserie')), to=ref('stg_mssql_sage__f_docligne')) }}{{ config({"meta":{},"severity":"WARN","tags":[],"where":"extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)"}) }}
