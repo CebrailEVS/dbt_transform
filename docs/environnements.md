@@ -105,6 +105,14 @@ dbt y sont installés à la construction (`package-lock.yml`) : une exécution n
 accès à hub.getdbt.com ni à GitHub. Le détail est
 dans [`pipeline-schedule.md`](pipeline-schedule.md).
 
+À la sortie de chaque exécution, même en échec, `publish_run.py` dépose dans
+`gs://evs-datastack-raw-data/dbt_artifacts/runner_executions/dt=<jour>/` une enveloppe d'une ligne :
+le contexte (sélection, codes retour) et les artefacts `run_results.json` et `sources.json` tels
+quels. La table externe `prod_raw.ext_gcs_dbt_artifacts__runner_execution` la lit. Chaque échec
+(build, ou fraîcheur au-delà d'`error_after`) produit aussi une ligne JSON `severity: ERROR`, que
+l'alerte `cloud_run_job_failed` envoie par mail : Cloud Logging ne tire une sévérité que du JSON,
+jamais du texte brut, même écrit sur stderr.
+
 ### Développement local
 ```bash
 git pull                               # le hook git met aussi state/manifest.json à jour

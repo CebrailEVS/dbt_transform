@@ -30,7 +30,7 @@ COPY macros/ macros/
 COPY snapshots/ snapshots/
 COPY data/ data/
 COPY tests/ tests/
-COPY entrypoint.sh .
+COPY entrypoint.sh publish_run.py ./
 
 RUN chmod +x entrypoint.sh
 

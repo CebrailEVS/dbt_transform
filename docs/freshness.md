@@ -89,7 +89,9 @@ models:
 
 **Différence de gravité** : un test en `severity: error` fait échouer `dbt build`, donc le job
 Cloud Run, et la chaîne s'arrête. Un `error_after` de méthode A est **non bloquant** :
-`entrypoint.sh` l'écrit sur stderr et poursuit. La méthode B en `error` est donc la plus stricte.
+`entrypoint.sh` poursuit le build, et `publish_run.py` écrit en fin de job une ligne ERROR
+`[FRESHNESS-ERROR]` que l'alerte `cloud_run_job_failed` envoie par mail. La méthode B en `error`
+est donc la plus stricte.
 
 ---
 

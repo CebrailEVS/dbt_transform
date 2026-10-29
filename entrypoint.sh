@@ -7,6 +7,8 @@
 #   DBT_BIGQUERY_DATASET_PROD   — BigQuery dataset (prod)
 #   DBT_BIGQUERY_KEYFILE        — path to GCP keyfile (e.g. /secrets/gcp-key.json)
 #   DBT_TARGET                  — dbt target (default: prod)
+#   DBT_ARTIFACTS_URI           — gs://… où publish_run.py historise chaque
+#                                 exécution (absente : rien n'est déposé)
 #
 # Injected by Cloud Workflow at runtime:
 #   DBT_COMMAND                 — dbt command to run: "build" (default) or "snapshot"
@@ -23,16 +25,28 @@
 
 set -euo pipefail
 
+STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+FRESHNESS_EXIT=""
+
+# À la sortie du job, même en échec : historise l'exécution et écrit une ligne
+# ERROR par échec, que l'alerte cloud_run_job_failed remonte (publish_run.py).
+# Le code retour de dbt est conservé, qu'il y ait publication ou non.
+publish_run() {
+  local exit_code=$?
+  python3 publish_run.py --exit-code "${exit_code}" --freshness-exit-code "${FRESHNESS_EXIT}" \
+    --started-at "${STARTED_AT}" \
+    || echo '{"severity": "WARNING", "message": "[artefacts] publish_run.py en échec : exécution non historisée"}'
+  exit "${exit_code}"
+}
+trap publish_run EXIT
+
 if [ -n "${DBT_SOURCE_SELECTOR:-}" ]; then
   echo "[dbt] Running source freshness: ${DBT_SOURCE_SELECTOR}"
-  # Exit 1 = seuil error_after franchi ou requête en échec : seul détecteur d'un
-  # jour perdu sur les sources non rétroactives (docs/freshness.md). Écrit sur
-  # stderr, que Cloud Run classe en ERROR et que l'alerte cloud_run_job_failed
-  # (infra/monitoring.tf) remonte. Non bloquant : la donnée déjà chargée doit
-  # continuer à se transformer.
-  if ! dbt source freshness --select "${DBT_SOURCE_SELECTOR}"; then
-    echo "[FRESHNESS-ERROR] ${DBT_SOURCE_SELECTOR} : seuil error_after franchi ou requete en echec — build poursuivi" >&2
-  fi
+  # Code ≠ 0 = seuil error_after franchi ou requête en échec : seul détecteur d'un
+  # jour perdu sur les sources non rétroactives (docs/freshness.md). Non bloquant :
+  # la donnée déjà chargée doit continuer à se transformer ; publish_run le signale.
+  FRESHNESS_EXIT=0
+  dbt source freshness --select "${DBT_SOURCE_SELECTOR}" || FRESHNESS_EXIT=$?
 fi
 
 DBT_COMMAND="${DBT_COMMAND:-build}"
