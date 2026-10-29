@@ -1,0 +1,121 @@
+version: 2
+
+models:
+  - name: int_dbt_artifacts__node_result
+    description: >
+      [QUOI MÉTIER]
+      Le résultat de chaque modèle, test, seed ou snapshot à chaque exécution du runner dbt de
+      prod : statut, lignes en échec, durée, volume lu. Base du suivi de santé de l'entrepôt :
+      warns chroniques, échecs, nœuds sautés, dérive des durées.
+
+      [COMMENT CONSTRUITE]
+      Dépliage de la liste node_results de stg_dbt_artifacts__runner_execution. Le type et le nom
+      du nœud sont tirés de son unique_id.
+
+      [GRAIN]
+      1 ligne = 1 nœud dans 1 exécution. Clé : execution_name + unique_id.
+
+      [NOTES]
+      Une exécution ne contient que sa sélection : un nœud absent n'a pas tourné, il n'a pas
+      « réussi ». Vue, comme la staging : toujours à jour, tests au déploiement seulement.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - execution_name
+              - unique_id
+    columns:
+      - name: execution_name
+        description: "FK → stg_dbt_artifacts__runner_execution."
+        tests: [not_null]
+      - name: selection
+        description: "Sélection de l'exécution : identifie le pipeline (source:<X>+, selector:<nom>, snapshots)."
+      - name: finished_at
+        description: "Fin de l'exécution (UTC)."
+      - name: unique_id
+        description: "Identifiant dbt du nœud : <type>.dbt_warehouse.<nom>, suivi d'un hash pour les tests."
+        tests: [not_null]
+      - name: resource_type
+        description: "Type de nœud : model, test, unit_test, seed, snapshot."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['model', 'test', 'unit_test', 'seed', 'snapshot']
+              config:
+                severity: warn
+      - name: node_name
+        description: "Nom du nœud, sans le hash des tests génériques."
+      - name: status
+        description: >
+          Statut dbt. Modèles, seeds, snapshots : success, error, skipped (un parent a échoué).
+          Tests : pass, warn, fail (seuil error franchi), error (requête en échec), skipped.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['success', 'error', 'skipped', 'pass', 'warn', 'fail']
+              config:
+                severity: warn
+      - name: failures
+        description: "Nombre de lignes en échec renvoyées par un test ; nul pour un modèle. Non additif entre exécutions."
+      - name: message
+        description: "Message de dbt : texte de l'erreur, ou statut (« Pass », « Warn »)."
+      - name: execution_time
+        description: "Durée d'exécution du nœud, en secondes."
+      - name: relation_name
+        description: "Relation BigQuery construite par un modèle ; nulle pour un test."
+      - name: bigquery_job_id
+        description: >
+          Identifiant du job BigQuery du nœud. Clé de jointure avec INFORMATION_SCHEMA.JOBS pour le
+          coût réel (octets facturés, slots) : dbt v2 ne le renseigne pas (bytes_processed vaut 0).
+
+  - name: int_dbt_artifacts__source_freshness
+    description: >
+      [QUOI MÉTIER]
+      L'âge de chaque table source à chaque contrôle de fraîcheur du runner dbt de prod, et le
+      verdict au regard de ses seuils warn_after et error_after.
+
+      [COMMENT CONSTRUITE]
+      Dépliage de la liste freshness_results de stg_dbt_artifacts__runner_execution. Source et
+      table sont tirées de l'unique_id.
+
+      [GRAIN]
+      1 ligne = 1 table source dans 1 contrôle. Clé : execution_name + unique_id.
+
+      [NOTES]
+      Seules les exécutions lancées avec un contrôle de fraîcheur (DBT_SOURCE_SELECTOR) en
+      produisent. Vue, comme la staging.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - execution_name
+              - unique_id
+    columns:
+      - name: execution_name
+        description: "FK → stg_dbt_artifacts__runner_execution."
+        tests: [not_null]
+      - name: freshness_selection
+        description: "Sources contrôlées par l'exécution (source:<X>)."
+      - name: unique_id
+        description: "Identifiant dbt de la table source : source.dbt_warehouse.<source>.<table>."
+        tests: [not_null]
+      - name: source_name
+        description: "Source dbt (yuman_api, mssql_sage…)."
+      - name: table_name
+        description: "Table de la source."
+      - name: status
+        description: "Verdict : pass, warn (warn_after franchi), error (error_after franchi), runtime error (requête en échec)."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['pass', 'warn', 'error', 'runtime error']
+              config:
+                severity: warn
+      - name: max_loaded_at
+        description: "Dernier chargement constaté (UTC) : maximum du champ de fraîcheur de la table."
+      - name: checked_at
+        description: "Instant du contrôle (UTC)."
+      - name: age_hours
+        description: "Âge de la donnée au moment du contrôle, en heures. Non additif."

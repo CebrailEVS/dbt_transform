@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: dbt_artifacts
+    description: >
+      Exécutions du job Cloud Run dbt-runner. À la sortie de chaque exécution, même en échec,
+      publish_run.py dépose une enveloppe JSON d'une ligne dans
+      gs://evs-datastack-raw-data/dbt_artifacts/runner_executions/dt=<YYYY-MM-DD>/<exécution>.json :
+      le contexte (job, sélection, codes retour) et les artefacts run_results.json et sources.json
+      de dbt tels quels. Exposée en table externe BigQuery (cf. infra/bq_ext_dbt_artifacts.tf).
+
+      ORCHESTRATION — aucun cron, et c'est délibéré : la source est écrite par le runner lui-même,
+      une quinzaine de fois par jour. Les modèles en aval sont des vues, à jour sans rebuild.
+      Pas de freshness déclarée : aucun pipeline ne lancerait le contrôle.
+    database: "{{ var('raw_project') }}"
+    schema: "prod_raw"
+    tables:
+      - name: ext_gcs_dbt_artifacts__runner_execution
+        description: >
+          Une ligne par exécution du runner (un fichier). Horodatages en STRING : dbt v2 les écrit
+          à la nanoseconde, que TIMESTAMP refuse ; la staging les convertit.
