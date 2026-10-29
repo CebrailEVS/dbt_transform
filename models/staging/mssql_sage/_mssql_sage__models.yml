@@ -1422,6 +1422,8 @@ models:
             combination_of_columns:
               - extracted_at
               - cb_marq
+    # Relationships limités à la dernière photo : la table accumule une photo par jour, ses parents
+    # (replace) ne gardent que l'existant ; une ligne supprimée dans Sage reste dans les anciennes photos.
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage. Unique dans une photo, répété d'une photo à l'autre."
@@ -1437,6 +1439,7 @@ models:
                 field: ar_ref
               config:
                 severity: warn
+                where: "extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)"
       - name: de_no
         description: "Numéro de dépôt"
         tests:
@@ -1447,6 +1450,7 @@ models:
                 field: de_no
               config:
                 severity: warn
+                where: "extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)"
       - name: as_principal
         description: "1 = dépôt principal de l'article"
       - name: as_qte_sto
@@ -1502,6 +1506,8 @@ models:
             combination_of_columns:
               - extracted_at
               - cb_marq
+    # Relationships limités à la dernière photo : la table accumule une photo par jour, ses parents
+    # (replace) ne gardent que l'existant ; une ligne supprimée dans Sage reste dans les anciennes photos.
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage. Unique dans une photo, répété d'une photo à l'autre."
@@ -1517,6 +1523,7 @@ models:
                 field: ar_ref
               config:
                 severity: warn
+                where: "extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)"
       - name: ls_no_serie
         description: "Numéro de lot ou de série"
         tests:
@@ -1530,6 +1537,7 @@ models:
                 field: de_no
               config:
                 severity: warn
+                where: "extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)"
       - name: dl_no_in
         description: "Ligne de document d'entrée du lot (→ f_docligne.dl_no)"
         tests:
@@ -1540,6 +1548,7 @@ models:
                 field: dl_no
               config:
                 severity: warn
+                where: "extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)"
       - name: dl_no_out
         description: "Ligne de document de sortie du lot (→ f_docligne.dl_no). 0 = lot pas encore sorti."
         tests:
@@ -1548,7 +1557,7 @@ models:
                 to: ref('stg_mssql_sage__f_docligne')
                 field: dl_no
               config:
-                where: "dl_no_out != 0"
+                where: "dl_no_out != 0 and extracted_at >= timestamp_sub(current_timestamp(), interval 1 day)"
                 severity: warn
       - name: ls_mvt_stock
         description: "Sens du mouvement : 1 = entrée, 3 = sortie"
