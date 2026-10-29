@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: stg_dbt_artifacts__runner_execution
+    description: >
+      Grain : 1 ligne = 1 exécution Cloud Run du job dbt-runner (un fichier déposé par
+      publish_run.py). Les listes node_results (un élément par modèle, test, seed ou snapshot
+      exécuté) et freshness_results (un élément par table source contrôlée) sont dépliées en
+      intermediate.
+
+      Vue, par exception à la convention « staging = table » : la source est écrite par le runner
+      lui-même, sans pipeline qui reconstruirait une table. Chaque lecture relit les fichiers : la
+      vue est toujours à jour. Contrepartie : ses tests ne tournent qu'au déploiement.
+    columns:
+      - name: execution_name
+        description: >
+          PK — nom de l'exécution Cloud Run (dbt-runner-xxxxx), aussi nom du fichier. Renommé
+          depuis `execution`, mot-clé SQL.
+        tests: [unique, not_null]
+      - name: job
+        description: "Job Cloud Run (dbt-runner)."
+      - name: command
+        description: "Commande dbt : build (pipelines EL) ou snapshot (workflow des snapshots)."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['build', 'snapshot']
+              config:
+                severity: warn
+      - name: selection
+        description: >
+          Sélection du build : source:<X>+ ou selector:<nom> ; « snapshots » pour la commande
+          snapshot. Identifie le pipeline qui a déclenché l'exécution.
+      - name: freshness_selection
+        description: "Sources contrôlées avant le build (source:<X>) ; nul si aucun contrôle."
+      - name: full_refresh
+        description: "Vrai si le build a tourné en --full-refresh (exécution manuelle)."
+      - name: exit_code
+        description: >
+          Code retour de dbt build ou snapshot : 0 = succès (warns compris), 1 = au moins une
+          erreur ou un test en échec, 2 = dbt n'a pas pu s'exécuter (argument invalide, exception).
+        tests: [not_null]
+      - name: freshness_exit_code
+        description: >
+          Code retour du contrôle de fraîcheur : 0 = aucun seuil error_after franchi, 1 = seuil
+          franchi ou requête en échec ; nul si aucun contrôle.
+      - name: started_at
+        description: "Début de l'exécution (UTC)."
+      - name: finished_at
+        description: "Fin de l'exécution (UTC), moment du dépôt de l'enveloppe."
+        tests: [not_null]
+      - name: dbt_version
+        description: "Version de dbt qui a produit les artefacts."
+      - name: run_invocation_id
+        description: "Identifiant d'invocation dbt du build ; nul si dbt a échoué avant d'écrire run_results.json."
+      - name: run_elapsed_time
+        description: "Durée du build dbt, en secondes."
+      - name: node_results
+        description: >
+          Résultats du build, un élément par nœud exécuté : unique_id, status (minuscules),
+          failures, message, execution_time (s), relation_name, bigquery_job_id. Vide si dbt a
+          échoué avant d'exécuter.
+      - name: freshness_invocation_id
+        description: "Identifiant d'invocation dbt du contrôle de fraîcheur ; nul si aucun contrôle."
+      - name: freshness_elapsed_time
+        description: "Durée du contrôle de fraîcheur, en secondes."
+      - name: freshness_results
+        description: >
+          Contrôles de fraîcheur, un élément par table source : unique_id, status (minuscules),
+          max_loaded_at, snapshotted_at (UTC), max_loaded_at_time_ago_in_s, execution_time (s).
+      - name: gcs_uri
+        description: "Chemin du fichier source dans GCS."
+      - name: extracted_at
+        description: "Moment du dépôt de l'enveloppe (égal à finished_at)."

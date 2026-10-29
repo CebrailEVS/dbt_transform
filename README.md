@@ -47,6 +47,7 @@ par dataset et par IAM. Voir [docs/environnements.md](docs/environnements.md).
 | **apptech** | App interne (tables externes GCS) | Suivi technicien : events, pauses, curatif, astreinte |
 | **gac** | SFTP CSV | Assurance flotte, sinistres véhicules |
 | **powerbi_activity** | API admin Power BI | Journaux d'usage du locataire + inventaire espaces/rapports/modèles |
+| **dbt_artifacts** | Runner dbt (table externe GCS) | Historique des exécutions de prod : résultat de chaque modèle et test, contrôles de fraîcheur |
 | **yuman_evs_sftp** | Fichier SFTP | Stock théorique Yuman |
 | **oracle_neshu_gcs** | Oracle ERP (NESHU) | Stock théorique Oracle NESHU |
 | **oracle_lcdp_gcs** | Oracle ERP (LCDP) | Stock théorique Oracle LCDP |

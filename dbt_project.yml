@@ -80,6 +80,9 @@ models:
       powerbi_activity:
         +tags: ['powerbi_activity']
 
+      dbt_artifacts:
+        +tags: ['dbt_artifacts']
+
     intermediate:
       +schema: intermediate
       +tags: ['intermediate']
@@ -110,6 +113,9 @@ models:
 
       gac:
         +tags: ['gac']
+
+      dbt_artifacts:
+        +tags: ['dbt_artifacts']
 
     marts:
       +schema: marts
