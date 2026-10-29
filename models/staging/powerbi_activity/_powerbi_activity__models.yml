@@ -19,9 +19,9 @@ version: 2
 #   - events.workspace_id    → idem (espaces écartés)
 #
 # Seul `events.dataset_id → datasets` est testé : celui-là détecte vraiment
-# quelque chose. En warn quand même, car l'inventaire est un snapshot `replace`
-# face à une fenêtre d'événements — un modèle supprimé reste référencé par les
-# événements de la fenêtre.
+# quelque chose (un modèle absent de l'inventaire). Il ne porte que sur les
+# 3 derniers jours : l'inventaire est un snapshot `replace` face à l'historique
+# des événements, et un modèle supprimé reste référencé par ses anciens événements.
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -138,6 +138,8 @@ models:
                 field: dataset_id
               config:
                 severity: warn
+                # Événements récents seulement : un modèle supprimé reste référencé par ses anciens événements.
+                where: "created_at >= timestamp_sub(current_timestamp(), interval 3 day)"
 
       - name: work_space_name
         description: >
