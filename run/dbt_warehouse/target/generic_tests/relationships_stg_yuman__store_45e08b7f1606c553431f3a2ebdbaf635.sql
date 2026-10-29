@@ -12,14 +12,14 @@
     
 
 with child as (
-    select client_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__intervention_technique`
-    where client_id is not null
+    select storehouses_id as from_field
+    from (select * from `evs-datastack-prod`.`prod_staging`.`stg_yuman__storehouses` where storehouses_id not in (1891, 311335, 311336, 311337)) dbt_subquery
+    where storehouses_id is not null
 ),
 
 parent as (
-    select client_id as to_field
-    from `evs-datastack-prod`.`prod_marts`.`dim_technique__client`
+    select user_id as to_field
+    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__users`
 )
 
 select

@@ -4,7 +4,7 @@
 
 with child as (
     select storehouses_id as from_field
-    from `evs-datastack-prod`.`prod_staging`.`stg_yuman__storehouses`
+    from (select * from `evs-datastack-prod`.`prod_staging`.`stg_yuman__storehouses` where storehouses_id not in (1891, 311335, 311336, 311337)) dbt_subquery
     where storehouses_id is not null
 ),
 
