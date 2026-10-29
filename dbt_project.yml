@@ -145,6 +145,9 @@ models:
       bi:
         +tags: ['bi']
 
+      plateforme:
+        +tags: ['plateforme']
+
     # Couche de service des applications (docs/conventions/apps.md) : modèles taillés
     # pour une seule application, hors schéma en étoile, un dataset par application.
     apps:

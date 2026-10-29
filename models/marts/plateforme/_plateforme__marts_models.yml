@@ -1,0 +1,183 @@
+version: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MARTS — BU `plateforme` : santé de la plateforme data
+#
+# Historique des exécutions du runner dbt de prod (source dbt_artifacts) : quels
+# runs ont tourné, réussi ou échoué, quels modèles et tests ont warné, et l'âge
+# des sources à chaque contrôle. Pas un domaine métier : le public est l'équipe
+# data. Aucune donnée personnelle.
+#
+# Vues, comme leur amont : la source est écrite par le runner lui-même, une
+# quinzaine de fois par jour, sans pipeline qui reconstruirait des tables.
+# Contrepartie : aucun workflow ne sélectionne ces modèles, leurs tests ne
+# tournent qu'au déploiement.
+# ─────────────────────────────────────────────────────────────────────────────
+
+models:
+
+  - name: dim_plateforme__execution_dbt
+    description: >
+      [QUOI MÉTIER]
+      Une exécution du runner dbt de prod : quelle sélection, quand, combien de temps, et si elle
+      a réussi. Sert à suivre d'un coup d'œil les runs de la nuit et de la journée.
+
+      [COMMENT CONSTRUITE]
+      Reprend stg_dbt_artifacts__runner_execution. selection_name est le nom court de la
+      sélection (source:yuman_api+ → yuman_api). Heures en heure de Paris, pour l'affichage.
+
+      [GRAIN]
+      1 ligne = 1 exécution Cloud Run du job dbt-runner. PK : execution_id.
+
+      [NOTES]
+      Une ligne absente ne veut pas dire succès : un run tué (timeout, mémoire) n'écrit rien.
+      Les builds du job cd (GitHub Actions) n'y figurent pas : seul le runner Cloud Run historise.
+    columns:
+      - name: execution_date
+        description: "Jour de l'exécution (heure de Paris, à la fin du run)."
+      - name: execution_id
+        description: "PK — nom de l'exécution Cloud Run (dbt-runner-xxxxx)."
+        tests: [unique, not_null]
+      - name: selection_name
+        description: >
+          Nom court de la sélection du run : la source dbt (yuman_api, oracle_neshu…), le sélecteur
+          nommé, ou snapshots. Ce n'est pas le workflow : un run quotidien et sa purge
+          hebdomadaire partagent la même sélection (oracle_neshu, oracle_lcdp, oracle_nayka), comme
+          les workflows nesp_co et nesp_client.
+      - name: selection
+        description: "Sélection dbt brute : source:<X>+, selector:<nom> ou snapshots."
+      - name: command
+        description: "Commande dbt : build ou snapshot."
+      - name: exit_code
+        description: >
+          Code retour de dbt : 0 = succès (warns compris), 1 = au moins une erreur ou un test en
+          échec, 2 = dbt n'a pas pu s'exécuter.
+      - name: started_at
+        description: "Début du run (heure de Paris, affichage)."
+      - name: finished_at
+        description: "Fin du run (heure de Paris, affichage)."
+      - name: is_success
+        description: "Vrai si exit_code = 0. Un run en succès peut porter des warns."
+      - name: has_freshness_check
+        description: "Vrai si le run a contrôlé la fraîcheur de ses sources avant le build."
+      - name: has_freshness_error
+        description: >
+          Vrai si ce contrôle a franchi un seuil error_after, ou a échoué. Faux aussi sans
+          contrôle : le lire avec has_freshness_check.
+      - name: is_full_refresh
+        description: "Vrai si le build a tourné en --full-refresh (exécution manuelle)."
+      - name: duree_min
+        description: "Durée réelle du run (fin − début), en minutes. Additif."
+
+  - name: fct_plateforme__resultat_dbt
+    description: >
+      [QUOI MÉTIER]
+      Le résultat de chaque modèle et de chaque test à chaque run dbt de prod : réussi, en warn,
+      en échec ou sauté, avec le nombre de lignes en échec. Répond à « qu'est-ce qui a warné cette
+      nuit ? » et « depuis quand ce test warne-t-il ? ».
+
+      [COMMENT CONSTRUITE]
+      Reprend int_dbt_artifacts__node_result.
+
+      [GRAIN]
+      1 ligne = 1 nœud (modèle, test, seed, snapshot) dans 1 exécution. Clé : execution_id + node_id.
+
+      [NOTES]
+      Un run ne contient que sa sélection : un nœud absent n'a pas tourné. Les modèles ephemeral,
+      que dbt v2 note « skipped » sans les exécuter, sont exclus : skipped signale un vrai saut.
+      Les nombres de warns ou d'échecs par run se comptent dans Power BI (lignes par status).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - execution_id
+              - node_id
+    columns:
+      - name: execution_date
+        description: "Jour de l'exécution (heure de Paris, à la fin du run)."
+      - name: execution_id
+        description: "FK → dim_plateforme__execution_dbt."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_plateforme__execution_dbt')
+                field: execution_id
+              config:
+                severity: warn
+      - name: node_id
+        description: "Identifiant dbt du nœud (unique_id)."
+        tests: [not_null]
+      - name: node_name
+        description: "Nom du modèle ou du test."
+      - name: resource_type
+        description: "Type de nœud : model, test, unit_test, seed ou snapshot."
+      - name: status
+        description: >
+          Modèles, seeds, snapshots : success, error, skipped (un parent a échoué). Tests : pass,
+          warn, fail (seuil error franchi), error (requête en échec), skipped.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['success', 'error', 'skipped', 'pass', 'warn', 'fail']
+      - name: message
+        description: "Message de dbt : texte de l'erreur, ou statut."
+      - name: nb_lignes_en_echec
+        description: "Lignes renvoyées par un test (0 s'il passe) ; nul pour un modèle. Non additif entre runs."
+      - name: duree_s
+        description: >
+          Temps d'exécution du nœud, en secondes. S'additionne en temps de calcul cumulé, pas en
+          durée de run : les nœuds tournent en parallèle (durée réelle : duree_min de la dim).
+      - name: bigquery_job_id
+        description: "Job BigQuery du nœud : clé de jointure avec INFORMATION_SCHEMA.JOBS pour le coût."
+
+  - name: fct_plateforme__fraicheur_source
+    description: >
+      [QUOI MÉTIER]
+      L'âge de chaque table source à chaque contrôle de fraîcheur fait avant un run dbt de prod,
+      et son verdict au regard des seuils de docs/freshness.md.
+
+      [COMMENT CONSTRUITE]
+      Reprend int_dbt_artifacts__source_freshness. Heures en heure de Paris, pour l'affichage.
+
+      [GRAIN]
+      1 ligne = 1 table source dans 1 contrôle. Clé : execution_id + source_name + table_name.
+
+      [NOTES]
+      Seuls les runs lancés avec un contrôle de fraîcheur en produisent.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - execution_id
+              - source_name
+              - table_name
+    columns:
+      - name: execution_date
+        description: "Jour de l'exécution (heure de Paris, à la fin du run), comme dans la dim."
+      - name: execution_id
+        description: "FK → dim_plateforme__execution_dbt."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_plateforme__execution_dbt')
+                field: execution_id
+              config:
+                severity: warn
+      - name: source_name
+        description: "Source dbt : yuman_api, mssql_sage…"
+      - name: table_name
+        description: "Table de la source."
+      - name: status
+        description: "pass, warn (warn_after franchi), error (error_after franchi), runtime error (requête en échec)."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['pass', 'warn', 'error', 'runtime error']
+      - name: max_loaded_at
+        description: "Dernier chargement constaté (heure de Paris, affichage)."
+      - name: checked_at
+        description: "Instant du contrôle (heure de Paris, affichage)."
+      - name: age_heures
+        description: "Âge de la donnée au moment du contrôle, en heures. Non additif."
