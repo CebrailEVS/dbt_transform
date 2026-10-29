@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="resource_type", model=get_where_subquery(ref('int_dbt_artifacts__node_result')), values=["model","test","unit_test","seed","snapshot"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

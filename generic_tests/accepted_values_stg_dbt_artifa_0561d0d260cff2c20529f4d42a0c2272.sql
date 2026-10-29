@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="command", model=get_where_subquery(ref('stg_dbt_artifacts__runner_execution')), values=["build","snapshot"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

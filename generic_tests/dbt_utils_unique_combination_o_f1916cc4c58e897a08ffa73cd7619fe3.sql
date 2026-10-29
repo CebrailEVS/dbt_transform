@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["execution_name","unique_id"], model=get_where_subquery(ref('int_dbt_artifacts__source_freshness'))) }}

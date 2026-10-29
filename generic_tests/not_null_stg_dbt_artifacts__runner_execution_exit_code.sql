@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="exit_code", model=get_where_subquery(ref('stg_dbt_artifacts__runner_execution'))) }}

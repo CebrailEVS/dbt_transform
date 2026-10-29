@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="status", model=get_where_subquery(ref('int_dbt_artifacts__node_result')), values=["success","error","skipped","pass","warn","fail"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

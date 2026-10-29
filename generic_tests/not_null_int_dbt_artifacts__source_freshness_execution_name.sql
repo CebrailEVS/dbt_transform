@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="execution_name", model=get_where_subquery(ref('int_dbt_artifacts__source_freshness'))) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="status", model=get_where_subquery(ref('int_dbt_artifacts__source_freshness')), values=["pass","warn","error","runtime error"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

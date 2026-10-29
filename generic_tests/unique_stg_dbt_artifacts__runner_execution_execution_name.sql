@@ -1,0 +1,1 @@
+{{ test_unique(column_name="execution_name", model=get_where_subquery(ref('stg_dbt_artifacts__runner_execution'))) }}
