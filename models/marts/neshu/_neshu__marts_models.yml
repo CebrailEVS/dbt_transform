@@ -2026,6 +2026,9 @@ models:
           name: fct_neshu__intervention_technique_modele_requis_si_machine
           config:
             severity: warn
+          description: >
+            Intervention sur une machine Distrilog qui n'a pas de modèle d'équipement dans l'ERP
+            NESHU. Saisir le modèle sur la fiche machine de l'ERP.
       - dbt_utils.expression_is_true:
           arguments:
             expression: "date_done >= date_started"
@@ -2096,6 +2099,9 @@ models:
                 field: user_id
               config:
                 severity: warn
+              description: >
+                Demande affectée à un compte Yuman qui n'est pas technicien. Vérifier l'affectation
+                du bon dans Yuman.
 
       # --- FK DISTRILOG (pont vers les dims Neshu) ---
       - name: company_id

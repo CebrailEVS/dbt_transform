@@ -108,6 +108,9 @@ models:
             expression: "categorie_pnl_bu is not null"
           config:
             severity: warn
+          description: >
+            Compte Sage absent du référentiel ref_mssql_sage__code_comptable_bu : ses montants sortent
+            du P&L par catégorie. Classer le compte avec le contrôle de gestion, puis l'ajouter au seed.
 
     columns:
       - name: mois_date

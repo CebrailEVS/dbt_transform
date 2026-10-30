@@ -139,6 +139,9 @@ models:
           - not_null:
               config:
                 severity: warn
+              description: >
+                Utilisateur Yuman dont le champ personnalisé INACTIF est vide : son statut actif est
+                inconnu. Renseigner le champ dans Yuman, sur la fiche de l'utilisateur.
 
   - name: stg_yuman__workorder_demands_categories
     description: "Catégories de demandes d'intervention transformées et nettoyées depuis l'API Yuman"
