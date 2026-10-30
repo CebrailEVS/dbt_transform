@@ -8,9 +8,8 @@ models:
       exécuté) et freshness_results (un élément par table source contrôlée) sont dépliées en
       intermediate.
 
-      Vue, par exception à la convention « staging = table » : la source est écrite par le runner
-      lui-même, sans pipeline qui reconstruirait une table. Chaque lecture relit les fichiers : la
-      vue est toujours à jour. Contrepartie : ses tests ne tournent qu'au déploiement.
+      Reconstruite, tests compris, par le workflow transform-plateforme : la table n'est à jour
+      qu'à son dernier passage. Les échecs, eux, sont signalés en temps réel par les alertes.
     columns:
       - name: execution_name
         description: >

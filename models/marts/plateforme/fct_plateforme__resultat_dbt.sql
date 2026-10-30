@@ -1,4 +1,7 @@
-{{ config(materialized='view') }}
+{{ config(
+    materialized='table',
+    partition_by={'field': 'execution_date', 'data_type': 'date'}
+) }}
 
 with node_results as (
     select * from {{ ref('int_dbt_artifacts__node_result') }}
