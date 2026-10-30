@@ -1,12 +1,12 @@
 {{
     config(
-        materialized='view',
+        materialized='table',
         description="Exécutions du job dbt-runner, une ligne par exécution, depuis les enveloppes de publish_run.py"
     )
 }}
 
--- Vue et non table : la source est écrite par le runner lui-même, une quinzaine de fois par jour,
--- sans pipeline qui reconstruirait une table ; à ~5 Mo par jour, relire les fichiers ne coûte rien.
+-- Table : la source externe est relue en entier à chaque requête ; la matérialiser ici fait que
+-- l'aval et les tests lisent du stockage BigQuery au lieu de relire tous les fichiers JSON.
 
 with source_data as (
 

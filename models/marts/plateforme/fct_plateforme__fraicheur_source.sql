@@ -1,4 +1,7 @@
-{{ config(materialized='view') }}
+{{ config(
+    materialized='table',
+    partition_by={'field': 'execution_date', 'data_type': 'date'}
+) }}
 
 with source_checks as (
     select * from {{ ref('int_dbt_artifacts__source_freshness') }}

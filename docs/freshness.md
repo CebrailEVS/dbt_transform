@@ -23,7 +23,7 @@ Référence unique du monitoring de fraîcheur : méthode, seuils et leur justif
 | `oracle_lcdp_gcs` | Standard | B · staging | `extracted_at` | 26h / 48h |
 | `zoho_desk` | Relâché | B · staging | `created_time` | 7j / — |
 | `apptech` | — | **aucune** | — | — |
-| `dbt_artifacts` | — | **aucune** (écrite par le runner lui-même, aucun pipeline pour lancer le contrôle) | — | — |
+| `dbt_artifacts` | — | **aucune** (écrite par le runner lui-même ; les échecs sont alertés en direct) | — | — |
 | `historic` | — | aucune (archive figée) | — | — |
 
 Une source dont le pipeline est en pause (`paused = true` dans `infra/workflows_el.tf`, cas de

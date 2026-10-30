@@ -9,9 +9,9 @@ sources:
       le contexte (job, sélection, codes retour) et les artefacts run_results.json et sources.json
       de dbt tels quels. Exposée en table externe BigQuery (cf. infra/bq_ext_dbt_artifacts.tf).
 
-      ORCHESTRATION — aucun cron, et c'est délibéré : la source est écrite par le runner lui-même,
-      une quinzaine de fois par jour. Les modèles en aval sont des vues, à jour sans rebuild.
-      Pas de freshness déclarée : aucun pipeline ne lancerait le contrôle.
+      ORCHESTRATION — pas d'extraction : la source est écrite par le runner lui-même. Sa chaîne
+      (source:dbt_artifacts+) est reconstruite plusieurs fois par jour par le workflow
+      transform-plateforme (infra/workflows_dbt.tf). Pas de freshness déclarée.
     database: "{{ var('raw_project') }}"
     schema: "prod_raw"
     tables:

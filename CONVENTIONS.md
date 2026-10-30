@@ -70,13 +70,10 @@ Paris : l'erreur ne casse rien et ne se voit pas.
 
 | Couche | Défaut | Exception |
 |---|---|---|
-| Staging | `table` | `incremental` (`merge`) : grosses tables de tâches Oracle ; `view` : source `dbt_artifacts` |
-| Intermediate | `table` | `incremental` (`merge`) : modèles à gros volume ; `view` : source `dbt_artifacts` |
-| Marts | `table` | `view` : BU `plateforme`, lue sur `dbt_artifacts` |
+| Staging | `table` | `incremental` (`merge`) : grosses tables de tâches Oracle |
+| Intermediate | `table` | `incremental` (`merge`) : modèles à gros volume |
+| Marts | `table` | — |
 | Apps | explicite par modèle | `table`, `incremental` sur gros volume, `view` pour l'inter-BU ([apps.md](docs/conventions/apps.md)) |
-
-`dbt_artifacts` est écrite par le runner lui-même, plusieurs fois par jour, sans pipeline qui
-reconstruirait des tables : en vues, sa chaîne reste à jour sans rebuild.
 
 Partition sur la date filtrée (Power BI ou incrémental), cluster sur les FK les plus jointes
 (4 au maximum). Pas de partition sur les petites dimensions.
@@ -160,5 +157,6 @@ par l'agent text-to-SQL : un chiffre périmé y devient une fausse information.
 
 Le compte de service `powerbi` lit `prod_marts`, `prod_intermediate` et `prod_reference` (droits posés hors
 Terraform). La cible est `prod_marts` seul : un rapport qui lit un `int_*` ou un seed est une dette à résorber
-en mart. Les rapports joignent les tables sur `<entite>_id`. Chaque rapport consommateur est déclaré dans
+en mart. Un mart lu par Power BI est une **table** : une vue exigerait du compte `powerbi` des
+droits sur toute sa chaîne amont, qu'il n'a pas. Les rapports joignent les tables sur `<entite>_id`. Chaque rapport consommateur est déclaré dans
 `models/exposures/<bu>.yml`.

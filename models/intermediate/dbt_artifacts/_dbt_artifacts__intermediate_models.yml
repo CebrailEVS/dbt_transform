@@ -17,7 +17,7 @@ models:
 
       [NOTES]
       Une exécution ne contient que sa sélection : un nœud absent n'a pas tourné, il n'a pas
-      « réussi ». Vue, comme la staging : toujours à jour, tests au déploiement seulement.
+      « réussi ». Reconstruit avec la staging par le workflow transform-plateforme.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -84,7 +84,7 @@ models:
 
       [NOTES]
       Seules les exécutions lancées avec un contrôle de fraîcheur (DBT_SOURCE_SELECTOR) en
-      produisent. Vue, comme la staging.
+      produisent. Reconstruit avec la staging par le workflow transform-plateforme.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

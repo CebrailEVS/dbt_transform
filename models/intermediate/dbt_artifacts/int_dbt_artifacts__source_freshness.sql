@@ -1,4 +1,4 @@
-{{ config(materialized='view') }}
+{{ config(materialized='table') }}
 
 with executions as (
     select * from {{ ref('stg_dbt_artifacts__runner_execution') }}

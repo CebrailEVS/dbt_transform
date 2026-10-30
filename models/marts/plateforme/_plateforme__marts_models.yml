@@ -8,10 +8,10 @@ version: 2
 # des sources à chaque contrôle. Pas un domaine métier : le public est l'équipe
 # data. Aucune donnée personnelle.
 #
-# Vues, comme leur amont : la source est écrite par le runner lui-même, une
-# quinzaine de fois par jour, sans pipeline qui reconstruirait des tables.
-# Contrepartie : aucun workflow ne sélectionne ces modèles, leurs tests ne
-# tournent qu'au déploiement.
+# Tables, reconstruites avec leurs tests par le workflow transform-plateforme
+# (infra/workflows_dbt.tf). Pas des vues : Power BI ne lit que prod_marts, et une
+# vue exigerait de son compte des droits sur toute la chaîne amont (staging, raw,
+# fichiers GCS).
 # ─────────────────────────────────────────────────────────────────────────────
 
 models:
