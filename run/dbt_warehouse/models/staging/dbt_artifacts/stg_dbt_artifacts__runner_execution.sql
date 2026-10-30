@@ -1,13 +1,21 @@
 
+  
+    
 
-  create or replace view `evs-datastack-prod`.`prod_staging`.`stg_dbt_artifacts__runner_execution`
-  OPTIONS(
-      description="""Grain : 1 ligne = 1 ex\u00e9cution Cloud Run du job dbt-runner (un fichier d\u00e9pos\u00e9 par publish_run.py). Les listes node_results (un \u00e9l\u00e9ment par mod\u00e8le, test, seed ou snapshot ex\u00e9cut\u00e9) et freshness_results (un \u00e9l\u00e9ment par table source contr\u00f4l\u00e9e) sont d\u00e9pli\u00e9es en intermediate.\nVue, par exception \u00e0 la convention \u00ab staging = table \u00bb : la source est \u00e9crite par le runner lui-m\u00eame, sans pipeline qui reconstruirait une table. Chaque lecture relit les fichiers : la vue est toujours \u00e0 jour. Contrepartie : ses tests ne tournent qu'au d\u00e9ploiement.\n"""
+    create or replace table `evs-datastack-prod`.`prod_staging`.`stg_dbt_artifacts__runner_execution`
+      
+    
+    
+
+    
+    OPTIONS(
+      description="""Grain : 1 ligne = 1 ex\u00e9cution Cloud Run du job dbt-runner (un fichier d\u00e9pos\u00e9 par publish_run.py). Les listes node_results (un \u00e9l\u00e9ment par mod\u00e8le, test, seed ou snapshot ex\u00e9cut\u00e9) et freshness_results (un \u00e9l\u00e9ment par table source contr\u00f4l\u00e9e) sont d\u00e9pli\u00e9es en intermediate.\nReconstruite, tests compris, par le workflow transform-plateforme : la table n'est \u00e0 jour qu'\u00e0 son dernier passage. Les \u00e9checs, eux, sont signal\u00e9s en temps r\u00e9el par les alertes.\n"""
     )
-  as 
+    as (
+      
 
--- Vue et non table : la source est écrite par le runner lui-même, une quinzaine de fois par jour,
--- sans pipeline qui reconstruirait une table ; à ~5 Mo par jour, relire les fichiers ne coûte rien.
+-- Table : la source externe est relue en entier à chaque requête ; la matérialiser ici fait que
+-- l'aval et les tests lisent du stockage BigQuery au lieu de relire tous les fichiers JSON.
 
 with source_data as (
 
@@ -78,5 +86,6 @@ cleaned_data as (
 
 )
 
-select * from cleaned_data;
-
+select * from cleaned_data
+    );
+  
