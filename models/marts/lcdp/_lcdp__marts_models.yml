@@ -296,6 +296,9 @@ models:
                 max_value: 50000
               config:
                 severity: warn
+              description: >
+                Coût d'achat hors de la plage plausible : erreur de saisie probable sur la fiche machine
+                de l'ERP LCDP, à y corriger. La valeur fausse les totaux du parc et remonte dans Cockpit.
 
       - name: last_installation_date
         description: "Dernière date d'installation"
