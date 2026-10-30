@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="status", model=get_where_subquery(ref('fct_plateforme__resultat_dbt')), values=["success","error","skipped","pass","warn","fail"]) }}

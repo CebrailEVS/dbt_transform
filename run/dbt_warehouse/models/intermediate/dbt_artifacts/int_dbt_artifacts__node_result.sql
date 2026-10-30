@@ -17,7 +17,8 @@ node_results as (
         e.finished_at,
         node.unique_id,
         split(node.unique_id, '.')[safe_offset(0)] as resource_type,
-        split(node.unique_id, '.')[safe_offset(2)] as node_name,
+        -- unit_test.<projet>.<modèle>.<test> : le nom du test est au 4e rang, pas au 3e.
+        split(node.unique_id, '.')[safe_offset(if(node.unique_id like 'unit_test.%', 3, 2))] as node_name,
         node.status,
         node.failures,
         node.message,

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["execution_id","node_id"], model=get_where_subquery(ref('fct_plateforme__resultat_dbt'))) }}

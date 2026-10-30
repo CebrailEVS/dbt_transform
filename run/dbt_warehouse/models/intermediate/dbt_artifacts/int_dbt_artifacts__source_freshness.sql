@@ -14,6 +14,7 @@ source_checks as (
     select
         e.execution_name,
         e.freshness_selection,
+        e.finished_at,
         source_check.unique_id,
         split(source_check.unique_id, '.')[safe_offset(2)] as source_name,
         split(source_check.unique_id, '.')[safe_offset(3)] as table_name,

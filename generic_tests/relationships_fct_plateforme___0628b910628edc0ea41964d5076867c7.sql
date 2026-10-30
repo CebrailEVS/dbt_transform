@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="execution_id", field="execution_id", model=get_where_subquery(ref('fct_plateforme__resultat_dbt')), to=ref('dim_plateforme__execution_dbt')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
