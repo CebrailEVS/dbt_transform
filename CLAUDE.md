@@ -99,7 +99,8 @@ Détail : [`docs/environnements.md`](docs/environnements.md). Variables locales 
 
 Sources : tableau du [README](README.md#sources-de-données). BUs des marts : `neshu`, `lcdp`,
 `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi` (gouvernance du
-parc Power BI, pas un domaine métier).
+parc Power BI, pas un domaine métier), `plateforme` (santé de la plateforme data : runs dbt, pas
+un domaine métier).
 
 ## Nommage
 

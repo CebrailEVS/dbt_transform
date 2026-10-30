@@ -44,7 +44,7 @@ models:
               config:
                 severity: warn
       - name: node_name
-        description: "Nom du nœud, sans le hash des tests génériques."
+        description: "Nom du nœud, sans le hash des tests génériques ; pour un test unitaire, le nom du test."
       - name: status
         description: >
           Statut dbt. Modèles, seeds, snapshots : success, error, skipped (un parent a échoué).
@@ -97,6 +97,8 @@ models:
         tests: [not_null]
       - name: freshness_selection
         description: "Sources contrôlées par l'exécution (source:<X>)."
+      - name: finished_at
+        description: "Fin de l'exécution (UTC), pour dater le contrôle comme son run."
       - name: unique_id
         description: "Identifiant dbt de la table source : source.dbt_warehouse.<source>.<table>."
         tests: [not_null]

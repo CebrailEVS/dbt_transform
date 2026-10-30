@@ -10,7 +10,7 @@ Les marts sont rangés **par BU**, pas par source : `models/marts/<bu>/`.
 | Élément | Règle |
 |---|---|
 | Préfixe | `dim_` (dimension) ou `fct_` (fait) |
-| BU | le nom du dossier : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi` |
+| BU | le nom du dossier : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi`, `plateforme` |
 | Entité | au singulier, en snake_case, avec un nom **métier** (ni le nom de la source, ni celui du rapport) |
 | Suffixe de grain | seulement si le fait est agrégé au-dessus de son grain naturel : `_mensuel`, `_quinzaine` |
 | Suffixe de source | seulement en cas de collision dans une même BU : `fct_supply_chain__stock_neshu` / `_stock_yuman` |

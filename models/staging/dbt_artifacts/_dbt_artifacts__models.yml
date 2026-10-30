@@ -54,7 +54,9 @@ models:
       - name: run_invocation_id
         description: "Identifiant d'invocation dbt du build ; nul si dbt a échoué avant d'écrire run_results.json."
       - name: run_elapsed_time
-        description: "Durée du build dbt, en secondes."
+        description: >
+          Somme des durées des nœuds du build, en secondes : dbt v2 n'écrit pas la durée réelle, que
+          les threads parallèles rendent plus courte. Durée réelle du run : finished_at − started_at.
       - name: node_results
         description: >
           Résultats du build, un élément par nœud exécuté : unique_id, status (minuscules),
@@ -63,7 +65,7 @@ models:
       - name: freshness_invocation_id
         description: "Identifiant d'invocation dbt du contrôle de fraîcheur ; nul si aucun contrôle."
       - name: freshness_elapsed_time
-        description: "Durée du contrôle de fraîcheur, en secondes."
+        description: "Somme des durées des contrôles de fraîcheur, en secondes (même définition que run_elapsed_time)."
       - name: freshness_results
         description: >
           Contrôles de fraîcheur, un élément par table source : unique_id, status (minuscules),
