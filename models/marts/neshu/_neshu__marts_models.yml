@@ -2026,6 +2026,9 @@ models:
           name: fct_neshu__intervention_technique_modele_requis_si_machine
           config:
             severity: warn
+            # AS00221, AS00222, AS00230 : AS vidées au rebut, saisies sans modèle dans Distrilog, avec
+            # des interventions anciennes. Exclues nommément pour que tout nouveau cas reste signalé.
+            where: "device_id not in (367, 368, 376)"
           description: >
             Intervention sur une machine Distrilog qui n'a pas de modèle d'équipement dans l'ERP
             NESHU. Saisir le modèle sur la fiche machine de l'ERP.
