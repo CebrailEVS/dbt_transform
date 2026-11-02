@@ -22,7 +22,7 @@
         "stop": {
           "line": 26,
           "col": 1,
-          "index": 429
+          "index": 483
         }
       }
     },
@@ -35,20 +35,20 @@
         },
         "stop": {
           "line": 1,
-          "col": 229,
-          "index": 228
+          "col": 258,
+          "index": 257
         }
       },
       "expanded_span": {
         "start": {
           "line": 26,
           "col": 1,
-          "index": 429
+          "index": 483
         },
         "stop": {
           "line": 26,
           "col": 1,
-          "index": 429
+          "index": 483
         }
       }
     }

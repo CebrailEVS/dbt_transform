@@ -4,7 +4,7 @@
 
 with child as (
     select technician_id as from_field
-    from `evs-datastack-prod`.`prod_marts`.`fct_neshu__intervention_technique`
+    from (select * from `evs-datastack-prod`.`prod_marts`.`fct_neshu__intervention_technique` where demand_id != 64454) dbt_subquery
     where technician_id is not null
 ),
 
