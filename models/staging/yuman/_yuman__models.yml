@@ -139,6 +139,9 @@ models:
           - not_null:
               config:
                 severity: warn
+                # Compte invité de test 13857 : sa fiche Yuman ne propose pas le champ INACTIF,
+                # impossible à renseigner. Exclu nommément pour que tout nouveau cas reste signalé.
+                where: "user_id != 13857"
               description: >
                 Utilisateur Yuman dont le champ personnalisé INACTIF est vide : son statut actif est
                 inconnu. Renseigner le champ dans Yuman, sur la fiche de l'utilisateur.
