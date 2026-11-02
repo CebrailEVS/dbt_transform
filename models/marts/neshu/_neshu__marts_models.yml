@@ -2090,8 +2090,7 @@ models:
       - name: technician_id
         description: >
           Technicien Yuman. FK → dim_technique__technician (user_id). NULL possible si la demande est
-          ouverte, rejetée ou non réalisée (cf. test technicien_requis_si_realisee). Un bon de
-          janvier 2024 est affecté à un compte qui n'est pas technicien : relationships en warn.
+          ouverte, rejetée ou non réalisée (cf. test technicien_requis_si_realisee).
         tests:
           - relationships:
               arguments:
@@ -2099,6 +2098,9 @@ models:
                 field: user_id
               config:
                 severity: warn
+                # Demande 64454 affectée par erreur à un compte manager ; clôturée, elle n'est plus
+                # modifiable dans Yuman. Exclue nommément pour que tout nouveau cas reste signalé.
+                where: "demand_id != 64454"
               description: >
                 Demande affectée à un compte Yuman qui n'est pas technicien. Vérifier l'affectation
                 du bon dans Yuman.
