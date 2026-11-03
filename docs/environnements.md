@@ -16,12 +16,29 @@ par l'**IAM** : les identités dbt hors prod (`dbt-dev`, `dbt-ci`) ne peuvent pa
 | Prod | `prod_staging`, `prod_intermediate`, `prod_marts`, `prod_reference` | Cloud Run (nuit), job `cd` (merge) | permanente |
 | Snapshots | `snapshots` | Cloud Workflows uniquement | permanente |
 | Applications | `prod_app_<application>` (ex. `prod_app_cockpit_supply`) | Cloud Run (nuit), job `cd` (merge) ; lu par le seul compte de l'application | permanente |
-| Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | 14 jours sans rebuild |
+| Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | vidé au début de chaque branche ; filet : 14 jours après création |
 | CI | `dbt_ci_pr_<N>` | job `pr-check` | supprimé à la fermeture de la PR (filet : 3 jours) |
 | Ingestion de test | `dev_raw`, `dev_raw_staging` | `dlt --target dev` | permanente (dlt garde son état dans `_dlt_version`) |
 
-L'expiration porte sur les **tables**, pas sur le dataset. Chaque rebuild remet le compteur à
-zéro.
+L'expiration porte sur les **tables**, pas sur le dataset, et court depuis leur création. Un
+modèle `table` est recréé à chaque build, donc son expiration est repoussée ; un incrémental, non :
+le `MERGE` ne recrée pas la table, qui expire 14 jours après son clone ou son full-refresh.
+
+### Vider son dataset au début de chaque branche
+
+```bash
+dbt run-operation vider_dataset_dev                             # liste ce qui serait supprimé
+dbt run-operation vider_dataset_dev --args '{confirmer: true}'  # vide ton dataset
+```
+
+C'est la pratique recommandée par dbt Labs : une table restée d'un ancien chantier est lue par le
+defer à la place de la prod (§ 3), et une table de quelques jours suffit à fausser une recette.
+L'expiration n'est qu'un filet.
+
+La macro lit le dataset du target `dev` ; elle refuse tout autre target et tout dataset hors
+`dbt_<nom>`. Elle supprime les tables et les vues, jamais le dataset, qui appartient à Terraform.
+En reprenant une autre branche en cours, reconstruire ses modèles : leur version dev est partie
+avec le reste.
 
 La macro `generate_schema_name` fait le routage :
 - en **prod** : `prod_<couche>`, le comportement dbt par défaut ;
@@ -65,7 +82,8 @@ Ne pas l'activer par défaut : dans le premier cas, il ferait lire le `stg_x` de
 masquerait ta modification, sans erreur.
 
 **Piège** : une table restée dans ton dataset depuis quelques jours (elles n'expirent qu'après
-14 jours) fausse une recette sans aucun message. Réflexe avant d'interpréter un écart :
+14 jours) fausse une recette sans aucun message. Le vidage en début de branche (§ 1) évite le cas
+le plus courant. Réflexe avant d'interpréter un écart :
 **vérifier que dev et prod ont le même nombre de lignes**.
 
 Construire toute la chaîne modifiée en **une seule commande** (`-s stg_x+`) évite aussi le
@@ -185,7 +203,8 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
 
 ### Au quotidien
 
-- Tu développes dans ton dataset ; tes collègues dans le leur.
+- Tu développes dans ton dataset ; tes collègues dans le leur. Le vidage en début de branche
+  (§ 1) ne touche que le tien.
 - Après un merge d'un collègue : `git pull` (le manifest suit), puis `git rebase origin/master`
   sur ta branche. Un conflit git n'apparaît que si vous avez touché le **même fichier**.
 - Chaque PR est relue par une autre personne que son auteur avant le merge.
@@ -195,10 +214,11 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
 
 ### Départ d'un développeur
 
-1. Supprimer sa clé, puis son SA.
-2. Retirer son nom de `local.dbt_developers`, puis `terraform apply`. Terraform refuse de
-   supprimer un dataset qui contient des tables : le vider avant.
-3. Retirer son accès GitHub.
+1. Lui faire vider son dataset (`dbt run-operation vider_dataset_dev --args '{confirmer: true}'`) :
+   Terraform refuse de supprimer un dataset qui contient des tables.
+2. Supprimer sa clé, puis son SA.
+3. Retirer son nom de `local.dbt_developers`, puis `terraform apply`.
+4. Retirer son accès GitHub.
 
 ## 7. Où c'est défini
 
@@ -208,6 +228,7 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
 | Ouverture WIF au repo dbt | `infra/github_actions_wif.tf` |
 | Targets `dev` / `ci` / `prod` | `profiles.yml` |
 | Routage des datasets | `macros/generate_schema_name.sql` |
+| Vidage du dataset de dev | `macros/vider_dataset_dev.sql` |
 | CI/CD | `.github/workflows/dbt-ci.yml` |
 | Variables locales | `.env.example` |
 | Liste des développeurs | `infra/dbt_environments.tf` (`local.dbt_developers`) |

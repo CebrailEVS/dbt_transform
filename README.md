@@ -148,6 +148,7 @@ Les hooks git de `.pre-commit-config.yaml` rejouent les mêmes contrôles pour l
 dbt debug                          # configuration et connexion
 set -a && source .env && set +a    # variables non chargées (sans direnv)
 scripts/pull-state.sh --force      # defer qui pointe vers un modèle absent : retélécharger le manifest
+dbt run-operation vider_dataset_dev   # résultats dev incohérents : lister, puis vider ton dataset
 rm -rf target/                     # artefacts d'une ancienne version de dbt
 ```
 

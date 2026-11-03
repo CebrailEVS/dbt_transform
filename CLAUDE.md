@@ -56,8 +56,8 @@ Toujours appeler `./dbt_venv/bin/dbt` avec `.env` chargé (`set -a && . ./.env &
 Détail : [`docs/environnements.md`](docs/environnements.md). Variables locales : `.env.example`.
 
 - **Un seul projet GCP** `evs-datastack-prod`, isolation par dataset ; la frontière est l'IAM.
-  - `dev` → `dbt_<toi>` : toutes les couches dans un seul dataset, tables expirées après 14 jours
-    sans rebuild ;
+  - `dev` → `dbt_<toi>` : toutes les couches dans un seul dataset, vidé au début de chaque branche
+    (`dbt run-operation vider_dataset_dev`) ; filet : tables expirées 14 jours après création ;
   - `ci` → `dbt_ci_pr_<N>` : créé par `pr-check`, supprimé à la fermeture de la PR ;
   - `prod` → `prod_<couche>`.
   `dbt-dev` et `dbt-ci` lisent `prod_*` et n'y écrivent jamais ; `generate_schema_name` refuse
