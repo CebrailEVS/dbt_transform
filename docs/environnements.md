@@ -38,7 +38,8 @@ L'expiration n'est qu'un filet.
 La macro lit le dataset du target `dev` ; elle refuse tout autre target et tout dataset hors
 `dbt_<nom>`. Elle supprime les tables et les vues, jamais le dataset, qui appartient à Terraform.
 En reprenant une autre branche en cours, reconstruire ses modèles : leur version dev est partie
-avec le reste.
+avec le reste. Ne pas vider pendant qu'un autre chantier travaille dans le même dataset (deux
+sessions en parallèle) : ses tables partiraient en cours de route.
 
 La macro `generate_schema_name` fait le routage :
 - en **prod** : `prod_<couche>`, le comportement dbt par défaut ;
@@ -144,15 +145,20 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
 1. Authentification WIF avec `dbt-ci`, puis création de `dbt_ci_pr_<N>`.
 2. `dbt lint` (modèles modifiés), `dbt parse`, puis `dbt compile --static-analysis strict`
    sur le projet entier. Ce dernier contrôle est bloquant.
-3. `dbt build --select state:modified+ --defer`, snapshots exclus.
-4. À la fermeture de la PR, `cleanup-ci-dataset` supprime `dbt_ci_pr_<N>`.
+3. Clone depuis la prod des incrémentaux modifiés (`dbt clone --full-refresh`) : le build exécute
+   leur vrai `MERGE`, comme le fera la prod au merge. En échec, un avertissement s'affiche sur la PR
+   et ils sont reconstruits entièrement.
+4. `dbt build --select state:modified+ --defer --favor-state`, snapshots exclus : tout ce qui n'est
+   pas construit dans le run est lu en prod, même s'il reste dans le dataset d'un push précédent.
+5. Un run à la fois par PR : un nouveau push annule le run en cours. À la fermeture de la PR,
+   `cleanup-ci-dataset` annule un run encore en cours, puis supprime `dbt_ci_pr_<N>`.
 
 ### Merge sur `master` — `cd`
 1. Authentification WIF avec `dbt-deployer`.
 2. `dbt build --select state:modified+` **directement en prod**, snapshots exclus.
 3. `dbt docs generate`, dépôt du nouveau manifest, publication des docs sur GitHub Pages.
 4. Build et push de `dbt-runner:latest`, repris par la production planifiée à sa prochaine
-   exécution.
+   exécution. La même image est aussi poussée sous `dbt-runner:<sha du commit>`.
 
 > Tout push sur `master` déclenche `cd`, **y compris un push direct sans PR**.
 > Les `cd` passent **un par un**, dans l'ordre des push (verrou `concurrency`). Si
@@ -161,6 +167,17 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
 > des runs annulés.
 > Dans les logs, `dbt docs generate` affiche une ligne « Succeeded model » par nœud : il lit
 > seulement les métadonnées, il ne reconstruit rien.
+
+**Revenir en arrière.** Le chemin normal est un `git revert` du commit fautif, en PR : le `cd`
+reconstruit et redéploie. En urgence, avant la prochaine exécution planifiée, re-pointer `latest`
+sur la version précédente :
+```bash
+gcloud artifacts docker tags add \
+  europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:<sha> \
+  europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:latest
+```
+Cela ne remet ni `prod_*` ni le manifest dans leur état antérieur, et le prochain `cd` repousse
+`latest` : c'est un sursis, le `git revert` reste nécessaire.
 
 ## 5. Garde-fous
 

@@ -114,6 +114,10 @@ Elle lance le lint des modèles modifiés, `dbt parse`, puis l'analyse statique 
 construit ensuite les modèles modifiés et leur aval dans `dbt_ci_pr_<N>`. Tu peux ouvrir ce
 dataset dans BigQuery pour contrôler le résultat. Il est supprimé à la fermeture de la PR.
 
+Un incrémental modifié est d'abord cloné depuis la prod : c'est son vrai `MERGE` qui est testé,
+comme au merge. Tout ce qui n'est pas reconstruit est lu en prod. Un nouveau push annule le run
+en cours.
+
 Au merge, seuls les modèles modifiés et leur aval sont reconstruits en prod.
 
 ### À plusieurs

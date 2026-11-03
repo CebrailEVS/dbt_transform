@@ -57,7 +57,8 @@ Détail : [`docs/environnements.md`](docs/environnements.md). Variables locales 
 
 - **Un seul projet GCP** `evs-datastack-prod`, isolation par dataset ; la frontière est l'IAM.
   - `dev` → `dbt_<toi>` : toutes les couches dans un seul dataset, vidé au début de chaque branche
-    (`dbt run-operation vider_dataset_dev`) ; filet : tables expirées 14 jours après création ;
+    (`dbt run-operation vider_dataset_dev`), jamais pendant qu'une autre session y travaille ;
+    filet : tables expirées 14 jours après création ;
   - `ci` → `dbt_ci_pr_<N>` : créé par `pr-check`, supprimé à la fermeture de la PR ;
   - `prod` → `prod_<couche>`.
   `dbt-dev` et `dbt-ci` lisent `prod_*` et n'y écrivent jamais ; `generate_schema_name` refuse
@@ -73,15 +74,16 @@ Détail : [`docs/environnements.md`](docs/environnements.md). Variables locales 
 
 | Événement | Job | Ce qui se passe |
 |---|---|---|
-| PR vers `master` | `pr-check` | `dbt lint` des modèles modifiés, `dbt parse`, `dbt compile --static-analysis strict` (bloquant, projet entier), build `state:modified+` avec defer dans `dbt_ci_pr_<N>` |
+| PR vers `master` | `pr-check` | `dbt lint` des modèles modifiés, `dbt parse`, `dbt compile --static-analysis strict` (bloquant, projet entier), clone des incrémentaux modifiés puis build `state:modified+` avec `--defer --favor-state` dans `dbt_ci_pr_<N>` ; un nouveau push annule le run en cours |
 | PR fermée | `cleanup-ci-dataset` | suppression de `dbt_ci_pr_<N>` |
-| Push sur `master`, **y compris direct** | `cd` | build `state:modified+` **en prod**, docs, dépôt du manifest dans `gs://evs-datastack-dbt-state`, image `dbt-runner:latest` |
+| Push sur `master`, **y compris direct** | `cd` | build `state:modified+` **en prod**, docs, dépôt du manifest dans `gs://evs-datastack-dbt-state`, image `dbt-runner:latest` et `:<sha>` |
 | après `cd` | `deploy-docs` | publication de la doc dbt |
 
 - Snapshots **toujours exclus** de la CI/CD : seul Cloud Workflows les exécute.
 - `state:modified+` ne reconstruit que le modifié et son aval. Après un changement de forme du raw,
   un build vert ne prouve rien sur la chaîne complète : la reconstruire entièrement.
 - L'image `dbt-runner:latest` est résolue à chaque exécution Cloud Run : le merge suffit à la déployer.
+  Chaque version est aussi taguée `:<sha>` (retour arrière : `docs/environnements.md` § 4).
 - Toute identité qui exécute dbt v2 a besoin de `roles/bigquery.readSessionUser` (lecture par la
   Storage Read API), sinon `DbDriverFailed (dbt1308)`.
 
