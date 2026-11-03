@@ -2,12 +2,12 @@
 
 Une table orpheline existe encore dans un dataset prod alors qu'aucun modèle, seed ou snapshot
 dbt ne la produit plus (modèle supprimé ou renommé). dbt ne la supprime jamais seul.
-Procédure manuelle, réservée au data engineer. Les datasets de dev n'en ont pas besoin : leurs
-tables expirent après 14 jours sans rebuild.
+Procédure manuelle, réservée au data engineer. Les datasets de dev n'en ont pas besoin : ils se
+vident en début de branche (`vider_dataset_dev`), et leurs tables expirent.
 
 ## Outil
 
-[`dbt_orphan`](https://github.com/Matts52/dbt-orphan) (`packages.yml`, installé depuis git). Il
+[`dbt_orphan`](https://github.com/Matts52/dbt-orphan) (version : `packages.yml`). Il
 liste les tables d'un dataset et signale celles qui ne correspondent à aucun nœud du projet
 **résolu dans ce dataset**. Les snapshots sont reconnus.
 
@@ -17,14 +17,17 @@ nœuds résolvent vers `dbt_<toi>` et chaque table de `prod_*` apparaît orpheli
 ## 1. Lister (lecture seule)
 
 Avec sa propre identité Google (`gcloud auth application-default login`), qui doit pouvoir lire
-les datasets scannés :
+les datasets scannés. C'est la seule exception à la règle « jamais de target prod depuis un poste » :
+elle ne fait que lire.
 
 ```bash
 set -a && . ./.env && set +a
 DBT_TARGET=prod DBT_BIGQUERY_METHOD=oauth DBT_BIGQUERY_DATASET_PROD=prod \
   ./dbt_venv/bin/dbt run-operation dbt_orphan.cleanup_orphans \
-  --args '{schemas: ["prod_staging", "prod_intermediate", "prod_marts", "prod_reference"], dry_run: true}'
+  --args '{schemas: ["prod_staging", "prod_intermediate", "prod_marts", "prod_reference", "prod_app_<application>"], dry_run: true}'
 ```
+
+Un dataset `prod_app_<application>` par application (`+schema` dans `dbt_project.yml`).
 
 `dry_run: true` ne fait que lister. C'est le seul mode à utiliser depuis un poste.
 
@@ -43,4 +46,4 @@ planifié. Jamais sur le dataset `snapshots` (historique SCD2 irréversible).
 ## Limite
 
 La macro compare le **nom** du nœud, pas son `alias` : un modèle dont l'alias diffère du nom de
-fichier serait vu comme orphelin.
+fichier serait vu comme orphelin. À revérifier à chaque montée de version du paquet.

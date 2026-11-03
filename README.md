@@ -1,66 +1,65 @@
 # EVS Data Warehouse — projet dbt
 
 Couche **Transform** de la plateforme data d'**EVS Professionnelle France** : modélisation
-BigQuery avec dbt, déclenchée par Google Cloud Workflows après chaque extraction.
+BigQuery avec dbt, lancée par Cloud Workflows après chaque extraction.
 
-**[Documentation dbt générée](https://cebrailevs.github.io/dbt_transform/)** ·
-[CONTRIBUTING](CONTRIBUTING.md) · [CONVENTIONS](CONVENTIONS.md) ·
-[Environnements & CI/CD](docs/environnements.md)
+**[Documentation dbt générée](https://cebrailevs.github.io/dbt_transform/)** : modèles, colonnes,
+lignage, tests.
 
 ---
 
 ## Démarrage
 
 Installation du poste, clé et dataset de dev : [CONTRIBUTING § 1](CONTRIBUTING.md#1-installer-son-poste).
-Python 3.11+ requis : dbt v2 est un moteur Rust distribué comme extension CPython.
 
 ---
 
 ## Stack
 
+```
+sources → dlt (repo ingestion) → BigQuery prod_raw → dbt (ce repo) → prod_* → Power BI
+                         Cloud Workflows orchestre l'extraction puis dbt (repo infra)
+```
+
 | Composant | Rôle |
 |---|---|
-| **dlt** *(repo `ingestion`)* | Extraction et chargement vers `prod_raw` |
+| **dlt** *(repo `ingestion`)* | Extraction et chargement vers `prod_raw`, sans typage métier |
 | **BigQuery** | Lac (`prod_raw`) et entrepôt (`prod_staging` → `prod_intermediate` → `prod_marts`) |
-| **dbt v2** *(ce repo)* | Transformation. Moteur Rust, adaptateur BigQuery et linter inclus |
-| **Cloud Workflows + Scheduler + Cloud Run** | Orchestration de la production (repo `infra`) |
-| **GitHub Actions** | CI/CD, authentification sans clé (WIF) |
+| **dbt v2** *(ce repo)* | Transformation, tests, documentation, lint |
+| **Cloud Workflows, Scheduler, Cloud Run** *(repo `infra`)* | Orchestration de la production |
+| **GitHub Actions** | CI/CD, sans clé stockée (WIF) |
 | **Power BI** | Restitution |
 
-Tout tourne dans **un seul projet GCP**, `evs-datastack-prod`. Dev, CI et prod sont séparés
-par dataset et par IAM. Voir [docs/environnements.md](docs/environnements.md).
+Versions : `requirements-lock.txt` (dbt) et `packages.yml` (paquets dbt). Choix structurants et
+pistes écartées : [docs/decisions.md](docs/decisions.md).
 
 ---
 
 ## Sources de données
 
-| Source | Système | Description |
-|---|---|---|
-| **oracle_neshu** | Oracle ERP (NESHU) | ERP principal : clients, machines, produits, tâches |
-| **oracle_lcdp** | Oracle ERP (LCDP) | ERP secondaire, même schéma qu'oracle_neshu |
-| **oracle_nayka** | Oracle ERP (Nayka) | ERP du partenaire Nayka, même schéma qu'oracle_neshu |
-| **yuman_api** | Yuman API | Interventions terrain : clients, sites, matériels, bons de travail |
-| **mssql_sage** | MSSQL Sage | Comptabilité : écritures, comptes tiers, collaborateurs |
-| **nesp_tech** | Nomad Repair API | Interventions techniques Nespresso, pièces détachées |
-| **nesp_co** | Excel / Nespresso | Données commerciales Nespresso |
-| **zoho_desk** | Zoho Desk API | Tickets support, SLA, threads |
-| **apptech** | App interne (tables externes GCS) | Suivi technicien : events, pauses, curatif, astreinte |
-| **gac** | SFTP CSV | Assurance flotte, sinistres véhicules |
-| **powerbi_activity** | API admin Power BI | Journaux d'usage du locataire + inventaire espaces/rapports/modèles |
-| **dbt_artifacts** | Runner dbt (table externe GCS) | Historique des exécutions de prod : résultat de chaque modèle et test, contrôles de fraîcheur |
-| **yuman_evs_sftp** | Fichier SFTP | Stock théorique Yuman |
-| **oracle_neshu_gcs** | Oracle ERP (NESHU) | Stock théorique Oracle NESHU |
-| **oracle_lcdp_gcs** | Oracle ERP (LCDP) | Stock théorique Oracle LCDP |
-| **historic** | Archive | Analytique Sage 2024, figée |
+Une ligne par source déclarée dans dbt. Tables, colonnes et tests : la doc dbt générée.
 
-> **Tables externes GCS** : `nesp_tech` et `apptech` sont lues via des tables externes BigQuery
-> adossées à GCS (API spécifique, fichiers écrits par l'app). Toutes les autres sources sont des
-> tables natives chargées par dlt.
->
-> Le suffixe `_gcs` des deux sources de stock théorique est historique : elles sont chargées
-> directement depuis Oracle par dlt. Le nom est gardé pour ne pas casser les `source()`.
+| Source dbt | Système | Contenu | Particularités |
+|---|---|---|---|
+| `oracle_neshu` | ERP Oracle NESHU | clients, machines, produits, tâches | [oracle_neshu.md](docs/architecture/oracle_neshu.md) |
+| `oracle_lcdp` | ERP Oracle LCDP | même schéma qu'`oracle_neshu` | [oracle_neshu.md](docs/architecture/oracle_neshu.md) |
+| `oracle_nayka` | ERP Oracle du partenaire Nayka | même schéma qu'`oracle_neshu` | [oracle_neshu.md](docs/architecture/oracle_neshu.md) |
+| `oracle_neshu_gcs`, `oracle_lcdp_gcs` | ERP Oracle NESHU et LCDP | photos du stock théorique | [oracle_neshu_gcs.md](docs/architecture/oracle_neshu_gcs.md) |
+| `yuman_api` | API Yuman | interventions terrain : clients, sites, matériels, bons | [yuman.md](docs/architecture/yuman.md) |
+| `yuman_evs_sftp` | fichier SFTP Yuman | stock théorique Yuman | [yuman_evs_sftp.md](docs/architecture/yuman_evs_sftp.md) |
+| `mssql_sage` | Sage (SQL Server) | comptabilité et gestion commerciale | [mssql_sage.md](docs/architecture/mssql_sage.md) |
+| `nesp_tech` | rapports du prestataire technique Nespresso | interventions, pièces détachées | [nesp_tech.md](docs/architecture/nesp_tech.md) |
+| `nesp_co` | fichiers Nespresso | données commerciales | [nesp_co.md](docs/architecture/nesp_co.md) |
+| `zoho_desk` | API Zoho Desk | tickets de support, SLA | [zoho_desk.md](docs/architecture/zoho_desk.md) |
+| `gac` | fichiers SFTP | flotte de véhicules, sinistres | [gac.md](docs/architecture/gac.md) |
+| `powerbi_activity` | API d'administration Power BI | usage et inventaire du parc Power BI | [powerbi_activity.md](docs/architecture/powerbi_activity.md) |
+| `apptech` | application interne Suivi Tech | retraitements d'interventions techniques | [apptech.md](docs/architecture/apptech.md) |
+| `dbt_artifacts` | runner dbt de prod | résultats des exécutions de prod | — |
+| `historic` | archive | analytique Sage figée | — |
 
-Fraîcheur des sources : **[`docs/freshness.md`](docs/freshness.md)** (référence unique).
+Le suffixe `_gcs` est historique : ces sources sont chargées depuis Oracle par dlt. Ne pas renommer
+une source, chaque `source()` casserait.
+Fraîcheur : [docs/freshness.md](docs/freshness.md).
 
 ---
 
@@ -69,15 +68,15 @@ Fraîcheur des sources : **[`docs/freshness.md`](docs/freshness.md)** (référen
 ```
 models/
 ├── staging/        1 modèle = 1 table source : typage, nettoyage   (par source)
-├── intermediate/   logique métier, enrichissement                  (par source)
+├── intermediate/   logique métier dans une source                  (par source)
 ├── marts/          dimensions et faits pour Power BI              (par BU)
 ├── apps/           modèles de service d'une application interne   (par application)
 └── exposures/      rapports et applications qui lisent les modèles
+snapshots/          historique SCD2, construit en prod seulement
+data/reference_data/ seeds (référentiels CSV)
 ```
 
-**8 BU** : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`,
-`supply_chain`, `bi`. Le data engineer possède `staging/`, `intermediate/` et les snapshots ;
-le data analyst contribue aux `marts/`.
+Une BU = un dossier de `models/marts/`. Qui possède quoi : [CONTRIBUTING § 6](CONTRIBUTING.md#6-rôles).
 
 ---
 
@@ -87,69 +86,30 @@ le data analyst contribue aux `marts/`.
 dbt build -s mon_modele                 # ton modèle seul (parents lus en prod : defer)
 dbt build -s mon_modele+                # + tout l'aval
 dbt build -s tag:oracle_neshu           # toute une source
-dbt build -s +exposure:business_review  # tout ce qui alimente un rapport
+dbt build -s +exposure:<nom>            # tout ce qui alimente un rapport
+dbt ls -s source:oracle_neshu+          # ce qu'une source reconstruit
 dbt clone -s mon_incremental            # copier une table prod pour tester un MERGE
 dbt lint models/chemin/ [--fix]         # lint SQL (règles : CONVENTIONS.md)
-dbt freshness                           # fraîcheur (autorité : docs/freshness.md)
+dbt source freshness                    # fraîcheur des sources (méthode : docs/freshness.md)
 ```
 
 `dbt build` exécute les modèles et leurs tests dans l'ordre du DAG : un test en échec bloque
-l'aval. Les snapshots ne se lancent jamais à la main, ils appartiennent à Cloud Workflows.
+l'aval. Les snapshots ne se lancent jamais à la main.
 
----
-
-## CI/CD
-
-| Événement | Ce qui se passe |
-|---|---|
-| PR vers `master` | lint, analyse statique, build `state:modified+` dans `dbt_ci_pr_<N>` avec defer |
-| PR fermée | suppression de `dbt_ci_pr_<N>` |
-| Push sur `master` | build `state:modified+` **en prod**, publication des docs, nouvelle image `dbt-runner` |
-
-Seul ce qui est modifié est reconstruit, à chaque étape. Un push direct sur `master` part
-en prod immédiatement. Détail : [docs/environnements.md](docs/environnements.md).
-
----
-
-## Dépendances
-
-Versions : `requirements-lock.txt` (dbt) et `packages.yml` (paquets dbt).
-
-| Paquet | Rôle |
-|---|---|
-| `dbt` (pip) | Moteur dbt v2. Gratuit, licence propriétaire dbt Labs (`dbt-oss`, en Apache 2.0, n'a pas `dbt lint`) |
-| `dbt_utils` | `unique_combination_of_columns`, `expression_is_true`, `generate_surrogate_key` |
-| `dbt_expectations` | Volumes, plages de valeurs, récence |
-| `dbt_orphan` | Repérage des tables orphelines, cf. [docs/maintenance.md](docs/maintenance.md) |
-
----
-
-## Couche IA (Claude Code)
-
-Versionnée et partagée. Seuls `.claude/settings.local.json` et `.claude/notes/` restent locaux.
-
-```
-CLAUDE.md         contexte projet et règles strictes
-.mcp.json         serveurs MCP : BigQuery, Power BI, dbt
-.claude/
-├── commands/     /build-source, /new-mart, /lint-fix, /freshness
-├── skills/       audit-sources, audit-docs, check-staging-relationships, profile
-├── agents/       mart-reviewer
-└── hooks/        garde-fou de branche avant commit/push, dbt lint et dbt parse après édition, helpers d'auth MCP
-```
-
-Les hooks git de `.pre-commit-config.yaml` rejouent les mêmes contrôles pour les humains (cf. CONTRIBUTING § 1).
+CI/CD : une PR est construite dans son propre dataset ; un push sur `master`, même direct, part en
+prod. Détail : [docs/environnements.md § 4](docs/environnements.md#4-les-quatre-flux).
 
 ---
 
 ## Dépannage
 
 ```bash
-dbt debug                          # configuration et connexion
-set -a && source .env && set +a    # variables non chargées (sans direnv)
-scripts/pull-state.sh --force      # defer qui pointe vers un modèle absent : retélécharger le manifest
-dbt run-operation vider_dataset_dev   # résultats dev incohérents : lister, puis vider ton dataset
-rm -rf target/                     # artefacts d'une ancienne version de dbt
+dbt debug                                     # configuration et connexion
+set -a && source .env && set +a               # variables non chargées (sans direnv)
+scripts/pull-state.sh --force                 # defer vers un modèle absent : retélécharger le manifest prod
+dbt run-operation vider_dataset_dev           # résultats dev incohérents : lister ce qui serait supprimé
+dbt run-operation vider_dataset_dev --args '{confirmer: true}'   # puis vider ton dataset
+rm -rf target/                                # artefacts d'une ancienne version de dbt
 ```
 
 ---
@@ -158,10 +118,12 @@ rm -rf target/                     # artefacts d'une ancienne version de dbt
 
 | Sujet | Où |
 |---|---|
-| Environnements, identités, CI/CD, defer | [docs/environnements.md](docs/environnements.md) |
-| Contribuer (workflow, PR, ajouter un modèle) | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| Conventions (index) et par couche | [CONVENTIONS.md](CONVENTIONS.md), [docs/conventions/](docs/conventions/) |
-| Fraîcheur des sources | [docs/freshness.md](docs/freshness.md) |
+| Contribuer : poste, cycle git, PR, ajouter un modèle | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Conventions communes, puis une page par couche | [CONVENTIONS.md](CONVENTIONS.md), [docs/conventions/](docs/conventions/) |
+| Environnements, identités, CI/CD, retour arrière | [docs/environnements.md](docs/environnements.md) |
 | Circulation de la donnée en production | [docs/pipeline-schedule.md](docs/pipeline-schedule.md) |
-| Architecture par source | [docs/architecture/](docs/architecture/) |
-| Nettoyage des objets orphelins | [docs/maintenance.md](docs/maintenance.md) |
+| Fraîcheur des sources | [docs/freshness.md](docs/freshness.md) |
+| Particularités et pièges de chaque source | [docs/architecture/](docs/architecture/) |
+| Décisions d'architecture | [docs/decisions.md](docs/decisions.md) |
+| Nettoyage des tables orphelines | [docs/maintenance.md](docs/maintenance.md) |
+| Consignes à l'agent IA (Claude Code) | [CLAUDE.md](CLAUDE.md) ; `.claude/` versionné, sauf `settings.local.json` et `notes/` |

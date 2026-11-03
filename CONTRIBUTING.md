@@ -1,84 +1,54 @@
 # Contribuer au projet dbt EVS
 
-Guide pratique pour développer, tester et livrer un modèle. Les règles de nommage et de
-qualité sont dans [CONVENTIONS.md](CONVENTIONS.md). L'architecture dev / CI / prod est
-décrite dans [docs/environnements.md](docs/environnements.md).
+Guide pratique pour développer, tester et livrer un modèle. Règles de modélisation :
+[CONVENTIONS.md](CONVENTIONS.md). Dev, CI et prod : [docs/environnements.md](docs/environnements.md).
 
 ---
 
 ## 1. Installer son poste
+
+Python 3.11 ou plus récent : dbt v2 est un moteur Rust distribué comme extension CPython.
 
 ```bash
 git clone https://github.com/CebrailEVS/dbt_transform.git && cd dbt_transform
 python3 -m venv dbt_venv && source dbt_venv/bin/activate
 pip install -r requirements-lock.txt
 
-cp .env.example .env          # renseigner DBT_BIGQUERY_DATASET_DEV et la clé (voir ci-dessous)
+cp .env.example .env          # renseigner son dataset de dev et le chemin de sa clé
 direnv allow                  # charge .env à chaque cd ; sans direnv : set -a && source .env && set +a
 
 dbt deps && dbt debug
 
-pipx install pre-commit && pre-commit install   # hooks git (voir ci-dessous)
-scripts/pull-state.sh         # premier manifest prod ; ensuite, c'est automatique
+pipx install pre-commit && pre-commit install   # hooks git
+scripts/pull-state.sh         # premier manifest prod ; ensuite, les hooks le tiennent à jour
 ```
 
-- **Dataset et clé** : le data engineer crée ton dataset `dbt_<toi>` et te remet la clé
-  `dbt-dev` (procédure : [docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs)).
-  La clé reste hors du repo.
-- **Hooks git** (`pre-commit install`, une fois par clone) : des scripts que git lance tout seul
-  à certains moments. Ils sont versionnés dans `.pre-commit-config.yaml`, donc identiques pour
-  toute l'équipe.
-
-  | Quand | Ce qui tourne | Si ça échoue |
-  |---|---|---|
-  | `git commit` | `dbt lint` sur les `.sql` modifiés | le commit est refusé |
-  | `git push` | `dbt parse` du projet | le push est refusé |
-  | `git pull`, changement de branche | mise à jour du manifest prod (`scripts/pull-state.sh`) | un avertissement, **git continue** |
-
-  Le manifest n'est téléchargé que si la prod a changé (environ 1 s sinon). À la main, en cas de doute :
-  `scripts/pull-state.sh`, ou `--force` pour retélécharger.
+- **Dataset et clé** : le data engineer crée ton dataset `dbt_<toi>` et te remet ta clé
+  ([docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs)). La clé reste
+  hors du repo.
+- **Hooks git** (`.pre-commit-config.yaml`, identiques pour toute l'équipe) : `dbt lint` au commit
+  et `dbt parse` au push, qui refusent l'opération en cas d'échec ; mise à jour du manifest prod au
+  `git pull` et au changement de branche, qui n'avertit qu'en cas d'échec.
 - **Dépendances** : toujours installer depuis `requirements-lock.txt`. Seul le data engineer
-  modifie `requirements*.txt`. Après un `git pull` qui les modifie :
-  `pip install -r requirements-lock.txt`.
+  modifie `requirements*.txt` ; après un `git pull` qui les change, relancer le `pip install`.
 
 ---
 
 ## 2. Développer un modèle
 
 Tu écris dans **ton** dataset `dbt_<toi>`. Tout ce que tu ne construis pas est lu en prod
-(**defer**), donc tu ne reconstruis jamais la chaîne amont. Le defer s'appuie sur le manifest de
-prod, que les hooks git tiennent à jour à chaque `git pull`.
+(**defer**) : tu ne reconstruis jamais la chaîne amont.
 
 ```bash
 dbt build -s mon_modele         # ton modèle et ses tests
 dbt build -s mon_modele+        # + tout l'aval, pour vérifier que rien ne casse
 ```
 
-**Modèle incrémental** : clone d'abord la table prod, puis lance le build. C'est alors le
-vrai `MERGE` qui s'exécute, pas une reconstruction complète.
-
-```bash
-dbt clone -s stg_oracle_lcdp__task
-dbt run   -s stg_oracle_lcdp__task
-```
-
-**Comparer avec la prod** avant de livrer :
-
-```sql
-select 'dev' as env, count(*) from `evs-datastack-prod.dbt_<toi>.mon_modele`
-union all
-select 'prod', count(*) from `evs-datastack-prod.prod_marts.mon_modele`
-```
-
-| Tu veux… | Regarde |
-|---|---|
-| analyser, explorer, faire un rapport | `prod_marts` |
-| tester ce que tu développes | `dbt_<toi>` |
-| vérifier ta PR | `dbt_ci_pr_<N>`, construit par la CI |
-
-**Au début de chaque branche, vide ton dataset** (commande dans le cycle, § 3) : une table restée
-d'un ancien chantier serait lue à la place de la prod. L'expiration à 14 jours n'est qu'un filet.
-Détail : [docs/environnements.md § 1](docs/environnements.md#vider-son-dataset-au-début-de-chaque-branche).
+- **Incrémental** : `dbt clone -s mon_incremental`, puis `dbt run -s mon_incremental`. C'est alors
+  le vrai `MERGE` qui s'exécute, pas une reconstruction complète.
+- **Recette contre la prod** : `--favor-state`, et le même nombre de lignes en dev et en prod avant
+  d'interpréter un écart ([docs/environnements.md § 3](docs/environnements.md#3-le-defer)).
+- **Analyser ou explorer** : `prod_marts`, jamais ton dataset de dev.
 
 ---
 
@@ -106,28 +76,18 @@ git commit -m "feat(neshu): add kpi livraison"
 git push -u origin feature/kpi-livraison-neshu      # puis ouvrir la PR sur GitHub
 ```
 
+Vider son dataset au début de chaque branche évite qu'une table d'un ancien chantier soit lue à la
+place de la prod ([docs/environnements.md § 1](docs/environnements.md#vider-son-dataset-au-début-de-chaque-branche)).
 Si `master` a avancé : `git rebase origin/master` puis `git push --force-with-lease`.
 
-### Ce que fait la CI sur ta PR
+### Sur la PR
 
-Elle lance le lint des modèles modifiés, `dbt parse`, puis l'analyse statique stricte. Elle
-construit ensuite les modèles modifiés et leur aval dans `dbt_ci_pr_<N>`. Tu peux ouvrir ce
-dataset dans BigQuery pour contrôler le résultat. Il est supprimé à la fermeture de la PR.
+La CI lint les modèles modifiés et compile tout le projet en analyse statique stricte, puis construit les modèles modifiés et leur aval dans
+`dbt_ci_pr_<N>`, que tu peux ouvrir dans BigQuery. Au merge, le même périmètre est reconstruit en
+prod. Détail : [docs/environnements.md § 4](docs/environnements.md#4-les-quatre-flux).
 
-Un incrémental modifié est d'abord cloné depuis la prod : c'est son vrai `MERGE` qui est testé,
-comme au merge. Tout ce qui n'est pas reconstruit est lu en prod. Un nouveau push annule le run
-en cours.
-
-Au merge, seuls les modèles modifiés et leur aval sont reconstruits en prod.
-
-### À plusieurs
-
-Chacun développe dans son dataset. Les PR du data analyst sont relues et mergées par le data
-engineer ; celles du data engineer, sans second relecteur, passent par `/code-review` et, pour un
-mart, l'agent `mart-reviewer`. Après le merge
-d'un collègue : `git pull` sur `master` (le manifest suit tout seul), puis `git rebase origin/master`
-sur ta branche.
-Arrivée et départ d'un développeur : [docs/environnements.md § 6](docs/environnements.md#6-travailler-à-plusieurs).
+Après le merge d'un collègue : `git pull` sur `master` (le manifest suit), puis
+`git rebase origin/master` sur ta branche.
 
 ### Après le merge
 
@@ -135,42 +95,39 @@ Arrivée et départ d'un développeur : [docs/environnements.md § 6](docs/envir
 git checkout master && git pull && git branch -d feature/kpi-livraison-neshu
 ```
 
-Le `git pull` met aussi à jour le manifest prod.
-
 ---
 
 ## 4. Ajouter…
 
+Chaque page de couche porte les règles complètes ; ici, seulement les étapes.
+
 ### Un modèle de staging (data engineer)
 1. `models/staging/<source>/stg_<source>__<table>.sql`, avec `description` dans le `config()`.
 2. Entrée dans `_<source>__models.yml` : description et tests.
-3. Source déclarée dans `_<source>__sources.yml`.
+3. Table déclarée dans `_<source>__sources.yml`.
 
-Règles complètes : [docs/conventions/staging.md](docs/conventions/staging.md).
+Règles : [staging.md](docs/conventions/staging.md).
 
 ### Un modèle intermediate
-1. `models/intermediate/<source>/int_<source>__<description>.sql`, uniquement des `ref()`.
-2. Documentation dans le YAML de la source.
+1. `models/intermediate/<source>/int_<source>__<entite>.sql`, uniquement des `ref()` d'une source.
+2. Entrée dans `_<source>__intermediate_models.yml`.
 
-Il reste **aligné sur une source** : le croisement de sources se fait dans les marts.
-Règles : [docs/conventions/intermediate.md](docs/conventions/intermediate.md).
+Règles : [intermediate.md](docs/conventions/intermediate.md).
 
 ### Un mart
 1. `models/marts/<bu>/dim_<bu>__<entite>.sql` ou `fct_<bu>__<entite>.sql`.
-2. Entrée dans `_<bu>__marts_models.yml`, avec une description en 4 blocs
-   (`[QUOI MÉTIER]`, `[COMMENT CONSTRUITE]`, `[GRAIN]`, `[NOTES]`) et les tests minimum.
-3. Schéma en étoile strict : un fait référence des dimensions. Il ne s'appuie sur un autre fait
-   que pour l'agréger à un grain plus grossier ou l'étendre en 1:1 ([marts.md § 3](docs/conventions/marts.md#3-modélisation--schéma-en-étoile-strict)).
+2. Entrée dans `_<bu>__marts_models.yml`, description en 4 blocs et tests minimum.
+3. Revue par l'agent `mart-reviewer` avant de le déclarer terminé.
 
-Règles complètes et exemples : [docs/conventions/marts.md](docs/conventions/marts.md).
+Règles : [marts.md](docs/conventions/marts.md).
 
 ### Un modèle pour une application
-Uniquement pour une application interne qui lit ses données telles quelles (pas pour Power BI) :
-`models/apps/<application>/app_<nom court>__<bu>_<entite>.sql`, exposure `type: application`
-à jour. Règles : [docs/conventions/apps.md](docs/conventions/apps.md).
+Uniquement pour une application interne qui lit ses données telles quelles, pas pour Power BI.
+Règles et prérequis d'infra : [apps.md](docs/conventions/apps.md).
 
-### Une exposure (rapport Power BI)
-Dès qu'un rapport consomme un mart, le déclarer dans `models/exposures/<bu>.yml` :
+### Une exposure
+Dès qu'un rapport Power BI ou une application lit un modèle, le déclarer dans
+`models/exposures/<bu>.yml` :
 
 ```yaml
 - name: nom_du_rapport            # dbt build -s +exposure:nom_du_rapport
@@ -178,25 +135,24 @@ Dès qu'un rapport consomme un mart, le déclarer dans `models/exposures/<bu>.ym
   type: dashboard
   maturity: high
   owner:
-    name: Prénom Nom
-    email: prenom.nom@evs-pro.com
+    name: Data analyst            # un rôle, jamais le nom ni l'e-mail d'une personne
   depends_on:
     - ref('fct_<bu>__<entite>')
 ```
 
 ### Un seed
-1. CSV dans `data/reference_data/<source>/ref_<source>__<entite>.csv`, en **UTF-8 sans BOM**.
-   Ne pas l'enregistrer depuis Excel.
-2. Documentation et `column_types` (toutes les colonnes) dans `_<source>__seeds.yml`, dans le
-   même dossier.
+1. CSV dans `data/reference_data/<source>/ref_<source>__<entite>.csv`, en **UTF-8 sans BOM** :
+   ne pas l'enregistrer depuis Excel.
+2. Documentation et `column_types` dans `_<source>__seeds.yml`, dans le même dossier.
 3. `dbt build -s ref_<source>__<entite>+`
 
-Types et pièges : [docs/conventions/seeds-snapshots.md](docs/conventions/seeds-snapshots.md).
+Règles : [seeds-snapshots.md](docs/conventions/seeds-snapshots.md).
 
 ### Une source
-1. `models/staging/<source>/` avec `_<source>__sources.yml` et `_<source>__models.yml`.
+1. `models/staging/<source>/` avec `_<source>__sources.yml` (fraîcheur comprise) et `_<source>__models.yml`.
 2. Tags dans `dbt_project.yml`.
-3. Ligne dans le tableau des sources du [README](README.md) et dans [docs/freshness.md](docs/freshness.md).
+3. Une ligne dans le tableau des sources du [README](README.md#sources-de-données), et une page
+   dans `docs/architecture/` si la source a des pièges.
 
 ---
 
@@ -206,7 +162,8 @@ Types et pièges : [docs/conventions/seeds-snapshots.md](docs/conventions/seeds-
 - [ ] `dbt lint` propre sur les fichiers modifiés
 - [ ] `dbt parse` sans `[WARNING]`
 - [ ] Modèles documentés en YAML (marts : 4 blocs + grain)
-- [ ] Exposure à jour si un rapport Power BI consomme le modèle
+- [ ] Exposure à jour si un rapport ou une application lit le modèle
+- [ ] Doc à jour si une règle change (page de la couche, `CONVENTIONS.md` ou `docs/decisions.md`)
 - [ ] Aucun secret committé (`.env`, clés)
 - [ ] PR décrite : quoi, pourquoi, comment vérifier
 
@@ -222,13 +179,15 @@ Types et pièges : [docs/conventions/seeds-snapshots.md](docs/conventions/seeds-
 | Ouvrir une PR | Oui | Oui |
 | Relire et merger | Oui | — |
 
-Tout changement de code passe par une PR. Seule la documentation pure peut être poussée
-directement sur `master`, par le data engineer.
+Tout changement de code passe par une PR. Les PR du data analyst sont relues et mergées par le data
+engineer. Celles du data engineer n'ont pas de second relecteur humain : elles passent par
+`/code-review` et, pour un mart, par l'agent `mart-reviewer`. Seule la documentation pure peut être
+poussée directement sur `master`, par le data engineer.
 
 ---
 
 ## Aide
 
-- `dbt debug` pour vérifier la configuration
-- `dbt ls -s +mon_modele` / `dbt ls -s mon_modele+` pour voir les dépendances amont et aval
+- `dbt ls -s +mon_modele` / `dbt ls -s mon_modele+` : dépendances amont et aval
 - [Documentation générée](https://cebrailevs.github.io/dbt_transform/) : modèles, lignage, tests
+- Dépannage courant : [README](README.md#dépannage)

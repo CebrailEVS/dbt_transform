@@ -7,16 +7,17 @@
 Nettoyer et typer **une table source**, sans logique métier. Le staging est la **seule** couche
 qui lit `source()`.
 
-- Une table source = un modèle de staging.
-- Pas de jointure, pas d'agrégation, pas de déduplication métier (elle se fait en intermediate).
+- Une table source = un modèle de staging, 1 pour 1 : ni jointure, ni agrégation, ni filtre métier.
+- **Pas de dédoublonnage préventif.** La clé porte un test `unique` en `error` ; si un doublon
+  apparaît, le build casse et on corrige en connaissant la cause. Un `qualify row_number()` n'est
+  admis que pour un doublon technique ainsi révélé, avec un commentaire qui en dit la cause. Un
+  dédoublonnage préventif garderait une ligne en silence et masquerait l'anomalie. Le dédoublonnage
+  métier (choisir la ligne qui fait foi) se fait en intermediate.
 
 ## 2. Nommage
 
-| Élément | Règle | Exemple |
-|---|---|---|
-| Fichier | `stg_<source>__<table>.sql` | `stg_oracle_neshu__company.sql` |
-| Doc + tests | `_<source>__models.yml` | `_oracle_neshu__models.yml` |
-| Déclaration des sources | `_<source>__sources.yml` | `_oracle_neshu__sources.yml` |
+`models/staging/<source>/stg_<source>__<table>.sql` ; doc et tests dans `_<source>__models.yml`,
+tables déclarées dans `_<source>__sources.yml` ([CONVENTIONS.md § Nommage](../../CONVENTIONS.md#nommage)).
 
 ## 3. Colonnes
 
@@ -26,8 +27,8 @@ qui lit `source()`.
 2. un `id` nu → `<entite>_id` (`id` → `ticket_id`) ;
 3. le préfixe par entité des noms génériques (`name`, `code`, `address`), **uniquement** si la
    source réutilise ces noms sur des entités jointes en aval. C'est le cas de Yuman
-   (`client_name`, `site_address`) : `int_yuman__demands_workorders_enriched` joint plusieurs
-   entités aux colonnes homonymes.
+   (`client_name`, `site_address`), dont l'intermediate joint plusieurs entités aux colonnes
+   homonymes.
 
 ### Colonnes système
 
@@ -38,11 +39,6 @@ qui lit `source()`.
 | `updated_at` | si la source a une date de modification | `timestamp(coalesce(<date_modif>, <date_creation>))` ; ERP Oracle : voir plus bas |
 
 Pas de `deleted_at` : dlt ne réplique pas les suppressions, la colonne serait toujours `NULL`.
-
-> Écarts connus, à corriger quand on touche le modèle :
-> - `zoho_desk` : pas d'`extracted_at`, son raw ne porte que `_dlt_load_id` (STRING) ;
-> - `stg_nesp_co__client`, `stg_gac__sinistres` : `_extracted_at` exposé sans renommage ;
-> - `stg_powerbi_activity__{datasets,events,reports,workspaces}` : `deleted_at` toujours `NULL`.
 
 ### Dates des ERP Oracle
 
@@ -66,8 +62,8 @@ source n'ayant rien pour trancher.
 Un `NUMBER` Oracle sans précision arrive en `FLOAT64`. Les montants passent en `numeric`
 (`cast(<col> as numeric)`) : un flottant ne représente pas exactement les centimes.
 
-Autres colonnes : snake_case, booléens `is_` / `has_`, timestamps `_at`, dates `_date`. Une colonne
-que la source nomme déjà `is_` / `has_` est castée en `bool` : son nom promet un booléen.
+Une colonne que la source nomme déjà `is_` / `has_` est castée en `bool` : son nom promet un
+booléen. Autres règles de colonnes : [CONVENTIONS.md § Nommage](../../CONVENTIONS.md#nommage).
 
 ## 4. Pattern SQL
 
@@ -96,15 +92,16 @@ select * from cleaned_data
 ```
 
 - **Cast explicite de chaque colonne** qui traverse un modèle incrémental : sans cast, elle hérite
-  du type du raw, et le `MERGE` casse au premier changement de type (incident `spantime`, juillet 2026).
+  du type du raw, et le `MERGE` casse au premier changement de type. `--full-refresh` ne le révèle
+  pas, puisqu'il recrée la table : après une évolution de type, construire **sans**.
 - `safe_cast` / `safe.parse_timestamp` quand la source est en `STRING` ou instable (fichiers, API).
 - `nullif(trim(x), '')` pour vider les chaînes vides.
 
 ## 5. Matérialisation
 
 - `table` par défaut.
-- `incremental` (`merge`, `unique_key` obligatoire) pour les grosses tables de tâches Oracle
-  (`stg_oracle_*__task`, `*_task_has_*`) :
+- `incremental` (`merge`, `unique_key` obligatoire) pour les grosses tables de tâches Oracle. La
+  fenêtre de recouvrement rattrape les lignes modifiées en retard :
 
 ```sql
 {% if is_incremental() %}
@@ -118,8 +115,8 @@ C'est le vrai `MERGE` qui s'exécute, pas un `--full-refresh`.
 
 ### Table d'historique sans clé : l'ajout seul
 
-`stg_oracle_neshu__task_historic` n'a pas de clé : la source écrit des doublons exacts légitimes,
-et dlt la charge en ajout seul. D'où trois écarts au modèle ci-dessus :
+Une table d'historique sans clé, chargée en ajout seul et où la source écrit des doublons exacts
+légitimes (ex. `stg_oracle_neshu__task_historic`), s'écarte du modèle ci-dessus :
 
 - `incremental` (`merge`) **sans `unique_key`** : dbt insère les lignes nouvelles sans rien fusionner ;
 - un filtre sur `extracted_at` **sans fenêtre de rattrapage** : sans clé, une ligne relue serait doublée ;
@@ -127,15 +124,17 @@ et dlt la charge en ajout seul. D'où trois écarts au modèle ci-dessus :
   `status = 0`) : un run qui échoue après le chargement de la table y laisse des lignes que sa relance
   réajoute.
 
-La date de l'action y est `created_at` : la ligne naît à l'action et ne change plus. Pas de test
-d'unicité ; le regroupement des doublons se fait en intermediate. Un rechargement complet du raw
-réécrit chaque ligne avec un `extracted_at` neuf : le modèle se reconstruit alors en
-`--full-refresh`, sinon il doublerait. La purge du samedi le fait déjà.
+Pas de test d'unicité ; le regroupement des doublons se fait en intermediate. Un rechargement
+complet du raw réécrit chaque ligne avec un `extracted_at` neuf : le modèle se reconstruit alors en
+`--full-refresh`, sinon il doublerait.
 
 ## 6. Description
 
-**Obligatoire dans le `config()`** (une ligne : quoi + source). Une description YAML
-complémentaire est tolérée, mais ne doit pas répéter celle du `config()`.
+**Obligatoire à deux endroits** :
+- dans le `config()` : une ligne (quoi, table source), pour qui lit le SQL ;
+- dans le YAML, au niveau du modèle : c'est la seule que dbt v2 publie. La description du
+  `config()` n'atteint ni le manifest ni BigQuery ; sans description YAML, la table sort vide dans
+  la doc dbt et pour l'agent text-to-SQL.
 
 ## 7. Tests minimum
 
@@ -152,17 +151,19 @@ columns:
             field: idcompany_type
 ```
 
-- PK composite → `dbt_utils.unique_combination_of_columns` au niveau du modèle.
+- PK composite, ou table de jonction → `dbt_utils.unique_combination_of_columns` au niveau du modèle.
 - Recommandé : `accepted_values` (`warn`) sur les statuts et les types.
+- Sévérités : [CONVENTIONS.md § Tests](../../CONVENTIONS.md#tests).
 
 ## 8. Fraîcheur
 
-Méthode et seuils par source : [docs/freshness.md](../freshness.md), la seule référence.
+Seuils dans `_<source>__sources.yml` ; méthodes et paliers : [docs/freshness.md](../freshness.md).
 
 ## 9. Checklist
 
 - [ ] `stg_<source>__<table>.sql` + entrée dans `_<source>__models.yml`
-- [ ] `description` dans le `config()`
+- [ ] `description` dans le `config()` **et** dans le YAML
+- [ ] Pas de `qualify` préventif ; PK testée `unique` en `error`
 - [ ] `extracted_at` exposé ; `created_at` / `updated_at` si la source les porte
 - [ ] Colonnes castées explicitement (surtout en incrémental)
 - [ ] PK `unique` + `not_null`, FK `relationships`

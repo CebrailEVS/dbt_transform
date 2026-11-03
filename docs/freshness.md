@@ -1,51 +1,31 @@
-# Source freshness — référence
+# Fraîcheur des sources
 
-Référence unique du monitoring de fraîcheur : méthode, seuils et leur justification par source.
-
----
-
-## État par source
-
-| Source | Niveau | Méthode | Champ | Seuils (warn / error) |
-|---|---|---|---|---|
-| `oracle_neshu` | Critique | A · source | `_extracted_at` | 26h / 36h |
-| `oracle_lcdp` | Critique | A · source | `_extracted_at` | 26h / 36h |
-| `oracle_nayka` | Standard | A · source | `_extracted_at` | 26h / 48h ; tables en merge 7j / 30j |
-| `yuman_api` | Standard | A · source | `_extracted_at` | 26h / 48h |
-| `mssql_sage` | Standard | A · source | `_extracted_at` | 26h / 48h |
-| `powerbi_activity` | Standard | A · source | `_extracted_at` | 26h / 48h |
-| `gac` | Relâché | A · source | `_extracted_at` | 7j / 14j |
-| `yuman_evs_sftp` | Quotidien 7j/7 | A · source | `timestamp(export_date)` | 36h / 48h |
-| `nesp_co.base_client` | Manuel | A · table | `_extracted_at` | 60j / 90j |
-| `nesp_co` activite + opportunite | Standard | B · staging | `extracted_at` | 2j / — |
-| `nesp_tech` | Hebdomadaire | B · staging | `date_heure_fin`, `date_intervention` | 8j / 14j |
-| `oracle_neshu_gcs` | Standard | B · staging | `extracted_at` | 26h / 48h |
-| `oracle_lcdp_gcs` | Standard | B · staging | `extracted_at` | 26h / 48h |
-| `zoho_desk` | Relâché | B · staging | `created_time` | 7j / — |
-| `apptech` | — | **aucune** | — | — |
-| `dbt_artifacts` | — | **aucune** (écrite par le runner lui-même ; les échecs sont alertés en direct) | — | — |
-| `historic` | — | aucune (archive figée) | — | — |
-
-Une source dont le pipeline est en pause (`paused = true` dans `infra/workflows_el.tf`, cas de
-`zoho_desk`) n'est **pas surveillée** : son test ne tourne qu'avec son workflow.
-
-**`freshness: null`** : réservé aux référentiels vraiment immuables (`*_type`, `label`,
-`label_family`, `product_unit`, `*_categories`). Toute table portant des événements mérite un
-seuil, quitte à le mettre très large.
-
-**`_dlt_loads`**, déclarée dans `oracle_neshu` pour ne lire que les chargements dlt complets, n'a
-pas d'`_extracted_at` : elle prend `loaded_at_field: inserted_at`. Elle couvre tous les pipelines de
-`prod_raw`, donc reste fraîche tant que l'un d'eux charge.
-
-> Écart connu : sont aussi en `null` des tables qui évoluent (`lcdp_contract`, `*_string`,
-> `lcdp_v_label_*`, `yuman_evs_products`, `yuman_evs_products_storehouses`). À corriger dans
-> les `_<source>__sources.yml`.
+Comment le projet surveille l'âge des données : méthodes, paliers de seuils, gravité. Les seuils
+appliqués vivent dans les YAML, chacun avec un commentaire qui le justifie :
+`_<source>__sources.yml` (méthode A) ou `_<source>__models.yml` (méthode B).
 
 ---
 
-## Méthode A — freshness native, au niveau source
+## Paliers
 
-Quand le raw expose un **TIMESTAMP** exploitable.
+Un seuil se fixe sur le **pire cas normal** : l'écart maximal entre deux chargements réussis, plus
+une marge. `warn` signale un retard ; `error` signale un chargement manquant.
+
+| Palier | Pour | warn / error |
+|---|---|---|
+| Critique | source quotidienne dont la BI dépend chaque matin | 26 h / 36 h |
+| Standard | source quotidienne | 26 h / 48 h |
+| Relâché | rotation lente, ou retard sans enjeu | 7 j / 14 j, ou `warn` seul |
+
+Une source hebdomadaire ou livrée à la main prend sa cadence plus une marge. Une source **non
+rétroactive** (un fichier ou une période manqués ne reviennent jamais) justifie un seuil serré,
+même si elle n'est pas critique pour la BI : le test est alors la seule détection d'une perte.
+
+---
+
+## Méthode A — fraîcheur native, au niveau source
+
+Quand le raw expose un **TIMESTAMP** exploitable (`_extracted_at`, posé par dlt).
 
 ```yaml
 sources:
@@ -61,16 +41,19 @@ sources:
           freshness: null
 ```
 
-Ne pas répéter le `freshness` par table quand il est identique au défaut de la source.
-
-**Une colonne DATE est refusée** (`dbt9002 : loaded_at_field should have a timestamp type`).
-Deux parades : une expression (`loaded_at_field: timestamp(export_date)`, cf. `yuman_evs_sftp`)
-ou `loaded_at_query`.
+- Ne pas répéter le `freshness` par table quand il est identique au défaut de la source.
+- **Une colonne DATE est refusée** (`loaded_at_field should have a timestamp type`). Parades : une
+  expression (`loaded_at_field: timestamp(<colonne_date>)`) ou `loaded_at_query`. Une DATE vaut
+  minuit : mesurer le pire cas depuis minuit, pas depuis l'heure du run.
+- **`error_after: null` ne retire pas un seuil hérité de la source** : il est ignoré, et
+  `{count: null}` est refusé à l'exécution. Pour une table qui doit s'écarter du défaut, écrire
+  son propre bloc `freshness` complet.
+- `dbt source freshness` n'exécute que la méthode A.
 
 ## Méthode B — test de récence sur le staging
 
-Quand le raw n'a pas de timestamp exploitable, ou quand la fraîcheur se juge sur une colonne du
-staging (date métier). Le staging a déjà casté, on surveille là.
+Quand le raw n'a pas de timestamp exploitable, ou quand la fraîcheur se juge sur une date métier.
+Le staging a déjà casté : on surveille là.
 
 ```yaml
 models:
@@ -85,61 +68,41 @@ models:
             severity: warn
 ```
 
-`oracle_*_gcs` et `nesp_co` (activite, opportunite) sont en méthode B alors que leur raw porte un
-`_extracted_at` TIMESTAMP : la méthode A s'y appliquerait.
-
-**Différence de gravité** : un test en `severity: error` fait échouer `dbt build`, donc le job
-Cloud Run, et la chaîne s'arrête. Un `error_after` de méthode A est **non bloquant** :
-`entrypoint.sh` poursuit le build, et `publish_run.py` écrit en fin de job une ligne ERROR
-`[FRESHNESS-ERROR]` que l'alerte `cloud_run_job_failed` envoie par mail. La méthode B en `error`
-est donc la plus stricte.
+Ce test tourne avec `dbt build` ou `dbt test`, comme les autres.
 
 ---
 
-## Pourquoi ces seuils — les cas non évidents
+## Gravité en production
 
-### `yuman_evs_sftp` — 36h / 48h
-`export_date` est une DATE (donc minuit) qui reflète la date de **modification du fichier** sur
-le SFTP, pas celle du run. Pire cas normal : juste avant le run du lendemain, soit ~30h30. 36h
-laisse la marge, 48h ne se déclenche que si une journée entière manque.
+Chaque workflow lance `dbt source freshness` sur sa source avant le build.
 
-**C'est la seule détection d'un jour perdu** : la source n'est pas rétroactive, un fichier
-manqué ne revient pas.
-
-### `powerbi_activity` — 26h / 48h
-Seuil serré sur une source non critique pour la BI, délibérément : **l'API admin ne conserve
-que 27 jours glissants** et `prod_raw` est la seule archive. Le pipeline est quotidien ; une
-perte au-delà de 27 jours est irréversible.
-
-### `oracle_*_gcs` — 26h / 48h
-Pipelines quotidiens de fin de soirée, LCDP après NESHU : l'écart entre deux chargements est de
-l'ordre de 24h.
-
-### `oracle_nayka` — 26h / 48h, tables en merge 7j / 30j
-La fraîcheur n'est vérifiée que par le workflow quotidien (lun-ven), juste après l'EL. Les tables
-en `replace` viennent alors d'être rechargées : leur âge se compte en minutes, et 48h signale un
-chargement manquant. Les référentiels gardent ce seuil : rechargés à chaque run, leur
-`_extracted_at` avance même sans modification, ce qui en fait un signal de santé valable.
-
-Les tables en `merge` (`task`, `task_has_product` et les trois jonctions) ne voient leur
-`_extracted_at` avancer que sur les lignes modifiées : leur âge mesure l'activité de Nayka, encore
-faible (souvent plus de 24h sur `task_has_amount`). D'où 7j / 30j. `error_after: null` ne marche
-pas pour retirer le seuil hérité de la source : il est ignoré, et `{count: null}` est refusé à
-l'exécution.
-
-Le workflow de purge du dimanche ne vérifie pas la fraîcheur (`DBT_SOURCE_SELECTOR` vide) : les
-tables en `replace` y ont environ 75h, et un `[FRESHNESS-ERROR]` sans objet salirait les logs
-chaque semaine.
-
-### `nesp_co` activite / opportunite et `zoho_desk` — warn seul
-Seules sources sans seuil d'erreur : un retard y est signalé sans jamais bloquer la chaîne.
+- **Méthode A, non bloquante** : un dépassement d'`error_after` n'arrête pas le build, la donnée
+  déjà chargée doit continuer à se transformer. `publish_run.py` écrit en fin de job une ligne
+  `[FRESHNESS-ERROR]` en sévérité ERROR, que l'alerte envoie par mail
+  ([environnements.md § 4](environnements.md#4-les-quatre-flux)).
+- **Méthode B en `error`, bloquante** : le test fait échouer `dbt build`, donc le job, et l'aval
+  n'est pas construit. C'est le mode le plus strict.
 
 ---
 
-## Non couvert — assumé
+## Cas particuliers
 
-- **`apptech`** : tables externes GCS écrites par l'application, sans cron ; le build est
-  déclenché par l'application (ne jamais la rattacher à un pipeline planifié, cf.
-  [`docs/apptech/ingestion.md`](apptech/ingestion.md)). Un seuil horaire n'a pas de sens ; un
-  arrêt total de l'application ne serait pas détecté par dbt.
-- **`historic`** : archive figée, la fraîcheur n'a pas d'objet.
+- **Table en `merge`** : son `_extracted_at` n'avance que sur les lignes modifiées. Son âge mesure
+  l'activité de la source, pas la santé du chargement : seuil large. Une table en `replace`
+  rechargée à chaque run est un bon signal de santé, même si son contenu ne change pas.
+- **`freshness: null`** : réservé aux référentiels vraiment immuables (types, catégories, unités).
+  Toute table qui porte des événements mérite un seuil, quitte à le mettre très large.
+- **Pipeline en pause** (`paused = true` dans `infra/workflows_el.tf`) : sa source n'est **pas
+  surveillée**, puisque le contrôle ne tourne qu'avec son workflow.
+- **Purge qui tourne hors des jours de chargement** (cas d'`oracle_nayka`) : son workflow ne
+  contrôle pas la fraîcheur (`DBT_SOURCE_SELECTOR` vide), sinon il alerterait à chaque passage sur
+  des tables simplement pas encore rechargées.
+- **`_dlt_loads`** (chargements dlt complets) n'a pas d'`_extracted_at` : `loaded_at_field:
+  inserted_at`. Elle couvre tous les pipelines de `prod_raw` et reste fraîche tant que l'un charge.
+
+## Non couvert, assumé
+
+- **`apptech`** : saisies humaines, sans cron et par choix ([architecture/apptech.md](architecture/apptech.md)).
+  Un seuil horaire n'a pas de sens ; un arrêt total de l'application ne serait pas détecté par dbt.
+- **`dbt_artifacts`** : écrite par le runner lui-même ; ses échecs sont alertés directement.
+- **`historic`** : archive figée.

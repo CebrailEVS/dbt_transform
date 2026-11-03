@@ -12,6 +12,7 @@ le détail vit dans une page par couche.
 | un seed ou un snapshot | [docs/conventions/seeds-snapshots.md](docs/conventions/seeds-snapshots.md) |
 | un test de fraîcheur | [docs/freshness.md](docs/freshness.md) |
 | rien, tu veux comprendre dev / CI / prod | [docs/environnements.md](docs/environnements.md) |
+| rien, tu veux savoir pourquoi le projet est fait ainsi | [docs/decisions.md](docs/decisions.md) |
 
 ---
 
@@ -73,7 +74,7 @@ Paris : l'erreur ne casse rien et ne se voit pas.
 | Staging | `table` | `incremental` (`merge`) : grosses tables de tâches Oracle |
 | Intermediate | `table` | `incremental` (`merge`) : modèles à gros volume |
 | Marts | `table` | — |
-| Apps | explicite par modèle | `table`, `incremental` sur gros volume, `view` pour l'inter-BU ([apps.md](docs/conventions/apps.md)) |
+| Apps | explicite par modèle | cas par cas ([apps.md](docs/conventions/apps.md#3-matérialisation)) |
 
 Partition sur la date filtrée (Power BI ou incrémental), cluster sur les FK les plus jointes
 (4 au maximum). Pas de partition sur les petites dimensions.
@@ -93,10 +94,14 @@ Les arguments d'un test générique s'écrivent sous `arguments:`, la sévérit�
       severity: warn
 ```
 
+Un test en `error` arrête le build et son aval ; un `warn` signale sans bloquer. Le critère :
+**`error` quand la règle est garantie, par une contrainte de la source ou par notre code, et
+qu'un échec signale donc un bug de la chaîne ; `warn` quand la donnée peut légitimement l'enfreindre.**
+
 | Sévérité | Pour |
 |---|---|
-| `error` (défaut) | PK `unique` + `not_null`, FK obligatoires, clés composites, `accepted_values` en marts |
-| `warn` | `relationships`, plages de valeurs, volumes, `accepted_values` en staging et intermediate (une nouvelle valeur source ne doit pas bloquer l'aval) |
+| `error` (défaut) | PK `unique` + `not_null`, clés composites, `not_null` des FK obligatoires, `accepted_values` en marts ; `relationships` garanties : FK déclarée par la source (staging), clé construite par notre code |
+| `warn` | `relationships` où un orphelin est possible par nature (suppression non propagée, dimension filtrée, référentiel chargé à un autre rythme : le cas courant en marts), plages de valeurs, volumes, `accepted_values` en staging et intermediate (une nouvelle valeur source ne doit pas bloquer l'aval) |
 
 Minimum par couche : voir la page de chaque couche. Paquets : `dbt_utils`, `dbt_expectations`.
 
@@ -104,15 +109,9 @@ Minimum par couche : voir la page de chaque couche. Paquets : `dbt_utils`, `dbt_
 
 ## Lint SQL
 
-`dbt lint`, intégré à dbt v2, lit `.sqlfluff`. Il ne se connecte pas à BigQuery.
-
-| Règle | Valeur |
-|---|---|
-| Mots-clés, fonctions, types | minuscules |
-| Alias | explicites (`as`) |
-| Indentation | 4 espaces |
-| Longueur de ligne | 120 |
-| Virgule finale | interdite |
+`dbt lint`, intégré à dbt v2, applique `.sqlfluff`, qui fait foi : mots-clés, fonctions et types
+en minuscules, alias explicites (`as`), indentation de 4 espaces, pas de virgule finale. Il ne se
+connecte pas à BigQuery, mais doit résoudre les `env_var()` de `profiles.yml` (`.env` chargé).
 
 ```bash
 dbt lint models/chemin/            # analyser
@@ -138,25 +137,30 @@ dbt build -s tag:marts            # toute une couche
 
 ---
 
-## Commentaires et descriptions
+## Écrire : commentaires, descriptions, documentation
 
-Ils décrivent **l'état actuel et la règle**, pas l'histoire.
+Tout texte du dépôt décrit **la règle et sa raison**, pas l'histoire ni l'état du moment.
 
 - **À écrire** : le pourquoi d'une règle non évidente, une règle métier et sa source, un piège qui
-  se reproduirait. En 1 à 3 lignes.
+  se reproduirait. Un commentaire tient en 1 à 3 lignes.
+- **Ce que le code liste déjà, on y renvoie** : tables, modèles, BU, tags, seuils, horaires vivent
+  dans les fichiers qui les portent (`dbt ls -s source:<x>+`, un dossier, un `.yml`, `infra/`).
 - **À proscrire** : dates, numéros de PR, récits d'incident, volumes ou pourcentages relevés à un
-  instant, « en cours », « temporaire », prénoms, « remplace… », « anciennement… ». L'historique
-  va dans le message de commit et la description de PR.
+  instant, « en cours », « temporaire », noms de personnes (écrire le rôle), identifiants internes
+  (buckets, comptes de service, chemins), « remplace… », « anciennement… ». L'historique va dans
+  le message de commit et la description de PR.
 
-Les descriptions YAML partent dans BigQuery (`persist_docs`) et sont lues par le data analyst et
-par l'agent text-to-SQL : un chiffre périmé y devient une fausse information.
+Avant d'écrire un fait, se demander : **sera-t-il encore vrai dans six mois sans que personne n'y
+touche ?** Sinon, ne pas l'écrire, ou en faire un test dbt.
+
+Les descriptions YAML partent dans BigQuery (`persist_docs`) et la doc dbt est publique ; le data
+analyst et l'agent text-to-SQL les lisent : un chiffre périmé y devient une fausse information.
 
 ---
 
 ## Power BI
 
-Le compte de service `powerbi` lit `prod_marts`, `prod_intermediate` et `prod_reference` (droits posés hors
-Terraform). La cible est `prod_marts` seul : un rapport qui lit un `int_*` ou un seed est une dette à résorber
-en mart. Un mart lu par Power BI est une **table** : une vue exigerait du compte `powerbi` des
-droits sur toute sa chaîne amont, qu'il n'a pas. Les rapports joignent les tables sur `<entite>_id`. Chaque rapport consommateur est déclaré dans
-`models/exposures/<bu>.yml`.
+Power BI lit `prod_marts`. Un rapport qui lit un `int_*` ou un seed est une dette, à résorber en
+mart. Un mart lu par Power BI est une **table** : une vue exigerait du compte de Power BI des droits
+sur toute sa chaîne amont. Les rapports joignent les tables sur `<entite>_id`, et chacun est
+déclaré dans `models/exposures/<bu>.yml`.

@@ -56,17 +56,8 @@ Les snapshots gardent l'historique **SCD2** des entités qui évoluent. Ils sont
 **uniquement en prod**, par un workflow Cloud Workflows dédié (`dbt snapshot`), et sont exclus
 de la CI/CD et des builds de dev. Le dev les lit en prod grâce au defer.
 
-| Snapshot | Construit à partir de | Stratégie |
-|---|---|---|
-| `snap_oracle_neshu__company` | `dim_neshu__company` | `check` |
-| `snap_oracle_neshu__device` | `dim_neshu__device` | `check` |
-| `snap_oracle_neshu__valo_parc_machines` | `int_oracle_neshu__valorisation_parc_machines` | `timestamp` |
-| `snap_lcdp__device` | `dim_lcdp__device` | `check` |
-| `snap_yuman__storehouses` | `stg_yuman__storehouses` | `check` |
-| `snap_yuman__users` | `stg_yuman__users` | `check` |
-| `snap_yuman__purchase_order_lines` | `stg_yuman__purchase_orders` | `check` |
-
-Ils sont exposés en marts sous forme de dimension `_history` (cf. [marts.md § 3](marts.md#3-modélisation--schéma-en-étoile-strict)).
+Chaque snapshot, son modèle d'origine et sa stratégie : `snapshots/` (SQL) et les
+`_<source>__snapshots.yml`. Ils sont exposés en marts sous forme de dimension `_history` (cf. [marts.md § 3](marts.md#3-modélisation--schéma-en-étoile-strict)).
 
 **Règles strictes**
 - Ne jamais changer la stratégie ni les colonnes suivies d'un snapshot.

@@ -10,14 +10,17 @@ Les marts sont rangés **par BU**, pas par source : `models/marts/<bu>/`.
 | Élément | Règle |
 |---|---|
 | Préfixe | `dim_` (dimension) ou `fct_` (fait) |
-| BU | le nom du dossier : `neshu`, `lcdp`, `technique`, `commerce`, `finance`, `services_generaux`, `supply_chain`, `bi`, `plateforme` |
+| BU | le nom du dossier `models/marts/<bu>/` |
 | Entité | au singulier, en snake_case, avec un nom **métier** (ni le nom de la source, ni celui du rapport) |
 | Suffixe de grain | seulement si le fait est agrégé au-dessus de son grain naturel : `_mensuel`, `_quinzaine` |
 | Suffixe de source | seulement en cas de collision dans une même BU : `fct_supply_chain__stock_neshu` / `_stock_yuman` |
 | YAML | `_<bu>__marts_models.yml` |
 
-Exemples : `dim_neshu__company`, `fct_neshu__consommation`, `fct_neshu__chargement_quinzaine`,
-`dim_technique__material`. Le nom du rapport Power BI va dans l'**exposure**, jamais dans le mart.
+Exemples : `dim_neshu__company`, `fct_neshu__chargement_quinzaine`. Le nom du rapport Power BI va
+dans l'**exposure**, jamais dans le mart.
+
+Deux BU ne sont pas des domaines métier : `bi` (gouvernance du parc Power BI) et `plateforme`
+(santé de la plateforme data, runs dbt). Elles n'ont pas forcément de fichier d'exposures.
 
 ## 2. Description en 4 blocs
 
@@ -31,33 +34,37 @@ Toute description de mart suit cette trame. Le **grain est obligatoire**.
 
     [COMMENT CONSTRUITE]
     Croise les passages appro et la télémétrie en reconstruisant l'intervalle
-    entre deux passages successifs (LAG sur task_start_date). Tâches FAIT depuis 2024.
+    entre deux passages successifs (LAG sur task_start_date). Tâches au statut FAIT.
 
     [GRAIN]
-    1 ligne par (device, passage_appro, product). ~1,4 M lignes.
+    1 ligne par (device, passage_appro, product).
 
     [NOTES]
     Hors livraisons : voir fct_neshu__consommation pour la vue consolidée.
 ```
 
-- Pas de nom de rapport dans la description.
+- Pas de nom de rapport, de volume ni de date de relevé dans la description (règle d'écriture :
+  [CONVENTIONS.md](../../CONVENTIONS.md#écrire--commentaires-descriptions-documentation)).
 - `[NOTES]` est facultatif : exclusions, pièges, renvois vers d'autres marts.
 
 ## 3. Modélisation : schéma en étoile strict
 
 **Faits** (`fct_*`) : des événements ou des mesures, rattachés aux dimensions par des FK
-`<entite>_id`. Un fait ne peut s'appuyer sur un autre que dans deux cas :
-- un **agrégat** à un grain plus grossier (`GROUP BY`), par exemple
-  `fct_supply_chain__disponibilite_article_neshu_depot_mensuel` sur `fct_supply_chain__stock_neshu` ;
-- une **extension** à grain strictement identique (1:1), qui ajoute des colonnes calculées.
+`<entite>_id`.
 
-**Interdit** : joindre deux faits sur une dimension partagée pour combiner leurs mesures. Le
-many-to-many double-compte. Pour croiser deux faits, pré-agréger chacun au grain commun, *puis*
-joindre. Le critère est **le grain et la cardinalité**, jamais la BU.
+**Jamais de jointure entre deux faits à leur grain fin** : sur une dimension partagée, le
+many-to-many double-compte les mesures. Un fait peut lire un autre fait pour :
+- l'**agréger** à un grain plus grossier (`GROUP BY`), par exemple
+  `fct_supply_chain__disponibilite_article_neshu_depot_mensuel` sur `fct_supply_chain__stock_neshu` ;
+- l'**étendre** à grain strictement identique (1:1), avec des colonnes calculées ;
+- le **croiser** avec d'autres faits, après les avoir chacun agrégés au même grain.
+
+Le critère est **le grain et la cardinalité**, jamais la BU.
 
 **Dimensions** (`dim_*`) : Type 1 (état courant) par défaut, 1 ligne par entité.
-- **Attributs d'affichage du parent direct** : 1 à 3 colonnes au maximum (`company_name` dans
-  `dim_neshu__device`), la dim restant reliée au parent par `company_id`. Jamais la dim parente entière :
+- **Pas de snowflake** (une dim qui renvoie à une autre dim pour ses attributs) : la dim porte
+  elle-même 1 à 3 attributs d'affichage de son parent direct au maximum (`company_name` dans
+  `dim_neshu__device`) et reste reliée au parent par `company_id`. Jamais la dim parente entière :
   ce serait de l'OBT déguisée.
 - **Dimension conforme** : une même dim sert plusieurs faits, et même plusieurs BU
   (`fct_neshu__workorder_delai` → `dim_technique__client`).
@@ -69,34 +76,20 @@ joindre. Le critère est **le grain et la cardinalité**, jamais la BU.
 
 **Clés** : quand l'entité n'a pas de PK naturelle, surrogate par `dbt_utils.generate_surrogate_key`.
 
+**Pas d'OBT** : un mart n'est pas un rapport tout joint ; Power BI relie faits et dimensions et
+calcule les mesures.
+
 ### Dimension Oracle : pivot des labels
 
-Les ERP Oracle (NESHU, LCDP) portent leurs attributs dans un système de labels (EAV). Les `ref()`
-de staging restent par source ; la dim produite est par BU :
+Les ERP Oracle portent leurs attributs dans un système de labels (EAV) : entité → `label_has_<entité>`
+→ `label` → `label_family`. La dim les pivote en colonnes, une par famille, en agrégeant au grain
+de l'entité :
 
 ```sql
-with entity_labels as (
-    select e.*, l.code as label_code, lf.code as label_family_code
-    from {{ ref('stg_oracle_neshu__entity') }} as e
-    left join {{ ref('stg_oracle_neshu__label_has_entity') }} as lhe
-        on e.identity = lhe.identity and lhe.idlabel is not null
-    left join {{ ref('stg_oracle_neshu__label') }} as l on lhe.idlabel = l.idlabel
-    left join {{ ref('stg_oracle_neshu__label_family') }} as lf on l.idlabel_family = lf.idlabel_family
-),
-
-aggregated_labels as (
-    select
-        ...,
-        max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active
-    from entity_labels
-    group by ...
-)
-
-select
-    ...,
-    coalesce(lower(is_active) = 'yes', false) as is_active
-from aggregated_labels
+max(case when label_family_code = 'ISACTIVE' then label_code end) as is_active   -- puis group by l'entité
 ```
+
+Les `ref()` de staging restent par source ; la dim produite est par BU.
 
 ## 4. Config
 
@@ -114,9 +107,7 @@ pousse dans BigQuery), et les tags dans `dbt_project.yml`.
 Partition sur la date filtrée dans Power BI ; cluster sur les FK les plus jointes (4 au maximum).
 Pas de partition sur les petites dimensions.
 
-Heures en sortie : un instant venu d'un ERP Oracle sort en heure de Paris par
-`utc_vers_paris_affichage`, et un jour métier par `date(x, 'Europe/Paris')`
-([CONVENTIONS.md § Fuseau horaire](../../CONVENTIONS.md#fuseau-horaire)).
+Heures en sortie : [CONVENTIONS.md § Fuseau horaire](../../CONVENTIONS.md#fuseau-horaire).
 
 ## 5. Ordre des colonnes (grain-first)
 
@@ -154,7 +145,7 @@ Le préfixe dit **comment la mesure se calcule** :
 |---|---|---|---|
 | PK `unique` + `not_null` | obligatoire | — | `error` |
 | FK `not_null` | — | obligatoire | `error` |
-| FK `relationships` vers la dim | — | obligatoire | `warn` |
+| FK `relationships` vers la dim | — | obligatoire | `warn`, sauf FK garantie ([CONVENTIONS.md § Tests](../../CONVENTIONS.md#tests)) |
 | Clé composite `dbt_utils.unique_combination_of_columns` | — | obligatoire | `error` |
 | `accepted_values` sur les statuts | recommandé | recommandé | `error` |
 | Invariants (`expression_is_true`, bornes ≥ 0) | — | recommandé | `warn` |
@@ -181,21 +172,10 @@ Le préfixe dit **comment la mesure se calcule** :
 Une FK légitimement NULL (ex. `device_id` des livraisons dans `fct_neshu__consommation`) garde
 son `relationships`, mais son `not_null` devient un `expression_is_true` qui décrit l'exception.
 
-Explorer la source avant de fixer les valeurs (MCP BigQuery) : `select distinct` pour
-`accepted_values`, `count(*)` pour les bornes de volume.
+Relever les valeurs en base avant de les fixer : `select distinct` pour `accepted_values`,
+`count(*)` pour les bornes de volume.
 
-## 8. Anti-patterns
-
-| À refuser | À la place |
-|---|---|
-| Jointure fait-à-fait pour combiner des mesures | pré-agréger au grain commun, puis joindre |
-| Dim qui pointe vers une autre dim (snowflake) | aplatir 1 à 3 attributs d'affichage du parent |
-| Un mart = un rapport, tout déjà joint (OBT) | schéma en étoile + mesures dans Power BI |
-| `description=` ou `tags=` dans le `config()` | YAML / `dbt_project.yml` |
-| Description sans grain | bloc `[GRAIN]` |
-| Nom de rapport dans le nom ou la description | l'exposure |
-
-## 9. Checklist
+## 8. Checklist
 
 - [ ] `models/marts/<bu>/<dim|fct>_<bu>__<entite>.sql` + entrée dans `_<bu>__marts_models.yml`
 - [ ] Description en 4 blocs, avec le grain

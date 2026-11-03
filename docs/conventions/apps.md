@@ -1,6 +1,6 @@
 # Couche `apps` — modèles de service d'une application
 
-Première application : **Cockpit Supply** (`models/apps/cockpit_supply/`).
+Règles transversales : [CONVENTIONS.md](../../CONVENTIONS.md).
 
 ## 1. Rôle
 
@@ -21,10 +21,9 @@ une logique parfois dupliquée (pivot de labels, chaîne de prévision…), assu
 reporte dans les deux.
 
 Où mettre une logique lue par plusieurs modèles `apps` :
-- **une seule source** → un `int_<source>__*` (ex. `int_oracle_neshu__stock_theorique`,
-  `int_oracle_neshu__point_commande`) ;
+- **une seule source** → un `int_<source>__*` ;
 - **plusieurs sources** (interdit en intermediate) → un modèle `apps` d'étape, non lu par l'application
-  et dit comme tel dans `[NOTES]` (ex. `app_cockpit__technique_rupture_depot_jour`).
+  et dit comme tel dans `[NOTES]`.
 
 Contrôle : `grep -l "ref('dim_\|ref('fct_" models/apps/*/*.sql` ne doit rien renvoyer.
 
@@ -37,9 +36,9 @@ Contrôle : `grep -l "ref('dim_\|ref('fct_" models/apps/*/*.sql` ne doit rien re
 | YAML | `_<application>__app_models.yml` | `_cockpit_supply__app_models.yml` |
 | Dataset | `+schema: app_<application>` dans `dbt_project.yml` → `prod_app_<application>` | `prod_app_cockpit_supply` |
 
-**Un modèle par BU** quand les sources diffèrent (Neshu, Cafés du Phare, TechCare) : les runs
-intraday Oracle Neshu et LCDP peuvent partir à la même minute, et un modèle croisant les deux
-serait reconstruit par deux workflows en même temps. Une synthèse inter-BU se fait en **vue**.
+**Un modèle par BU** quand les sources diffèrent : les workflows de deux sources peuvent partir en
+même temps, et un modèle qui les croise serait reconstruit deux fois en parallèle. Une synthèse
+inter-BU se fait en **vue**.
 
 ## 3. Matérialisation
 
@@ -47,22 +46,20 @@ Toujours **explicite** dans `{{ config() }}` (le défaut du projet est `view`) :
 
 | Cas | Matérialisation |
 |---|---|
-| Sous-ensemble ou agrégat du staging ou de l'intermediate, petit à moyen volume | `table` (partition sur la date filtrée par l'app, cluster sur ses clés de filtre) |
-| Dérivé des tâches Oracle à gros volume | `incremental` (`merge`) : reconstruire ces tables en entier à chaque run intraday coûte cher |
+| Cas général : sous-ensemble ou agrégat du staging ou de l'intermediate | `table` (partition sur la date filtrée par l'app, cluster sur ses clés de filtre) |
+| Dérivé des tâches Oracle à gros volume | `incremental` (`merge`) : le reconstruire en entier à chaque run intraday coûterait cher |
 | Synthèse inter-BU | `view` |
 
 Pas de run dédié ni de selector : les modèles descendent de `source:<src>+` et sont reconstruits
 par les workflows existants ; le tag `apps` / `<application>` sert aux builds manuels.
 
-Heures : même contrat que les marts, l'heure de Paris dans un `TIMESTAMP` par
-`utc_vers_paris_affichage` ; l'app Cockpit l'affiche sans conversion
-([CONVENTIONS.md § Fuseau horaire](../../CONVENTIONS.md#fuseau-horaire)).
+Heures : même contrat que les marts ([CONVENTIONS.md § Fuseau horaire](../../CONVENTIONS.md#fuseau-horaire)).
 
 ## 4. Documentation et tests
 
-- Description YAML en 4 blocs `[QUOI MÉTIER]` / `[COMMENT CONSTRUITE]` / `[GRAIN]` / `[NOTES]`, comme
-  les marts ; `[NOTES]` dit quels écrans le lisent (sans compte de routes ni date de relevé) et
-  rappelle « réservé à l'application, pas de rapport Power BI dessus ».
+- Description YAML en 4 blocs, comme les marts ([marts.md § 2](marts.md#2-description-en-4-blocs)) ;
+  `[NOTES]` dit quels écrans le lisent et rappelle « réservé à l'application, pas de rapport
+  Power BI dessus ».
 - Grain testé : `dbt_utils.unique_combination_of_columns` (error) ; `not_null` sur ses colonnes.
 - **Exposure obligatoire** `type: application` dans `models/exposures/<application>.yml`, listant
   tout ce que l'application lit (couche `apps` **et** marts / intermédiaires encore lus en direct) :
@@ -70,12 +67,12 @@ Heures : même contrat que les marts, l'heure de Paris dans un `TIMESTAMP` par
 
 ## 5. Infra (repo `infra/`)
 
-Avant le premier merge d'une nouvelle application :
-1. dataset `prod_app_<application>` dans `bigquery.tf` ;
-2. ajout à `dbt_read_datasets` (cible du `--defer` en dev/CI) et `dbt_prod_write_datasets`
-   (job `cd`) dans `dbt_environments.tf` — sans ce dernier, le `cd` échoue au merge (et ce serait
-   masqué par les droits larges de `meltano-runner` sur les runs planifiés) ;
-3. `roles/bigquery.dataViewer` du compte de service de l'application sur ce dataset.
+Avant le premier merge d'une nouvelle application, dans `infra/` :
+1. le dataset `prod_app_<application>` ;
+2. ce dataset dans les datasets lus par dev et CI (cible du `--defer`) et dans ceux écrits par le
+   job `cd` (`dbt_environments.tf`). Sans ce dernier, le `cd` échoue au merge, alors que les runs
+   planifiés passent : leur identité a des droits plus larges ;
+3. la lecture du dataset pour le compte de service de l'application.
 
 ## 6. Checklist PR
 
