@@ -13,16 +13,17 @@ par l'**IAM** : les identités dbt hors prod (`dbt-dev`, `dbt-ci`) ne peuvent pa
 | Usage | Dataset | Écrit par | Durée de vie des tables |
 |---|---|---|---|
 | Lac | `prod_raw`, `historic` | pipelines dlt (repo `ingestion`) | permanente |
-| Prod | `prod_staging`, `prod_intermediate`, `prod_marts`, `prod_reference` | Cloud Run (nuit), job `cd` (merge) | permanente |
+| Prod | `prod_staging`, `prod_intermediate`, `prod_marts`, `prod_reference` | runs planifiés (Cloud Run), job `cd` (merge) | permanente |
 | Snapshots | `snapshots` | Cloud Workflows uniquement | permanente |
-| Applications | `prod_app_<application>` (ex. `prod_app_cockpit_supply`) | Cloud Run (nuit), job `cd` (merge) ; lu par le seul compte de l'application | permanente |
-| Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | vidé au début de chaque branche ; filet : 14 jours après création |
-| CI | `dbt_ci_pr_<N>` | job `pr-check` | supprimé à la fermeture de la PR (filet : 3 jours) |
+| Applications | `prod_app_<application>` | runs planifiés (Cloud Run), job `cd` (merge) ; lu par le seul compte de l'application | permanente |
+| Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | vidé au début de chaque branche ; filet : expiration des tables |
+| CI | `dbt_ci_pr_<N>` | job `pr-check` | supprimé à la fermeture de la PR ; filet : expiration des tables |
 | Ingestion de test | `dev_raw`, `dev_raw_staging` | `dlt --target dev` | permanente (dlt garde son état dans `_dlt_version`) |
 
-L'expiration porte sur les **tables**, pas sur le dataset, et court depuis leur création. Un
-modèle `table` est recréé à chaque build, donc son expiration est repoussée ; un incrémental, non :
-le `MERGE` ne recrée pas la table, qui expire 14 jours après son clone ou son full-refresh.
+L'expiration porte sur les **tables**, pas sur le dataset, et court depuis leur création (délais :
+`infra/dbt_environments.tf` pour le dev, `dbt-ci.yml` pour la CI). Un modèle `table` est recréé à
+chaque build, donc son expiration est repoussée ; un incrémental, non : le `MERGE` ne recrée pas la
+table, qui expire au terme du délai compté depuis son clone ou son full-refresh.
 
 ### Vider son dataset au début de chaque branche
 
@@ -31,9 +32,8 @@ dbt run-operation vider_dataset_dev                             # liste ce qui s
 dbt run-operation vider_dataset_dev --args '{confirmer: true}'  # vide ton dataset
 ```
 
-C'est la pratique recommandée par dbt Labs : une table restée d'un ancien chantier est lue par le
-defer à la place de la prod (§ 3), et une table de quelques jours suffit à fausser une recette.
-L'expiration n'est qu'un filet.
+Une table restée d'un ancien chantier est lue par le defer à la place de la prod (§ 3), et une
+table de quelques jours suffit à fausser une recette. L'expiration n'est qu'un filet.
 
 La macro lit le dataset du target `dev` ; elle refuse tout autre target et tout dataset hors
 `dbt_<nom>`. Elle supprime les tables et les vues, jamais le dataset, qui appartient à Terraform.
@@ -52,8 +52,8 @@ Hors prod, un dataset `prod*` est refusé dès la compilation.
 
 | Identité | Utilisée par | Authentification | Écrit | Lit |
 |---|---|---|---|---|
-| `meltano-runner` | Cloud Run (jobs dlt et dbt nocturnes) | clé montée depuis Secret Manager | `prod_raw`, `prod_*`, `snapshots` | tout |
-| `dbt-deployer` | job `cd`, sur `master` **uniquement** | WIF | `prod_staging` / `intermediate` / `marts` / `reference`, bucket d'état, Artifact Registry | tout |
+| `meltano-runner` (nom historique) | Cloud Run (jobs dlt et dbt planifiés) | clé montée depuis Secret Manager | `prod_raw`, `prod_*`, `snapshots` | tout |
+| `dbt-deployer` | job `cd`, sur `master` **uniquement** | WIF | les datasets `prod_*` construits par dbt, dont `prod_app_*` ; bucket d'état, Artifact Registry | tout |
 | `dbt-ci` | job `pr-check` | WIF | `dbt_ci_pr_<N>` (il les crée et en est owner) | `prod_*` |
 | `dbt-dev` | développeurs, en local | clé JSON hors repo (`chmod 600`) | `dbt_<dev>`, `dev_raw*` | `prod_*` |
 
@@ -82,8 +82,8 @@ prod, même s'il existe en dev.
 Ne pas l'activer par défaut : dans le premier cas, il ferait lire le `stg_x` de prod et
 masquerait ta modification, sans erreur.
 
-**Piège** : une table restée dans ton dataset depuis quelques jours (elles n'expirent qu'après
-14 jours) fausse une recette sans aucun message. Le vidage en début de branche (§ 1) évite le cas
+**Piège** : une table restée dans ton dataset depuis quelques jours fausse une recette sans aucun
+message. Le vidage en début de branche (§ 1) évite le cas
 le plus courant. Réflexe avant d'interpréter un écart :
 **vérifier que dev et prod ont le même nombre de lignes**.
 
@@ -93,7 +93,7 @@ problème : ce qui est construit dans le run est toujours lu en dev.
 dbt sait où se trouve chaque modèle en prod grâce au **`manifest.json` de prod** :
 
 ```
-merge → cd produit manifest.json → gs://evs-datastack-dbt-state/dbt-state/  (versionné, 10 versions)
+merge → cd produit manifest.json → gs://evs-datastack-dbt-state/dbt-state/  (versionné)
                                      ├─► pr-check     (state:modified + defer)
                                      ├─► toi          (hook git à chaque git pull + defer)
                                      └─► cd suivant   (state:modified)
@@ -119,18 +119,16 @@ scripts/pull-state.sh --force  # retélécharge quoi qu'il arrive
 Cloud Scheduler → Cloud Workflows → Cloud Run dlt        → prod_raw
                                   → Cloud Run dbt-runner → dbt build source:<X>+ → prod_*
 ```
-Le job `dbt-runner` tourne sur l'image `:latest`, résolue à chaque exécution. Les paquets
-dbt y sont installés à la construction (`package-lock.yml`) : une exécution n'a besoin d'aucun
-accès à hub.getdbt.com ni à GitHub. Le détail est
-dans [`pipeline-schedule.md`](pipeline-schedule.md).
+Le job `dbt-runner` tourne sur l'image `:latest`, résolue à chaque exécution. Les paquets dbt y
+sont installés à la construction (`package-lock.yml`) : une exécution n'a besoin d'aucun accès à
+hub.getdbt.com ni à GitHub. Cadence et sélection : [`pipeline-schedule.md`](pipeline-schedule.md).
 
-À la sortie de chaque exécution, même en échec, `publish_run.py` dépose dans
-`gs://evs-datastack-raw-data/dbt_artifacts/runner_executions/dt=<jour>/` une enveloppe d'une ligne :
-le contexte (sélection, codes retour) et les artefacts `run_results.json` et `sources.json` tels
-quels. La table externe `prod_raw.ext_gcs_dbt_artifacts__runner_execution` la lit. Chaque échec
-(build, ou fraîcheur au-delà d'`error_after`) produit aussi une ligne JSON `severity: ERROR`, que
-l'alerte `cloud_run_job_failed` envoie par mail : Cloud Logging ne tire une sévérité que du JSON,
-jamais du texte brut, même écrit sur stderr.
+**Trace et alerte.** À la sortie de chaque exécution, même en échec, `publish_run.py` dépose une
+enveloppe (contexte, codes retour, `run_results.json`, `sources.json`) que lit la source
+`dbt_artifacts`, base des marts `plateforme`. Chaque échec, de build ou de fraîcheur au-delà
+d'`error_after`, produit aussi une ligne JSON `severity: ERROR`, que l'alerte de Cloud Monitoring
+(`infra/monitoring.tf`) envoie par mail : Cloud Logging ne tire une sévérité que du JSON, jamais
+du texte brut, même écrit sur stderr.
 
 ### Développement local
 ```bash
@@ -156,7 +154,8 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
 ### Merge sur `master` — `cd`
 1. Authentification WIF avec `dbt-deployer`.
 2. `dbt build --select state:modified+` **directement en prod**, snapshots exclus.
-3. `dbt docs generate`, dépôt du nouveau manifest, publication des docs sur GitHub Pages.
+3. `dbt docs generate` et dépôt du nouveau manifest ; le job `deploy-docs` publie ensuite la doc
+   sur GitHub Pages.
 4. Build et push de `dbt-runner:latest`, repris par la production planifiée à sa prochaine
    exécution. La même image est aussi poussée sous `dbt-runner:<sha du commit>`.
 
@@ -165,8 +164,6 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
 > plusieurs merges s'empilent, GitHub ne garde que le dernier en attente : il se
 > compare au dernier manifest déposé, donc il reconstruit aussi les changements
 > des runs annulés.
-> Dans les logs, `dbt docs generate` affiche une ligne « Succeeded model » par nœud : il lit
-> seulement les métadonnées, il ne reconstruit rien.
 
 **Revenir en arrière.** Le chemin normal est un `git revert` du commit fautif, en PR : le `cd`
 reconstruit et redéploie. En urgence, avant la prochaine exécution planifiée, re-pointer `latest`
@@ -197,19 +194,13 @@ dataset de CI, et les déploiements passent un par un.
 
 **Côté data engineer** :
 
-1. **Identité.** Aujourd'hui, un seul SA `dbt-dev` écrit dans tous les datasets de dev. Dès le
-   deuxième développeur, passer à **un SA par personne** (`dbt-dev-<nom>`), avec un droit
-   d'écriture sur son seul dataset. C'est ce qui rend l'audit lisible et évite qu'une personne
-   écrase le dataset d'une autre. Dans `infra/dbt_environments.tf`, `local.dbt_developers` doit
-   alors créer le SA **et** le dataset de chaque entrée ; le SA actuel migre par un bloc `moved {}`.
-2. **Dataset.** Ajouter le nom à `local.dbt_developers`, puis `terraform plan` et
-   `terraform apply`. Cela crée `dbt_<nom>`, dont les tables expirent après 14 jours.
-3. **Clé.** Générer la clé de son SA :
-   ```bash
-   gcloud iam service-accounts keys create /opt/credentials/gcp-dbt-dev-<nom>-key.json \
-     --iam-account=dbt-dev-<nom>@evs-datastack-prod.iam.gserviceaccount.com
-   ```
-   La lui transmettre par un **canal sécurisé**, jamais par mail ou messagerie en clair. Côté
+1. **Identité.** Un compte de service par développeur (`dbt-dev-<nom>`), en écriture sur son seul
+   dataset : l'audit reste lisible, et personne n'écrase le dataset d'un autre. Si `dbt-dev` est
+   encore partagé, le scinder d'abord.
+2. **Dataset.** Ajouter le nom à `local.dbt_developers` (`infra/dbt_environments.tf`), puis
+   `terraform plan` et `terraform apply`, qui créent `dbt_<nom>`.
+3. **Clé.** Générer une clé pour son compte de service (`gcloud iam service-accounts keys create`)
+   et la lui transmettre par un **canal sécurisé**, jamais par mail ou messagerie en clair. Côté
    poste : `chmod 600`, hors de tout repo.
 4. **GitHub.** Accès en écriture au repo. La protection de `master` impose déjà la PR.
 5. **DSI.** Le prévenir de l'ouverture d'un accès GCP.
@@ -224,7 +215,7 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
   (§ 1) ne touche que le tien.
 - Après un merge d'un collègue : `git pull` (le manifest suit), puis `git rebase origin/master`
   sur ta branche. Un conflit git n'apparaît que si vous avez touché le **même fichier**.
-- Chaque PR est relue par une autre personne que son auteur avant le merge.
+- Relecture des PR : [CONTRIBUTING § 6](../CONTRIBUTING.md#6-rôles).
 - Sans rebase, rien ne casse en prod : la CI de ta PR reconstruit aussi les modèles de ton
   collègue, dans leur version antérieure et dans ton dataset de PR. Le résultat est juste moins
   lisible.
@@ -250,3 +241,4 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
 | Variables locales | `.env.example` |
 | Liste des développeurs | `infra/dbt_environments.tf` (`local.dbt_developers`) |
 | Récupération du manifest | `scripts/pull-state.sh`, lancé par les hooks git (`.pre-commit-config.yaml`) |
+| Alerte sur les échecs de prod | `infra/monitoring.tf`, `publish_run.py` |

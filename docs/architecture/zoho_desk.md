@@ -1,130 +1,122 @@
 # Architecture — Zoho Desk (`zoho_desk`)
 
-> **Pipeline en pause.** Le scheduler `pipeline_zoho_desk` est déclaré `paused = true` dans
-> `infra/workflows_el.tf` : un run complet consomme l'essentiel du budget quotidien de crédits
-> de l'API Zoho, sans marge pour un second run le même jour. Le raw `prod_raw.zoho_desk_*` est
-> donc **figé** à la date du dernier run : tout ce qui suit décrit des données qui ne bougent
-> plus, et le test de récence du staging reste en avertissement tant que dure la pause. Avant
-> de relancer un run à la main, vérifier qu'aucun autre n'a tourné dans la journée.
+> Le scheduler `pipeline_zoho_desk` peut être en pause : son état et sa raison sont dans
+> `infra/workflows_el.tf`. Avant un run manuel, vérifier qu'aucun autre n'a tourné dans la
+> journée (quota quotidien de l'API).
 
 | | |
 |---|---|
-| Source dbt | `zoho_desk` — `models/staging/zoho_desk/_zoho_desk__sources.yml` |
-| Pipeline dlt | `ingestion/pipelines/zoho_desk` — API REST Zoho Desk, région EU ; périmètre dans `tables.py` |
-| Tables raw | `prod_raw.zoho_desk_*` |
-| Fraîcheur | [`docs/freshness.md`](../freshness.md) |
-| Cadence | [`docs/pipeline-schedule.md`](../pipeline-schedule.md) ; le workflow enchaîne l'extraction et `dbt build -s source:zoho_desk+` |
+| Source dbt | `zoho_desk` (`models/staging/zoho_desk/_zoho_desk__sources.yml`) |
+| Pipeline | `ingestion/pipelines/zoho_desk` : API REST Zoho Desk, région EU ; périmètre et modes dans `tables.py` |
+| Chargement | `merge` (snapshot accumulé : un ticket sorti de la fenêtre de l'API, ou supprimé dans Zoho, reste dans le raw), sauf l'historique en `replace` (Zoho ne donne pas d'identifiant d'événement : la table ne contient que ce que le dernier run a lu) |
 
-**Modes de chargement** (`tables.py`) :
+Fraîcheur : [`docs/freshness.md`](../freshness.md). Cadence : [`docs/pipeline-schedule.md`](../pipeline-schedule.md).
 
-| Mode | Tables raw | Conséquence |
-|---|---|---|
-| `merge` sur `id` | `accounts`, `agents`, `contacts`, `departments`, `associated_tickets` (la table des tickets), `ticket_details`, `ticket_threads`, `ticket_conversations` | snapshot accumulé : un ticket sorti de la fenêtre de l'API, ou supprimé dans Zoho, reste dans le raw |
-| `merge` sur `_zoho_desk_associated_tickets_id` | `ticket_metrics` | `/metrics` ne rend pas d'`id` : la clé est la colonne injectée depuis le ticket parent |
-| `replace` | `ticket_history` | Zoho ne donne pas d'identifiant d'événement : rien sur quoi merger. La table ne contient que ce que le dernier run a lu |
-| sous-tables dlt | `ticket_history__event_info`, `ticket_metrics__agents_handled`, `ticket_metrics__staging_data`, `agents__associated_department_ids` | tableaux JSON aplatis par dlt ; suivent le mode de leur parent |
+Zoho Desk est l'outil de tickets de support. La chaîne reconstruit le cycle de vie des tickets et
+des SLA maison à partir de l'historique des événements.
 
-Pas d'incrémental : `/associatedTickets` (le seul endpoint qui rende tous les tickets) ne donne
-pas `modifiedTime`. Chaque run relit tous les tickets, et fait plusieurs appels par ticket.
+- **Clés de merge** : `id` partout, sauf `ticket_metrics` : `/metrics` ne rend pas d'`id`, la clé
+  est `_zoho_desk_associated_tickets_id`, injectée depuis le ticket parent.
+- **Sous-tables dlt** (`ticket_history__event_info`, `ticket_metrics__agents_handled`…) : tableaux
+  JSON aplatis par dlt ; elles suivent le mode de leur parent.
+- **Pas d'incrémental** : `/associatedTickets`, le seul endpoint qui rende tous les tickets, ne
+  donne pas `modifiedTime`. Chaque run relit tous les tickets, avec plusieurs appels par ticket.
 
 ---
 
-## Grain et clés
+## Clés et grain
 
-| Modèle de staging | Grain | Clé, jointure |
-|---|---|---|
-| `stg_zoho_desk__tickets` | 1 ticket | `ticket_id` (`id` renommé) ; FK `department_id`, `assignee_id` → agent, `contact_id`, `account_id` |
-| `stg_zoho_desk__ticket_details` | 1 ticket : champs personnalisés `cf_*`, résolution, drapeaux SLA | `ticket_id` |
-| `stg_zoho_desk__ticket_metrics` | 1 ticket : durées et compteurs calculés par Zoho | `ticket_id` ; `_dlt_id` vers ses sous-tables |
-| `stg_zoho_desk__ticket_metrics_agents_handled` | 1 agent × ticket, temps de traitement | `_dlt_parent_id = ticket_metrics._dlt_id` |
-| `stg_zoho_desk__ticket_metrics_staging_data` | 1 statut × ticket, temps passé (« staging » = étape de statut Zoho) | `_dlt_parent_id = ticket_metrics._dlt_id` |
-| `stg_zoho_desk__ticket_threads` | 1 échange (e-mail, chat) | `_zoho_desk_associated_tickets_id` → ticket |
-| `stg_zoho_desk__ticket_history` | 1 événement d'audit | `_dlt_id` ; `_zoho_desk_associated_tickets_id` → ticket |
-| `stg_zoho_desk__ticket_history_event_info` | 1 propriété modifiée par événement | `_dlt_parent_id = ticket_history._dlt_id` |
-| `stg_zoho_desk__agents`, `__departments`, `__accounts`, `__contacts` | référentiels | `<entité>_id` |
-| `stg_zoho_desk__agent_departments` | pont agent × département | `_dlt_parent_id = agents._dlt_id`, `department_id` |
+- La table des tickets s'appelle `associated_tickets` dans le raw ; le staging l'expose en
+  `stg_zoho_desk__tickets` (`ticket_id`).
+- `ticket_history` n'a pas d'id source : sa clé de ligne est `_dlt_id`.
+- Dans `stg_zoho_desk__ticket_metrics_staging_data`, « staging » désigne une étape de statut Zoho
+  (1 statut × ticket, temps passé), pas la couche dbt.
 
 ---
 
 ## Pièges
 
-**Nom de la clé ticket dans les tables enfants.** Les flux enfants (`ticket_details`,
-`ticket_metrics`, `ticket_threads`, `ticket_history`) tirent leur ticket de la ressource
-parente `associated_tickets` : la colonne s'appelle `_zoho_desk_associated_tickets_id`
-partout. Le staging la renomme en `ticket_id` sur `ticket_details` et `ticket_metrics`, et la
-garde telle quelle sur `ticket_threads` et `ticket_history`.
+### Nom de la clé ticket dans les tables enfants
+- **Symptôme** : pas de `ticket_id` sur `ticket_threads` ni `ticket_history`.
+- **Règle** : les flux enfants tirent leur ticket de la ressource parente `associated_tickets` :
+  la colonne s'appelle `_zoho_desk_associated_tickets_id` partout. Le staging la renomme en
+  `ticket_id` sur `ticket_details` et `ticket_metrics`, et la garde telle quelle sur
+  `ticket_threads` et `ticket_history`.
 
-**Sous-tables dlt : jointure par `_dlt_id`.** Une sous-table se joint à son parent par
-`_dlt_parent_id = parent._dlt_id`, jamais par un identifiant métier (agent ↔ département
-compris). `_dlt_id` est attribué par dlt au chargement : c'est une clé de jointure, pas un
-identifiant à conserver d'un run à l'autre, surtout sur `ticket_history`, réécrite à chaque run.
+### Sous-tables dlt : jointure par `_dlt_id`
+- **Règle** : une sous-table se joint à son parent par `_dlt_parent_id = parent._dlt_id`, jamais
+  par un identifiant métier (agent ↔ département compris). `_dlt_id` est attribué au chargement :
+  clé de jointure, pas un identifiant stable d'un run à l'autre, surtout sur `ticket_history`.
 
-**Historique incomplet, tickets complets.** `ticket_history` est en `replace`, les tickets en
-`merge`. Un run interrompu ou partiel réécrit l'historique avec ce qu'il a lu, sans retirer
-aucun ticket : les modèles d'événements et de SLA sont alors faux sans qu'aucun test ne casse.
-Règle : avant de lire un SLA, comparer le nombre de tickets distincts de `ticket_history` à
-celui de `stg_zoho_desk__tickets`.
+### Historique incomplet, tickets complets
+- **Symptôme** : SLA ou événements faux sans qu'aucun test ne casse.
+- **Règle** : un run interrompu ou partiel réécrit l'historique avec ce qu'il a lu, sans retirer
+  aucun ticket. Avant de lire un SLA, comparer le nombre de tickets distincts de `ticket_history`
+  à celui de `stg_zoho_desk__tickets`.
 
-**`closed_time` ne donne pas les fermetures.** Il ne porte que la fermeture courante et vaut
-`NULL` si le ticket a été rouvert. Règle : compter fermetures et réouvertures depuis
-l'historique, via `int_zoho_desk__ticket_status_events`.
+### `closed_time` ne donne pas les fermetures
+- **Règle** : il ne porte que la fermeture courante et vaut `NULL` si le ticket a été rouvert.
+  Compter fermetures et réouvertures depuis l'historique.
+- **Appliqué par** : `int_zoho_desk__ticket_status_events`.
 
-**Bruit des fusions de tickets.** Une fusion dans l'interface Zoho ré-estampille toutes les
-propriétés du ticket (`event_name = 'TicketMergedMaster'`) sans changer de valeur. Règle : les
-modèles d'événements exposent `event_name` sans filtrer ; `int_zoho_desk__ticket_lifecycle_segments`
-ne garde que `TicketCreated` et `TicketUpdated`, et les fermetures de `int_zoho_desk__ticket_sla`
-que `TicketUpdated`. Tout nouveau consommateur doit filtrer de même.
+### Bruit des fusions de tickets
+- **Symptôme** : des événements qui ne changent aucune valeur.
+- **Règle** : une fusion dans l'interface Zoho ré-estampille toutes les propriétés du ticket
+  (`event_name = 'TicketMergedMaster'`). Les modèles d'événements exposent `event_name` sans
+  filtrer ; tout consommateur doit filtrer.
+- **Appliqué par** : `int_zoho_desk__ticket_lifecycle_segments` (`TicketCreated`,
+  `TicketUpdated`), fermetures de `int_zoho_desk__ticket_sla` (`TicketUpdated`).
 
-**Valeur avant / après selon le type de propriété.** Une propriété scalaire (Status, Priority,
-Department) se lit dans `property_value__previous_value` / `__updated_value` ; une propriété
-objet (Case Owner) dans `…__previous_value__id` / `__name` et `…__updated_value__id` / `__name`.
-À la création, Zoho met parfois la valeur initiale dans `property_value` avec avant et après à
-`NULL` : `is_creation_event` dans `int_zoho_desk__ticket_status_events`.
+### Valeur avant / après selon le type de propriété
+- **Règle** : une propriété scalaire (Status, Priority, Department) se lit dans
+  `property_value__previous_value` / `__updated_value` ; une propriété objet (Case Owner) dans
+  `…__previous_value__id` / `__name` et `…__updated_value__id` / `__name`. À la création, Zoho met
+  parfois la valeur initiale dans `property_value`, avant et après à `NULL`.
+- **Appliqué par** : `int_zoho_desk__ticket_status_events` (`is_creation_event`).
 
-**Valeurs de types mélangés.** `updatedValue` porte selon la propriété une date, un booléen ou
-du texte. Le pipeline l'épingle en texte (`colonnes_imbriquees` de `tables.py`) : laissé à
-l'inférence, dlt range une partie des valeurs dans des colonnes variantes que le staging ne lit
-pas. Toute valeur arrive en chaîne ; caster au moment de l'usage.
+### Valeurs de types mélangés
+- **Règle** : `updatedValue` porte selon la propriété une date, un booléen ou du texte. Le pipeline
+  l'épingle en texte (`colonnes_imbriquees` de `tables.py`) : laissé à l'inférence, dlt range une
+  partie des valeurs dans des colonnes variantes que le staging ne lit pas. Caster à l'usage.
 
-**Colonne absente du raw.** dlt ne crée une colonne que si une ligne la renseigne. Une colonne
-rarement remplie peut disparaître d'un run, et le staging qui la sélectionne casse
-(`Unrecognized name`). Règle : toute colonne sélectionnée par le staging et peu renseignée est
-épinglée dans `tables.py` du pipeline.
+### Colonne absente du raw
+- **Symptôme** : le staging casse sur `Unrecognized name`.
+- **Règle** : dlt ne crée une colonne que si une ligne la renseigne. Toute colonne sélectionnée
+  par le staging et peu renseignée est épinglée dans `tables.py` du pipeline.
 
-**Champs personnalisés `cf_*` en `STRING`.** L'API les rend en texte, y compris les dates et
-les booléens. Le staging ne les caste pas ; caster dans le modèle qui les utilise.
+### Champs personnalisés `cf_*` en `STRING`
+- **Règle** : l'API les rend en texte, y compris les dates et les booléens. Le staging ne les
+  caste pas ; caster dans le modèle qui les utilise.
 
-**Sous-requête corrélée refusée par BigQuery.** Un calcul d'heures ouvrées en sous-requête
-corrélée sur `unnest(generate_date_array(...))` n'est pas planifiable à côté d'un `lead()` ou
-répété dans un même `select`. Règle : `cross join unnest` + `left join` des fériés +
-`group by`, comme dans `int_zoho_desk__ticket_lifecycle_segments` et `int_zoho_desk__ticket_sla`.
+### Sous-requête corrélée refusée par BigQuery
+- **Symptôme** : un calcul d'heures ouvrées en sous-requête corrélée sur
+  `unnest(generate_date_array(...))` n'est pas planifiable à côté d'un `lead()` ou répété dans un
+  même `select`.
+- **Règle** : `cross join unnest` + `left join` des fériés + `group by`.
+- **Appliqué par** : `int_zoho_desk__ticket_lifecycle_segments`, `int_zoho_desk__ticket_sla`.
 
-**Écart d'une minute avec l'interface Zoho.** `timestamp_diff(..., minute)` tronque les
-secondes. Recalculer en secondes si l'écart compte.
+### Écart d'une minute avec l'interface Zoho
+- **Règle** : `timestamp_diff(..., minute)` tronque les secondes. Recalculer en secondes si
+  l'écart compte.
 
 ---
 
-## Règles métier et leur source
+## Règles métier
 
-| Règle | Source | Appliquée dans |
-|---|---|---|
-| Type de statut (`Open`, `On Hold`, fermé) d'un libellé Zoho | seed `ref_zoho_desk__status_mapping` | `int_zoho_desk__ticket_status_events` |
-| Heures ouvrées : lundi–vendredi, 9 h 00–17 h 30 heure de Paris, hors jours fériés | seed `ref_general__feries_metropole` | `int_zoho_desk__ticket_lifecycle_segments`, `int_zoho_desk__ticket_sla` |
-| Première réponse : premier échange sortant d'un agent, hors échange de description | choix interne | `int_zoho_desk__ticket_sla` |
-| Fermeture : passage d'un statut non fermé à un statut fermé ; réouverture : passage d'un statut fermé à un statut non fermé. L'interface Zoho appelle « rouvert » tout retour à « Nouveau » : ses compteurs diffèrent | choix interne | `int_zoho_desk__ticket_sla` |
-| Délai de résolution calculé deux fois, à la première et à la dernière fermeture, en minutes calendaires et ouvrées ; temps en attente isolé | choix interne, non aligné sur le tableau de bord Zoho | `int_zoho_desk__ticket_sla` |
-| Compte d'un ticket : celui du ticket, à défaut celui de son contact | choix interne | `int_zoho_desk__ticket_enriched` |
-
-Pour ajouter un type d'événement (département, catégorie…) : un modèle intermediate par
-propriété, sur le modèle de `int_zoho_desk__ticket_priority_events`, plutôt qu'une table
-d'événements générique.
+- Le type de statut d'un libellé Zoho vient du seed `ref_zoho_desk__status_mapping`
+  (`int_zoho_desk__ticket_status_events`).
+- Les SLA sont des **règles maison**, non alignées sur le tableau de bord Zoho : heures ouvrées
+  (fériés : seed `ref_general__feries_metropole`), première réponse, fermeture et réouverture,
+  trois définitions de résolution. Définitions dans le YAML de `int_zoho_desk__ticket_sla`.
+  L'interface Zoho appelle « rouvert » tout retour à « Nouveau » : ses compteurs diffèrent.
+- Compte d'un ticket : celui du ticket, à défaut celui de son contact
+  (`int_zoho_desk__ticket_enriched`).
+- Nouveau type d'événement (département, catégorie…) : un modèle intermediate par propriété, sur
+  le modèle de `int_zoho_desk__ticket_priority_events`, plutôt qu'une table d'événements générique.
 
 ---
 
 ## Consommateurs
-
-La chaîne s'arrête à l'intermediate : aucun mart ni application ne lit cette source. Liste à
-jour :
 
 ```bash
 dbt ls -s source:zoho_desk+ --resource-type model

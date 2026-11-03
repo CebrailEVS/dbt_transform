@@ -7,9 +7,10 @@
 La logique métier **à l'intérieur d'une source** : déduplication, enrichissement par les
 référentiels, champs calculés, découpage par type de tâche, réconciliation de grain.
 
-- **Aligné sur une source.** Le croisement de plusieurs sources se fait en marts.
+- **Aligné sur une source**, au sens du système : `oracle_neshu` et `oracle_neshu_gcs` viennent du
+  même ERP. Le croisement de plusieurs sources se fait en marts.
 - Lit uniquement `ref('stg_*')`, `ref('int_*')` et les seeds `ref('ref_*')`. Jamais `source()`,
-  sauf la source d'archive `historic` (données figées, sans staging), lue par `int_mssql_sage__pnl_bu`.
+  sauf la source d'archive `historic` (données figées, sans staging).
 
 ## 2. Nommage
 
@@ -46,7 +47,8 @@ enriched as (
 select * from enriched
 ```
 
-Déduplication : `qualify row_number() over (partition by ... order by ...) = 1`.
+Dédoublonnage métier (choisir la ligne qui fait foi) :
+`qualify row_number() over (partition by ... order by ...) = 1`, avec un `order by` qui dit la règle.
 
 Les instants restent en UTC ; un jour ou un mois métier se calcule en heure de Paris
 (`date(x, 'Europe/Paris')`, [CONVENTIONS.md § Fuseau horaire](../../CONVENTIONS.md#fuseau-horaire)).
@@ -62,10 +64,7 @@ Les instants restent en UTC ; un jour ou un mois métier se calcule en heure de 
 ## 5. Documentation
 
 La description se met **en YAML uniquement**, pas dans le `config()`. Elle est lue par l'agent
-NL→SQL via le manifest : on documente pour lui **et** pour l'humain.
-
-> Dette connue : des `int_*` portent encore une `description=` dans le `config()`. On la retire
-> quand on touche le modèle, et on n'en ajoute pas.
+text-to-SQL via le manifest : on documente pour lui **et** pour l'humain.
 
 **Description du modèle** : la même trame en 4 blocs que les marts
 (`[QUOI MÉTIER]`, `[COMMENT CONSTRUITE]`, `[GRAIN]`, `[NOTES]`) ; cf. [marts.md § 2](marts.md#2-description-en-4-blocs).
@@ -79,8 +78,6 @@ NL→SQL via le manifest : on documente pour lui **et** pour l'humain.
 | Mesure | l'unité, et si elle est additive |
 | Date | l'événement qu'elle marque |
 | Booléen | la condition exacte qui le met à `true` |
-
-Modèle de référence : `_yuman__intermediate_models.yml` (`int_yuman__interventions`).
 
 ## 6. Tests minimum
 
