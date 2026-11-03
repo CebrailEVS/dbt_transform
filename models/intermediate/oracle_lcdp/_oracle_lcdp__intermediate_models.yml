@@ -6,8 +6,7 @@ models:
     description: >
       [QUOI MÉTIER]
       Appels SAV LCDP : une ligne par appel de service client (idtask_type 130 - SERVICECALL), avec
-      l'agent rattaché, le statut de traitement et la catégorie d'appel (label FAPP01). Module
-      récemment lancé — volumétrie volontairement faible (préparation du terrain).
+      l'agent rattaché, le statut de traitement et la catégorie d'appel (label FAPP01).
 
       [COMMENT CONSTRUITE]
       stg_oracle_lcdp__task (idtask_type = 130, code_status_record = '1'), enrichi company / device /

@@ -39,15 +39,11 @@ snapshots:
 
   - name: snap_yuman__users
     description: |
-      Historical snapshot of Yuman app users tracking changes to user identity over time.
+      Historique SCD2 des utilisateurs Yuman.
 
-      Captures:
-      - User reassignments (same user_id, new user_name / user_email)
-      - Hard deletes (user removed from Yuman — dbt_valid_to is stamped automatically)
-      - Any field change that bumps updated_at in Yuman
-
-      Uses timestamp strategy on updated_at. invalidate_hard_deletes=true ensures
-      deleted users are closed out rather than left with dbt_valid_to = NULL.
+      Stratégie check sur les colonnes `check_cols` du snapshot : un changement sur une autre
+      colonne ne crée pas de version. invalidate_hard_deletes=true : un utilisateur supprimé
+      dans Yuman est clos (dbt_valid_to renseigné) au lieu de rester courant.
 
       **Query current users:** SELECT * FROM snapshots.snap_yuman__users WHERE dbt_valid_to IS NULL
       **Query full history:** SELECT * FROM snapshots.snap_yuman__users WHERE user_id = 'XXX' ORDER BY dbt_valid_from
@@ -74,7 +70,7 @@ snapshots:
         description: Whether the user is active (true) or inactive (false) — TRACKED for changes. Derived from the custom field INACTIF (Oui/Non).
 
       - name: updated_at
-        description: Last update timestamp from Yuman — drives snapshot change detection
+        description: "Dernière mise à jour dans Yuman. Informatif : ne crée pas de version (stratégie check)"
 
       - name: dbt_valid_from
         description: Timestamp when this version of the record became active

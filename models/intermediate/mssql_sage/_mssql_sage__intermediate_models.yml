@@ -19,7 +19,7 @@ models:
 
       [GRAIN]
       1 ligne par (numero_ecriture_comptable, numero_plan_analytique, numero_ligne_analytique).
-      ~190k lignes, depuis 2021. Clé strictement unique.
+      Clé strictement unique.
 
       [NOTES]
       Périmètre limité aux comptes 6 et 7 (le bilan, classes 1-5, est exclu). Une écriture
