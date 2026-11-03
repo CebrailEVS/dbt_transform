@@ -16,12 +16,30 @@ par l'**IAM** : les identités dbt hors prod (`dbt-dev`, `dbt-ci`) ne peuvent pa
 | Prod | `prod_staging`, `prod_intermediate`, `prod_marts`, `prod_reference` | Cloud Run (nuit), job `cd` (merge) | permanente |
 | Snapshots | `snapshots` | Cloud Workflows uniquement | permanente |
 | Applications | `prod_app_<application>` (ex. `prod_app_cockpit_supply`) | Cloud Run (nuit), job `cd` (merge) ; lu par le seul compte de l'application | permanente |
-| Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | 14 jours sans rebuild |
+| Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | vidé au début de chaque branche ; filet : 14 jours après création |
 | CI | `dbt_ci_pr_<N>` | job `pr-check` | supprimé à la fermeture de la PR (filet : 3 jours) |
 | Ingestion de test | `dev_raw`, `dev_raw_staging` | `dlt --target dev` | permanente (dlt garde son état dans `_dlt_version`) |
 
-L'expiration porte sur les **tables**, pas sur le dataset. Chaque rebuild remet le compteur à
-zéro.
+L'expiration porte sur les **tables**, pas sur le dataset, et court depuis leur création. Un
+modèle `table` est recréé à chaque build, donc son expiration est repoussée ; un incrémental, non :
+le `MERGE` ne recrée pas la table, qui expire 14 jours après son clone ou son full-refresh.
+
+### Vider son dataset au début de chaque branche
+
+```bash
+dbt run-operation vider_dataset_dev                             # liste ce qui serait supprimé
+dbt run-operation vider_dataset_dev --args '{confirmer: true}'  # vide ton dataset
+```
+
+C'est la pratique recommandée par dbt Labs : une table restée d'un ancien chantier est lue par le
+defer à la place de la prod (§ 3), et une table de quelques jours suffit à fausser une recette.
+L'expiration n'est qu'un filet.
+
+La macro lit le dataset du target `dev` ; elle refuse tout autre target et tout dataset hors
+`dbt_<nom>`. Elle supprime les tables et les vues, jamais le dataset, qui appartient à Terraform.
+En reprenant une autre branche en cours, reconstruire ses modèles : leur version dev est partie
+avec le reste. Ne pas vider pendant qu'un autre chantier travaille dans le même dataset (deux
+sessions en parallèle) : ses tables partiraient en cours de route.
 
 La macro `generate_schema_name` fait le routage :
 - en **prod** : `prod_<couche>`, le comportement dbt par défaut ;
@@ -65,7 +83,8 @@ Ne pas l'activer par défaut : dans le premier cas, il ferait lire le `stg_x` de
 masquerait ta modification, sans erreur.
 
 **Piège** : une table restée dans ton dataset depuis quelques jours (elles n'expirent qu'après
-14 jours) fausse une recette sans aucun message. Réflexe avant d'interpréter un écart :
+14 jours) fausse une recette sans aucun message. Le vidage en début de branche (§ 1) évite le cas
+le plus courant. Réflexe avant d'interpréter un écart :
 **vérifier que dev et prod ont le même nombre de lignes**.
 
 Construire toute la chaîne modifiée en **une seule commande** (`-s stg_x+`) évite aussi le
@@ -126,15 +145,20 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
 1. Authentification WIF avec `dbt-ci`, puis création de `dbt_ci_pr_<N>`.
 2. `dbt lint` (modèles modifiés), `dbt parse`, puis `dbt compile --static-analysis strict`
    sur le projet entier. Ce dernier contrôle est bloquant.
-3. `dbt build --select state:modified+ --defer`, snapshots exclus.
-4. À la fermeture de la PR, `cleanup-ci-dataset` supprime `dbt_ci_pr_<N>`.
+3. Clone depuis la prod des incrémentaux modifiés (`dbt clone --full-refresh`) : le build exécute
+   leur vrai `MERGE`, comme le fera la prod au merge. En échec, un avertissement s'affiche sur la PR
+   et ils sont reconstruits entièrement.
+4. `dbt build --select state:modified+ --defer --favor-state`, snapshots exclus : tout ce qui n'est
+   pas construit dans le run est lu en prod, même s'il reste dans le dataset d'un push précédent.
+5. Un run à la fois par PR : un nouveau push annule le run en cours. À la fermeture de la PR,
+   `cleanup-ci-dataset` annule un run encore en cours, puis supprime `dbt_ci_pr_<N>`.
 
 ### Merge sur `master` — `cd`
 1. Authentification WIF avec `dbt-deployer`.
 2. `dbt build --select state:modified+` **directement en prod**, snapshots exclus.
 3. `dbt docs generate`, dépôt du nouveau manifest, publication des docs sur GitHub Pages.
 4. Build et push de `dbt-runner:latest`, repris par la production planifiée à sa prochaine
-   exécution.
+   exécution. La même image est aussi poussée sous `dbt-runner:<sha du commit>`.
 
 > Tout push sur `master` déclenche `cd`, **y compris un push direct sans PR**.
 > Les `cd` passent **un par un**, dans l'ordre des push (verrou `concurrency`). Si
@@ -143,6 +167,17 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
 > des runs annulés.
 > Dans les logs, `dbt docs generate` affiche une ligne « Succeeded model » par nœud : il lit
 > seulement les métadonnées, il ne reconstruit rien.
+
+**Revenir en arrière.** Le chemin normal est un `git revert` du commit fautif, en PR : le `cd`
+reconstruit et redéploie. En urgence, avant la prochaine exécution planifiée, re-pointer `latest`
+sur la version précédente :
+```bash
+gcloud artifacts docker tags add \
+  europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:<sha> \
+  europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:latest
+```
+Cela ne remet ni `prod_*` ni le manifest dans leur état antérieur, et le prochain `cd` repousse
+`latest` : c'est un sursis, le `git revert` reste nécessaire.
 
 ## 5. Garde-fous
 
@@ -185,7 +220,8 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
 
 ### Au quotidien
 
-- Tu développes dans ton dataset ; tes collègues dans le leur.
+- Tu développes dans ton dataset ; tes collègues dans le leur. Le vidage en début de branche
+  (§ 1) ne touche que le tien.
 - Après un merge d'un collègue : `git pull` (le manifest suit), puis `git rebase origin/master`
   sur ta branche. Un conflit git n'apparaît que si vous avez touché le **même fichier**.
 - Chaque PR est relue par une autre personne que son auteur avant le merge.
@@ -195,10 +231,11 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
 
 ### Départ d'un développeur
 
-1. Supprimer sa clé, puis son SA.
-2. Retirer son nom de `local.dbt_developers`, puis `terraform apply`. Terraform refuse de
-   supprimer un dataset qui contient des tables : le vider avant.
-3. Retirer son accès GitHub.
+1. Lui faire vider son dataset (`dbt run-operation vider_dataset_dev --args '{confirmer: true}'`) :
+   Terraform refuse de supprimer un dataset qui contient des tables.
+2. Supprimer sa clé, puis son SA.
+3. Retirer son nom de `local.dbt_developers`, puis `terraform apply`.
+4. Retirer son accès GitHub.
 
 ## 7. Où c'est défini
 
@@ -208,6 +245,7 @@ avec `DBT_BIGQUERY_DATASET_DEV=dbt_<nom>` et le chemin de sa clé dans `.env`. V
 | Ouverture WIF au repo dbt | `infra/github_actions_wif.tf` |
 | Targets `dev` / `ci` / `prod` | `profiles.yml` |
 | Routage des datasets | `macros/generate_schema_name.sql` |
+| Vidage du dataset de dev | `macros/vider_dataset_dev.sql` |
 | CI/CD | `.github/workflows/dbt-ci.yml` |
 | Variables locales | `.env.example` |
 | Liste des développeurs | `infra/dbt_environments.tf` (`local.dbt_developers`) |

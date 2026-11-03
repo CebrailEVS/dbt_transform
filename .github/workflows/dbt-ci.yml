@@ -67,6 +67,12 @@ env:
 jobs:
   pr-check:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    # Un run à la fois par PR : un nouveau push annule le run devenu obsolète.
+    # Même groupe que cleanup-ci-dataset : la fermeture annule un build en cours au
+    # lieu de supprimer son dataset pendant qu'il tourne (faux échec 404).
+    concurrency:
+      group: dbt-ci-pr-${{ github.event.number }}
+      cancel-in-progress: true
     env:
       DBT_TARGET: ci
       DBT_BIGQUERY_DATASET_CI: dbt_ci_pr_${{ github.event.number }}
@@ -144,11 +150,25 @@ jobs:
           gcloud storage cp "$DBT_STATE_URI" state/manifest.json \
             || echo "No manifest found in GCS, will run full build"
 
+      # Incrémentaux modifiés déjà en prod : clone de la table prod avant le build,
+      # pour que la CI exécute le vrai MERGE et non une reconstruction complète.
+      # --full-refresh reclone à chaque push : le MERGE part toujours de la prod du jour.
+      # En échec, le build les reconstruit entièrement, avec un avertissement sur la PR.
+      - name: dbt clone (modified incrementals)
+        run: |
+          if [[ -f "state/manifest.json" ]]; then
+            dbt clone --target ci --defer --state state/ --full-refresh --indirect-selection empty \
+              --select state:modified+,config.materialized:incremental,state:old \
+              || echo "::warning::dbt clone en échec : incrémentaux reconstruits entièrement, MERGE non testé"
+          fi
+
+      # --favor-state : tout modèle non construit dans ce run est lu en prod, même
+      # s'il reste dans dbt_ci_pr_<N> d'un push précédent.
       - name: dbt build
         run: |
           if [[ -f "state/manifest.json" ]]; then
-            echo "SELECTIVE build (state:modified+) + --defer: snapshots & unbuilt refs resolve to PROD"
-            dbt build --target ci --select state:modified+ --defer --state state/ --exclude resource_type:snapshot
+            echo "SELECTIVE build (state:modified+) + --defer --favor-state: snapshots & unbuilt refs resolve to PROD"
+            dbt build --target ci --select state:modified+ --defer --favor-state --state state/ --exclude resource_type:snapshot
           else
             # Snapshots exclus même ici : leur target_schema est `snapshots` (prod),
             # où dbt-ci n'a que la lecture.
@@ -229,10 +249,15 @@ jobs:
       - name: Authenticate to Artifact Registry
         run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 
+      # :latest est l'image exécutée par Cloud Run ; :<sha> nomme chaque version
+      # déployée, pour savoir quel code a tourné et pouvoir y revenir.
       - name: Build and push dbt-runner image
+        env:
+          IMAGE: europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner
         run: |
-          docker build -t europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:latest .
-          docker push europe-west1-docker.pkg.dev/evs-datastack-prod/data-pipelines/dbt-runner:latest
+          docker build -t "$IMAGE:latest" -t "$IMAGE:$GITHUB_SHA" .
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:latest"
 
       - name: Upload docs artifacts
         uses: actions/upload-artifact@v4
@@ -246,6 +271,10 @@ jobs:
 # ============================================================
   cleanup-ci-dataset:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    # Groupe de pr-check : annule un build encore en cours avant de supprimer son dataset.
+    concurrency:
+      group: dbt-ci-pr-${{ github.event.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - name: Authenticate to Google Cloud (WIF, dbt-ci)

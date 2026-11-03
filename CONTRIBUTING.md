@@ -76,7 +76,9 @@ select 'prod', count(*) from `evs-datastack-prod.prod_marts.mon_modele`
 | tester ce que tu développes | `dbt_<toi>` |
 | vérifier ta PR | `dbt_ci_pr_<N>`, construit par la CI |
 
-Les tables de `dbt_<toi>` expirent après 14 jours sans rebuild : pas de ménage à faire.
+**Au début de chaque branche, vide ton dataset** (commande dans le cycle, § 3) : une table restée
+d'un ancien chantier serait lue à la place de la prod. L'expiration à 14 jours n'est qu'un filet.
+Détail : [docs/environnements.md § 1](docs/environnements.md#vider-son-dataset-au-début-de-chaque-branche).
 
 ---
 
@@ -98,6 +100,7 @@ ou `chore`. Exemple : `feat(neshu): add fct_neshu__passage_appro`.
 ```bash
 git fetch origin master
 git checkout -b feature/kpi-livraison-neshu origin/master   # toujours depuis master à jour
+dbt run-operation vider_dataset_dev --args '{confirmer: true}'   # repartir d'un dataset vide
 # ... développer, dbt build -s ..., dbt lint ...
 git commit -m "feat(neshu): add kpi livraison"
 git push -u origin feature/kpi-livraison-neshu      # puis ouvrir la PR sur GitHub
@@ -110,6 +113,10 @@ Si `master` a avancé : `git rebase origin/master` puis `git push --force-with-l
 Elle lance le lint des modèles modifiés, `dbt parse`, puis l'analyse statique stricte. Elle
 construit ensuite les modèles modifiés et leur aval dans `dbt_ci_pr_<N>`. Tu peux ouvrir ce
 dataset dans BigQuery pour contrôler le résultat. Il est supprimé à la fermeture de la PR.
+
+Un incrémental modifié est d'abord cloné depuis la prod : c'est son vrai `MERGE` qui est testé,
+comme au merge. Tout ce qui n'est pas reconstruit est lu en prod. Un nouveau push annule le run
+en cours.
 
 Au merge, seuls les modèles modifiés et leur aval sont reconstruits en prod.
 
