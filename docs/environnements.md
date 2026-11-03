@@ -61,6 +61,9 @@ Hors prod, un dataset `prod*` est refusé dès la compilation.
 (« repo `dbt_transform`, branche `master` ») et GCP lui prête une identité pour la durée
 du run. **Aucune clé n'est stockée dans GitHub.**
 
+Toute identité qui exécute dbt v2 a besoin de `roles/bigquery.readSessionUser` : dbt lit les
+résultats par la Storage Read API, et sans ce rôle échoue en `DbDriverFailed (dbt1308)`.
+
 ## 3. Le defer
 
 `--defer` fait pointer chaque `ref()` vers un modèle **non construit dans ce run** vers sa
@@ -159,7 +162,8 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
 4. Build et push de `dbt-runner:latest`, repris par la production planifiée à sa prochaine
    exécution. La même image est aussi poussée sous `dbt-runner:<sha du commit>`.
 
-> Tout push sur `master` déclenche `cd`, **y compris un push direct sans PR**.
+> Tout push sur `master` qui touche le code (filtre `paths` de `dbt-ci.yml`) déclenche `cd`,
+> **y compris un push direct sans PR**. Un push de documentation seule ne déclenche rien.
 > Les `cd` passent **un par un**, dans l'ordre des push (verrou `concurrency`). Si
 > plusieurs merges s'empilent, GitHub ne garde que le dernier en attente : il se
 > compare au dernier manifest déposé, donc il reconstruit aussi les changements

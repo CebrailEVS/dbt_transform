@@ -58,7 +58,7 @@ dbt build -s mon_modele+        # + tout l'aval, pour vérifier que rien ne cass
 
 | Branche | Usage |
 |---|---|
-| `master` | Production. Tout push déclenche un déploiement. |
+| `master` | Production. Tout push qui touche le code déclenche un déploiement. |
 | `feature/<description>` | Nouveau modèle ou fonctionnalité |
 | `fix/<description>` | Correction |
 
