@@ -132,6 +132,6 @@ select
 
     -- Métadonnées dbt
     current_timestamp() as dbt_updated_at,
-    '01a19c97-136b-7052-80d3-7a33d62eb00e' as dbt_invocation_id  -- noqa: TMP
+    '01a1a0a8-0fc9-7af1-9cf9-a46c4d4f6bef' as dbt_invocation_id  -- noqa: TMP
 
 from fusion_telemetry_chargement
