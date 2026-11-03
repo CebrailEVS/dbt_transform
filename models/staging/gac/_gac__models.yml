@@ -46,7 +46,7 @@ models:
       - name: dernier_evenement_date_de_fin
         description: "Date de fin du dernier événement de disponibilité"
       - name: collaborateur_fonction_actuelle
-        description: "Nom source trompeur : porte en réalité le code analytique (compta) du véhicule, ex. SAVLYOTECH. Voir int_gac__vehicule_code_analytique."
+        description: "Nom source trompeur : porte en réalité le code analytique (compta) du véhicule. Voir int_gac__vehicule_code_analytique."
       - name: date_de_saisie
         description: "Date de saisie du contrat (horodatée)"
       - name: extracted_at

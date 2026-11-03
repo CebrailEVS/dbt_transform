@@ -1118,7 +1118,7 @@ models:
           - unique
           - not_null
       - name: device_id
-        description: "Distributeur (machine) concerné. FK → dim_neshu__device. NULL toléré (cf. task_id 11460408, source Oracle)."
+        description: "Distributeur (machine) concerné. FK → dim_neshu__device. NULL toléré : la source Oracle porte quelques tâches sans machine."
       - name: company_id
         description: "Client (peer company). FK → dim_neshu__company."
         tests:

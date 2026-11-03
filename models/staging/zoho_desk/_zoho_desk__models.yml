@@ -20,7 +20,7 @@ version: 2
 #   stg_tickets ──M:1──► stg_contacts          (via contact_id)
 #   stg_tickets ──M:1──► stg_accounts          (via account_id)
 #   stg_contacts ─M:1──► stg_accounts          (via account_id)
-#   stg_ticket_details ─1:1──► stg_tickets     (via _zoho_desk_tickets_id → ticket_id)
+#   stg_ticket_details ─1:1──► stg_tickets     (via _zoho_desk_associated_tickets_id → ticket_id)
 #   stg_ticket_history ─M:1──► stg_tickets     (via _zoho_desk_associated_tickets_id → ticket_id)
 #   stg_ticket_history_event_info ─M:1──► stg_ticket_history  (via _dlt_parent_id → _dlt_id)
 #   stg_agent_departments ─M:1──► stg_agents   (via _dlt_parent_id → _dlt_id)
@@ -341,14 +341,12 @@ models:
     description: >
       Enrichissement 1:1 par ticket : flags SLA, champs custom (cf_*), résolution, layout.
       Source : prod_raw.zoho_desk_ticket_details
-      Transformation : _zoho_desk_tickets_id renommé en ticket_id.
-      NOTE sur le nom de la colonne source : la FK se nomme _zoho_desk_tickets_id
-      (et non _zoho_desk_associated_tickets_id) car le transformer dlt était défini
-      avec data_from=tickets. Dans le staging, on renomme en ticket_id pour la cohérence.
+      Transformation : _zoho_desk_associated_tickets_id renommé en ticket_id. dlt nomme la FK
+      d'après la ressource parente (zoho_desk_associated_tickets).
     columns:
       - name: ticket_id
         description: >
-          PK et FK — identifiant du ticket associé (renommé depuis _zoho_desk_tickets_id).
+          PK et FK — identifiant du ticket associé (renommé depuis _zoho_desk_associated_tickets_id).
           Jointure : stg_zoho_desk__tickets.ticket_id
         tests:
           - unique

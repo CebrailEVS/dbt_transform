@@ -85,7 +85,7 @@ models:
     description: |
       [QUOI MÉTIER] P&L mensuel au niveau le plus fin du pilotage analytique : par section analytique Sage et par compte général, avec sa catégorie et sa macro-catégorie P&L. Permet de suivre un poste (ex. masse salariale) pour une équipe donnée (ex. NESOOOSAV, roadmen SAV Neshu).
       [COMMENT CONSTRUITE] int_mssql_sage__pnl_bu (écritures classes 6/7 ventilées, signe Sage conservé) agrégé par mois de facturation, section, BU et compte ; intitulé de section depuis stg_mssql_sage__f_comptea (plan 1) ; catégories depuis le seed ref_mssql_sage__code_comptable_bu.
-      [GRAIN] 1 ligne par (mois_date, code_analytique, code_analytique_bu, numero_compte_general). ~96k lignes depuis 2021. La BU est dans le grain : le remapping historique 2024 rattache certaines écritures d'une même section à deux BU.
+      [GRAIN] 1 ligne par (mois_date, code_analytique, code_analytique_bu, numero_compte_general). La BU est dans le grain : un remapping historique rattache certaines écritures d'une même section à deux BU.
       [NOTES] Exclut les écritures sans ventilation analytique (pas de section) : elles restent dans fct_finance__pnl_bu (BU_NON_RENSEIGNEE). Plan analytique 1 uniquement. Pas de scénario avec/sans provisions CP : filtrer les comptes 641200 / 645800 si besoin. Le mois courant est partiel. Pas de dimension section ni compte : codes portés en clair (pas de test relationships). Filtrer un poste sur categorie_pnl_bu, pas sur la macro : la catégorie Variable est rangée sous « Frais Directs & Amortissements » dans le seed.
 
     tests:
@@ -156,7 +156,7 @@ models:
       [QUOI MÉTIER] Liste des écritures comptables de charge (classe 6) ou produit (classe 7) sans aucune ventilation analytique dans Sage — la file des écritures restant à ventiler par la comptabilité, consommée par l'app compta.
       [COMMENT CONSTRUITE] int_mssql_sage__ecriture_non_ventilee : f_ecriturec filtré aux classes 6/7 et >= var('ecriture_non_ventilee_floor', défaut 2025-01-01), en anti-jointure sur les écritures analytiques f_ecriturea (ec_no absents). date_facturation = jm_date + (ec_jour-1) jours.
       [GRAIN] 1 ligne par écriture comptable (ecriture_comptable_id).
-      [NOTES] Matérialisée en **view** (et non table) : déviation assumée à la convention marts, justifiée par un petit volume (~27k lignes), une conso opérationnelle par l'app compta (/mnt/data/project/compta) sensible à la fraîcheur et un requêtage peu fréquent. montant brut non signé ; sens_ecriture (0 = débit, 1 = crédit) pour l'interpréter.
+      [NOTES] Matérialisée en **view** (et non table) : déviation assumée à la convention marts, justifiée par un petit volume, une lecture opérationnelle par l'application compta, sensible à la fraîcheur, et un requêtage peu fréquent. montant brut non signé ; sens_ecriture (0 = débit, 1 = crédit) pour l'interpréter.
 
     tests:
       - dbt_utils.expression_is_true:

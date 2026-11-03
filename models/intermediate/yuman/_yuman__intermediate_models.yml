@@ -305,7 +305,7 @@ models:
           PLANIFIEE (workorder Scheduled) ;
           DEMANDE_OUVERTE (pas de workorder, demande Open) ;
           DEMANDE_REJETEE (pas de workorder, demande Rejected) ;
-          AUTRE (filet de sécurité : 0 ligne en prod, capte tout statut Yuman futur non prévu).
+          AUTRE (filet de sécurité : capte tout statut Yuman non prévu).
           Filtrer intervention_state = 'REALISEE' pour les interventions réellement réalisées.
         tests:
           - accepted_values:

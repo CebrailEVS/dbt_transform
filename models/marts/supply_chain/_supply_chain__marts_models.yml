@@ -82,7 +82,7 @@ models:
   - name: fct_supply_chain__stock_lcdp
     description: |
       [QUOI MÉTIER] Stock théorique journalier des produits LCDP, par véhicule et par dépôt.
-      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp_gcs__stock_theorique (pipeline dlt oracle_lcdp_stock). Aucun filtre : les 11 dépôts (entity_type='company') et tous les véhicules (entity_type='resource') sont exposés. is_vehicle_active aplati depuis is_active de dim_lcdp__resource pour les véhicules (FALSE si absent de la dim), NULL pour les dépôts. is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_lcdp_gcs__stock_theorique (pipeline dlt oracle_lcdp_stock). Aucun filtre : tous les dépôts (entity_type='company') et tous les véhicules (entity_type='resource') sont exposés. is_vehicle_active aplati depuis is_active de dim_lcdp__resource pour les véhicules (FALSE si absent de la dim), NULL pour les dépôts. is_out_of_stock dérivé de stock_at_date=0. dpa fallback sur purchase_price si manquant.
       [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code).
       [NOTES] Filtrer sur snapshot_date : c'est une DATE, insensible à l'heure du run comme au fuseau de lecture. date_system est conservée à côté pour l'audit — elle porte l'heure du batch, donc révèle une journée rejouée — mais n'est pas une clé de filtre. entity_type fait partie du grain, par prudence : côté Neshu idcompany et idresources collisionnent, LCDP n'y échappe que par chance. plus/moins = écarts d'inventaire vs théorique. Stocks négatifs possibles (stock théorique). date_inventaire NULL pour les entités/produits jamais inventoriés.
     columns:
@@ -170,7 +170,7 @@ models:
       - name: stock
         description: "Nom du stock (dépôt ou technicien)"
       - name: type_stock
-        description: "Type d'emplacement : DEPOT (4 sites) ou TECHNICIEN (van), dérivé du libellé du stock via la macro yuman_stock_type"
+        description: "Type d'emplacement : DEPOT ou TECHNICIEN (van), dérivé du libellé du stock via la macro yuman_stock_type"
         tests:
           - accepted_values:
               arguments:
