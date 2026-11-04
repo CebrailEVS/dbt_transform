@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["scenario","annee","mois","bu","kpi"], model=get_where_subquery(ref('fct_finance__pnl_bu'))) }}

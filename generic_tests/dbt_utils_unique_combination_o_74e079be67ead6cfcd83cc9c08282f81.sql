@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["reference","stock","stock_date"], model=get_where_subquery(ref('fct_supply_chain__stock_yuman'))) }}
