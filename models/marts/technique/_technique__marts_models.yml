@@ -1269,6 +1269,12 @@ models:
 
       - name: montant_total
         description: Montant total calculé pour cet article sur l’intervention (quantité × prix unitaire).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - n_planning
+              - piece_ref_nomad
 
   - name: fct_technique__alerting_consommation_aguila
     description: |

@@ -1770,6 +1770,12 @@ models:
         description: "Marge nette rapportée au CA total, en %. NON additif."
       - name: calcule_le
         description: "Horodatage du run qui a produit la ligne. Voir [NOTES] (7)."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - mois
+              - company_id
 
   - name: fct_neshu__intervention_roadman
     description: >

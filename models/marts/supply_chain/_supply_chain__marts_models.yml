@@ -181,6 +181,13 @@ models:
         description: "Date du stock (TIMESTAMP)"
         tests:
           - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - reference
+              - stock
+              - stock_date
 
   - name: fct_supply_chain__rupture_depot_yuman
     description: |

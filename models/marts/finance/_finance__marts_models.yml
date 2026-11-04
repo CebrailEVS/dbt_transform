@@ -80,6 +80,15 @@ models:
 
       - name: evolution_pct_ytd
         description: Évolution en pourcentage entre YTD N et YTD N-1
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - scenario
+              - annee
+              - mois
+              - bu
+              - kpi
 
   - name: fct_finance__pnl_section_mensuel
     description: |
