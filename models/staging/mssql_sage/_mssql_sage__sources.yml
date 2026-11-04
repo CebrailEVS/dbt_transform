@@ -221,9 +221,9 @@ sources:
             description: "Identifiant du paquet de chargement dlt — sert à l’audit"
 
 
-      # NUNSHEN COMMERCE : TABLE COMPTE (overwrite)
+      # COMPTES TIERS (overwrite)
       - name: dbo_f_comptet
-        description: "Table brute des comptes clients de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement overwrite) — plus de blob JSON."
+        description: "Comptes tiers bruts du dossier Sage, toutes BU : clients, fournisseurs, salariés et autres (`ct_type`). Colonnes plates, chargement overwrite."
         columns:
           - name: cb_marq
             description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'overwrite (full refresh) du loader."
@@ -231,15 +231,15 @@ sources:
               - unique
               - not_null
           - name: ct_num
-            description: "Code unique du compte client"
+            description: "Numéro du compte tiers, clé métier"
           - name: ct_intitule
-            description: "Intitulé / nom du compte client"
+            description: "Intitulé du compte : raison sociale ou nom du tiers"
           - name: ct_type
-            description: "Type de compte client"
+            description: "Type de tiers : 0 = client, 1 = fournisseur, 2 = salarié, 3 = autre"
           - name: co_no
-            description: "Code comptable associé"
+            description: "Collaborateur (commercial) rattaché au compte ; 0 = aucun"
           - name: ct_e_mail
-            description: "Email du compte client"
+            description: "E-mail du tiers"
           - name: cb_creation
             description: "Horodatage de création (TIMESTAMP)"
           - name: cb_modification
@@ -249,9 +249,9 @@ sources:
           - name: _dlt_load_id
             description: "Identifiant du paquet de chargement dlt — sert à l’audit"
 
-      # NUNSHEN COMMERCE : TABLE COLLABORATEUR (overwrite)
+      # COLLABORATEURS (overwrite)
       - name: dbo_f_collaborateur
-        description: "Table brute des collaborateurs de MSSQL Sage. Colonnes plates (nouvel extracteur, chargement overwrite) — plus de blob JSON."
+        description: "Collaborateurs bruts du dossier Sage : commerciaux pour la plupart, quelques acheteurs. Colonnes plates, chargement overwrite."
         columns:
           - name: cb_marq
             description: "Identifiant technique Sage (PK ligne). Unicité garantie par l'overwrite (full refresh) du loader."
