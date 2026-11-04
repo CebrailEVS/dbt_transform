@@ -5,8 +5,7 @@
             "field": "date_heure_fin",
             "data_type": "timestamp",
             "granularity": "day"
-        },
-        description = 'Interventions nettoyée depuis nespresso_technique_intervention'
+        }
     )
 }}
 

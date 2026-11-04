@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Types de sociétés Nayka (Oracle company_type) : client, fournisseur, dépôt, agence…'
+        materialized='table'
     )
 }}
 

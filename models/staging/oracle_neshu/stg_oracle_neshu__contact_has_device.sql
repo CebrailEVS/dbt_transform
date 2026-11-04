@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='contact_has_device nettoyés et enrichis depuis evs_contact_has_device — rattachement machine / personnel interne'
+        materialized='table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Tickets Zoho Desk nettoyés — table centrale de toute lanalyse. Source : zoho_desk_associated_tickets. Renomme id en ticket_id.'
+        materialized='table'
     )
 }}
 

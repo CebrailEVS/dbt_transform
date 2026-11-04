@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Produits utilisés lors des interventions (workorders) - 1 ligne = 1 produit utilisé'
+        materialized = 'table'
     )
 }}
 

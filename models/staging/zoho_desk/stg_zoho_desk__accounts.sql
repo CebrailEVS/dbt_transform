@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Comptes Zoho Desk nettoyés (entreprises clientes). Renomme id en account_id.'
+        materialized='table'
     )
 }}
 

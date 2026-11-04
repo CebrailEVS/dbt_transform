@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Libellés traduits de l''ERP depuis string. Résout les idstring en texte, toutes langues confondues.'
+        materialized='table'
     )
 }}
 

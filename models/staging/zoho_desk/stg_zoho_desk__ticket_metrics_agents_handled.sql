@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Agents ayant traité chaque ticket avec leur temps de traitement. Sous-table dlt de ticket_metrics. Jointure : _dlt_parent_id = stg_zoho_desk__ticket_metrics._dlt_id.'
+        materialized='table'
     )
 }}
 

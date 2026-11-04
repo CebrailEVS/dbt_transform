@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Catégories (Machines) nettoyées depuis yuman_material_categories'
+        materialized = 'table'
     )
 }}
 

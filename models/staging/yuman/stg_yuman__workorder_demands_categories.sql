@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Catégories des demandes dintervention nettoyés depuis l Yuman API'
+        materialized = 'table'
     )
 }}
 

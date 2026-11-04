@@ -99,6 +99,16 @@ que le changement, avec la nouvelle raison.
   conventions par l'agent `mart-reviewer`, recentré sur la donnée.
 - **Détail** : [`CONVENTIONS.md`](../CONVENTIONS.md#règles-vérifiées-par-dbt-check).
 
+## Descriptions dans le YAML seulement
+
+- **Décision** : la description d'un modèle est écrite une fois, dans son YAML, à toutes les
+  couches ; une règle `dbt check` interdit `description=` dans un `config()`.
+- **Pourquoi** : seule la description YAML est publiée (doc dbt, BigQuery, agents). Une copie dans
+  le `config()` n'est lue que par qui ouvre le SQL, et diverge : des stagings sont sortis sans
+  description publiée alors que leur `config()` en avait une.
+- **Écarté** : la double description du staging (une ligne dans le `config()`, le détail en YAML).
+- **Détail** : [`CONVENTIONS.md`](../CONVENTIONS.md#descriptions--dans-le-yaml-seulement).
+
 ## Une CI à l'échelle de l'équipe
 
 - **Décision** : la CI construit `state:modified+` dans un dataset propre à la PR, après avoir cloné

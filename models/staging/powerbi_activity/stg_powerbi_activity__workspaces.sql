@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Espaces de travail Power BI nettoyés — 1 ligne = 1 espace PARTAGÉ ACTIF, PK workspace_id. Source : powerbi_workspaces. FILTRE OBLIGATOIRE appliqué : type = 'Workspace' and state = 'Active' — écarte les espaces personnels (types PersonalGroup ET Personal) et les espaces supprimés. S'il en sort autant que d'espaces bruts, le filtre ne s'applique plus."
+        materialized='table'
     )
 }}
 

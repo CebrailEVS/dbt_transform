@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Modes d'amortissement des équipements Nayka (Oracle damping_type) : linéaire, dégressif, crédit-bail."
+        materialized='table'
     )
 }}
 

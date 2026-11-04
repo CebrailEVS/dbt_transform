@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Date du PREMIER contrat de chaque client, base de la typologie GET / OTHER du P&L'
+        materialized='table'
     )
 }}
 

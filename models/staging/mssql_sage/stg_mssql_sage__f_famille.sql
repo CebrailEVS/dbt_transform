@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Familles d'articles Sage Nunshen (dbo_f_famille) : une famille par ligne, avec son libellé et ses paramètres de gestion hérités par les articles. Toutes les familles sont de détail (fa_type = 0) : fa_code_famille est unique à lui seul. Toutes les colonnes métier sont exposées ; seules les copies d'index Sage (cb_<col> en BYTES) et les colonnes techniques cb_* sont écartées."
+        materialized='table'
     )
 }}
 

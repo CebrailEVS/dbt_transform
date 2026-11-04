@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Modifications d'intervention (facturation, technicien réel) saisies dans l'app suivi technique"
+        materialized='table'
     )
 }}
 

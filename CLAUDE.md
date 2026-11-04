@@ -27,7 +27,8 @@ dbt-core 1.x, que `require-dbt-version` refuse.
   `.claude/settings.json` forcent la demande, auto mode compris.
 - **Libres** : commit, push d'une branche de feature, ouverture et merge de PR. Le merge déclenche
   le `cd`, donc la prod : merger seulement avec `pr-check` vert (ou sans `pr-check`, PR sans code),
-  puis suivre le `cd` jusqu'au vert.
+  puis suivre le `cd` jusqu'au vert. Exception : une PR qui crée ou modifie un staging attend la
+  validation de l'utilisateur avant le merge.
 - **Jamais supprimer ni dropper une table**, sauf demande explicite.
 - **Branche depuis `master` à jour**, jamais depuis la branche courante :
   `git fetch origin master && git checkout -b feature/<nom> origin/master`. Avant tout push,
@@ -38,7 +39,9 @@ dbt-core 1.x, que `require-dbt-version` refuse.
   construit en prod. Seule la documentation pure (README, CONTRIBUTING, CONVENTIONS, `docs/`, ce
   fichier) peut partir en push direct, avec les droits owner (à défaut : PR + `gh pr merge --admin`).
 - **`dbt lint`** sur chaque modèle modifié avant de le considérer terminé.
-- **Staging** : écrit par le data engineer lui-même. Ne pas générer de modèle de staging.
+- **Staging** : Claude peut l'écrire, dans le cadre de
+  [`staging.md` § 10](docs/conventions/staging.md#10-écrire-un-staging-avec-claude) : l'utilisateur
+  valide la proposition avant l'écriture, et la PR avant le merge.
 - **Snapshots** : stratégie et colonnes intouchables (Cloud Workflows les exécute). Ne jamais
   renommer un fichier snapshot ni sa table : l'historique SCD2 serait perdu. Seule exception :
   mettre à jour un `ref()` vers une dim renommée.
@@ -103,10 +106,11 @@ d'écrire** ([`docs/conventions/`](docs/conventions/)). SQL et entrée YAML dans
   source en staging, `<entite>_id` en marts ; booléens `is_` / `has_` ; `_at` pour un timestamp,
   `_date` pour une date.
 - **Staging** : une table source = un modèle, renommage passthrough, sans dédoublonnage
-  préventif. `extracted_at` obligatoire, pas de `deleted_at`. Description dans le `config()` et
-  dans le YAML.
+  préventif. `extracted_at` obligatoire, pas de `deleted_at`.
 - **Intermediate** : logique métier d'**une** source, uniquement des `ref()`. Le croisement de
-  sources se fait dans les marts. Description en YAML seulement.
+  sources se fait dans les marts.
+- **Description** : dans le YAML seulement, à toutes les couches, jamais dans le `config()`
+  (règle `dbt check` `description_dans_config`).
 - **Marts** ([`marts.md`](docs/conventions/marts.md)) : description en 4 blocs, grain
   obligatoire ; `config()` = matérialisation seulement ; étoile stricte (ni jointure fait-à-fait,
   ni snowflake, ni OBT) ; tests minimum (§ 7) ; colonnes grain-first.
@@ -154,7 +158,8 @@ Ce qui lit beaucoup pour conclure peu part en subagent ; la session principale g
 | Changement d'un type de colonne, d'un nom de source, d'un sélecteur, d'un tag | agent `boundary-impact` |
 | Revue de diff avant PR | `/code-review` |
 
-Ne pas déléguer : l'écriture des stagings, les décisions d'architecture, les arbitrages métier.
+Ne pas déléguer à un subagent : l'écriture d'un staging (la session principale la mène avec
+l'utilisateur), les décisions d'architecture, les arbitrages métier.
 Un constat d'agent se vérifie avant d'être appliqué. `sonnet` suffit au travail de volume
 (audit d'une BU, migration en fan-out). Deux corrections ratées sur le même point : `/clear` et
 reprompt plus précis.

@@ -1,7 +1,6 @@
 {{ config(
     materialized = 'table',
-    tags = ['intermediate', 'nesp_co', 'opportunites'],
-    description='Liste des Opportunités des commerciaux'
+    tags = ['intermediate', 'nesp_co', 'opportunites']
 ) }}
 
 with base as (

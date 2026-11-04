@@ -1,8 +1,6 @@
 {{
   config(
     materialized='table',
-    description='Table intermédiaire de valorisation du parc machines NESHU par device_name et device_group en filtrant sur les clients actifs NESHU
-    et calculant la valorisation à partir des références de capacité et des prix d\'achat des produits lié à chaque machine/groupe de machines.',
   )
 }}
 

@@ -25,7 +25,7 @@ export DISABLE_DISCOVERY="true"
 export DISABLE_ADMIN_API="true"
 export DISABLE_SQL="true"
 export DISABLE_LSP="true"
-export DISABLE_DBT_CODEGEN="true"   # le staging s'écrit à la main (CLAUDE.md)
+export DISABLE_DBT_CODEGEN="true"   # un staging suit docs/conventions/staging.md, pas le générateur générique
 # Liste blanche : seuls les outils servis à Claude. Le reste (build, run, show…)
 # passe par la CLI, où les règles de permission de settings.json s'appliquent.
 export DBT_MCP_ENABLE_TOOLS="get_lineage_dev,get_node_details_dev"

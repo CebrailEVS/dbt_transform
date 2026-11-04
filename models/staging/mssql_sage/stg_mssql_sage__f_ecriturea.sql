@@ -7,8 +7,7 @@
             "data_type": "timestamp",
             "granularity": "day"
         },
-        cluster_by=['ec_no'],
-        description='Écritures analytiques nettoyées issues du système MSSQL Sage. Déduplication par (ec_no, n_analytique, ea_ligne) — unique key Sage — en gardant le cb_marq le plus récent : Sage crée parfois un nouveau cb_marq sur update au lieu de modifier la ligne existante.'
+        cluster_by=['ec_no']
     )
 }}
 

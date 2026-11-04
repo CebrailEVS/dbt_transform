@@ -130,11 +130,9 @@ complet du raw réécrit chaque ligne avec un `extracted_at` neuf : le modèle s
 
 ## 6. Description
 
-**Obligatoire à deux endroits** :
-- dans le `config()` : une ligne (quoi, table source), pour qui lit le SQL ;
-- dans le YAML, au niveau du modèle : c'est la seule que dbt v2 publie. La description du
-  `config()` n'atteint ni le manifest ni BigQuery ; sans description YAML, la table sort vide dans
-  la doc dbt et pour l'agent text-to-SQL.
+**Dans le YAML, au niveau du modèle, jamais dans le `config()`**, comme à toutes les couches
+([CONVENTIONS.md](../../CONVENTIONS.md#descriptions--dans-le-yaml-seulement)). Elle dit quoi, depuis
+quelle table source, et ce qu'un utilisateur doit savoir (mode de chargement, clé, piège).
 
 ## 7. Tests minimum
 
@@ -162,9 +160,31 @@ Seuils dans `_<source>__sources.yml` ; méthodes et paliers : [docs/freshness.md
 ## 9. Checklist
 
 - [ ] `stg_<source>__<table>.sql` + entrée dans `_<source>__models.yml`
-- [ ] `description` dans le `config()` **et** dans le YAML
+- [ ] Description dans le YAML, pas dans le `config()`
 - [ ] Pas de `qualify` préventif ; PK testée `unique` en `error`
 - [ ] `extracted_at` exposé ; `created_at` / `updated_at` si la source les porte
 - [ ] Colonnes castées explicitement (surtout en incrémental)
 - [ ] PK `unique` + `not_null`, FK `relationships`
 - [ ] `dbt lint` OK
+
+## 10. Écrire un staging avec Claude
+
+Claude peut écrire un staging. Le staging fixe le sens et le type de chaque colonne pour toutes les
+couches au-dessus : il suit donc un cadre strict, et l'utilisateur valide deux fois.
+
+1. **Comprendre la source.** Lire sa page `docs/architecture/<source>.md` (pièges connus). Profiler
+   la table dans `prod_raw` : types réels, part de null, cardinalité, valeurs des colonnes d'état ou
+   de type, plage des dates et leur fuseau, clé candidate (`count(*)` contre
+   `count(distinct <clé>)`).
+2. **Proposer avant d'écrire.** Présenter à l'utilisateur, en une fois : la clé retenue et sa preuve,
+   les renommages, les casts, la matérialisation, les tests, et chaque hypothèse sur la donnée.
+   Rien ne s'écrit sans son accord.
+3. **Écrire selon cette page.** Une table source, un modèle : ni jointure, ni filtre métier, ni
+   dédoublonnage préventif ; `extracted_at` ; casts explicites ; description dans le
+   YAML ; PK `unique` + `not_null`, FK `relationships`. Source déclarée dans
+   `_<source>__sources.yml` avec sa fraîcheur, tag dans `dbt_project.yml`, page
+   `docs/architecture/` si la source a des pièges.
+4. **Vérifier.** Build en dev (dataset vidé en début de branche), tests, `dbt lint`, `dbt check` ;
+   nombre de lignes égal à celui du raw.
+5. **Faire valider la PR.** L'utilisateur relit et valide avant le merge, par exception à
+   l'autonomie de merge de Claude.

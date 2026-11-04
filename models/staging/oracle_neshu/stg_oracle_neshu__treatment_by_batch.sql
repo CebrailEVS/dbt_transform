@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Traitements par lot de l''ERP depuis evs_treatment_by_batch'
+        materialized='table'
     )
 }}
 

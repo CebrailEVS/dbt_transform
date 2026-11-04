@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Staging "flattened" : une ligne = 1 commande + 1 pièce (dépliage du champ json lines).'
+        materialized = 'table'
     )
 }}
 

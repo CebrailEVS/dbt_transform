@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Contact nettoyés et enrichis depuis lcdp_contact'
+        materialized='table'
     )
 }}
 

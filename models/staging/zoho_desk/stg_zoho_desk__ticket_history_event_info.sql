@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Détail des champs modifiés par événement de ticket_history — une ligne par champ modifié. Jointure : _dlt_parent_id = stg_zoho_desk__ticket_history._dlt_id. Filtrer sur property_name pour isoler un type de changement (Status, Assignee, Priority, etc.).'
+        materialized='table'
     )
 }}
 

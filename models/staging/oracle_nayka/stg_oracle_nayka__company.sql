@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Sociétés Nayka (Oracle company) : clients, fournisseurs, dépôts, agences. Les champs personnalisés EFFECTIF et INSTALLATION de la colonne d'extension xml sont extraits et typés."
+        materialized='table'
     )
 }}
 

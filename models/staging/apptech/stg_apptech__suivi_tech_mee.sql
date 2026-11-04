@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Décisions de facturation des mises en exploitation (MEE) par intervention, depuis les snapshots NDJSON de l'app suivi technique"
+        materialized='table'
     )
 }}
 

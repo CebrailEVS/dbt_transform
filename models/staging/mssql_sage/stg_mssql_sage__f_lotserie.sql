@@ -6,8 +6,7 @@
             "data_type": "timestamp",
             "granularity": "day"
         },
-        cluster_by=['ar_ref', 'de_no'],
-        description="Photos des lots et numéros de série Sage Nunshen (dbo_f_lotserie). Chargement append : chaque run dlt ajoute une photo complète, identifiée par extracted_at. Toutes les photos sont gardées, la sélection d'une photo par jour se fait en aval. Dans une photo, une ligne par mouvement de lot : l'entrée (dl_no_in) et, une fois sorti, la sortie (dl_no_out, 0 tant que le lot n'est pas sorti). Sage ne déclare aucune clé unique. Sage écrit 1753-01-01 pour une date vide : convertie en NULL."
+        cluster_by=['ar_ref', 'de_no']
     )
 }}
 

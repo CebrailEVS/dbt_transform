@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Tâches Nayka (Oracle task), table centrale de l'ERP : documents commerciaux (commandes, BL, factures), mouvements de stock, interventions, planifications. Le type fonctionnel est porté par task_type.code_type."
+        materialized='table'
     )
 }}
 

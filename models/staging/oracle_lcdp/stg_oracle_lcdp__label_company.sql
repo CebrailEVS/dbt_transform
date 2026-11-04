@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Labels company LCDP nettoyés depuis la vue aplatie lcdp_v_label_company (1 ligne par company/label). Porte le code, la famille et le libellé FR du label, prêt pour le pivot dans dim_lcdp__company.'
+        materialized='table'
     )
 }}
 

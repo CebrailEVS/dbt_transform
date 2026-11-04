@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Demande dintervention nettoyés et enrichis depuis yuman_workorder_demands'
+        materialized = 'table'
     )
 }}
 

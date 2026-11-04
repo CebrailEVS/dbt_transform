@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Statuts des tâches Nayka (Oracle task_status) : un code par statut (PREVU, FAIT, VALIDE…).'
+        materialized='table'
     )
 }}
 

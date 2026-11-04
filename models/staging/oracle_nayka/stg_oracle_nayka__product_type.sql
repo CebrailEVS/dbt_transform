@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Types de produits Nayka (Oracle product_type) : produit, pièce, modèle, ligne de prix…'
+        materialized='table'
     )
 }}
 

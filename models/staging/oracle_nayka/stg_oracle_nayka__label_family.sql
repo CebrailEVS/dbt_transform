@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Familles d'étiquettes Nayka (Oracle label_family) : axe de classement posé sur les sociétés, machines, produits, ressources, contrats et tâches."
+        materialized='table'
     )
 }}
 

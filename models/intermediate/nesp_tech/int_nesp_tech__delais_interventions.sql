@@ -1,6 +1,5 @@
 {{ config(
-    materialized='table',
-    description='Modèle intermediate construisant la clé de facturation des interventions techniques selon typologie, machine, mini-prev et zone montagne'
+    materialized='table'
 ) }}
 
 with inter as (

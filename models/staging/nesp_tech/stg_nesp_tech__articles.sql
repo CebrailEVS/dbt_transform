@@ -5,8 +5,7 @@
             "field": "date_intervention",
             "data_type": "date",
             "granularity": "day"
-        },
-        description = 'Articles consommées nettoyée depuis nespresso_technique_articles'
+        }
     )
 }}
 

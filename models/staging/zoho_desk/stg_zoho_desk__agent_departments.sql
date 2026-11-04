@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Table pont agent ↔ département, dénormalisée depuis le tableau JSON associated_department_ids de API Zoho. Pas de colonne id à renommer dans cette table.'
+        materialized='table'
     )
 }}
 

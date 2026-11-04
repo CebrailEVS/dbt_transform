@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Coût des produits chargés en machine et livrés en BL, par client et par mois'
+        materialized='table'
     )
 }}
 

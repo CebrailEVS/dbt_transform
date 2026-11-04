@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Produits Nayka (Oracle product) : produits vendus, pièces, modèles de machines (cible de device.idmodel), moyens de paiement et produits calculés. code n'est unique qu'au sein d'un type de produit."
+        materialized='table'
     )
 }}
 

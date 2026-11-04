@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Exécutions du job dbt-runner, une ligne par exécution, depuis les enveloppes de publish_run.py"
+        materialized='table'
     )
 }}
 

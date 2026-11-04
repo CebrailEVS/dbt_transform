@@ -3,8 +3,7 @@ version: 2
 # ─────────────────────────────────────────────────────────────────────────────
 # STAGING : Power BI activity
 #
-# Descriptions courtes : dans le {{ config() }} de chaque modèle (règle projet).
-# Ce fichier porte le contexte métier complémentaire et les tests.
+# Description complète et tests de chaque modèle.
 #
 # TESTS `relationships` — ce qui est testé et ce qui ne l'est pas.
 #
@@ -32,16 +31,18 @@ models:
   # ═══════════════════════════════════════════════════════════════════════════
 
   - name: stg_powerbi_activity__events
-    description: >
-      Grain : 1 ligne = 1 événement du journal d'audit unifié Power BI.
-      Toutes les activités sont conservées (aucun filtre) — voir le config block.
+    description: >-
+      Événements d'audit Power BI nettoyés — 1 ligne = 1 événement du journal d'audit unifié, PK
+      event_id. Source : powerbi_activity_events. AUCUN filtre d'activité ici : RefreshDataset
+      (l'essentiel du volume) est conservé volontairement, il sert de monitoring des pipelines et de
+      base au coût de maintien des rapports dormants. Filtrer activity = 'ViewReport' en aval pour
+      mesurer l'usage humain. Partitionné sur created_at pour l'élagage de partition.
 
-      Contrainte RGPD : `user_id` / `user_key` identifient nominativement un
-      salarié. Le dispositif relève du suivi d'activité, avec une finalité
-      déclarée de rationalisation du parc de rapports, PAS d'évaluation des
-      personnes. Les modèles aval n'exposent que des agrégats
-      (count(distinct user_id)) — jamais « qui a ouvert quel rapport ».
-      Cf. ingestion/pipelines/powerbi_activity/HABILITATION.md.
+      Contrainte RGPD : `user_id` / `user_key` identifient nominativement un salarié. Le dispositif
+      relève du suivi d'activité, avec une finalité déclarée de rationalisation du parc de rapports,
+      PAS d'évaluation des personnes. Les modèles aval n'exposent que des agrégats (count(distinct
+      user_id)) — jamais « qui a ouvert quel rapport ». Cf.
+      ingestion/pipelines/powerbi_activity/HABILITATION.md.
     tests:
       # Fenêtre de 27 jours à ~80 événements/jour, et prod_raw accumule
       # jusqu'à l'expiration de partition à 365 jours. Bornes larges :
@@ -181,12 +182,15 @@ models:
   # ═══════════════════════════════════════════════════════════════════════════
 
   - name: stg_powerbi_activity__workspaces
-    description: >
-      Grain : 1 ligne = 1 espace de travail PARTAGÉ ET ACTIF.
-      Filtre obligatoire appliqué (type = 'Workspace' and state = 'Active').
-      Les espaces écartés sont des espaces personnels, qui portent DEUX types
-      distincts (`PersonalGroup` et `Personal`) — filtrer sur le seul
-      `PersonalGroup` en laisserait passer.
+    description: >-
+      Espaces de travail Power BI nettoyés — 1 ligne = 1 espace PARTAGÉ ACTIF, PK workspace_id.
+      Source : powerbi_workspaces. FILTRE OBLIGATOIRE appliqué : type = 'Workspace' and state =
+      'Active' — écarte les espaces personnels (types PersonalGroup ET Personal) et les espaces
+      supprimés. S'il en sort autant que d'espaces bruts, le filtre ne s'applique plus.
+
+      Filtre obligatoire appliqué (type = 'Workspace' and state = 'Active'). Les espaces écartés
+      sont des espaces personnels, qui portent DEUX types distincts (`PersonalGroup` et `Personal`)
+      — filtrer sur le seul `PersonalGroup` en laisserait passer.
     tests:
       # GARDE-FOU DU FILTRE. Si le nombre d'espaces remonte à celui des espaces bruts,
       # le filtre a sauté et tous les chiffres d'usage en aval sont faux.
@@ -238,16 +242,19 @@ models:
         description: "Toujours null : `state = 'Deleted'` existe à la source mais sans horodatage, et ces lignes sont écartées par le filtre."
 
   - name: stg_powerbi_activity__reports
-    description: >
-      Grain : 1 ligne = 1 rapport original, hors rapports de métriques d'usage.
-      Deux filtres obligatoires appliqués.
+    description: >-
+      Rapports Power BI nettoyés — 1 ligne = 1 rapport original hors métriques d'usage, PK
+      report_id. Source : powerbi_reports. DEUX FILTRES OBLIGATOIRES appliqués : app_id is null
+      (écarte les copies d'App, que les événements ViewReport ne référencent jamais) et exclusion
+      des rapports 'usage metrics report' auto-générés. S'il en sort autant que de rapports bruts,
+      les filtres ne s'appliquent plus. Le périmètre métier exige EN PLUS la restriction aux espaces
+      partagés actifs — jointure sur les workspaces, donc en intermediate, pas ici.
 
-      ⚠️ CE MODÈLE N'EST PAS LE PÉRIMÈTRE MÉTIER. Les « rapports métier »
-      exigent EN PLUS la restriction aux espaces partagés
-      actifs — soit une jointure vers les workspaces, interdite en staging
-      (staging.md § 1 et § 9 : une source de staging = une table source, pas de
-      jointure, pas de logique de périmètre). Cette restriction appartient à
-      l'intermediate. Le périmètre métier s'obtient en trois restrictions successives :
+      Deux filtres obligatoires appliqués. ⚠️ CE MODÈLE N'EST PAS LE PÉRIMÈTRE MÉTIER. Les «
+      rapports métier » exigent EN PLUS la restriction aux espaces partagés actifs — soit une
+      jointure vers les workspaces, interdite en staging (staging.md § 1 et § 9 : une source de
+      staging = une table source, pas de jointure, pas de logique de périmètre). Cette restriction
+      appartient à l'intermediate. Le périmètre métier s'obtient en trois restrictions successives :
       espace partagé actif, hors copies d'App, hors métriques d'usage.
     tests:
       # GARDE-FOU DES FILTRES. Un retour vers le volume brut signale que les filtres ont sauté.
@@ -332,14 +339,16 @@ models:
         description: "Toujours null — la source ne marque pas les suppressions (snapshot `replace` : un rapport supprimé disparaît de l'inventaire)."
 
   - name: stg_powerbi_activity__datasets
-    description: >
-      Grain : 1 ligne = 1 modèle sémantique du locataire. Aucun filtre obligatoire.
+    description: >-
+      Modèles sémantiques Power BI nettoyés — 1 ligne = 1 modèle du locataire, PK dataset_id. Source
+      : powerbi_datasets. Aucun filtre obligatoire sur cette table ; en revanche certaines lignes
+      portent content_provider_type = 'UsageMetricsUserReport' (modèles des rapports de métriques
+      auto-générés) et doivent être écartées de tout décompte de parc en aval.
 
-      À savoir en aval : certaines lignes portent
-      `content_provider_type = 'UsageMetricsUserReport'` — ce sont les modèles
-      des rapports de métriques d'usage auto-générés par Power BI, pendant du
-      filtre n°2 côté rapports. À écarter de tout décompte de parc ou de coût
-      de rafraîchissement.
+      Aucun filtre obligatoire. À savoir en aval : certaines lignes portent `content_provider_type =
+      'UsageMetricsUserReport'` — ce sont les modèles des rapports de métriques d'usage auto-générés
+      par Power BI, pendant du filtre n°2 côté rapports. À écarter de tout décompte de parc ou de
+      coût de rafraîchissement.
     tests:
       - dbt_expectations.expect_table_row_count_to_be_between:
           arguments:

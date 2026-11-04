@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Contrats nettoyés depuis evs_contract, colonne XML parsée ici même.'
+        materialized='table'
     )
 }}
 

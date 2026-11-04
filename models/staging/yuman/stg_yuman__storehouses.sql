@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Storehouses Yuman nettoyés depuis l API'
+        materialized = 'table'
     )
 }}
 

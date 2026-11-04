@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Contacts Zoho Desk nettoyés (personnes physiques ayant ouvert des tickets). Renomme id en contact_id.'
+        materialized='table'
     )
 }}
 

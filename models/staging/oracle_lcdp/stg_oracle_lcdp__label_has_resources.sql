@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='label_has_resources nettoyés et enrichis depuis lcdp_label_has_resources'
+        materialized='table'
     )
 }}
 

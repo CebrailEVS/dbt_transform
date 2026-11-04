@@ -3,8 +3,7 @@
         materialized='incremental',
         unique_key='task_product_id',
         partition_by={'field': 'task_start_date', 'data_type': 'timestamp'},
-        incremental_strategy='merge',
-        description='Table intermédiaire des tâches de chargement - avec enrichissement ressources (roadman, véhicule)'
+        incremental_strategy='merge'
     )
 }}
 

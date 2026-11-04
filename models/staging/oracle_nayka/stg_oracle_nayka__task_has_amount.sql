@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Montants des tâches Nayka par taux de TVA (Oracle task_has_amount) : base HT, TVA et part du total, une ligne par tâche × taux × taxe × région fiscale.'
+        materialized='table'
     )
 }}
 

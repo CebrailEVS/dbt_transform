@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Étiquettes des ressources Nayka (vue Oracle v_label_resources) : une ligne par ressource × étiquette, avec la famille et le libellé français, seule source de libellé lisible des étiquettes."
+        materialized='table'
     )
 }}
 

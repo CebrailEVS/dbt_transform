@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Rattachement des adresses aux sociétés Nayka (Oracle company_has_location) : une ligne par société × adresse × type d'adresse."
+        materialized='table'
     )
 }}
 

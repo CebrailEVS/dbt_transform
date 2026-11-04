@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Table des appels SAV LCDP (task_type 130 - SERVICECALL) avec agent rattaché et labels catégorie / sous-catégorie pivotés'
+        materialized='table'
     )
 }}
 

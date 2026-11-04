@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Départements Zoho Desk nettoyés (groupes organisationnels recevant les tickets). Renomme id en department_id.'
+        materialized='table'
     )
 }}
 

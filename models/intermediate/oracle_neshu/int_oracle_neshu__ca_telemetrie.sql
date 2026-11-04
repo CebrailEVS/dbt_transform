@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='CA des ventes télémétrie (Nayax) par client et par mois, hors distributions gratuites'
+        materialized='table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Ressources affectées aux tâches Nayka (Oracle task_has_resources) : une ligne par tâche × ressource × statut d’affectation.'
+        materialized='table'
     )
 }}
 

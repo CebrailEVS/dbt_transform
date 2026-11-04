@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Sites nettoyés avec référence client validée'
+        materialized = 'table'
     )
 }}
 

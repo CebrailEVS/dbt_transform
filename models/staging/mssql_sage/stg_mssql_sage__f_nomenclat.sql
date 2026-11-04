@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Nomenclatures Sage Nunshen (dbo_f_nomenclat) : une ligne par lien composé → composant, avec la quantité de composant pour une unité de composé. Clé Sage : (ar_ref, no_ref_det, ag_no1, ag_no2, no_operation) ; gammes et opérations ne sont pas utilisées chez Nunshen, donc (ar_ref, no_ref_det) est unique en pratique."
+        materialized='table'
     )
 }}
 

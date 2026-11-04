@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Types d'équipements Nayka (Oracle device_type) : machine, télémétrie, TPE, accessoire…"
+        materialized='table'
     )
 }}
 

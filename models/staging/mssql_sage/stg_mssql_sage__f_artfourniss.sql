@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Références article par fournisseur Sage Nunshen (dbo_f_artfourniss) : une ligne par couple article × fournisseur, avec la référence et le tarif d'achat chez ce fournisseur. Un article peut avoir plusieurs fournisseurs, dont un seul principal (af_principal = 1). Sage écrit 1753-01-01 pour une date vide : convertie en NULL."
+        materialized='table'
     )
 }}
 

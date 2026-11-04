@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Chiffre d''affaires mensuel par client, ventilé en six composantes'
+        materialized='table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Table intermédiaire des tâches de bon de réception - avec enrichissement produit, destination, quantité et valorisation'
+        materialized='table'
     )
 }}
 

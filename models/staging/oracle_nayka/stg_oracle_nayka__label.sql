@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Étiquettes Nayka (Oracle label) : valeurs d'une famille d'étiquettes. code n'est unique qu'au sein de sa famille."
+        materialized='table'
     )
 }}
 

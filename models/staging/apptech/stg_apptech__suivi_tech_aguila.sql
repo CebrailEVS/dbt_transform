@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Overrides Aguila (conversion code 5) par intervention, depuis les snapshots NDJSON de l'app suivi technique"
+        materialized='table'
     )
 }}
 

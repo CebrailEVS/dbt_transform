@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Agents Zoho Desk nettoyés (membres de l équipe support). Renomme id en agent_id. Expose _dlt_id pour la jointure vers stg_zoho_desk__agent_departments.'
+        materialized='table'
     )
 }}
 

@@ -4,8 +4,7 @@
         incremental_strategy='merge',
         partition_by={'field': 'created_at', 'data_type': 'timestamp', 'granularity': 'month'},
         cluster_by=['idtask_type', 'idhistoric_action', 'idtask'],
-        on_schema_change='append_new_columns',
-        description='Historique des actions sur les tâches depuis evs_task_historic : une ligne par action, en ajout seul'
+        on_schema_change='append_new_columns'
     )
 }}
 

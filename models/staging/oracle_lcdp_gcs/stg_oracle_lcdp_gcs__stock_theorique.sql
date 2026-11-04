@@ -1,8 +1,7 @@
 {{
     config(
         materialized = 'table',
-        partition_by = {"field": "date_system", "data_type": "timestamp"},
-        description = 'Table des stocks théoriques Oracle LCDP, chargée par le pipeline dlt oracle_lcdp_stock. Les horloges Oracle, nues, sont déclarées en Europe/Paris.'
+        partition_by = {"field": "date_system", "data_type": "timestamp"}
     )
 }}
 

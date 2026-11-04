@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Types de ressources Nayka (Oracle resources_type) : personne, véhicule, sous-traitant…'
+        materialized='table'
     )
 }}
 

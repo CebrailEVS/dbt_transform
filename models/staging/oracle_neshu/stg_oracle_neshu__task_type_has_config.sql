@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Paramétrage par type de tâche depuis task_type_has_config. Porte le coefficient de signe du chiffre d''affaires.'
+        materialized='table'
     )
 }}
 

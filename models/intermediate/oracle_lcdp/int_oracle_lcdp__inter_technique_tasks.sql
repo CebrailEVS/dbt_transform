@@ -3,8 +3,7 @@
         materialized='incremental',
         unique_key='task_id',
         partition_by={'field': 'task_start_date', 'data_type': 'timestamp'},
-        incremental_strategy='merge',
-        description='Table des interventions techniques (task_type 131) avec labels task pivotés'
+        incremental_strategy='merge'
     )
 }}
 

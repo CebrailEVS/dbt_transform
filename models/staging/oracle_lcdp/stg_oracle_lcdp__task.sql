@@ -5,8 +5,7 @@
         partition_by={'field': 'real_start_date', 'data_type': 'timestamp'},
         incremental_strategy='merge',
         on_schema_change='append_new_columns',
-        cluster_by=['idtask_type','idtask_status','idcompany_peer','iddevice'],
-        description='Table de fait des tâches depuis la table lcdp_task'
+        cluster_by=['idtask_type','idtask_status','idcompany_peer','iddevice']
     )
 }}
 

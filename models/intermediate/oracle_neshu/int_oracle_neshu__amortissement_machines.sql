@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Dotation aux amortissements mensuelle par machine et par client, machine et sous-équipements'
+        materialized='table'
     )
 }}
 

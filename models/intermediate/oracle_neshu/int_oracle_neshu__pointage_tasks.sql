@@ -1,11 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Table intermédiaire des tâches des pointages roadman sur les débuts & fin de journées filtré sur les tâches de type POINTAGE ' 
-                    'et filtré sur label START_DAY & END_DAY (idtask_type=194, label START_DAY / END_DAY) avec code_status_record=1. '
-                    'Chaque pointage est associé à une ressource roadman (idresources_type=2). '
-                    '1 ligne = 1 tâche pointage'
-                    'Filtrée pour ne garder que les tâches avec ressource roadman associée.'
+        materialized='table'
     )
 }}
 

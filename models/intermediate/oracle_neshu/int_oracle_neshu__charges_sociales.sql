@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Enveloppe mensuelle de charges sociales saisie dans l''ERP, base du coût de main-d''oeuvre réparti'
+        materialized='table'
     )
 }}
 

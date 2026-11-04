@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Enrichissement 1:1 par ticket : flags SLA, champs custom (cf_*), résolution, layout. Renomme _zoho_desk_tickets_id en ticket_id.'
+        materialized='table'
     )
 }}
 
