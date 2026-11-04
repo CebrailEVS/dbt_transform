@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="ct_type", model=get_where_subquery(ref('stg_mssql_sage__f_comptet')), quote=false, values=[0,1,2,3]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Table des comptes clients Nunshen nettoy\u00e9e et transform\u00e9e depuis la table source dbo_f_comptet de MSSQL Sage. Source en colonnes plates (overwrite)."""
+      description="""Comptes tiers du dossier Sage (dbo_f_comptet), une ligne par compte (`ct_num`) : clients, fournisseurs, salari\u00e9s et autres, toutes BU, distingu\u00e9s par `ct_type`. Ce n'est pas une liste de clients : filtrer `ct_type` pour en faire une."""
     )
     as (
       
@@ -59,9 +59,5 @@ cleaned_data as (
 
 select *
 from cleaned_data
-qualify row_number() over (
-    partition by ct_num
-    order by updated_at desc, cb_marq desc
-) = 1
     );
   

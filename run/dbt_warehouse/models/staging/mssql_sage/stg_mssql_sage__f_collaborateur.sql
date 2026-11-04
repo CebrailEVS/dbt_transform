@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Table des collaborateur Nunshen nettoy\u00e9e et transform\u00e9e depuis la table source dbo_f_collaborateur de MSSQL Sage. Source en colonnes plates (overwrite)."""
+      description="""Collaborateurs du dossier Sage (dbo_f_collaborateur), une ligne par collaborateur (`co_no`) : les commerciaux pour la plupart, et quelques acheteurs. Rattach\u00e9s aux comptes tiers et aux documents par `co_no`."""
     )
     as (
       
@@ -40,9 +40,5 @@ cleaned_data as (
 
 select *
 from cleaned_data
-qualify row_number() over (
-    partition by co_no
-    order by updated_at desc, cb_marq desc
-) = 1
     );
   
