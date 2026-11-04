@@ -1,7 +1,5 @@
-{{ config(severity='warn') }}
 -- Règle : un fait porte un test d'unicité sur son grain (docs/conventions/marts.md § 7) :
 -- sans lui, un doublon passe en silence jusqu'aux totaux de Power BI.
--- En warn tant que le stock existe ; passer en error une fois résorbé.
 select m.name as fait
 from {{ info_schema('models') }} as m
 where m.original_file_path like 'models/marts/%'
