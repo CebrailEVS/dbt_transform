@@ -3,6 +3,7 @@ name: check-staging-relationships
 description: Audite les tests relationships d'une couche staging contre les clés étrangères déclarées par la source. Dit lesquels sont conformes, lesquels reposent sur une hypothèse, et lesquels manquent. Lecture seule, ne modifie aucun .yml.
 argument-hint: "<source dbt> [--tout] (ex. oracle_lcdp)"
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # Auditer les relationships d'une couche staging

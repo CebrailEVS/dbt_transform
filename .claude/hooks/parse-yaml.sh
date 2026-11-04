@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Hook: PostToolUse → run dbt parse after every .yml edit in models/
+# Hook: PostToolUse → run dbt parse after every .yml edit in models/, snapshots/, data/
 # Catches broken ref(), missing columns, and YAML schema errors immediately.
 # Exit 0 = parse OK; exit 2 = parse error (Claude sees output and fixes it)
 
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('tool_input', {}).get('file_path', ''))")
 
-# Only act on .yml files inside models/
-[[ "$FILE_PATH" == *.yml && "$FILE_PATH" == */models/* ]] || exit 0
+# Only act on .yml files that dbt parses (models, snapshots, seeds)
+[[ "$FILE_PATH" == *.yml ]] || exit 0
+[[ "$FILE_PATH" == */models/* || "$FILE_PATH" == */snapshots/* || "$FILE_PATH" == */data/* ]] || exit 0
 
 # Resolve project root from this hook's location (.claude/hooks/ → two levels up).
 # Keeps the hook portable across machines / checkout paths.

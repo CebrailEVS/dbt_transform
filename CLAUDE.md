@@ -22,10 +22,11 @@ dbt-core 1.x, que `require-dbt-version` refuse.
 
 ## Règles strictes
 
-- **Jamais `--target prod`**, sauf demande explicite.
+- **Confirmation de l'utilisateur, à chaque fois** : une commande `--target prod`, un push sur
+  `master`, un merge de PR (il déploie en prod). Un accord passé ne vaut pas pour la fois
+  suivante. Les règles `ask` de `.claude/settings.json` forcent la demande, auto mode compris.
+- **Libres sur une branche de feature** : commit, push, ouverture de PR.
 - **Jamais supprimer ni dropper une table**, sauf demande explicite.
-- **Jamais de `git push` ni de PR sans GO explicite, à chaque fois.** Un GO donné plus tôt ne
-  vaut pas pour le push suivant. Les commits locaux sur une branche de feature sont libres.
 - **Branche depuis `master` à jour**, jamais depuis la branche courante :
   `git fetch origin master && git checkout -b feature/<nom> origin/master`. Avant tout push,
   `git log --oneline origin/master..HEAD` et `git diff --stat origin/master...HEAD` ne montrent
@@ -139,16 +140,14 @@ Ce qui lit beaucoup pour conclure peu part en subagent ; la session principale g
 | Situation | Délégation |
 |---|---|
 | Comprendre comment marche X, recherche large | agent `Explore` |
-| Un mart semble fini | agent `mart-reviewer`, **avant** de le déclarer terminé |
+| Un mart semble fini | agent `mart-reviewer`, **avant** de le déclarer terminé : il confronte le mart à la donnée de prod (grain, réconciliation, orphelins, montants, fuseau) |
 | Changement d'un type de colonne, d'un nom de source, d'un sélecteur, d'un tag | agent `boundary-impact` |
-| Audit lourd sur BigQuery (`audit-docs`, `audit-sources`, `check-staging-relationships`) | la skill dans un subagent |
 | Revue de diff avant PR | `/code-review` |
 
 Ne pas déléguer : l'écriture des stagings, les décisions d'architecture, les arbitrages métier.
-Les agents-gardes (`mart-reviewer`, `boundary-impact`, `tf-plan-reviewer`, `pipeline-reviewer`)
-sont seuls relecteurs avant la prod : `opus` + `effort: high`. `sonnet` sert au travail de
-volume (audit d'une BU, scaffolding, migration en fan-out). Deux corrections ratées sur le même
-point : `/clear` et reprompt plus précis.
+Un constat d'agent se vérifie avant d'être appliqué. `sonnet` suffit au travail de volume
+(audit d'une BU, migration en fan-out). Deux corrections ratées sur le même point : `/clear` et
+reprompt plus précis.
 
 ## Tenir la doc à jour
 
