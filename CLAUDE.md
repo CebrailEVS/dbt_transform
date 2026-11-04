@@ -57,8 +57,12 @@ Détail et raisons : [`docs/environnements.md`](docs/environnements.md).
 - **Un seul projet GCP** `evs-datastack-prod`, un dataset par usage ; la frontière est l'IAM.
   `dev` → `dbt_<toi>`, `ci` → `dbt_ci_pr_<N>`, `prod` → `prod_<couche>`. Dev et CI lisent `prod_*`
   et n'y écrivent jamais.
-- **Dataset dev** : toutes les couches dans un seul dataset, vidé au début de chaque branche
-  (`dbt run-operation vider_dataset_dev`), jamais pendant qu'une autre session y travaille.
+- **Dataset dev, un chantier à la fois** : une branche = une session = `dbt_<toi>`, toutes couches
+  confondues. Seule la session du chantier en cours y construit. Avant son premier build en dev,
+  `dbt run-operation vider_dataset_dev` liste les objets et leur date de création : un objet de
+  moins de 2 h qui ne vient pas de la branche → demander à l'utilisateur avant de vider. Une
+  urgence pendant un chantier : branche sans build en dev, validée par `pr-check`
+  ([`docs/environnements.md` § 1](docs/environnements.md#un-chantier-à-la-fois-dataset-vidé-en-début-de-branche)).
 - **`--defer` par défaut** vers le manifest prod (`state/`, tenu à jour par les hooks git ; à la
   main : `scripts/pull-state.sh --force`).
 - **Recette dev ↔ prod** : `--favor-state`, et le même volume en dev et en prod avant

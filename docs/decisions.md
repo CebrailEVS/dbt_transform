@@ -74,14 +74,16 @@ que le changement, avec la nouvelle raison.
   stratégie ou un renommage le perdrait.
 - **Détail** : [`seeds-snapshots.md`](conventions/seeds-snapshots.md#snapshots).
 
-## Développement : defer par défaut, dataset vidé à chaque branche
+## Développement : defer par défaut, un chantier à la fois dans le dataset de dev
 
-- **Décision** : `--defer` seul par défaut, `--favor-state` pour une recette ; le développeur vide
-  son dataset au début de chaque branche (`vider_dataset_dev`).
+- **Décision** : `--defer` seul par défaut, `--favor-state` pour une recette ; un seul chantier
+  construit à la fois dans le dataset de dev, vidé au début de chaque branche (`vider_dataset_dev`).
 - **Pourquoi** : `--favor-state` par défaut ferait lire en prod un parent que l'on vient de
   construire dans une commande précédente, et masquerait la modification. Une table dev restée
   d'un ancien chantier est lue à la place de la prod : le vidage supprime ce cas.
-- **Écarté** : supprimer le dataset au merge (il appartient à une personne, pas à une PR).
+- **Écarté** : supprimer le dataset au merge (il appartient à une personne, pas à une PR) ; un
+  dataset par session ou par branche (des datasets de plus à déclarer et à suivre, pour un gain
+  qu'un chantier à la fois donne déjà).
 - **Détail** : [`environnements.md` § 1 et § 3](environnements.md).
 
 ## Conventions vérifiées par `dbt check`, en dev et en CI

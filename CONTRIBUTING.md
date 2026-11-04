@@ -70,14 +70,16 @@ ou `chore`. Exemple : `feat(neshu): add fct_neshu__passage_appro`.
 ```bash
 git fetch origin master
 git checkout -b feature/kpi-livraison-neshu origin/master   # toujours depuis master à jour
+dbt run-operation vider_dataset_dev                              # aucun objet récent d'un autre chantier ?
 dbt run-operation vider_dataset_dev --args '{confirmer: true}'   # repartir d'un dataset vide
 # ... développer, dbt build -s ..., dbt lint ...
 git commit -m "feat(neshu): add kpi livraison"
 git push -u origin feature/kpi-livraison-neshu      # puis ouvrir la PR sur GitHub
 ```
 
-Vider son dataset au début de chaque branche évite qu'une table d'un ancien chantier soit lue à la
-place de la prod ([docs/environnements.md § 1](docs/environnements.md#vider-son-dataset-au-début-de-chaque-branche)).
+Un seul chantier construit en dev à la fois. Vider le dataset au début de chaque branche évite
+qu'une table d'un ancien chantier soit lue à la place de la prod
+([docs/environnements.md § 1](docs/environnements.md#un-chantier-à-la-fois-dataset-vidé-en-début-de-branche)).
 Si `master` a avancé : `git rebase origin/master` puis `git push --force-with-lease`.
 
 ### Sur la PR
