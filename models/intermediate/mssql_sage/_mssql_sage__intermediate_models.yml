@@ -143,8 +143,10 @@ models:
       à ventiler par la comptabilité.
 
       [COMMENT CONSTRUITE]
-      stg_mssql_sage__f_ecriturec filtré aux comptes de classe 6 et 7 et à partir du plancher
-      var('ecriture_non_ventilee_floor'), en anti-jointure sur les écritures analytiques
+      stg_mssql_sage__f_ecriturec filtré aux comptes de classe 6 et 7, à partir du plancher
+      var('ecriture_non_ventilee_floor'), hors journal de situation (jo_num = 'SIT' : écritures
+      de clôture extournées le mois suivant, que la comptabilité ne ventile pas), en
+      anti-jointure sur les écritures analytiques
       (stg_mssql_sage__f_ecriturea) : on ne garde que les ec_no absents de la table analytique.
       date_facturation est reconstruite (jm_date + (ec_jour-1) jours).
 

@@ -154,7 +154,7 @@ models:
   - name: fct_finance__ecriture_non_ventilee
     description: |
       [QUOI MÉTIER] Liste des écritures comptables de charge (classe 6) ou produit (classe 7) sans aucune ventilation analytique dans Sage — la file des écritures restant à ventiler par la comptabilité, consommée par l'app compta.
-      [COMMENT CONSTRUITE] int_mssql_sage__ecriture_non_ventilee : f_ecriturec filtré aux classes 6/7 et >= var('ecriture_non_ventilee_floor', défaut 2025-01-01), en anti-jointure sur les écritures analytiques f_ecriturea (ec_no absents). date_facturation = jm_date + (ec_jour-1) jours.
+      [COMMENT CONSTRUITE] int_mssql_sage__ecriture_non_ventilee : f_ecriturec filtré aux classes 6/7, >= var('ecriture_non_ventilee_floor', défaut 2025-01-01) et hors journal de situation SIT (écritures de clôture extournées, que la comptabilité ne ventile pas), en anti-jointure sur les écritures analytiques f_ecriturea (ec_no absents). date_facturation = jm_date + (ec_jour-1) jours.
       [GRAIN] 1 ligne par écriture comptable (ecriture_comptable_id).
       [NOTES] Matérialisée en **view** (et non table) : déviation assumée à la convention marts, justifiée par un petit volume, une lecture opérationnelle par l'application compta, sensible à la fraîcheur, et un requêtage peu fréquent. montant brut non signé ; sens_ecriture (0 = débit, 1 = crédit) pour l'interpréter.
 
