@@ -23,6 +23,9 @@ ecritures_6_7 as (
     where
         (cg_num like '6%' or cg_num like '7%')
         and ec_date >= timestamp('2025-01-01')
+        -- Journal de situation : écritures de clôture extournées le mois suivant, que la
+        -- comptabilité ne ventile pas ; elles encombreraient sa liste de travail.
+        and jo_num != 'SIT'
 )
 
 select e.*

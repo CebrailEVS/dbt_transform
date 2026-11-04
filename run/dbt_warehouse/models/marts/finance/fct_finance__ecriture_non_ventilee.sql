@@ -2,7 +2,7 @@
 
   create or replace view `evs-datastack-prod`.`prod_marts`.`fct_finance__ecriture_non_ventilee`
   OPTIONS(
-      description="""[QUOI M\u00c9TIER] Liste des \u00e9critures comptables de charge (classe 6) ou produit (classe 7) sans aucune ventilation analytique dans Sage \u2014 la file des \u00e9critures restant \u00e0 ventiler par la comptabilit\u00e9, consomm\u00e9e par l'app compta.\n[COMMENT CONSTRUITE] int_mssql_sage__ecriture_non_ventilee : f_ecriturec filtr\u00e9 aux classes 6/7 et >= var('ecriture_non_ventilee_floor', d\u00e9faut 2025-01-01), en anti-jointure sur les \u00e9critures analytiques f_ecriturea (ec_no absents). date_facturation = jm_date + (ec_jour-1) jours.\n[GRAIN] 1 ligne par \u00e9criture comptable (ecriture_comptable_id).\n[NOTES] Mat\u00e9rialis\u00e9e en **view** (et non table) : d\u00e9viation assum\u00e9e \u00e0 la convention marts, justifi\u00e9e par un petit volume, une lecture op\u00e9rationnelle par l'application compta, sensible \u00e0 la fra\u00eecheur, et un requ\u00eatage peu fr\u00e9quent. montant brut non sign\u00e9 ; sens_ecriture (0 = d\u00e9bit, 1 = cr\u00e9dit) pour l'interpr\u00e9ter.\n"""
+      description="""[QUOI M\u00c9TIER] Liste des \u00e9critures comptables de charge (classe 6) ou produit (classe 7) sans aucune ventilation analytique dans Sage \u2014 la file des \u00e9critures restant \u00e0 ventiler par la comptabilit\u00e9, consomm\u00e9e par l'app compta.\n[COMMENT CONSTRUITE] int_mssql_sage__ecriture_non_ventilee : f_ecriturec filtr\u00e9 aux classes 6/7, >= var('ecriture_non_ventilee_floor', d\u00e9faut 2025-01-01) et hors journal de situation SIT (\u00e9critures de cl\u00f4ture extourn\u00e9es, que la comptabilit\u00e9 ne ventile pas), en anti-jointure sur les \u00e9critures analytiques f_ecriturea (ec_no absents). date_facturation = jm_date + (ec_jour-1) jours.\n[GRAIN] 1 ligne par \u00e9criture comptable (ecriture_comptable_id).\n[NOTES] Mat\u00e9rialis\u00e9e en **view** (et non table) : d\u00e9viation assum\u00e9e \u00e0 la convention marts, justifi\u00e9e par un petit volume, une lecture op\u00e9rationnelle par l'application compta, sensible \u00e0 la fra\u00eecheur, et un requ\u00eatage peu fr\u00e9quent. montant brut non sign\u00e9 ; sens_ecriture (0 = d\u00e9bit, 1 = cr\u00e9dit) pour l'interpr\u00e9ter.\n"""
     )
   as with __dbt__cte__int_mssql_sage__ecriture_non_ventilee as (
 
@@ -29,6 +29,9 @@ ecritures_6_7 as (
     where
         (cg_num like '6%' or cg_num like '7%')
         and ec_date >= timestamp('2025-01-01')
+        -- Journal de situation : écritures de clôture extournées le mois suivant, que la
+        -- comptabilité ne ventile pas ; elles encombreraient sa liste de travail.
+        and jo_num != 'SIT'
 )
 
 select e.*
