@@ -1,11 +1,13 @@
 {#
-    Vide ton dataset de dev : à lancer au début de chaque branche.
+    Vide ton dataset de dev : à lancer au début de chaque branche, avant le premier build.
 
     --defer lit ta table dev dès qu'elle existe, même ancienne, à la place de la
     prod. Partir d'un dataset vide garantit que tout ce que tu ne construis pas
     est lu en prod, à jour.
 
-    Sans argument, liste ce qui serait supprimé ; ne supprime qu'avec confirmer: true.
+    Sans argument, liste ce qui serait supprimé, avec la date de création, les plus récents
+    d'abord : un objet récent qui ne vient pas de ta branche signale un autre chantier en cours.
+    Ne supprime qu'avec confirmer: true.
         dbt run-operation vider_dataset_dev
         dbt run-operation vider_dataset_dev --args '{confirmer: true}'
 
@@ -37,7 +39,9 @@
     } -%}
     {%- set chemin = target.database ~ '.' ~ dataset -%}
     {%- set objets = run_query(
-        "select table_name, table_type from `" ~ chemin ~ ".INFORMATION_SCHEMA.TABLES` order by table_name"
+        "select table_name, table_type,"
+        ~ " format_timestamp('%Y-%m-%d %H:%M', creation_time, 'Europe/Paris') as cree_le"
+        ~ " from `" ~ chemin ~ ".INFORMATION_SCHEMA.TABLES` order by creation_time desc"
     ) -%}
 
     {%- if objets.rows | length == 0 -%}
@@ -56,7 +60,10 @@
             {{ log(dataset ~ " vidé : " ~ ordres | length ~ " objets supprimés.", info=true) }}
         {%- else -%}
             {%- for objet in objets.rows -%}
-                {{ log("  " ~ objet['table_name'] ~ "  (" ~ objet['table_type'] ~ ")", info=true) }}
+                {{ log(
+                    "  " ~ objet['cree_le'] ~ "  " ~ objet['table_name'] ~ "  (" ~ objet['table_type'] ~ ")",
+                    info=true
+                ) }}
             {%- endfor -%}
             {{ log(
                 ordres | length ~ " objets seraient supprimés de " ~ dataset ~ ". Pour confirmer : "

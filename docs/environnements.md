@@ -16,7 +16,7 @@ par l'**IAM** : les identités dbt hors prod (`dbt-dev`, `dbt-ci`) ne peuvent pa
 | Prod | `prod_staging`, `prod_intermediate`, `prod_marts`, `prod_reference` | runs planifiés (Cloud Run), job `cd` (merge) | permanente |
 | Snapshots | `snapshots` | Cloud Workflows uniquement | permanente |
 | Applications | `prod_app_<application>` | runs planifiés (Cloud Run), job `cd` (merge) ; lu par le seul compte de l'application | permanente |
-| Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | vidé au début de chaque branche ; filet : expiration des tables |
+| Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | un chantier à la fois, vidé au début de chaque branche ; filet : expiration des tables |
 | CI | `dbt_ci_pr_<N>` | job `pr-check` | supprimé à la fermeture de la PR ; filet : expiration des tables |
 | Ingestion de test | `dev_raw`, `dev_raw_staging` | `dlt --target dev` | permanente (dlt garde son état dans `_dlt_version`) |
 
@@ -25,12 +25,25 @@ L'expiration porte sur les **tables**, pas sur le dataset, et court depuis leur 
 chaque build, donc son expiration est repoussée ; un incrémental, non : le `MERGE` ne recrée pas la
 table, qui expire au terme du délai compté depuis son clone ou son full-refresh.
 
-### Vider son dataset au début de chaque branche
+### Un chantier à la fois, dataset vidé en début de branche
 
-```bash
-dbt run-operation vider_dataset_dev                             # liste ce qui serait supprimé
-dbt run-operation vider_dataset_dev --args '{confirmer: true}'  # vide ton dataset
-```
+Un seul dataset de dev, donc un seul chantier qui y construit à la fois : une branche, une session,
+`dbt_<toi>`. D'autres sessions peuvent tourner si elles n'y écrivent rien : lecture de `prod_*`,
+tests en `--favor-state`, documentation, autres dépôts.
+
+1. Nouvelle branche depuis `master` à jour.
+2. Avant le premier build en dev, vider le dataset :
+   ```bash
+   dbt run-operation vider_dataset_dev                             # liste les objets, les plus récents d'abord
+   dbt run-operation vider_dataset_dev --args '{confirmer: true}'  # vide ton dataset
+   ```
+   Un objet créé il y a moins de 2 h qui ne vient pas de ta branche signale un chantier en cours
+   ailleurs : ne pas vider.
+3. Construire, tester, recetter en dev.
+4. PR, `pr-check` vert, merge. Le chantier suivant repart au 1.
+
+Une urgence pendant un chantier passe par sa propre branche, sans build en dev : `pr-check` la
+construit dans `dbt_ci_pr_<N>`, isolé, et le dataset du chantier en cours reste intact.
 
 Une table restée d'un ancien chantier est lue par le defer à la place de la prod (§ 3), et une
 table de quelques jours suffit à fausser une recette. L'expiration n'est qu'un filet.
@@ -38,8 +51,7 @@ table de quelques jours suffit à fausser une recette. L'expiration n'est qu'un 
 La macro lit le dataset du target `dev` ; elle refuse tout autre target et tout dataset hors
 `dbt_<nom>`. Elle supprime les tables et les vues, jamais le dataset, qui appartient à Terraform.
 En reprenant une autre branche en cours, reconstruire ses modèles : leur version dev est partie
-avec le reste. Ne pas vider pendant qu'un autre chantier travaille dans le même dataset (deux
-sessions en parallèle) : ses tables partiraient en cours de route.
+avec le reste.
 
 La macro `generate_schema_name` fait le routage :
 - en **prod** : `prod_<couche>`, le comportement dbt par défaut ;
