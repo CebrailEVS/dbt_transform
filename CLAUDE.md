@@ -22,10 +22,12 @@ dbt-core 1.x, que `require-dbt-version` refuse.
 
 ## Règles strictes
 
-- **Confirmation de l'utilisateur, à chaque fois** : une commande `--target prod`, un push sur
-  `master`, un merge de PR (il déploie en prod). Un accord passé ne vaut pas pour la fois
-  suivante. Les règles `ask` de `.claude/settings.json` forcent la demande, auto mode compris.
-- **Libres sur une branche de feature** : commit, push, ouverture de PR.
+- **Confirmation de l'utilisateur, à chaque fois** : une commande `--target prod`, un push direct
+  sur `master`. Un accord passé ne vaut pas pour la fois suivante. Les règles `ask` de
+  `.claude/settings.json` forcent la demande, auto mode compris.
+- **Libres** : commit, push d'une branche de feature, ouverture et merge de PR. Le merge déclenche
+  le `cd`, donc la prod : merger seulement avec `pr-check` vert (ou sans `pr-check`, PR sans code),
+  puis suivre le `cd` jusqu'au vert.
 - **Jamais supprimer ni dropper une table**, sauf demande explicite.
 - **Branche depuis `master` à jour**, jamais depuis la branche courante :
   `git fetch origin master && git checkout -b feature/<nom> origin/master`. Avant tout push,
