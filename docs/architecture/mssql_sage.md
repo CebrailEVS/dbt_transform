@@ -57,6 +57,8 @@ une réaffectation entre sections et doit inverser le sens. La somme de
 ligne dans `f_ecriturea`. Règle : `left join` comptable → analytique, drapeau
 `is_missing_analytical` ; ces écritures sont exclues du P&L par BU et listées à part dans
 `fct_finance__ecriture_non_ventilee` (bornée par la variable `ecriture_non_ventilee_floor`).
+Cette liste exclut le journal de situation `SIT` : ses écritures de clôture sont extournées le
+mois suivant et la comptabilité ne les ventile pas. Le P&L, lui, les garde.
 
 **BU non résolue.** La BU d'une section se lit d'abord dans le seed
 `ref_mssql_sage__code_analytique_bu`, puis, en repli, par préfixe de section ; une réécriture
