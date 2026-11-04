@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select ecriture_comptable_id as unique_field
-  from `evs-datastack-prod`.`prod_marts`.`fct_finance__ecriture_non_ventilee`
-  where ecriture_comptable_id is not null
+  select site_id as unique_field
+  from `evs-datastack-prod`.`prod_marts`.`dim_technique__site`
+  where site_id is not null
 
 )
 
