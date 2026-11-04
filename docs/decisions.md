@@ -84,6 +84,19 @@ que le changement, avec la nouvelle raison.
 - **Écarté** : supprimer le dataset au merge (il appartient à une personne, pas à une PR).
 - **Détail** : [`environnements.md` § 1 et § 3](environnements.md).
 
+## Conventions vérifiées par `dbt check`, en dev et en CI
+
+- **Décision** : les règles d'architecture qu'une requête peut vérifier (une app qui lit un mart,
+  un intermediate qui croise des sources, un fait qui lit un fait, les tests d'unicité, les
+  descriptions) sont des fichiers de `checks/`, exécutés par `dbt build` en dev et en CI. La prod
+  les saute (`--skip-checks`).
+- **Pourquoi** : une règle écrite dépend de la vigilance d'un relecteur, humain ou agent ; une
+  règle exécutée arrête l'erreur au moment où elle est commise. En prod, la PR les a déjà
+  vérifiées, et une convention ne doit pas arrêter la production.
+- **Écarté** : dbt-project-evaluator et dbt-bouncer, outils tiers en plus ; la relecture des
+  conventions par l'agent `mart-reviewer`, recentré sur la donnée.
+- **Détail** : [`CONVENTIONS.md`](../CONVENTIONS.md#règles-vérifiées-par-dbt-check).
+
 ## Une CI à l'échelle de l'équipe
 
 - **Décision** : la CI construit `state:modified+` dans un dataset propre à la PR, après avoir cloné

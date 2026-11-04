@@ -16,6 +16,7 @@ on:
       - 'snapshots/**'
       - 'macros/**'
       - 'tests/**'
+      - 'checks/**'
       - 'dbt_project.yml'
       - 'profiles.yml'
       - 'packages.yml'
@@ -37,6 +38,7 @@ on:
       - 'snapshots/**'
       - 'macros/**'
       - 'tests/**'
+      - 'checks/**'
       - 'dbt_project.yml'
       - 'selectors.yml'
       - 'profiles.yml'
@@ -234,10 +236,10 @@ jobs:
         run: |
           if [[ -f "state/manifest.json" ]]; then
             echo "Running SELECTIVE build (state:modified+), excluding snapshots..."
-            dbt build --target prod --select state:modified+ --exclude resource_type:snapshot --state state/
+            dbt build --target prod --select state:modified+ --exclude resource_type:snapshot --state state/ --skip-checks
           else
             echo "Running FULL build (no state available), excluding snapshots..."
-            dbt build --target prod --exclude resource_type:snapshot
+            dbt build --target prod --exclude resource_type:snapshot --skip-checks
           fi
 
       - name: dbt docs generate

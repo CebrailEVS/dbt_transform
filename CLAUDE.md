@@ -108,6 +108,10 @@ d'écrire** ([`docs/conventions/`](docs/conventions/)). SQL et entrée YAML dans
   ni snowflake, ni OBT) ; tests minimum (§ 7) ; colonnes grain-first.
 - **Apps** ([`apps.md`](docs/conventions/apps.md)) : partent du staging ou de l'intermediate,
   jamais d'un mart.
+- **`dbt build` exécute les règles de `checks/`**
+  ([`CONVENTIONS.md`](CONVENTIONS.md#règles-vérifiées-par-dbt-check)) : une règle en `error`
+  arrête le build et nomme le modèle en cause. Corriger le modèle ; n'ajouter une exception à la
+  règle qu'avec l'accord de l'utilisateur.
 - **Avant d'écrire un mart**, explorer l'amont dans BigQuery : `SELECT DISTINCT` pour les
   `accepted_values`, `COUNT(*)` et `MIN/MAX` pour les bornes.
 - **Exposures** (`models/exposures/<bu>.yml`) : à mettre à jour dès qu'un mart lu par un rapport
@@ -160,7 +164,7 @@ Dans la même PR que le changement :
 | Nouvelle source | tableau du README, tags dans `dbt_project.yml`, seuils dans `_<source>__sources.yml`, page `docs/architecture/` si la source a des pièges |
 | Nouveau rapport Power BI, nouvelle lecture par une app | `models/exposures/<bu>.yml` |
 | Nouvelle BU | `models/marts/<bu>/` et son YAML, fichier d'exposures, tags |
-| Règle d'une couche | sa page dans `docs/conventions/` |
+| Règle d'une couche | sa page dans `docs/conventions/`, et un fichier `checks/` si une requête peut la vérifier |
 | Règle commune (colonnes, lint, sévérités, fuseau) | `CONVENTIONS.md` |
 | Workflow, PR, checklist | `CONTRIBUTING.md` |
 | Environnement, CI/CD, IAM | `docs/environnements.md` |

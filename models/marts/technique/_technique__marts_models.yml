@@ -373,6 +373,10 @@ models:
 
       [GRAIN]
       1 ligne par `site_id` (PK Yuman).
+
+      [NOTES]
+      Aucun filtre ni transformation : tous les sites présents dans Yuman, tels
+      que le staging les expose.
     columns:
       - name: site_id
         description: "Identifiant unique du site"
