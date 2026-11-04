@@ -458,3 +458,21 @@ models:
 
       - name: supplier_name
         description: Nom du fournisseur
+
+  - name: stg_yuman__materials_categories
+    description: "Catégories de matériels Yuman (API Yuman) : référentiel des catégories de machines, une ligne par catégorie."
+    columns:
+      - name: category_id
+        description: "Identifiant de la catégorie dans Yuman"
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_yuman__workorders_categories
+    description: "Catégories d'intervention Yuman (API Yuman) : référentiel des catégories de bons d'intervention, une ligne par catégorie."
+    columns:
+      - name: category_id
+        description: "Identifiant de la catégorie dans Yuman"
+        tests:
+          - unique
+          - not_null

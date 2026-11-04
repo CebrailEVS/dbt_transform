@@ -1,7 +1,7 @@
 {{
     config(
         materialized = 'table',
-        description = 'Catégories (Machines) nettoyées depuis yuman_material_categories'
+        description="Catégories de matériels Yuman (API Yuman) : référentiel des catégories de machines, une ligne par catégorie."
     )
 }}
 

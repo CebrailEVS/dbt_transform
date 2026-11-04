@@ -325,6 +325,7 @@ models:
         description: "Identifiant du resources"
 
   - name: stg_oracle_neshu__label_has_task
+    description: "Étiquettes posées sur les tâches Neshu (Oracle label_has_task) : rattachement tâche ↔ étiquette."
     columns:
       - name: idlabel
         tests:

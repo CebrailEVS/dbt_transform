@@ -1,7 +1,7 @@
 {{
   config(
     materialized='table',
-    description='Table des sinistres véhicules EVS nettoyé des données sources, récupéré via la source GAC envoyé dans le SFTP EVS',
+    description="Sinistres des véhicules EVS (fichier GAC déposé sur le SFTP EVS) : la version la plus récente de chaque sinistre, identifié par son numéro ou, à défaut, sa référence GAC.",
   )
 }}
 

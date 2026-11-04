@@ -482,6 +482,7 @@ models:
         description: "Identifiant du resources"
 
   - name: stg_oracle_lcdp__label_has_task
+    description: "Étiquettes posées sur les tâches LCDP (Oracle label_has_task) : rattachement tâche ↔ étiquette."
     columns:
       - name: idlabel
         tests:

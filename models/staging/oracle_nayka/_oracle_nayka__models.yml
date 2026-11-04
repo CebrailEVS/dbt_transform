@@ -2,6 +2,7 @@ version: 2
 
 models:
   - name: stg_oracle_nayka__task_status
+    description: "Statuts des tâches Nayka (Oracle task_status) : un code par statut (PREVU, FAIT, VALIDE…)."
     columns:
       - name: idtask_status
         description: "Identifiant du statut (PK). Commence à 0 (PREVU)."
@@ -24,6 +25,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__task_type
+    description: "Types de tâches Nayka (Oracle task_type). code est le libellé propre à l'instance, non unique ; code_type est le type fonctionnel standard de l'ERP (CUSTDELIVERY, SUPPRECEPTION…)."
     columns:
       - name: idtask_type
         description: "Identifiant du type de tâche (PK)."
@@ -59,6 +61,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__company_type
+    description: "Types de sociétés Nayka (Oracle company_type) : client, fournisseur, dépôt, agence…"
     columns:
       - name: idcompany_type
         description: "Identifiant du type de société (PK)."
@@ -85,6 +88,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__contact_type
+    description: "Types de contacts Nayka (Oracle contact_type)."
     columns:
       - name: idcontact_type
         description: "Identifiant du type de contact (PK)."
@@ -111,6 +115,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__device_type
+    description: "Types d'équipements Nayka (Oracle device_type) : machine, télémétrie, TPE, accessoire…"
     columns:
       - name: iddevice_type
         description: "Identifiant du type d'équipement (PK)."
@@ -137,6 +142,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__location_type
+    description: "Types d'adresses Nayka (Oracle location_type) : principale, facturation, livraison, emplacement…"
     columns:
       - name: idlocation_type
         description: "Identifiant du type d'adresse (PK)."
@@ -163,6 +169,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__product_type
+    description: "Types de produits Nayka (Oracle product_type) : produit, pièce, modèle, ligne de prix…"
     columns:
       - name: idproduct_type
         description: "Identifiant du type de produit (PK)."
@@ -189,6 +196,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__resources_type
+    description: "Types de ressources Nayka (Oracle resources_type) : personne, véhicule, sous-traitant…"
     columns:
       - name: idresources_type
         description: "Identifiant du type de ressource (PK)."
@@ -215,6 +223,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__unit_type
+    description: "Types d'unités de produit Nayka (Oracle unit_type) : achat, vente, stock, réappro…"
     columns:
       - name: idunit_type
         description: "Identifiant du type d'unité (PK)."
@@ -241,6 +250,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__label_family
+    description: "Familles d'étiquettes Nayka (Oracle label_family) : axe de classement posé sur les sociétés, machines, produits, ressources, contrats et tâches."
     columns:
       - name: idlabel_family
         description: "Identifiant de la famille d'étiquettes (PK)."
@@ -264,6 +274,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__label
+    description: "Étiquettes Nayka (Oracle label) : valeurs d'une famille d'étiquettes. code n'est unique qu'au sein de sa famille."
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -302,6 +313,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__civility
+    description: "Civilités des contacts Nayka (Oracle civility) : MME, MLLE, M."
     columns:
       - name: idcivility
         description: "Identifiant de la civilité (PK)."
@@ -324,6 +336,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__currency
+    description: "Devises Nayka (Oracle currency) : référentiel ISO 4217 livré avec l'ERP, seul EUR est actif."
     columns:
       - name: idcurrency
         description: "Identifiant de la devise (PK). 1 = EUR."
@@ -343,6 +356,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__damping_type
+    description: "Modes d'amortissement des équipements Nayka (Oracle damping_type) : linéaire, dégressif, crédit-bail."
     columns:
       - name: iddamping_type
         description: "Identifiant du mode d'amortissement (PK)."
@@ -363,6 +377,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__payment_condition
+    description: "Conditions de paiement Nayka (Oracle payment_condition) : délai d'échéance des factures (FACT_30J, FACT_45J…)."
     columns:
       - name: idpayment_condition
         description: "Identifiant de la condition de paiement (PK)."
@@ -388,6 +403,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__payment_type
+    description: "Modes de paiement Nayka (Oracle payment_type) : espèces, CB, paiement mobile, et modes créés par l'instance."
     columns:
       - name: idpayment_type
         description: "Identifiant du mode de paiement (PK)."
@@ -409,6 +425,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__tax_region
+    description: "Régions fiscales TVA Nayka (Oracle tax_region) : France, Corse, DOM, TOM, Belgique, Luxembourg, avec leurs variantes exonérées."
     columns:
       - name: idtax_region
         description: "Identifiant de la région fiscale (PK)."
@@ -432,6 +449,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__company
+    description: "Sociétés Nayka (Oracle company) : clients, fournisseurs, dépôts, agences. Les champs personnalisés EFFECTIF et INSTALLATION de la colonne d'extension xml sont extraits et typés."
     columns:
       - name: idcompany
         description: "Identifiant de la société (PK)."
@@ -569,6 +587,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__location
+    description: "Adresses Nayka (Oracle location) : adresses des sociétés (via company_has_location) et des contacts."
     columns:
       - name: idlocation
         description: "Identifiant de l'adresse (PK)."
@@ -616,6 +635,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__company_has_location
+    description: "Rattachement des adresses aux sociétés Nayka (Oracle company_has_location) : une ligne par société × adresse × type d'adresse."
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -652,6 +672,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__contact
+    description: "Contacts Nayka (Oracle contact) : interlocuteurs des sociétés et utilisateurs de l'ERP."
     columns:
       - name: idcontact
         description: "Identifiant du contact (PK)."
@@ -731,6 +752,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__resources
+    description: "Ressources Nayka (Oracle resources) : personnes (roadmen, techniciens, commerciaux) rattachées à un contact, et ressources système de l'ERP (DTL_*)."
     columns:
       - name: idresources
         description: "Identifiant de la ressource (PK)."
@@ -812,6 +834,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__product
+    description: "Produits Nayka (Oracle product) : produits vendus, pièces, modèles de machines (cible de device.idmodel), moyens de paiement et produits calculés. code n'est unique qu'au sein d'un type de produit."
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -919,6 +942,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__product_unit
+    description: "Unités de conditionnement des produits Nayka (Oracle product_unit) : unité, coefficients de conversion, code-barres."
     columns:
       - name: idproduct_unit
         description: "Identifiant de l'unité (PK)."
@@ -964,6 +988,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__device
+    description: "Équipements Nayka (Oracle device) : machines et accessoires du parc, avec client, propriétaire, fournisseur, modèle, achat et garantie. serial n'est pas unique."
     columns:
       - name: iddevice
         description: "Identifiant de l'équipement (PK)."
@@ -1083,6 +1108,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__contract
+    description: "Contrats clients Nayka (Oracle contract) : société signataire et cliente, durée, reconduction, préavis, dates. Les champs personnalisés EFFECTIF, ENGAGEMENTBIB et ENGAGEMENTBOISSONS du xml sont extraits et typés."
     columns:
       - name: idcontract
         description: "Identifiant du contrat (PK)."
@@ -1172,6 +1198,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__v_label_company
+    description: "Étiquettes des sociétés Nayka (vue Oracle v_label_company) : une ligne par société × étiquette, avec la famille et le libellé français, seule source de libellé lisible des étiquettes."
     tests:
       # Clé primaire déclarée par Oracle sur label_has_company, dont la vue est la jointure.
       - dbt_utils.unique_combination_of_columns:
@@ -1239,6 +1266,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__v_label_device
+    description: "Étiquettes des équipements Nayka (vue Oracle v_label_device) : une ligne par équipement × étiquette, avec la famille et le libellé français, seule source de libellé lisible des étiquettes."
     tests:
       # Clé primaire déclarée par Oracle sur label_has_device, dont la vue est la jointure.
       - dbt_utils.unique_combination_of_columns:
@@ -1306,6 +1334,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__v_label_product
+    description: "Étiquettes des produits Nayka (vue Oracle v_label_product) : une ligne par produit × étiquette, avec la famille et le libellé français, seule source de libellé lisible des étiquettes."
     tests:
       # Clé primaire déclarée par Oracle sur label_has_product, dont la vue est la jointure.
       - dbt_utils.unique_combination_of_columns:
@@ -1373,6 +1402,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__v_label_resources
+    description: "Étiquettes des ressources Nayka (vue Oracle v_label_resources) : une ligne par ressource × étiquette, avec la famille et le libellé français, seule source de libellé lisible des étiquettes."
     tests:
       # Clé primaire déclarée par Oracle sur label_has_resources, dont la vue est la jointure.
       - dbt_utils.unique_combination_of_columns:
@@ -1440,6 +1470,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__label_has_contract
+    description: "Étiquettes posées sur les contrats Nayka (Oracle label_has_contract) : une ligne par contrat × étiquette."
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -1467,6 +1498,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__task
+    description: "Tâches Nayka (Oracle task), table centrale de l'ERP : documents commerciaux (commandes, BL, factures), mouvements de stock, interventions, planifications. Le type fonctionnel est porté par task_type.code_type."
     columns:
       - name: idtask
         description: "Identifiant de la tâche (PK)."
@@ -1645,6 +1677,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC). Ne bouge que sur les tâches modifiées : mesure l'activité, pas la santé du pipeline."
 
   - name: stg_oracle_nayka__task_has_product
+    description: "Lignes produits des tâches Nayka (Oracle task_has_product) : quantités, prix, montants et TVA d'un document, ou équipement déplacé d'un mouvement. Code, libellé, unité et taxe sont figés à la saisie."
     columns:
       - name: idtask_has_product
         description: "Identifiant de la ligne (PK)."
@@ -1819,6 +1852,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__task_has_resources
+    description: "Ressources affectées aux tâches Nayka (Oracle task_has_resources) : une ligne par tâche × ressource × statut d’affectation."
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -1861,6 +1895,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__task_has_amount
+    description: "Montants des tâches Nayka par taux de TVA (Oracle task_has_amount) : base HT, TVA et part du total, une ligne par tâche × taux × taxe × région fiscale."
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -1920,6 +1955,7 @@ models:
         description: "Horodatage d'extraction par dlt (UTC)."
 
   - name: stg_oracle_nayka__label_has_task
+    description: "Étiquettes posées sur les tâches Nayka (Oracle label_has_task) : une ligne par tâche × étiquette."
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

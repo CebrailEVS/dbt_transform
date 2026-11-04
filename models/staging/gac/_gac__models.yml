@@ -2,6 +2,7 @@ version: 2
 
 models:
   - name: stg_gac__vehicule
+    description: "Parc véhicule EVS (GAC → SFTP SG), nettoyé et restreint aux colonnes utiles. Grain source 1:1 (1 ligne = 1 période de contrat type / déclaration AEN)"
     columns:
       - name: contrat_id_gac
         description: "Identifiant GAC du contrat (non unique au grain de la table : un contrat porte plusieurs lignes de contrat type)"
@@ -51,3 +52,6 @@ models:
         description: "Date de saisie du contrat (horodatée)"
       - name: extracted_at
         description: "Horodatage du run dlt (_extracted_at)"
+
+  - name: stg_gac__sinistres
+    description: "Sinistres des véhicules EVS (fichier GAC déposé sur le SFTP EVS) : la version la plus récente de chaque sinistre, identifié par son numéro ou, à défaut, sa référence GAC."

@@ -1,7 +1,7 @@
 {{
     config(
         materialized='table',
-        description='label_has_task nettoyés et enrichis depuis evs_label_has_task'
+        description="Étiquettes posées sur les tâches Neshu (Oracle label_has_task) : rattachement tâche ↔ étiquette."
     )
 }}
 

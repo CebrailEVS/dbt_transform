@@ -168,3 +168,25 @@ Seuils dans `_<source>__sources.yml` ; méthodes et paliers : [docs/freshness.md
 - [ ] Colonnes castées explicitement (surtout en incrémental)
 - [ ] PK `unique` + `not_null`, FK `relationships`
 - [ ] `dbt lint` OK
+
+## 10. Écrire un staging avec Claude
+
+Claude peut écrire un staging. Le staging fixe le sens et le type de chaque colonne pour toutes les
+couches au-dessus : il suit donc un cadre strict, et l'utilisateur valide deux fois.
+
+1. **Comprendre la source.** Lire sa page `docs/architecture/<source>.md` (pièges connus). Profiler
+   la table dans `prod_raw` : types réels, part de null, cardinalité, valeurs des colonnes d'état ou
+   de type, plage des dates et leur fuseau, clé candidate (`count(*)` contre
+   `count(distinct <clé>)`).
+2. **Proposer avant d'écrire.** Présenter à l'utilisateur, en une fois : la clé retenue et sa preuve,
+   les renommages, les casts, la matérialisation, les tests, et chaque hypothèse sur la donnée.
+   Rien ne s'écrit sans son accord.
+3. **Écrire selon cette page.** Une table source, un modèle : ni jointure, ni filtre métier, ni
+   dédoublonnage préventif ; `extracted_at` ; casts explicites ; description dans le `config()` et
+   le YAML ; PK `unique` + `not_null`, FK `relationships`. Source déclarée dans
+   `_<source>__sources.yml` avec sa fraîcheur, tag dans `dbt_project.yml`, page
+   `docs/architecture/` si la source a des pièges.
+4. **Vérifier.** Build en dev (dataset vidé en début de branche), tests, `dbt lint`, `dbt check` ;
+   nombre de lignes égal à celui du raw.
+5. **Faire valider la PR.** L'utilisateur relit et valide avant le merge, par exception à
+   l'autonomie de merge de Claude.
