@@ -2,6 +2,7 @@
 # Launcher for the dbt MCP server (dbt Labs `dbt-mcp`), local dbt Core mode.
 # Sources .env so dbt can resolve profiles.yml — no secrets stored in .mcp.json.
 # Runs via `pipx run` on python3.12 (dbt-mcp requires >=3.12): isolated, ephemeral,
+# version pinned (a new release is adopted on purpose, not on the next launch),
 # does NOT touch dbt_venv (python 3.11) — dbt itself is invoked via DBT_PATH.
 set -euo pipefail
 
@@ -24,6 +25,9 @@ export DISABLE_DISCOVERY="true"
 export DISABLE_ADMIN_API="true"
 export DISABLE_SQL="true"
 export DISABLE_LSP="true"
-export DISABLE_DBT_CODEGEN="false"
+export DISABLE_DBT_CODEGEN="true"   # le staging s'écrit à la main (CLAUDE.md)
+# Liste blanche : seuls les outils servis à Claude. Le reste (build, run, show…)
+# passe par la CLI, où les règles de permission de settings.json s'appliquent.
+export DBT_MCP_ENABLE_TOOLS="get_lineage_dev,get_node_details_dev"
 
-exec pipx run --python /usr/bin/python3.12 --spec dbt-mcp dbt-mcp
+exec pipx run --python /usr/bin/python3.12 --spec dbt-mcp==2.10.0 dbt-mcp

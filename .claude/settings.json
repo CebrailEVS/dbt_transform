@@ -1,4 +1,22 @@
 {
+  "permissions": {
+    "ask": [
+      "Bash(*--target prod*)",
+      "Bash(*--target=prod*)",
+      "Bash(*-t prod*)",
+      "Bash(*DBT_TARGET=prod*)",
+      "Bash(git push *master*)",
+      "Bash(git -C * push *master*)",
+      "Bash(gh pr merge:*)"
+    ],
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
+    ],
+    "deny": [
+      "mcp__bigquery__execute_sql"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

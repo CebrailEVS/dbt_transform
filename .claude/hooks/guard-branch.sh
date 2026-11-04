@@ -3,7 +3,9 @@
 #
 # Deux contrôles déterministes :
 #   A. commit ou push sur master avec des fichiers NON docs-only
-#      → règle du dépôt : branche de feature obligatoire, sauf docs-only.
+#      → règle du dépôt : branche de feature obligatoire, sauf docs-only ;
+#      push depuis master sans cible écrite → bloqué (la règle `ask` exige
+#      `git push origin master`, pour que l'utilisateur confirme).
 #   B. la branche courante descend d'une AUTRE branche de feature locale non
 #      mergée → sa PR embarquerait les commits d'un autre chantier.
 #
@@ -53,6 +55,35 @@ if [[ "$BRANCH" == "master" || "$BRANCH" == "main" ]]; then
     # plutot que de decabler tout le hook — le controle B (branche empilee) reste
     # actif. Le marqueur est un choix explicite, tracable dans git.
     [[ -f "$REPO/.claude/allow-master-commits" ]] && exit 0
+
+    # Push depuis master sans branche cible écrite (`git push`, `git push origin
+    # HEAD`) : la règle `ask` de settings.json lit la commande, pas la branche
+    # courante, et ne le verrait pas. On exige la cible explicite, qui déclenche
+    # la confirmation de l'utilisateur. Une cible autre que master passe.
+    if python3 - "$COMMAND" <<'PY' 2>/dev/null
+import re, shlex, sys
+for part in re.split(r'&&|\|\||[;|]', sys.argv[1]):
+    try:
+        toks = shlex.split(part)
+    except ValueError:
+        continue
+    if 'git' not in toks or 'push' not in toks:
+        continue
+    pos = [t for t in toks[toks.index('push') + 1:] if not t.startswith('-')]
+    refs = [r.lstrip('+') for r in pos[1:]]
+    if not refs or all(r in ('HEAD', '@') for r in refs):
+        sys.exit(0)
+sys.exit(1)
+PY
+    then
+        {
+            echo "BLOQUÉ — push depuis master sans branche cible écrite."
+            echo
+            echo "Un push sur master demande la confirmation de l'utilisateur. Écrire la"
+            echo "cible pour la déclencher : git push origin master"
+        } >&2
+        exit 2
+    fi
 
     # Périmètre examiné : index + worktree, contre origin/master.
     CHANGED=$(
