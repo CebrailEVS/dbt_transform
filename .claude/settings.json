@@ -6,12 +6,12 @@
       "Bash(*-t prod*)",
       "Bash(*DBT_TARGET=prod*)",
       "Bash(git push *master*)",
-      "Bash(git -C * push *master*)",
-      "Bash(gh pr merge:*)"
+      "Bash(git -C * push *master*)"
     ],
     "allow": [
       "Bash(git push:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)"
     ],
     "deny": [
       "mcp__bigquery__execute_sql"
