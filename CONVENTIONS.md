@@ -107,6 +107,14 @@ Minimum par couche : voir la page de chaque couche. Paquets : `dbt_utils`, `dbt_
 
 ---
 
+## Règles vérifiées par `dbt check`
+
+Les règles d'architecture qu'une requête peut vérifier vivent dans [`checks/`](checks/), une
+règle par fichier SQL. Chaque `dbt build` les exécute en dev et en CI, pas en prod. Une règle en
+`error` arrête le build et nomme les modèles en cause ; en `warn`, elle liste un stock à résorber,
+et passe en `error` une fois ce stock nul. Une exception admise s'ajoute dans la règle, avec sa
+raison.
+
 ## Lint SQL
 
 `dbt lint`, intégré à dbt v2, applique `.sqlfluff`, qui fait foi : mots-clés, fonctions et types

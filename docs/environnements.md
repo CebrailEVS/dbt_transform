@@ -151,12 +151,14 @@ dbt run   -s mon_incremental           # → exécute le vrai MERGE incrémental
    et ils sont reconstruits entièrement.
 4. `dbt build --select state:modified+ --defer --favor-state`, snapshots exclus : tout ce qui n'est
    pas construit dans le run est lu en prod, même s'il reste dans le dataset d'un push précédent.
+   Le build exécute d'abord les règles de `checks/` : une règle en `error` l'arrête.
 5. Un run à la fois par PR : un nouveau push annule le run en cours. À la fermeture de la PR,
    `cleanup-ci-dataset` annule un run encore en cours, puis supprime `dbt_ci_pr_<N>`.
 
 ### Merge sur `master` — `cd`
 1. Authentification WIF avec `dbt-deployer`.
-2. `dbt build --select state:modified+` **directement en prod**, snapshots exclus.
+2. `dbt build --select state:modified+` **directement en prod**, snapshots exclus, règles de
+   `checks/` sautées (`--skip-checks`, comme la production planifiée) : la PR les a vérifiées.
 3. `dbt docs generate` et dépôt du nouveau manifest ; le job `deploy-docs` publie ensuite la doc
    sur GitHub Pages.
 4. Build et push de `dbt-runner:latest`, repris par la production planifiée à sa prochaine

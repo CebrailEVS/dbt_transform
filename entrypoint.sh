@@ -72,7 +72,8 @@ else
     SELECTION_ARGS=(--select "${DBT_TAG_SELECTOR}")
     echo "[dbt] Building models: ${DBT_TAG_SELECTOR}${FULL_REFRESH_FLAG:+ (full-refresh)}"
   fi
-  dbt build "${SELECTION_ARGS[@]}" --exclude resource_type:snapshot --target "${DBT_TARGET:-prod}" ${FULL_REFRESH_FLAG}
+  # --skip-checks : les règles de checks/ sont vérifiées en PR, pas en production.
+  dbt build "${SELECTION_ARGS[@]}" --exclude resource_type:snapshot --target "${DBT_TARGET:-prod}" --skip-checks ${FULL_REFRESH_FLAG}
 fi
 
 echo "[dbt] Done."
