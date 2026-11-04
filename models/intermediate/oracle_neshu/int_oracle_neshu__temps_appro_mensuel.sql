@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Temps de présence des approvisionneurs chez le client, par mois, base de la répartition du coût de main-d''oeuvre'
+        materialized='table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Temps passé par chaque ticket dans chaque statut Zoho. Sous-table dlt de ticket_metrics. Jointure : _dlt_parent_id = stg_zoho_desk__ticket_metrics._dlt_id. Note : staging = étape de statut Zoho, pas un concept dbt.'
+        materialized='table'
     )
 }}
 

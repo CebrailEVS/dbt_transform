@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Civilités des contacts Nayka (Oracle civility) : MME, MLLE, M.'
+        materialized='table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Métriques SLA et compteurs par ticket (1:1 avec tickets). Durées converties de STRING HH:MM hrs en INT64 minutes. Renomme _zoho_desk_associated_tickets_id en ticket_id.'
+        materialized='table'
     )
 }}
 

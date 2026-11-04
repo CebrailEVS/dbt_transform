@@ -801,7 +801,10 @@ models:
         description: "Identifiant de la resources"
 
   - name: stg_oracle_lcdp__task_has_amount
-    description: "Ventilation HT/TVA par taux et par tâche (montants encaissés). Source du HT/TVA des comptages cash. Orphelins écartés par inner join sur task."
+    description: >-
+      task_has_amount nettoyés depuis lcdp_task_has_amount - ventilation HT/TVA par taux et par
+      tâche (montants encaissés). Source du HT/TVA des comptages cash. Inner join sur
+      stg_oracle_lcdp__task pour écarter les orphelins.
     columns:
       - name: idtask
         tests:

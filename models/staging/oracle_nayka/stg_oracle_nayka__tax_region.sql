@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Régions fiscales TVA Nayka (Oracle tax_region) : France, Corse, DOM, TOM, Belgique, Luxembourg, avec leurs variantes exonérées.'
+        materialized='table'
     )
 }}
 

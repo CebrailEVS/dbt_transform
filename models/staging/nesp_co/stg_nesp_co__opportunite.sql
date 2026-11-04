@@ -1,8 +1,7 @@
 {{
     config(
         materialized='table',
-        partition_by={'field': 'file_date', 'data_type': 'date'},
-        description='Table des opportunites Nespresso Commercial nettoyée et filtrée sur les colonnes utiles.'
+        partition_by={'field': 'file_date', 'data_type': 'date'}
     )
 }}
 

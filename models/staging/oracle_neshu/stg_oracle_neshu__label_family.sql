@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Label famille nettoyés et enrichis depuis evs_label_family'
+        materialized='table'
     )
 }}
 

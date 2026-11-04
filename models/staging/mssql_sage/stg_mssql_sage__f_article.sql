@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Référentiel articles de Sage Nunshen (dbo_f_article) : une référence par ligne, avec sa désignation, son classement, ses tarifs, ses paramètres de stock et de fabrication, et les champs libres Nunshen (certification bio, provenance, type de thé…). Toutes les colonnes métier sont exposées ; seules les copies d'index Sage (cb_<col>) et les colonnes techniques cb_* sont écartées. Chaînes vides → NULL, dates 1753-01-01 → NULL. Les champs libres restent du texte (OUI/NON) : le typage booléen se fait en aval."
+        materialized='table'
     )
 }}
 

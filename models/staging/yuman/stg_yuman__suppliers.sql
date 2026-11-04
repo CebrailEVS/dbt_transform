@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Fournisseurs Yuman nettoyés depuis l API'
+        materialized = 'table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Type client nettoyés et enrichis depuis lcdp_company_type'
+        materialized='table'
     )
 }}
 

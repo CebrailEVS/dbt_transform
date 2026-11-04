@@ -7,8 +7,7 @@
             "data_type": "timestamp",
             "granularity": "day"
         },
-        cluster_by=['ec_no','cg_num'],
-        description='Écritures comptables nettoyées issues du système MSSQL Sage (dbo_f_ecriturec). Déduplication par ec_no (unique key Sage) en gardant le cb_marq le plus récent : Sage crée parfois un nouveau cb_marq sur update au lieu de modifier la ligne existante.'
+        cluster_by=['ec_no','cg_num']
     )
 }}
 

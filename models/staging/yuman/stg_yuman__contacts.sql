@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Contacts nettoyés et enrichis depuis yuman_contacts'
+        materialized = 'table'
     )
 }}
 

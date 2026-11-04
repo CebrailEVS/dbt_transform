@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Clients nettoyés et enrichis depuis yuman_clients, avec nom du partenaire rattaché.'
+        materialized = 'table'
     )
 }}
 

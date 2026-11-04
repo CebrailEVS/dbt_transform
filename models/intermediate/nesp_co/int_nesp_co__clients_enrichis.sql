@@ -1,7 +1,6 @@
 {{ config(
     materialized = 'table',
-    tags = ['intermediate', 'nesp_co', 'clients'],
-    description='Liste des clients enrichis par les ID C4C des comptes'
+    tags = ['intermediate', 'nesp_co', 'clients']
 ) }}
 
 with union_source as (

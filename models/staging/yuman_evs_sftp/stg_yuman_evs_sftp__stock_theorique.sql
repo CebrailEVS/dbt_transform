@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Stocks théoriques Yuman normalisés depuis le fichier SFTP du fournisseur'
+        materialized = 'table'
     )
 }}
 

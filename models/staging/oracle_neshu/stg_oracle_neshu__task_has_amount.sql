@@ -4,8 +4,7 @@
         unique_key=['idtask', 'tax_rate', 'idtax', 'idtax_region'],
         partition_by={'field': 'updated_at', 'data_type': 'timestamp'},
         incremental_strategy='merge',
-        cluster_by=['idtask', 'idtax', 'idtax_region'],
-        description='Montants et taxes par tâche depuis task_has_amount. Porte le coût des produits chargés du P&L client.'
+        cluster_by=['idtask', 'idtax', 'idtax_region']
     )
 }}
 

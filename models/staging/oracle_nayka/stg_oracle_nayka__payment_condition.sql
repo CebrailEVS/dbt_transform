@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Conditions de paiement Nayka (Oracle payment_condition) : délai d'échéance des factures (FACT_30J, FACT_45J…)."
+        materialized='table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Adresses Nayka (Oracle location) : adresses des sociétés (via company_has_location) et des contacts.'
+        materialized='table'
     )
 }}
 

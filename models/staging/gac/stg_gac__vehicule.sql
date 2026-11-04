@@ -1,7 +1,6 @@
 {{
   config(
     materialized='table',
-    description='Parc véhicule EVS (GAC → SFTP SG), nettoyé et restreint aux colonnes utiles. Grain source 1:1 (1 ligne = 1 période de contrat type / déclaration AEN)',
   )
 }}
 

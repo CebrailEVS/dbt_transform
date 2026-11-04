@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Étiquettes posées sur les tâches LCDP (Oracle label_has_task) : rattachement tâche ↔ étiquette."
+        materialized='table'
     )
 }}
 

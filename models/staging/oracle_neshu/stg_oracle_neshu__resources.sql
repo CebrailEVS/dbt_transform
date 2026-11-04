@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Resources nettoyés et enrichis depuis evs_resources'
+        materialized='table'
     )
 }}
 

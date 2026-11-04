@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Étiquettes des équipements Nayka (vue Oracle v_label_device) : une ligne par équipement × étiquette, avec la famille et le libellé français, seule source de libellé lisible des étiquettes."
+        materialized='table'
     )
 }}
 

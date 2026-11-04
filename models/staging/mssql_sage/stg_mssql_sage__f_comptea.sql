@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Sections analytiques de Sage (dbo_f_comptea) : une affaire / section par ligne, avec son intitulé. Sert de dimension aux écritures analytiques et de référence au seed ref_mssql_sage__code_analytique_bu, qui mappe les sections vers les BU."
+        materialized='table'
     )
 }}
 

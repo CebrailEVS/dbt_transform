@@ -1,8 +1,7 @@
 {{
     config(
         materialized='table',
-        cluster_by=['workspace_id', 'dataset_id'],
-        description="Rapports Power BI nettoyés — 1 ligne = 1 rapport original hors métriques d'usage, PK report_id. Source : powerbi_reports. DEUX FILTRES OBLIGATOIRES appliqués : app_id is null (écarte les copies d'App, que les événements ViewReport ne référencent jamais) et exclusion des rapports 'usage metrics report' auto-générés. S'il en sort autant que de rapports bruts, les filtres ne s'appliquent plus. Le périmètre métier exige EN PLUS la restriction aux espaces partagés actifs — jointure sur les workspaces, donc en intermediate, pas ici."
+        cluster_by=['workspace_id', 'dataset_id']
     )
 }}
 

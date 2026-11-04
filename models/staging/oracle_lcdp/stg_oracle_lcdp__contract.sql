@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Contrats nettoyés et enrichis depuis lcdp_contract'
+        materialized='table'
     )
 }}
 

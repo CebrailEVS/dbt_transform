@@ -164,6 +164,12 @@ touche ?** Sinon, ne pas l'écrire, ou en faire un test dbt.
 Les descriptions YAML partent dans BigQuery (`persist_docs`) et la doc dbt est publique ; le data
 analyst et l'agent text-to-SQL les lisent : un chiffre périmé y devient une fausse information.
 
+### Descriptions : dans le YAML seulement
+
+La description d'un modèle vit dans son YAML, à toutes les couches, jamais dans le `config()`.
+Seule celle du YAML est publiée (doc dbt, BigQuery, agents), et deux copies finissent par
+diverger. La règle `dbt check` `description_dans_config` arrête le build sinon.
+
 ---
 
 ## Power BI

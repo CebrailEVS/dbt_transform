@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='task_type nettoyés et enrichis depuis evs_task_type'
+        materialized='table'
     )
 }}
 

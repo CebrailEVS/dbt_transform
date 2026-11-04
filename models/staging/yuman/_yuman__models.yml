@@ -3,7 +3,8 @@ version: 2
 
 models:
   - name: stg_yuman__clients
-    description: "Clients transformés et nettoyés depuis l'API Yuman"
+    description: >-
+      Clients nettoyés et enrichis depuis yuman_clients, avec nom du partenaire rattaché.
     columns:
       - name: client_id
         description: "Identifiant unique du client"

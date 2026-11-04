@@ -5,8 +5,7 @@
         partition_by={'field': 'task_start_date', 'data_type': 'timestamp'},
         incremental_strategy='merge',
         on_schema_change='append_new_columns',
-        cluster_by=['company_id', 'device_id'],
-        description='Table intermédiaire des comptages de caisse (REGL COMPTAGE, idtask_type=30) - CA encaissé (pièces + billets + titres-restaurant) par machine et par date de comptage. Sert à compléter le CA des machines équipées d''un monnayeur (paiements physiques invisibles côté télémétrie Nayax).'
+        cluster_by=['company_id', 'device_id']
     )
 }}
 

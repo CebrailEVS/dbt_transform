@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Types de tâches Nayka (Oracle task_type). code est le libellé propre à l'instance, non unique ; code_type est le type fonctionnel standard de l'ERP (CUSTDELIVERY, SUPPRECEPTION…)."
+        materialized='table'
     )
 }}
 

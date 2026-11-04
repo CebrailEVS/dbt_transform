@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Ressources Nayka (Oracle resources) : personnes (roadmen, techniciens, commerciaux) rattachées à un contact, et ressources système de l'ERP (DTL_*)."
+        materialized='table'
     )
 }}
 

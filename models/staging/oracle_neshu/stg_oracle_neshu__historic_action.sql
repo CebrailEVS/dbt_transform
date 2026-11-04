@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Actions de l''historique des tâches depuis evs_historic_action'
+        materialized='table'
     )
 }}
 

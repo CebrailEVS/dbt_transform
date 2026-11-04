@@ -1,6 +1,5 @@
 {{ config(
     materialized = 'table',
-    description='Liste des Activités des commerciaux',
     tags = ['intermediate', 'nesp_co', 'activites']
 ) }}
 

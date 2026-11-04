@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Device nettoyés et enrichis depuis lcdp_device'
+        materialized='table'
     )
 }}
 

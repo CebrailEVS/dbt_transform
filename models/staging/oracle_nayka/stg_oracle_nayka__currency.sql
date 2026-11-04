@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Devises Nayka (Oracle currency) : référentiel ISO 4217 livré avec l'ERP, seul EUR est actif."
+        materialized='table'
     )
 }}
 

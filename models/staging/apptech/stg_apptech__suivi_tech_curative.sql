@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Délais forcés (technicien/partenaire) par intervention curative, depuis les snapshots NDJSON de l'app suivi technique"
+        materialized='table'
     )
 }}
 

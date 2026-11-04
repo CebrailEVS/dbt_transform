@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Table intermédiaire des invendus - avec enrichissement produit, source, destination, quantité et valorisation'
+        materialized='table'
     )
 }}
 

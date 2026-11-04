@@ -2,7 +2,10 @@ version: 2
 
 models:
   - name: stg_mssql_sage__f_ecriturea
-    description: "Écritures analytiques nettoyées issues du système MSSQL Sage. Déduplication staging sur (ec_no, n_analytique, ea_ligne) — clé unique métier Sage — en gardant le cb_marq le plus récent."
+    description: >-
+      Écritures analytiques nettoyées issues du système MSSQL Sage. Déduplication par (ec_no,
+      n_analytique, ea_ligne) — unique key Sage — en gardant le cb_marq le plus récent : Sage crée
+      parfois un nouveau cb_marq sur update au lieu de modifier la ligne existante.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -122,7 +125,9 @@ models:
 
   # TABLE COMPTE NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_comptet
-    description: "Table des comptes clients Nunshen nettoyée et transformée depuis la table source dbo_f_comptet de MSSQL Sage"
+    description: >-
+      Table des comptes clients Nunshen nettoyée et transformée depuis la table source dbo_f_comptet
+      de MSSQL Sage. Source en colonnes plates (overwrite).
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK)"
@@ -185,7 +190,9 @@ models:
 
   # TABLE COLLABORATEUR NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_collaborateur
-    description: "Table des collaborateur Nunshen nettoyée et transformée depuis la table source dbo_f_collaborateur de MSSQL Sage"
+    description: >-
+      Table des collaborateur Nunshen nettoyée et transformée depuis la table source
+      dbo_f_collaborateur de MSSQL Sage. Source en colonnes plates (overwrite).
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK)"
@@ -213,7 +220,14 @@ models:
 
   # TABLE DOCLIGNE NUNSHEN COMMERCE
   - name: stg_mssql_sage__f_docligne
-    description: "Lignes de documents Nunshen (ventes, achats, stock, fabrication). Chargement replace : ne contient que les lignes existant dans Sage."
+    description: >-
+      Lignes de documents Sage Nunshen (dbo_f_docligne) : ventes, achats, mouvements de stock et
+      fabrication, une ligne par dl_no. Chargement replace : le raw ne contient que les lignes
+      existant dans Sage au dernier run. Une ligne retirée d'une commande partiellement reçue, ou
+      d'un document transformé (commande fournisseur, préparation de fabrication), en disparaît. À
+      la transformation, Sage recopie le document d'origine sur la ligne (dl_piece_bc, dl_date_bc,
+      dl_qte_bc, do_date_livr). Toutes les colonnes métier sont exposées ; chaînes vides → NULL,
+      dates 1753-01-01 → NULL.
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK)"
@@ -471,7 +485,10 @@ models:
   # Portent les trois relationships que Sage déclare depuis une colonne exposée.
   # ---------------------------------------------------------------------------
   - name: stg_mssql_sage__f_compteg
-    description: "Plan comptable général — dimension des écritures comptables."
+    description: >-
+      Plan comptable général de Sage (dbo_f_compteg) : un compte général par ligne, avec son
+      intitulé. Sert de dimension aux écritures comptables et de référence au seed
+      ref_mssql_sage__code_comptable_bu, qui n'en couvre que les comptes de classes 6 et 7.
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK ligne)"
@@ -499,7 +516,10 @@ models:
         description: "Horodatage du run dlt qui a chargé la ligne"
 
   - name: stg_mssql_sage__f_comptea
-    description: "Sections analytiques — dimension des écritures analytiques."
+    description: >-
+      Sections analytiques de Sage (dbo_f_comptea) : une affaire / section par ligne, avec son
+      intitulé. Sert de dimension aux écritures analytiques et de référence au seed
+      ref_mssql_sage__code_analytique_bu, qui mappe les sections vers les BU.
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK ligne)"
@@ -527,7 +547,13 @@ models:
         description: "Horodatage du run dlt qui a chargé la ligne"
 
   - name: stg_mssql_sage__f_article
-    description: "Référentiel articles Nunshen — dimension des lignes de documents, du stock et des nomenclatures."
+    description: >-
+      Référentiel articles de Sage Nunshen (dbo_f_article) : une référence par ligne, avec sa
+      désignation, son classement, ses tarifs, ses paramètres de stock et de fabrication, et les
+      champs libres Nunshen (certification bio, provenance, type de thé…). Toutes les colonnes
+      métier sont exposées ; seules les copies d'index Sage (cb_<col>) et les colonnes techniques
+      cb_* sont écartées. Chaînes vides → NULL, dates 1753-01-01 → NULL. Les champs libres restent
+      du texte (OUI/NON) : le typage booléen se fait en aval.
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK ligne)"
@@ -791,7 +817,11 @@ models:
       - name: extracted_at
         description: "Horodatage du run dlt qui a chargé la ligne"
   - name: stg_mssql_sage__f_depot
-    description: "Dépôts de stock Nunshen — dimension du stock et des lignes de documents."
+    description: >-
+      Dépôts de stock Sage Nunshen (dbo_f_depot) : un dépôt par ligne, avec son libellé et son
+      adresse. Tous les dépôts sont Nunshen, y compris CONTROLE & QUALITE (matière en attente de
+      validation). Le dépôt 0 porté par les lignes de document sans mouvement de stock n'existe pas
+      ici.
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK ligne)"
@@ -825,7 +855,12 @@ models:
         description: "Horodatage du run dlt qui a chargé la ligne"
 
   - name: stg_mssql_sage__f_famille
-    description: "Familles d'articles Nunshen — dimension de classement des articles."
+    description: >-
+      Familles d'articles Sage Nunshen (dbo_f_famille) : une famille par ligne, avec son libellé et
+      ses paramètres de gestion hérités par les articles. Toutes les familles sont de détail
+      (fa_type = 0) : fa_code_famille est unique à lui seul. Toutes les colonnes métier sont
+      exposées ; seules les copies d'index Sage (cb_<col> en BYTES) et les colonnes techniques cb_*
+      sont écartées.
     columns:
       - name: cb_marq
         description: "Identifiant technique Sage (PK ligne)"
@@ -964,7 +999,11 @@ models:
         description: "Horodatage du run dlt qui a chargé la ligne"
 
   - name: stg_mssql_sage__f_nomenclat
-    description: "Nomenclatures Nunshen — composition des articles fabriqués (composé → composants)."
+    description: >-
+      Nomenclatures Sage Nunshen (dbo_f_nomenclat) : une ligne par lien composé → composant, avec la
+      quantité de composant pour une unité de composé. Clé Sage : (ar_ref, no_ref_det, ag_no1,
+      ag_no2, no_operation) ; gammes et opérations ne sont pas utilisées chez Nunshen, donc (ar_ref,
+      no_ref_det) est unique en pratique.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -1034,7 +1073,11 @@ models:
         description: "Horodatage du run dlt qui a chargé la ligne"
 
   - name: stg_mssql_sage__f_artfourniss
-    description: "Références et tarifs d'achat par article × fournisseur Nunshen."
+    description: >-
+      Références article par fournisseur Sage Nunshen (dbo_f_artfourniss) : une ligne par couple
+      article × fournisseur, avec la référence et le tarif d'achat chez ce fournisseur. Un article
+      peut avoir plusieurs fournisseurs, dont un seul principal (af_principal = 1). Sage écrit
+      1753-01-01 pour une date vide : convertie en NULL.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -1122,7 +1165,15 @@ models:
         description: "Horodatage du run dlt qui a chargé la ligne"
 
   - name: stg_mssql_sage__f_docentete
-    description: "En-têtes de documents Nunshen (ventes, achats, stock, fabrication). Replace : un document transformé en disparaît."
+    description: >-
+      En-têtes de documents commerciaux Sage Nunshen (dbo_f_docentete) : un document par (do_type,
+      do_piece) — factures, commandes et réceptions fournisseurs, mouvements de stock, préparations
+      et bons de fabrication. Chargement replace : seuls les documents existant dans Sage au dernier
+      run sont présents ; un document transformé (commande fournisseur → réception, PF → bon de
+      fabrication) disparaît. Une ligne de f_docligne de type 12 ou 24 n'est donc ouverte que si son
+      en-tête existe ici. Sage écrit 1753-01-01 pour une date vide : convertie en NULL. Toutes les
+      colonnes métier sont exposées ; seules les copies d'index Sage (cb_<col>) et les colonnes
+      techniques cb_* sont écartées.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -1409,7 +1460,11 @@ models:
         description: "Horodatage du run dlt qui a chargé la ligne"
 
   - name: stg_mssql_sage__f_artstock
-    description: "Photos du stock Nunshen par article × dépôt — une photo complète par run dlt (extracted_at)."
+    description: >-
+      Photos du stock Sage Nunshen par article × dépôt (dbo_f_artstock). Chargement append : chaque
+      run dlt ajoute une photo complète, identifiée par extracted_at (une valeur par photo). Toutes
+      les photos sont gardées, y compris un éventuel run manuel en journée ; la sélection d'une
+      photo par jour se fait en aval. Pas de photo le week-end.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -1489,7 +1544,13 @@ models:
           - not_null
 
   - name: stg_mssql_sage__f_lotserie
-    description: "Photos des lots et numéros de série Nunshen — une photo complète par run dlt (extracted_at), mouvements d'entrée et de sortie par lot."
+    description: >-
+      Photos des lots et numéros de série Sage Nunshen (dbo_f_lotserie). Chargement append : chaque
+      run dlt ajoute une photo complète, identifiée par extracted_at. Toutes les photos sont
+      gardées, la sélection d'une photo par jour se fait en aval. Dans une photo, une ligne par
+      mouvement de lot : l'entrée (dl_no_in) et, une fois sorti, la sortie (dl_no_out, 0 tant que le
+      lot n'est pas sorti). Sage ne déclare aucune clé unique. Sage écrit 1753-01-01 pour une date
+      vide : convertie en NULL.
     tests:
       # Clé observée, pas déclarée par Sage (aucun index UNIQUE) : warn
       - dbt_utils.unique_combination_of_columns:

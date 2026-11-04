@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Product type nettoyés et enrichis depuis evs_product_type'
+        materialized='table'
     )
 }}
 

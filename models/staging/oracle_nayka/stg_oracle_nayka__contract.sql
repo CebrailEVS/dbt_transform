@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Contrats clients Nayka (Oracle contract) : société signataire et cliente, durée, reconduction, préavis, dates. Les champs personnalisés EFFECTIF, ENGAGEMENTBIB et ENGAGEMENTBOISSONS du xml sont extraits et typés."
+        materialized='table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Unités de conditionnement des produits Nayka (Oracle product_unit) : unité, coefficients de conversion, code-barres."
+        materialized='table'
     )
 }}
 

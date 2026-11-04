@@ -4,8 +4,7 @@
         unique_key='task_product_id',
         partition_by={'field': 'task_start_date', 'data_type': 'timestamp'},
         incremental_strategy='merge',
-        cluster_by=['company_id', 'ca_category'],
-        description='Lignes de facturation client (FACT CLIENT / AVOIR) avec leur coefficient de signe et leur catégorie de CA'
+        cluster_by=['company_id', 'ca_category']
     )
 }}
 

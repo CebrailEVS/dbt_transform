@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Réaffectations d'astreinte (technicien réel) par intervention, depuis les snapshots NDJSON de l'app suivi technique"
+        materialized='table'
     )
 }}
 

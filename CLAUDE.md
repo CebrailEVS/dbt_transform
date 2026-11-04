@@ -106,10 +106,11 @@ d'écrire** ([`docs/conventions/`](docs/conventions/)). SQL et entrée YAML dans
   source en staging, `<entite>_id` en marts ; booléens `is_` / `has_` ; `_at` pour un timestamp,
   `_date` pour une date.
 - **Staging** : une table source = un modèle, renommage passthrough, sans dédoublonnage
-  préventif. `extracted_at` obligatoire, pas de `deleted_at`. Description dans le `config()` et
-  dans le YAML.
+  préventif. `extracted_at` obligatoire, pas de `deleted_at`.
 - **Intermediate** : logique métier d'**une** source, uniquement des `ref()`. Le croisement de
-  sources se fait dans les marts. Description en YAML seulement.
+  sources se fait dans les marts.
+- **Description** : dans le YAML seulement, à toutes les couches, jamais dans le `config()`
+  (règle `dbt check` `description_dans_config`).
 - **Marts** ([`marts.md`](docs/conventions/marts.md)) : description en 4 blocs, grain
   obligatoire ; `config()` = matérialisation seulement ; étoile stricte (ni jointure fait-à-fait,
   ni snowflake, ni OBT) ; tests minimum (§ 7) ; colonnes grain-first.

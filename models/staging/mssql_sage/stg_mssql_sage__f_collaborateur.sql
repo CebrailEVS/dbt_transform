@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Table des collaborateur Nunshen nettoyée et transformée depuis la table source dbo_f_collaborateur de MSSQL Sage. Source en colonnes plates (overwrite).'
+        materialized='table'
     )
 }}
 

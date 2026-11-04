@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Produits / articles nettoyés et enrichis depuis yuman_products'
+        materialized = 'table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Étiquettes posées sur les tâches Nayka (Oracle label_has_task) : une ligne par tâche × étiquette.'
+        materialized='table'
     )
 }}
 

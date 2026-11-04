@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Contacts Nayka (Oracle contact) : interlocuteurs des sociétés et utilisateurs de l'ERP."
+        materialized='table'
     )
 }}
 

@@ -5,8 +5,7 @@
         partition_by={'field': 'task_start_date', 'data_type': 'timestamp'},
         incremental_strategy='merge',
         on_schema_change='append_new_columns',
-        cluster_by=['device_id', 'product_id'],
-        description='Table intermédiaire des invendus LCDP (task_type 11) - produits constatés invendus et retirés des machines, au grain ligne produit'
+        cluster_by=['device_id', 'product_id']
     )
 }}
 

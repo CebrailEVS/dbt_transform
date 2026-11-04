@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Product nettoyés et enrichis depuis lcdp_product'
+        materialized='table'
     )
 }}
 

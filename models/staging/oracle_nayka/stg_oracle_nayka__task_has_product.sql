@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Lignes produits des tâches Nayka (Oracle task_has_product) : quantités, prix, montants et TVA d'un document, ou équipement déplacé d'un mouvement. Code, libellé, unité et taxe sont figés à la saisie."
+        materialized='table'
     )
 }}
 

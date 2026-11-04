@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Utilisateurs nettoyés depuis l Yuman API'
+        materialized = 'table'
     )
 }}
 

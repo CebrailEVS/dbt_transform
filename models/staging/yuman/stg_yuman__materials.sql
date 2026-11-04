@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Materials (Machines) nettoyés depuis yuman_materials'
+        materialized = 'table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Dépôts de stock Sage Nunshen (dbo_f_depot) : un dépôt par ligne, avec son libellé et son adresse. Tous les dépôts sont Nunshen, y compris CONTROLE & QUALITE (matière en attente de validation). Le dépôt 0 porté par les lignes de document sans mouvement de stock n'existe pas ici."
+        materialized='table'
     )
 }}
 

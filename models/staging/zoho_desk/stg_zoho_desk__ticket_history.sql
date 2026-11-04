@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Journal d audit par ticket — une ligne par événement (création, changement de statut, assigné, etc.). Source de vérité pour les métriques temporelles. Pas de colonne id à renommer : la PK est _dlt_id (clé interne dlt).'
+        materialized='table'
     )
 }}
 

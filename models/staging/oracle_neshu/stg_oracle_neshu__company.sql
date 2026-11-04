@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Clients nettoyés et enrichis depuis evs_company'
+        materialized='table'
     )
 }}
 

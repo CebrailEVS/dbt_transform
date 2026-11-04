@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Coût mensuel de télémétrie par client, d''après les terminaux de paiement vus en intervention'
+        materialized='table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="En-têtes de documents commerciaux Sage Nunshen (dbo_f_docentete) : un document par (do_type, do_piece) — factures, commandes et réceptions fournisseurs, mouvements de stock, préparations et bons de fabrication. Chargement replace : seuls les documents existant dans Sage au dernier run sont présents ; un document transformé (commande fournisseur → réception, PF → bon de fabrication) disparaît. Une ligne de f_docligne de type 12 ou 24 n'est donc ouverte que si son en-tête existe ici. Sage écrit 1753-01-01 pour une date vide : convertie en NULL. Toutes les colonnes métier sont exposées ; seules les copies d'index Sage (cb_<col>) et les colonnes techniques cb_* sont écartées."
+        materialized='table'
     )
 }}
 

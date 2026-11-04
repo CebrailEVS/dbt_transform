@@ -383,7 +383,11 @@ models:
         description: "1 = article géré en stock, 0 = non stocké (badges, crédits de badge…)"
 
   - name: stg_oracle_neshu__product_unit
-    description: "Unités de conditionnement par produit depuis Oracle. idunit_type=1 = unité d'achat (conditionnement de commande fournisseur) ; coeff_multi = nb d'unités de base par conditionnement."
+    description: >-
+      Unités de conditionnement par produit depuis evs_product_unit. idunit_type (référentiel
+      UNIT_TYPE Oracle) : 1=ACHAT, 2=VENTE, 3=STOCK, 4=COMPOSITION, 5=REAPPRO, 6=WEB. idunit_type=1
+      = unité d'ACHAT (conditionnement de commande fournisseur), coeff_multi/coeff_div = conversion
+      vers l'unité de base.
     columns:
       - name: idproduct_unit
         description: "Identifiant unique de l'unité de conditionnement"

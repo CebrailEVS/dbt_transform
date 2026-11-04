@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Étiquettes posées sur les contrats Nayka (Oracle label_has_contract) : une ligne par contrat × étiquette.'
+        materialized='table'
     )
 }}
 

@@ -5,8 +5,7 @@
             "field": "do_date",
             "data_type": "timestamp",
             "granularity": "day"
-        },
-        description='Lignes de documents Sage Nunshen (dbo_f_docligne) : ventes, achats, mouvements de stock et fabrication, une ligne par dl_no. Chargement replace : le raw ne contient que les lignes existant dans Sage au dernier run. Une ligne retirée d\'une commande partiellement reçue, ou d\'un document transformé (commande fournisseur, préparation de fabrication), en disparaît. À la transformation, Sage recopie le document d\'origine sur la ligne (dl_piece_bc, dl_date_bc, dl_qte_bc, do_date_livr). Toutes les colonnes métier sont exposées ; chaînes vides → NULL, dates 1753-01-01 → NULL.'
+        }
     )
 }}
 

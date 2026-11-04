@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Types d'adresses Nayka (Oracle location_type) : principale, facturation, livraison, emplacement…"
+        materialized='table'
     )
 }}
 

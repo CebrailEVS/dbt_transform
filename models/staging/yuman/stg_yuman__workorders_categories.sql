@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description="Catégories d'intervention Yuman (API Yuman) : référentiel des catégories de bons d'intervention, une ligne par catégorie."
+        materialized = 'table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Re-mappings d'interventions (rework) par technicien, depuis les snapshots NDJSON de l'app suivi technique"
+        materialized='table'
     )
 }}
 

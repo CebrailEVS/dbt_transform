@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Threads Zoho Desk nettoyés — un échange (email/chat) par ligne. Source : zoho_desk_ticket_threads. Renomme id en thread_id, garde _zoho_desk_associated_tickets_id pour jointure 1:N vers tickets. Sert de base pour reconstruire la chronologie réponses agent/client (filtrer direction et author__type).'
+        materialized='table'
     )
 }}
 

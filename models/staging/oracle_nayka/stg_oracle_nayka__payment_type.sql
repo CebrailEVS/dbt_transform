@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Modes de paiement Nayka (Oracle payment_type) : espèces, CB, paiement mobile, et modes créés par l'instance."
+        materialized='table'
     )
 }}
 

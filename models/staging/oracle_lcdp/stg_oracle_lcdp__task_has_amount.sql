@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='task_has_amount nettoyés depuis lcdp_task_has_amount - ventilation HT/TVA par taux et par tâche (montants encaissés). Source du HT/TVA des comptages cash. Inner join sur stg_oracle_lcdp__task pour écarter les orphelins.'
+        materialized='table'
     )
 }}
 

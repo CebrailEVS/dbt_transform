@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Plan comptable général de Sage (dbo_f_compteg) : un compte général par ligne, avec son intitulé. Sert de dimension aux écritures comptables et de référence au seed ref_mssql_sage__code_comptable_bu, qui n'en couvre que les comptes de classes 6 et 7."
+        materialized='table'
     )
 }}
 

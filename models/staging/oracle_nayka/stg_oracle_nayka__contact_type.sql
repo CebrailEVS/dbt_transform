@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Types de contacts Nayka (Oracle contact_type).'
+        materialized='table'
     )
 }}
 

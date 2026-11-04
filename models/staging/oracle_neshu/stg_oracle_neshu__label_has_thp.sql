@@ -4,8 +4,7 @@
         unique_key=['idlabel', 'idtask_has_product'],
         partition_by={'field': 'updated_at', 'data_type': 'timestamp'},
         incremental_strategy='merge',
-        cluster_by=['idtask_has_product'],
-        description='Étiquettes posées sur une LIGNE de produit depuis label_has_thp. Porte notamment le mode de paiement des ventes télémétrie.'
+        cluster_by=['idtask_has_product']
     )
 }}
 

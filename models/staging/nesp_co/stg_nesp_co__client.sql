@@ -1,7 +1,6 @@
 {{
     config(
-        materialized = 'table',
-        description = 'Table des bases clients Nespresso EVS nettoyée et filtrée sur les colonnes utiles.'
+        materialized = 'table'
     )
 }}
 

@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Équipements Nayka (Oracle device) : machines et accessoires du parc, avec client, propriétaire, fournisseur, modèle, achat et garantie. serial n'est pas unique."
+        materialized='table'
     )
 }}
 

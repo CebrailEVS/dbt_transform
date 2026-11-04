@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Table intermédiaire des livraisons internes - avec enrichissement produit, source, destination, quantité et valorisation'
+        materialized='table'
     )
 }}
 

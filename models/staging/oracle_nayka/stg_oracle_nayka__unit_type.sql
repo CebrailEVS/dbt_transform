@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Types d'unités de produit Nayka (Oracle unit_type) : achat, vente, stock, réappro…"
+        materialized='table'
     )
 }}
 

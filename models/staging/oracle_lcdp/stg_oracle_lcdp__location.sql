@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description='Locations nettoyés et enrichis depuis lcdp_location'
+        materialized='table'
     )
 }}
 

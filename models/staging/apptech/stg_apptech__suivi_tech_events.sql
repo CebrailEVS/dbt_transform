@@ -1,7 +1,6 @@
 {{
     config(
-        materialized='table',
-        description="Événements techniciens (congés, maladie, astreinte…) saisis dans l'app suivi technique — référentiel distinct des interventions"
+        materialized='table'
     )
 }}
 
