@@ -8,9 +8,9 @@
           "index": 0
         },
         "stop": {
-          "line": 9,
+          "line": 8,
           "col": 3,
-          "index": 307
+          "index": 210
         }
       },
       "expanded_span": {
@@ -29,14 +29,14 @@
     {
       "macro_span": {
         "start": {
-          "line": 39,
+          "line": 38,
           "col": 10,
-          "index": 1108
+          "index": 1011
         },
         "stop": {
-          "line": 39,
+          "line": 38,
           "col": 44,
-          "index": 1142
+          "index": 1045
         }
       },
       "expanded_span": {
@@ -55,14 +55,14 @@
     {
       "macro_span": {
         "start": {
-          "line": 40,
+          "line": 39,
           "col": 15,
-          "index": 1163
+          "index": 1066
         },
         "stop": {
-          "line": 40,
+          "line": 39,
           "col": 52,
-          "index": 1200
+          "index": 1103
         }
       },
       "expanded_span": {
@@ -81,14 +81,14 @@
     {
       "macro_span": {
         "start": {
-          "line": 41,
+          "line": 40,
           "col": 15,
-          "index": 1255
+          "index": 1158
         },
         "stop": {
-          "line": 41,
+          "line": 40,
           "col": 56,
-          "index": 1296
+          "index": 1199
         }
       },
       "expanded_span": {
@@ -107,14 +107,14 @@
     {
       "macro_span": {
         "start": {
-          "line": 42,
+          "line": 41,
           "col": 15,
-          "index": 1356
+          "index": 1259
         },
         "stop": {
-          "line": 42,
+          "line": 41,
           "col": 53,
-          "index": 1394
+          "index": 1297
         }
       },
       "expanded_span": {
@@ -133,14 +133,14 @@
     {
       "macro_span": {
         "start": {
-          "line": 85,
+          "line": 84,
           "col": 1,
-          "index": 2373
+          "index": 2276
         },
         "stop": {
-          "line": 90,
+          "line": 89,
           "col": 12,
-          "index": 2545
+          "index": 2448
         }
       },
       "expanded_span": {
