@@ -30,7 +30,3 @@ cleaned_data as (
 
 select *
 from cleaned_data
-qualify row_number() over (
-    partition by co_no
-    order by updated_at desc, cb_marq desc
-) = 1

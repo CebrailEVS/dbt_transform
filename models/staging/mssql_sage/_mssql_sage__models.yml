@@ -123,84 +123,101 @@ models:
       - name: extracted_at
         description: "Timestamp d'extraction"
 
-  # TABLE COMPTE NUNSHEN COMMERCE
+  # COMPTES TIERS (clients, fournisseurs, salariés, autres ; toutes BU)
   - name: stg_mssql_sage__f_comptet
     description: >-
-      Table des comptes clients Nunshen nettoyée et transformée depuis la table source dbo_f_comptet
-      de MSSQL Sage. Source en colonnes plates (overwrite).
+      Comptes tiers du dossier Sage (dbo_f_comptet), une ligne par compte (`ct_num`) : clients,
+      fournisseurs, salariés et autres, toutes BU, distingués par `ct_type`. Ce n'est pas une liste
+      de clients : filtrer `ct_type` pour en faire une.
     columns:
       - name: cb_marq
-        description: "Identifiant technique Sage (PK)"
+        description: "Identifiant technique Sage de la ligne ; la clé métier est `ct_num`"
         tests:
           - unique
           - not_null
       - name: ct_num
-        description: "Code unique du compte client"
+        description: "Numéro du compte tiers, clé métier. Lu par les documents (`f_docentete`, `f_docligne`), les écritures (`f_ecriturec`) et les références fournisseur (`f_artfourniss`)"
         tests:
           - unique
           - not_null
       - name: ct_intitule
-        description: "Intitulé ou nom du compte client"
+        description: "Intitulé du compte : raison sociale ou nom du tiers"
         tests:
           - not_null
       - name: ct_type
-        description: "Type de compte client"
+        description: "Type de tiers : 0 = client, 1 = fournisseur, 2 = salarié, 3 = autre. Recoupé avec le compte collectif Sage (`cg_num_princ`, non repris) : 411, 401, 421, divers 4xx"
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3]
+                quote: false
+              config:
+                severity: warn
       - name: ct_contact
-        description: "Nom du contact principal du compte client"
+        description: "Nom du contact principal du tiers"
       - name: ct_adresse
-        description: "Adresse principale du compte client"
+        description: "Adresse du tiers"
       - name: ct_complement
         description: "Complément d'adresse"
       - name: ct_codepostal
-        description: "Code postal du compte client"
+        description: "Code postal du tiers (ct_code_postal)"
       - name: ct_ville
-        description: "Ville du compte client"
+        description: "Ville du tiers"
       - name: ct_pays
-        description: "Pays du compte client"
+        description: "Pays du tiers"
       - name: ct_siret
-        description: "Numéro SIRET du compte client"
+        description: "SIRET du tiers, souvent vide"
       - name: ct_numpayeur
-        description: "Numéro du payeur associé au compte client"
+        description: "Compte tiers qui règle (ct_num_payeur) ; en pratique vide ou égal à `ct_num`"
       - name: co_no
-        description: "Code comptable associé au compte client"
+        description: "Collaborateur (commercial) rattaché au compte, FK vers `stg_mssql_sage__f_collaborateur.co_no` ; 0 = aucun. Renseigné sur les clients"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_mssql_sage__f_collaborateur')
+                field: co_no
+              config:
+                where: "co_no != 0"
+                severity: warn
       - name: ct_telephone
-        description: "Téléphone du compte client"
+        description: "Téléphone du tiers"
       - name: ct_email
-        description: "Email du compte client"
+        description: "E-mail du tiers (ct_e_mail)"
       - name: categorisation_niv_1
-        description: "Catégorisation niveau 1 du compte client"
+        description: "Segment client, niveau 1 (ex. HORECA, OFFICE, REVENDEURS). Champ libre du dossier, clients seulement"
       - name: categorisation_niv_2
-        description: "Catégorisation niveau 2 du compte client"
+        description: "Segment client, niveau 2 (ex. RESTAURANTS, HOTELLERIE, ENTREPRISES PRIVEES). Champ libre du dossier, clients seulement"
       - name: categorisation_niv_3
-        description: "Catégorisation niveau 3 du compte client"
+        description: "Segment client, niveau 3 : secteur d'activité (ex. SANTE, INDUSTRIE - PRODUCTION). Champ libre du dossier, clients seulement"
       - name: ligne_de_service
-        description: "Ligne de service associée au compte client"
+        description: "BU ou activité du tiers (ex. NUNSHEN, NESHU, EVS). Champ libre du dossier, renseigné sur les clients et quelques fournisseurs"
       - name: annee_origine
-        description: "Année d'origine du compte client"
+        description: "Année d'origine du client, en texte. Champ libre du dossier, clients seulement"
       - name: client_perdu
-        description: "Indique si le client est perdu"
+        description: "Client perdu : 'OUI', 'NON' ou vide (texte). Champ libre du dossier, clients seulement"
       - name: typologie
-        description: "Typologie du compte client"
+        description: "Type de point de vente du client (ex. POINT DE VENTE, POINT DE DEGUSTATION). Champ libre du dossier, clients seulement"
       - name: created_at
-        description: "Date de création du compte client (cb_creation)"
+        description: "Création de la fiche dans Sage (cb_creation)"
       - name: updated_at
-        description: "Date de dernière modification du compte client (cb_modification)"
+        description: "Dernière modification de la fiche (cb_modification, à défaut cb_creation)"
       - name: extracted_at
         description: "Timestamp du run dlt qui a chargé la ligne (_extracted_at)"
 
-  # TABLE COLLABORATEUR NUNSHEN COMMERCE
+  # COLLABORATEURS (commerciaux, acheteurs)
   - name: stg_mssql_sage__f_collaborateur
     description: >-
-      Table des collaborateur Nunshen nettoyée et transformée depuis la table source
-      dbo_f_collaborateur de MSSQL Sage. Source en colonnes plates (overwrite).
+      Collaborateurs du dossier Sage (dbo_f_collaborateur), une ligne par collaborateur (`co_no`) :
+      les commerciaux pour la plupart, et quelques acheteurs. Rattachés aux comptes tiers et aux
+      documents par `co_no`.
     columns:
       - name: cb_marq
-        description: "Identifiant technique Sage (PK)"
+        description: "Identifiant technique Sage de la ligne ; la clé métier est `co_no`"
         tests:
           - unique
           - not_null
       - name: co_no
-        description: "Code unique du collaborateur"
+        description: "Numéro du collaborateur, clé métier. Lu par `f_comptet.co_no` et `f_docligne.co_no`, où 0 signifie « aucun » et n'existe pas ici"
         tests:
           - unique
           - not_null
@@ -209,11 +226,11 @@ models:
       - name: co_prenom
         description: "Prénom du collaborateur"
       - name: co_fonction
-        description: "Fonction du collaborateur"
+        description: "Champ « fonction » de Sage, saisi librement : rarement renseigné et peu fiable (il contient souvent un prénom). Ne pas s'en servir comme fonction"
       - name: created_at
-        description: "Date de création du collaborateur (cb_creation)"
+        description: "Création de la fiche dans Sage (cb_creation)"
       - name: updated_at
-        description: "Date de dernière modification du collaborateur (cb_modification)"
+        description: "Dernière modification de la fiche (cb_modification, à défaut cb_creation)"
       - name: extracted_at
         description: "Timestamp du run dlt qui a chargé la ligne (_extracted_at)"
 

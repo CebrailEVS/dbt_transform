@@ -81,9 +81,10 @@ domaine stock, `ct_num` est un **numéro de dépôt**, pas un tiers. Règle : to
 domaine avant de joindre `f_comptet` ; le test `relationships` du staging est restreint à
 `do_domaine in (0, 1)`.
 
-**`f_comptet` n'est pas une liste de clients.** Elle porte tous les tiers du dossier, clients
-(`ct_type = 0`) et fournisseurs (`ct_type = 1`) compris. Règle : filtrer sur `ct_type` pour une
-liste de clients ; joindre par le domaine du document (vente → client, achat → fournisseur). La
+**`f_comptet` n'est pas une liste de clients.** Elle porte tous les tiers du dossier, toutes BU :
+clients (`ct_type = 0`, compte collectif 411), fournisseurs (1, 401), salariés (2, 421) et autres
+(3, divers 4xx). Règle : filtrer sur `ct_type` pour une liste de clients ; joindre par le domaine
+du document (vente → client, achat → fournisseur). La
 jointure `f_ecriturec.ct_num → f_comptet` est testée en staging mais n'est utilisée par aucun
 modèle : la valider avant de s'en servir.
 
