@@ -1,5 +1,8 @@
 
 
+-- append_new_columns : une colonne ajoutée apparaît au prochain MERGE (lignes anciennes à NULL),
+-- l'historique se remplit au --full-refresh de la purge hebdomadaire.
+
 with source_data as (
     select *
     from `evs-datastack-prod`.`prod_raw`.`lcdp_task_has_product`
@@ -18,6 +21,7 @@ cleaned_data as (
         cast(iddevice as int64) as iddevice,
         cast(idcompany_peer as int64) as idcompany_peer,
         cast(idlocation as int64) as idlocation,
+        cast(idproduct_unit as int64) as idproduct_unit,
 
         -- Colonnes texte et types
         type_product_source,
