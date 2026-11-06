@@ -71,6 +71,9 @@ deux dernières sections listent ce qui diffère pour LCDP et pour Nayka.
 - **Règle** : la quantité exploitable vaut `real_quantity × unit_coeff_multi / unit_coeff_div`,
   exposée en `quantity` (`load_quantity` pour le chargement) ; `base_unit_quantity` garde la
   valeur brute. Ne pas reconvertir en aval.
+- **Libellé du conditionnement** (« CARTON DE 24 ») : `idproduct_unit` de la ligne →
+  `stg_*__product_unit.idstring` → `stg_*__string` filtré sur `langage_code = 'fr_FR'` ; `string`
+  porte une ligne par langue, sans ce filtre la jointure multiplie les lignes.
 - **Appliqué par** : les `int_oracle_*__*_tasks` à lignes produit.
 
 ### La valorisation suit le prix d'achat du catalogue, pas celui de la tâche

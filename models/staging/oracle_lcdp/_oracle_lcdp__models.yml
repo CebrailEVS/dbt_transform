@@ -551,6 +551,43 @@ models:
                 to: ref('stg_oracle_lcdp__contact')
                 field: idcontact
 
+  - name: stg_oracle_lcdp__product_unit
+    description: >-
+      Unités de conditionnement par produit depuis lcdp_product_unit. idunit_type (référentiel
+      UNIT_TYPE Oracle) : 1=ACHAT, 2=VENTE, 3=STOCK, 4=COMPOSITION, 5=REAPPRO, 6=WEB. idunit_type=1
+      = unité d'ACHAT (conditionnement de commande fournisseur), coeff_multi/coeff_div = conversion
+      vers l'unité de base. Libellé affiché par l'ERP : idstring → stg_oracle_lcdp__string (fr_FR).
+    columns:
+      - name: idproduct_unit
+        description: "Identifiant unique de l'unité de conditionnement"
+        tests:
+          - unique
+          - not_null
+      - name: idproduct
+        description: "Identifiant du produit (FK vers stg_oracle_lcdp__product)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__product')
+                field: idproduct
+              config:
+                severity: warn
+      - name: idunit_type
+        description: "Type d'unité, référentiel UNIT_TYPE Oracle : 1=ACHAT (PURCHASE), 2=VENTE (SALE), 3=STOCK (STORAGE), 4=COMPOSITION (COMPONENTS), 5=REAPPRO (RESUPPLY), 6=WEB"
+      - name: idstring
+        description: "Libellé de l'unité (ex. CARTON DE 24), FK vers stg_oracle_lcdp__string, une ligne par langue"
+      - name: code
+        description: "Code de l'unité (ex. CARTON24_A, UNITE)"
+      - name: coeff_multi
+        description: "Nombre d'unités de base par conditionnement (multiplicateur)"
+      - name: coeff_div
+        description: "Coefficient diviseur vers l'unité de base"
+      - name: base_unit
+        description: "Flag unité de base (1 = unité de base du produit)"
+      - name: isactive
+        description: "Flag unité active (1 = active)"
+
   - name: stg_oracle_lcdp__product_type
     description: "Types de produits transformés et nettoyés depuis la base Oracle LCDP"
     columns:
@@ -779,6 +816,15 @@ models:
               arguments:
                 to: ref('stg_oracle_lcdp__device')
                 field: iddevice
+      - name: idproduct_unit
+        description: "Conditionnement saisi sur la ligne (carton, pack…), FK vers stg_oracle_lcdp__product_unit ; son libellé donne l'unité affichée par l'ERP."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_lcdp__product_unit')
+                field: idproduct_unit
+              config:
+                severity: warn
 
   - name: stg_oracle_lcdp__task_has_resources
     description: "Association entre les tâches et les ressources"
