@@ -29,7 +29,7 @@ intervenant as (
 
 ),
 
--- Pièces : une intervention peut en consommer plusieurs (cartouche + tête de filtre), d'où le
+-- Pièces : une intervention peut en porter plusieurs (cartouche + tête de filtre), d'où le
 -- grain tâche × pièce. Distinct pour qu'une pièce saisie sur deux lignes ne double pas la ligne.
 pieces as (
 

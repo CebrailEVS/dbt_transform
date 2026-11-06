@@ -1782,7 +1782,7 @@ models:
       [QUOI MÉTIER]
       Interventions techniques NESHU sur les distributeurs : entretien (détartrage, lavage sanitaire)
       et dépannage de 1er niveau, faits par les roadmen pendant leur tournée, et plus rarement par les
-      GEA. Une ligne par intervention et par pièce consommée, avec la machine, le client,
+      GEA. Une ligne par intervention et par pièce saisie, avec la machine, le client,
       l'intervenant, la classification (objet, détail), le statut de traitement et le diagnostic
       saisi.
 
@@ -1846,9 +1846,9 @@ models:
           - not_null
       - name: piece_id
         description: >
-          Pièce consommée par l'intervention (filtre à eau, bouteille de CO2), une par ligne.
-          FK → dim_neshu__piece. Quasi toujours NULL : une intervention n'a en général pas de ligne
-          produit.
+          Pièce saisie sur l'intervention (filtre à eau, bouteille de CO2), une par ligne ; une
+          intervention annulée garde ses pièces. FK → dim_neshu__piece. Quasi toujours NULL : une
+          intervention n'a en général pas de ligne produit.
         tests:
           - relationships:
               arguments:

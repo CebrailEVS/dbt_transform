@@ -1282,7 +1282,7 @@ models:
     description: >
       [QUOI MÉTIER]
       Interventions techniques NESHU sur les distributeurs (curatif et préventif) : une ligne par
-      intervention et par pièce consommée, avec son statut, sa classification (objet + détail) et
+      intervention et par pièce saisie, avec son statut, sa classification (objet + détail) et
       tous ses labels, chacun en code et en libellé français.
 
       [COMMENT CONSTRUITE]
@@ -1326,8 +1326,8 @@ models:
         description: "Client (peer company). FK → dim_neshu__company."
       - name: product_id
         description: >
-          Pièce consommée par l'intervention (via task_has_product, produit de type 2), une par ligne.
-          FK → dim_neshu__piece. Quasi toujours NULL : ces interventions n'ont en général pas de
+          Pièce saisie sur l'intervention (via task_has_product, produit de type 2), une par ligne ;
+          une intervention annulée garde ses pièces. FK → dim_neshu__piece. Quasi toujours NULL : ces interventions n'ont en général pas de
           ligne produit.
       - name: resources_id
         description: >
