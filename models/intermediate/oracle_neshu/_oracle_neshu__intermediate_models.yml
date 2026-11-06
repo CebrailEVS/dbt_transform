@@ -1282,8 +1282,8 @@ models:
     description: >
       [QUOI MÉTIER]
       Interventions techniques NESHU sur les distributeurs (curatif et préventif) : une ligne par
-      intervention, avec son statut, sa classification (objet + détail) et tous ses labels, chacun
-      en code et en libellé français.
+      intervention et par pièce saisie, avec son statut, sa classification (objet + détail) et
+      tous ses labels, chacun en code et en libellé français.
 
       [COMMENT CONSTRUITE]
       stg_oracle_neshu__task (idtask_type = 131 INTERVENTION TECHNIQUE, statuts FAIT/VALIDE/ANNULE/
@@ -1294,7 +1294,8 @@ models:
       détail, lu dans la famille DCxx de même numéro.
 
       [GRAIN]
-      1 ligne par task_id (intervention).
+      1 ligne par (task_id, product_id) : une intervention sans pièce a une ligne (product_id NULL),
+      une intervention à deux pièces en a deux. Compter les interventions = count(distinct task_id).
 
       [NOTES]
       Classification à deux niveaux : objet_intervent (8 catégories C1 à C8) puis
@@ -1305,12 +1306,17 @@ models:
       code. Deux statuts (TERMINATED + TOTECH, rare) : TERMINATED l'emporte, comme chez LCDP.
       Seules les familles listées sont pivotées : une nouvelle famille Oracle n'apparaît pas sans
       modifier le modèle. Pas de flux produit (ni quantité ni valorisation).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [task_id, product_id]
     columns:
       # --- IDENTIFIANTS ---
       - name: task_id
-        description: "Identifiant de la tâche d'intervention Oracle (EVS.TASK). PK de ce modèle."
+        description: >
+          Identifiant de la tâche d'intervention Oracle (EVS.TASK). Répété une fois par pièce : clé
+          du modèle avec product_id.
         tests:
-          - unique
           - not_null
       - name: device_id
         description: "Distributeur (machine) concerné par l'intervention. FK → dim_neshu__device."
@@ -1319,7 +1325,10 @@ models:
       - name: company_id
         description: "Client (peer company). FK → dim_neshu__company."
       - name: product_id
-        description: "Pièce liée à l'intervention (via task_has_product, produit de type 2). FK → dim_neshu__piece. Quasi toujours NULL : ces interventions n'ont en général pas de ligne produit."
+        description: >
+          Pièce saisie sur l'intervention (via task_has_product, produit de type 2), une par ligne ;
+          une intervention annulée garde ses pièces. FK → dim_neshu__piece. Quasi toujours NULL : ces interventions n'ont en général pas de
+          ligne produit.
       - name: resources_id
         description: >
           Intervenant : la ressource PERSON de la tâche, roadman (fonction APPRO, très majoritaire)

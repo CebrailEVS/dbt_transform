@@ -29,6 +29,20 @@ intervenant as (
 
 ),
 
+-- Pièces : une intervention peut en porter plusieurs (cartouche + tête de filtre), d'où le
+-- grain tâche × pièce. Distinct pour qu'une pièce saisie sur deux lignes ne double pas la ligne.
+pieces as (
+
+    select distinct
+        thp.idtask,
+        thp.idproduct
+
+    from {{ ref('stg_oracle_neshu__task_has_product') }} as thp
+    inner join tasks as t
+        on thp.idtask = t.idtask
+
+),
+
 labels_fr as (
 
     select
@@ -160,7 +174,7 @@ select
     t.extracted_at
 
 from tasks as t
-left join {{ ref('stg_oracle_neshu__task_has_product') }} as thp
+left join pieces as thp
     on t.idtask = thp.idtask
 left join {{ ref('stg_oracle_neshu__product') }} as p
     on thp.idproduct = p.idproduct
