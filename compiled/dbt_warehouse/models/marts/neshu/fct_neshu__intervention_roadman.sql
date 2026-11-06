@@ -31,13 +31,13 @@ select
     -- Grain
     date(i.task_start_date, 'Europe/Paris') as intervention_date,
     i.task_id,
+    i.product_id as piece_id,
 
     -- FK
     i.device_id,
     i.modele_equipement_id,
     i.company_id,
     i.resources_id,
-    i.product_id as piece_id,
 
     -- Attributs d'affichage
     i.document_number,

@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] Interventions techniques NESHU sur les distributeurs (curatif et pr\u00e9ventif) : une ligne par intervention, avec son statut, sa classification (objet + d\u00e9tail) et tous ses labels, chacun en code et en libell\u00e9 fran\u00e7ais.\n[COMMENT CONSTRUITE] stg_oracle_neshu__task (idtask_type = 131 INTERVENTION TECHNIQUE, statuts FAIT/VALIDE/ANNULE/ ANOMALIE, code_status_record = '1', real_start_date renseign\u00e9e) enrichi company/device/product et de l'intervenant (ressource PERSON de task_has_resources). Les labels EAV (label_has_task \u00d7 label \u00d7 label_family) sont pivot\u00e9s en colonnes, leur libell\u00e9 lu dans stg_oracle_neshu__string (fr_FR, via label.idstring). L'objet OCxx est appari\u00e9 \u00e0 son d\u00e9tail, lu dans la famille DCxx de m\u00eame num\u00e9ro.\n[GRAIN] 1 ligne par task_id (intervention).\n[NOTES] Classification \u00e0 deux niveaux : objet_intervent (8 cat\u00e9gories C1 \u00e0 C8) puis objet_intervent_detail (familles \u00ab D\u00e9tail C1 \u00bb \u00e0 \u00ab D\u00e9tail C8 \u00bb, une valeur par t\u00e2che). Les codes de d\u00e9tail ne sont pas uniques d'une famille \u00e0 l'autre (DC04 est aussi un d\u00e9tail de C1) : filtrer sur le couple objet + d\u00e9tail, ou sur un code propre \u00e0 une famille (DC0402). Une t\u00e2che peut porter deux objets (rare) : on garde celui qui a un d\u00e9tail, puis le plus petit code. Deux statuts (TERMINATED + TOTECH, rare) : TERMINATED l'emporte, comme chez LCDP. Seules les familles list\u00e9es sont pivot\u00e9es : une nouvelle famille Oracle n'appara\u00eet pas sans modifier le mod\u00e8le. Pas de flux produit (ni quantit\u00e9 ni valorisation).\n"""
+      description="""[QUOI M\u00c9TIER] Interventions techniques NESHU sur les distributeurs (curatif et pr\u00e9ventif) : une ligne par intervention et par pi\u00e8ce saisie, avec son statut, sa classification (objet + d\u00e9tail) et tous ses labels, chacun en code et en libell\u00e9 fran\u00e7ais.\n[COMMENT CONSTRUITE] stg_oracle_neshu__task (idtask_type = 131 INTERVENTION TECHNIQUE, statuts FAIT/VALIDE/ANNULE/ ANOMALIE, code_status_record = '1', real_start_date renseign\u00e9e) enrichi company/device/product et de l'intervenant (ressource PERSON de task_has_resources). Les labels EAV (label_has_task \u00d7 label \u00d7 label_family) sont pivot\u00e9s en colonnes, leur libell\u00e9 lu dans stg_oracle_neshu__string (fr_FR, via label.idstring). L'objet OCxx est appari\u00e9 \u00e0 son d\u00e9tail, lu dans la famille DCxx de m\u00eame num\u00e9ro.\n[GRAIN] 1 ligne par (task_id, product_id) : une intervention sans pi\u00e8ce a une ligne (product_id NULL), une intervention \u00e0 deux pi\u00e8ces en a deux. Compter les interventions = count(distinct task_id).\n[NOTES] Classification \u00e0 deux niveaux : objet_intervent (8 cat\u00e9gories C1 \u00e0 C8) puis objet_intervent_detail (familles \u00ab D\u00e9tail C1 \u00bb \u00e0 \u00ab D\u00e9tail C8 \u00bb, une valeur par t\u00e2che). Les codes de d\u00e9tail ne sont pas uniques d'une famille \u00e0 l'autre (DC04 est aussi un d\u00e9tail de C1) : filtrer sur le couple objet + d\u00e9tail, ou sur un code propre \u00e0 une famille (DC0402). Une t\u00e2che peut porter deux objets (rare) : on garde celui qui a un d\u00e9tail, puis le plus petit code. Deux statuts (TERMINATED + TOTECH, rare) : TERMINATED l'emporte, comme chez LCDP. Seules les familles list\u00e9es sont pivot\u00e9es : une nouvelle famille Oracle n'appara\u00eet pas sans modifier le mod\u00e8le. Pas de flux produit (ni quantit\u00e9 ni valorisation).\n"""
     )
     as (
       
@@ -40,6 +40,20 @@ intervenant as (
         on thr.idresources = r.idresources
 
     where r.idresources_type = 2 -- PERSON
+
+),
+
+-- Pièces : une intervention peut en porter plusieurs (cartouche + tête de filtre), d'où le
+-- grain tâche × pièce. Distinct pour qu'une pièce saisie sur deux lignes ne double pas la ligne.
+pieces as (
+
+    select distinct
+        thp.idtask,
+        thp.idproduct
+
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_product` as thp
+    inner join tasks as t
+        on thp.idtask = t.idtask
 
 ),
 
@@ -174,7 +188,7 @@ select
     t.extracted_at
 
 from tasks as t
-left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__task_has_product` as thp
+left join pieces as thp
     on t.idtask = thp.idtask
 left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_neshu__product` as p
     on thp.idproduct = p.idproduct
