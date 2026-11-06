@@ -1782,8 +1782,9 @@ models:
       [QUOI MÉTIER]
       Interventions techniques NESHU sur les distributeurs : entretien (détartrage, lavage sanitaire)
       et dépannage de 1er niveau, faits par les roadmen pendant leur tournée, et plus rarement par les
-      GEA. Une ligne par intervention, avec la machine, le client, l'intervenant, la classification
-      (objet, détail), le statut de traitement et le diagnostic saisi.
+      GEA. Une ligne par intervention et par pièce consommée, avec la machine, le client,
+      l'intervenant, la classification (objet, détail), le statut de traitement et le diagnostic
+      saisi.
 
       [COMMENT CONSTRUITE]
       Fait mince sur int_oracle_neshu__inter_technique_tasks (tâches de type 131, statuts FAIT /
@@ -1794,7 +1795,9 @@ models:
       de Paris.
 
       [GRAIN]
-      1 ligne par task_id (intervention). Environ 3 200 lignes en octobre 2026, +450 par mois.
+      1 ligne par (task_id, piece_id) : une intervention sans pièce a une ligne (piece_id NULL),
+      une intervention à deux pièces en a deux. Compter les interventions = nombre distinct de
+      task_id (DISTINCTCOUNT en DAX), jamais un nombre de lignes.
 
       [NOTES]
       Processus actif en continu depuis mars 2026 (400 à 500 interventions par mois) ; avant, des
@@ -1807,6 +1810,9 @@ models:
       task_start_date de quelques secondes à quelques minutes, avec des valeurs aberrantes : aucune
       durée d'intervention exploitable.
     tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [task_id, piece_id]
       - dbt_expectations.expect_table_row_count_to_be_between:
           arguments:
             min_value: 3000
@@ -1833,10 +1839,23 @@ models:
         tests:
           - not_null
       - name: task_id
-        description: "Identifiant de la tâche d'intervention Oracle (EVS.TASK). PK."
+        description: >
+          Identifiant de la tâche d'intervention Oracle (EVS.TASK). Répété une fois par pièce : clé
+          du fait avec piece_id.
         tests:
-          - unique
           - not_null
+      - name: piece_id
+        description: >
+          Pièce consommée par l'intervention (filtre à eau, bouteille de CO2), une par ligne.
+          FK → dim_neshu__piece. Quasi toujours NULL : une intervention n'a en général pas de ligne
+          produit.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_neshu__piece')
+                field: piece_id
+              config:
+                severity: warn
 
       # --- FK ---
       - name: device_id
@@ -1877,17 +1896,6 @@ models:
               arguments:
                 to: ref('dim_neshu__resource')
                 field: resources_id
-              config:
-                severity: warn
-      - name: piece_id
-        description: >
-          Pièce liée à l'intervention (filtre à eau, bouteille de CO2). FK → dim_neshu__piece. Quasi
-          toujours NULL : une intervention n'a en général pas de ligne produit.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_neshu__piece')
-                field: piece_id
               config:
                 severity: warn
 
