@@ -257,6 +257,19 @@ sources:
           - name: purchase_unit_price
             description: "Prix d'achat unitaire"
 
+      - name: lcdp_product_unit
+        description: "Unités de conditionnement par produit (base, achat, stock, réception) - référentiel"
+        columns:
+          - name: idproduct_unit
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique de l'unité de conditionnement"
+          - name: idproduct
+            tests:
+              - not_null
+            description: "Identifiant du produit (Link to PRODUCT)"
+
       # RESOURCES
       - name: lcdp_resources
         description: "Ressources (roadmen, véhicules)"

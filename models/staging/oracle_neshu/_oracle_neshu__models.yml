@@ -593,6 +593,15 @@ models:
         description: "sale unit price brut without tax"
       - name: PURCHASE_UNIT_PRICE
         description: "product purchase unit price net without tax"
+      - name: idproduct_unit
+        description: "Conditionnement saisi sur la ligne (carton, pack…), FK vers stg_oracle_neshu__product_unit ; son libellé donne l'unité affichée par l'ERP."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_neshu__product_unit')
+                field: idproduct_unit
+              config:
+                severity: warn
 
   - name: stg_oracle_neshu__task_has_resources
     description: "Association entre les tâches et les ressources"

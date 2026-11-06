@@ -4,9 +4,13 @@
         unique_key='idtask_has_product',
         partition_by={'field': 'updated_at', 'data_type': 'timestamp'},
         incremental_strategy='merge',
-        cluster_by=['idtask', 'idproduct','idcompany_peer','idlocation']
+        cluster_by=['idtask', 'idproduct','idcompany_peer','idlocation'],
+        on_schema_change='append_new_columns'
     )
 }}
+
+-- append_new_columns : une colonne ajoutée apparaît au prochain MERGE (lignes anciennes à NULL),
+-- l'historique se remplit au --full-refresh de la purge hebdomadaire.
 
 with source_data as (
     select *
@@ -26,6 +30,7 @@ cleaned_data as (
         cast(iddevice as int64) as iddevice,
         cast(idcompany_peer as int64) as idcompany_peer,
         cast(idlocation as int64) as idlocation,
+        cast(idproduct_unit as int64) as idproduct_unit,
 
         -- Colonnes texte et types
         type_product_source,
