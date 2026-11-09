@@ -608,6 +608,11 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: ['company_id', 'product_id']
+    columns:
+      - name: stock_actuel
+        description: "Stock du dépôt au dernier jour d'extraction ; Lyon inclut Strasbourg, qu'il réapprovisionne. Base de la position de stock et de la quantité à commander."
+      - name: stock_propre
+        description: "Stock du dépôt seul (Lyon sans Strasbourg ; égal à stock_actuel ailleurs) : constat de rupture physique, le stock de Strasbourg ne servant pas les tournées de Lyon."
 
   - name: app_cockpit__neshu_classification_article
     description: |
