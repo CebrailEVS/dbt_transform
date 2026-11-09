@@ -124,9 +124,10 @@ delai_global as (
 
 stock_dernier as (
 
-    -- Dernier stock théorique connu par dépôt × article (dépôts de distribution : exclut périmés
-    -- 251, rebus 244, véhicules ; exclut Bordeaux 120 = indépendant). On garde le snapshot le plus
-    -- récent par couple avant de rattacher Strasbourg à Lyon.
+    -- Stock théorique des dépôts de distribution au dernier jour d'extraction (exclut périmés 251,
+    -- rebus 244, véhicules et Bordeaux 120 = indépendant), avant de rattacher Strasbourg à Lyon.
+    -- L'ERP n'extrait pas les articles à stock nul : un article absent ce jour-là vaut 0 (coalesce de
+    -- l'assemblage). Garder la dernière ligne vue par article figerait le stock d'un article tombé à 0.
     select
         id_entity,
         product_code,
@@ -135,7 +136,7 @@ stock_dernier as (
     where
         entity_type = 'company'
         and id_entity in (114, 116, 118, 364)
-    qualify row_number() over (partition by id_entity, product_code order by date_system desc) = 1
+    qualify snapshot_date = max(snapshot_date) over ()
 
 ),
 

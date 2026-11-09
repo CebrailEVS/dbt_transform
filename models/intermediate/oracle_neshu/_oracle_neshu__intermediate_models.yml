@@ -2200,7 +2200,7 @@ models:
   - name: int_oracle_neshu__point_commande
     description: |
       [QUOI MÉTIER] Point de commande Neshu par dépôt et article : stock de sécurité, quantité à commander et feu tricolore de réappro.
-      [COMMENT CONSTRUITE] int_oracle_neshu__prevision_demande, stock du dernier snapshot de int_oracle_neshu__stock_theorique (Strasbourg rattaché à Lyon), encours de int_oracle_neshu__commande_fournisseur_tasks, délais de int_oracle_neshu__reception_tasks, σ et biais d'erreur de int_oracle_neshu__erreur_prevision, conditionnement de int_oracle_neshu__product. Paramètres en var() dbt (z_service_*, encours_max_jours, revue_jours, sigma_erreur_min_mois, surstock_semaines*).
+      [COMMENT CONSTRUITE] int_oracle_neshu__prevision_demande, stock du dernier jour d'extraction de int_oracle_neshu__stock_theorique, un article absent ce jour-là valant 0 (Strasbourg rattaché à Lyon), encours de int_oracle_neshu__commande_fournisseur_tasks, délais de int_oracle_neshu__reception_tasks, σ et biais d'erreur de int_oracle_neshu__erreur_prevision, conditionnement de int_oracle_neshu__product. Paramètres en var() dbt (z_service_*, encours_max_jours, revue_jours, sigma_erreur_min_mois, surstock_semaines*).
       [GRAIN] 1 ligne par (company_id, product_id) — état courant recalculé à chaque build.
       [NOTES] Même logique que fct_supply_chain__point_commande_neshu, dupliquée volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). Une évolution de règle se reporte dans les deux. biais_mensuel peut différer du mart d'un centième (ordre de sommation flottante de avg()).
     tests:
