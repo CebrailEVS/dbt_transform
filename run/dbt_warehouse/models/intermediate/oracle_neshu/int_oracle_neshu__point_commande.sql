@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""[QUOI M\u00c9TIER] Point de commande Neshu par d\u00e9p\u00f4t et article : stock de s\u00e9curit\u00e9, quantit\u00e9 \u00e0 commander et feu tricolore de r\u00e9appro.\n[COMMENT CONSTRUITE] int_oracle_neshu__prevision_demande, stock du dernier jour d'extraction de int_oracle_neshu__stock_theorique, un article absent ce jour-l\u00e0 valant 0 (Strasbourg rattach\u00e9 \u00e0 Lyon), encours de int_oracle_neshu__commande_fournisseur_tasks, d\u00e9lais de int_oracle_neshu__reception_tasks, \u03c3 et biais d'erreur de int_oracle_neshu__erreur_prevision, conditionnement de int_oracle_neshu__product. Param\u00e8tres en var() dbt (z_service_*, encours_max_jours, revue_jours, sigma_erreur_min_mois, surstock_semaines*).\n[GRAIN] 1 ligne par (company_id, product_id) \u2014 \u00e9tat courant recalcul\u00e9 \u00e0 chaque build.\n[NOTES] M\u00eame logique que fct_supply_chain__point_commande_neshu, dupliqu\u00e9e volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). Une \u00e9volution de r\u00e8gle se reporte dans les deux. biais_mensuel peut diff\u00e9rer du mart d'un centi\u00e8me (ordre de sommation flottante de avg()).\n"""
+      description="""[QUOI M\u00c9TIER] Point de commande Neshu par d\u00e9p\u00f4t et article : stock de s\u00e9curit\u00e9, quantit\u00e9 \u00e0 commander et feu tricolore de r\u00e9appro.\n[COMMENT CONSTRUITE] int_oracle_neshu__prevision_demande, stock du dernier jour d'extraction de int_oracle_neshu__stock_theorique, un article absent ce jour-l\u00e0 valant 0 (Strasbourg rattach\u00e9 \u00e0 Lyon dans stock_actuel ; stock_propre = stock du d\u00e9p\u00f4t seul), encours de int_oracle_neshu__commande_fournisseur_tasks, d\u00e9lais de int_oracle_neshu__reception_tasks, \u03c3 et biais d'erreur de int_oracle_neshu__erreur_prevision, conditionnement de int_oracle_neshu__product. Param\u00e8tres en var() dbt (z_service_*, encours_max_jours, revue_jours, sigma_erreur_min_mois, surstock_semaines*).\n[GRAIN] 1 ligne par (company_id, product_id) \u2014 \u00e9tat courant recalcul\u00e9 \u00e0 chaque build.\n[NOTES] M\u00eame logique que fct_supply_chain__point_commande_neshu, dupliqu\u00e9e volontairement : l'application ne lit pas les marts (cf. docs/conventions/apps.md). Une \u00e9volution de r\u00e8gle se reporte dans les deux. biais_mensuel peut diff\u00e9rer du mart d'un centi\u00e8me (ordre de sommation flottante de avg()).\n"""
     )
     as (
       
@@ -29,6 +29,7 @@
 --
 -- Formules :
 --   position_stock  = stock_actuel + encours_fournisseur
+--   stock_propre    = stock du dépôt seul (Lyon sans Strasbourg) : constat de rupture physique, hors calcul
 --   delai_jours     = délai fournisseur moyen PAR ARTICLE (réceptions 12 mois), fallback médiane globale
 --   horizon_jours   = delai_jours + revue_jours (période entre 2 passations, var, défaut 7 = hebdo)
 --   source_sigma    = 'erreur' si >= sigma_erreur_min_mois (var, défaut 6) mois d'erreur backtestés,
@@ -150,14 +151,19 @@ stock_dernier as (
 stock_actuel as (
 
     -- Rattachement territoire : le stock de Strasbourg (118) remonte sur Lyon (116) et s'additionne
-    -- au sien, cohérent avec la demande (macro neshu_depot_reappro).
+    -- au sien, cohérent avec la demande (macro neshu_depot_reappro). stock_propre garde le stock du
+    -- dépôt seul : celui de Strasbourg ne sert pas les tournées de Lyon (flux Lyon → Strasbourg).
     select
         
 
 case when id_entity = 118 then 116 else id_entity end
  as company_id,
         product_code,
-        sum(stock_at_date) as stock_actuel
+        sum(stock_at_date) as stock_actuel,
+        sum(case when 
+
+case when id_entity = 118 then 116 else id_entity end
+ = id_entity then stock_at_date else 0 end) as stock_propre
     from stock_dernier
     group by company_id, product_code
 
@@ -206,6 +212,7 @@ assemble as (
         ep.biais_mensuel,
         coalesce(da.delai_jours_article, dg.delai_jours_global) as delai_jours,
         coalesce(s.stock_actuel, 0) as stock_actuel,
+        coalesce(s.stock_propre, 0) as stock_propre,
         coalesce(e.encours_fournisseur, 0) as encours_fournisseur,
         -- Niveau de service -> z, piloté par la classe ABC (défaut C pour un couple non classé).
         case p.classe_abc
@@ -352,6 +359,7 @@ select
     round(sigma_demande_mensuelle, 2) as sigma_demande_mensuelle,
     round(biais_mensuel, 2) as biais_mensuel,
     round(stock_actuel, 2) as stock_actuel,
+    round(stock_propre, 2) as stock_propre,
     round(encours_fournisseur, 2) as encours_fournisseur,
     round(position_stock, 2) as position_stock,
     stock_securite,

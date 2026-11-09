@@ -32,6 +32,7 @@ select
     demande_prevue_journaliere,
     sigma_demande_mensuelle,
     stock_actuel,
+    stock_propre,
     encours_fournisseur,
     position_stock,
     stock_securite,

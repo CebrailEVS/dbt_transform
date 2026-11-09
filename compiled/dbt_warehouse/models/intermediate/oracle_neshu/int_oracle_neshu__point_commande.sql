@@ -15,6 +15,7 @@
 --
 -- Formules :
 --   position_stock  = stock_actuel + encours_fournisseur
+--   stock_propre    = stock du dépôt seul (Lyon sans Strasbourg) : constat de rupture physique, hors calcul
 --   delai_jours     = délai fournisseur moyen PAR ARTICLE (réceptions 12 mois), fallback médiane globale
 --   horizon_jours   = delai_jours + revue_jours (période entre 2 passations, var, défaut 7 = hebdo)
 --   source_sigma    = 'erreur' si >= sigma_erreur_min_mois (var, défaut 6) mois d'erreur backtestés,
@@ -136,14 +137,19 @@ stock_dernier as (
 stock_actuel as (
 
     -- Rattachement territoire : le stock de Strasbourg (118) remonte sur Lyon (116) et s'additionne
-    -- au sien, cohérent avec la demande (macro neshu_depot_reappro).
+    -- au sien, cohérent avec la demande (macro neshu_depot_reappro). stock_propre garde le stock du
+    -- dépôt seul : celui de Strasbourg ne sert pas les tournées de Lyon (flux Lyon → Strasbourg).
     select
         
 
 case when id_entity = 118 then 116 else id_entity end
  as company_id,
         product_code,
-        sum(stock_at_date) as stock_actuel
+        sum(stock_at_date) as stock_actuel,
+        sum(case when 
+
+case when id_entity = 118 then 116 else id_entity end
+ = id_entity then stock_at_date else 0 end) as stock_propre
     from stock_dernier
     group by company_id, product_code
 
@@ -192,6 +198,7 @@ assemble as (
         ep.biais_mensuel,
         coalesce(da.delai_jours_article, dg.delai_jours_global) as delai_jours,
         coalesce(s.stock_actuel, 0) as stock_actuel,
+        coalesce(s.stock_propre, 0) as stock_propre,
         coalesce(e.encours_fournisseur, 0) as encours_fournisseur,
         -- Niveau de service -> z, piloté par la classe ABC (défaut C pour un couple non classé).
         case p.classe_abc
@@ -338,6 +345,7 @@ select
     round(sigma_demande_mensuelle, 2) as sigma_demande_mensuelle,
     round(biais_mensuel, 2) as biais_mensuel,
     round(stock_actuel, 2) as stock_actuel,
+    round(stock_propre, 2) as stock_propre,
     round(encours_fournisseur, 2) as encours_fournisseur,
     round(position_stock, 2) as position_stock,
     stock_securite,
