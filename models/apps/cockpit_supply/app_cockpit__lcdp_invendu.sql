@@ -9,6 +9,8 @@ select
     {{ utc_vers_paris_affichage('task_start_date') }} as task_start_date,
     product_code,
     quantity,
-    valuation
+    valuation,
+    destination_code,
+    vehicle_code
 from {{ ref('int_oracle_lcdp__invendus_tasks') }}
 where task_status_code in ('FAIT', 'VALIDE')
