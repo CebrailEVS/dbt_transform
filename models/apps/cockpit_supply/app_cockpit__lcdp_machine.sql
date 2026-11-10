@@ -38,6 +38,9 @@ select
     d.code as device_code,
     d.name as device_name,
     d.serial as device_serial_number,
+    dt.code as device_type,
+    m.code as product_code,
+    m.name as product_name,
     c.code as company_code,
     c.name as company_name,
     o.name as owner_company_name,
@@ -51,6 +54,11 @@ select
     d.purchase_date,
     d.purchase_cost
 from {{ ref('stg_oracle_lcdp__device') }} as d
+left join {{ ref('stg_oracle_lcdp__device_type') }} as dt
+    on d.iddevice_type = dt.iddevice_type
+-- Article modèle de l'équipement : même code que celui des photos de stock (dépôt NEUF).
+left join {{ ref('stg_oracle_lcdp__product') }} as m
+    on d.idmodel = m.idproduct
 left join labels as lb
     on d.iddevice = lb.iddevice
 left join {{ ref('stg_oracle_lcdp__company') }} as c

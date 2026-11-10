@@ -71,6 +71,14 @@ stock théorique, que l'API n'expose pas, arrive par un second pipeline : voir
   `stg_yuman__users` exclut les ateliers et reste en `warn` : un orphelin signale une dérive.
 - **Appliqué par** : `stg_yuman__storehouses` (test dans `_yuman__models.yml`).
 
+### Libellé de l'atelier de Rungis précédé d'une espace
+- **Symptôme** : l'atelier de Rungis ne se rapproche pas du libellé des dépôts de l'app
+  (« 06 - ATELIER RUNGIS DEPOT »).
+- **Règle** : Yuman renvoie ce libellé avec une espace en tête, dans les entrepôts comme dans
+  l'entrepôt des bons de commande. `stg_yuman__purchase_orders` retire les espaces de bord ;
+  `stg_yuman__storehouses` garde le libellé brut : joindre les deux sur `trim()`.
+- **Appliqué par** : `stg_yuman__purchase_orders` (`storehouse_name`).
+
 ### Technicien → agence : jointure sur le nom
 - **Symptôme** : technicien sans agence après un changement d'orthographe côté Yuman.
 - **Règle** : Yuman ne porte pas l'agence. Le seed `ref_yuman__tech_agence` est joint sur le nom

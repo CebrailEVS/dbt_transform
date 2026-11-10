@@ -229,6 +229,19 @@ sources:
           - name: name
             description: "Nom device"
 
+      - name: lcdp_device_type
+        description: "Types d'équipement : machine, système de paiement, télémétrie…"
+        config:
+          freshness: null
+        columns:
+          - name: iddevice_type
+            tests:
+              - unique
+              - not_null
+            description: "Identifiant unique du type d'équipement"
+          - name: code
+            description: "Code du type d'équipement (MACHINE, SYSTEME DE PAIEMENT…)"
+
       # LOCATION
       - name: lcdp_location
         description: "Table des localisations"

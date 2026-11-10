@@ -458,6 +458,15 @@ models:
       - name: roadman_code
         description: "Code métier du roadman."
         data_type: string
+      - name: vehicle_id
+        description: "Véhicule de la tournée (resources de type 3 = VEHICLE ; s'il y en a plusieurs, le plus petit idresources, comme pour les chargements)."
+        data_type: int64
+      - name: vehicle_code
+        description: "Immatriculation du véhicule de la tournée. Information : l'invendu ne passe pas par le stock du véhicule."
+        data_type: string
+      - name: destination_code
+        description: "Dépôt qui reçoit l'invendu (destination COMPANY de la tâche) : PERIME, rarement CASSE. C'est là que Distrilog le fait entrer en stock."
+        data_type: string
       - name: task_status_code
         description: >
           Code du statut de la tâche. Valeurs : VALIDE (validé, majoritaire), FAIT.
@@ -1215,6 +1224,9 @@ models:
         data_type: timestamp
         tests:
           - not_null
+      - name: is_transfert
+        description: "TRUE pour une tâche saisie en entrée de fabrication qui ne fait pas passer de café vert de VERT à FABRICATION : simple transfert, compté en livraison interne par l'app."
+        data_type: boolean
 
       # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi
@@ -1346,6 +1358,9 @@ models:
         data_type: timestamp
         tests:
           - not_null
+      - name: is_transfert
+        description: "TRUE pour une tâche saisie en sortie de fabrication dont la source n'est pas FABRICATION : simple transfert, compté en livraison interne par l'app."
+        data_type: boolean
 
       # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi
@@ -2084,6 +2099,12 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: ['snapshot_date', 'entity_type', 'id_entity', 'product_code']
+      # Définition de la photo Distrilog : un écart signale un changement de la fonction de stock.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "abs(stock_at_date - (stock_inventaire + plus - moins)) < 0.001"
+          config:
+            severity: warn
     columns:
       - name: is_vehicle_active
         description: "Véhicule actif (label ISACTIVE = YES) : état COURANT de la ressource, non historisé, non filtrant. NULL pour un dépôt."

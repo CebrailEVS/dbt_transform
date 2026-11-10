@@ -37,7 +37,7 @@ models:
       - name: product_name
         description: "Libellé article"
       - name: date_inventaire
-        description: "Date du dernier inventaire physique de l'article dans l'entité"
+        description: "Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris : heure du comptage si l'article y figurait ; 00:00 du jour de l'inventaire s'il n'y figurait pas (Distrilog le compte alors à 0) ; NULL s'il n'a jamais été inventorié à cet emplacement."
       - name: date_system
         description: "Horodatage du batch de stock (même jour que snapshot_date)"
       - name: is_vehicle_active
@@ -49,13 +49,13 @@ models:
       - name: is_photo_courante
         description: "Vrai pour la photo la plus récente de la table"
       - name: stock_at_date
-        description: "Stock théorique à la date (peut être négatif)"
+        description: "Stock théorique au moment de la photo, égal à stock_inventaire + plus − moins (testé sur l'intermédiaire). Peut être négatif."
       - name: stock_inventaire
-        description: "Quantité comptée au dernier inventaire"
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
       - name: plus
-        description: "Cumul des entrées depuis le dernier inventaire"
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
       - name: moins
-        description: "Cumul des sorties depuis le dernier inventaire"
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
       - name: dpa
         description: "Dernier prix d'achat (repli sur purchase_price dans la source)"
       - name: purchase_price
@@ -95,7 +95,7 @@ models:
       - name: product_name
         description: "Libellé article"
       - name: date_inventaire
-        description: "Date du dernier inventaire physique"
+        description: "Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris : heure du comptage si l'article y figurait ; 00:00 du jour de l'inventaire s'il n'y figurait pas (Distrilog le compte alors à 0) ; NULL s'il n'a jamais été inventorié à cet emplacement."
       - name: date_system
         description: "Horodatage du batch de stock (même jour que snapshot_date)"
       - name: is_vehicle_active
@@ -107,13 +107,13 @@ models:
       - name: is_photo_courante
         description: "Vrai pour la photo la plus récente de la table"
       - name: stock_at_date
-        description: "Stock théorique à la date"
+        description: "Stock théorique au moment de la photo, égal à stock_inventaire + plus − moins (testé sur l'intermédiaire)."
       - name: stock_inventaire
-        description: "Quantité comptée au dernier inventaire"
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
       - name: plus
-        description: "Cumul des entrées depuis le dernier inventaire"
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
       - name: moins
-        description: "Cumul des sorties depuis le dernier inventaire"
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
       - name: dpa
         description: "Dernier prix d'achat"
       - name: purchase_price
@@ -722,7 +722,7 @@ models:
   - name: app_cockpit__lcdp_produit
     description: |
       [QUOI MÉTIER] Référentiel des articles Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] stg_oracle_lcdp__product filtrée comme la dim (types 1 et 5, date de création renseignée), libellés de stg_oracle_lcdp__label_product. Colonnes lues par l'app seulement.
+      [COMMENT CONSTRUITE] stg_oracle_lcdp__product filtrée comme la dim (types 1 et 5, date de création renseignée), type d'article (stg_oracle_lcdp__product_type), libellés de stg_oracle_lcdp__label_product. Colonnes lues par l'app seulement.
       [GRAIN] 1 ligne par product_id.
       [NOTES] lue via get_dim_products_lcdp, get_produits_actifs_lcdp ; écrans : _flux, _pilotage, accueil, lcdp_distrib, lcdp_pilotage, lcdp_torrefaction, neshu_partenaires, nunshen_partenaires, supply, technique_partenaires. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -730,6 +730,14 @@ models:
         tests:
           - not_null
           - unique
+      - name: product_type
+        description: "Type d'article Distrilog : PRODU (article stocké ou vendu), LIGNE_PRIX, MODELE (modèle de machine suivie par n° de série, le code des machines du dépôt NEUF). Un écran qui liste des consommables écarte MODELE."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PRODU', 'LIGNE_PRIX', 'MODELE']
+              config:
+                severity: warn
       - name: product_group
         description: "Groupe produit (label GROUPRO, libellé rogné) : CAFE GRAIN, THE NUNSHEN, SNACK, BOISSON FROIDE, BOISSON CHAUDE, ACCESSOIRE, NESPRESSO… NULL si non saisi."
       - name: product_en_exploitation
@@ -744,7 +752,7 @@ models:
   - name: app_cockpit__lcdp_machine
     description: |
       [QUOI MÉTIER] Référentiel des machines Cafés du Phare, tel que lu par l'application Cockpit Supply : comptage par approvisionneur et catégorie, et écran Équipements en stock (machines en dépôt, avec n° de série, propriétaire et achat).
-      [COMMENT CONSTRUITE] Construit depuis le staging, indépendamment de dim_lcdp__device : stg_oracle_lcdp__device (hors machines sans société de rattachement), libellés des labels (stg_oracle_lcdp__label_device), stg_oracle_lcdp__company pour le dépôt ou client et pour le propriétaire, roadman affecté via stg_oracle_lcdp__contact_has_device → contact → resources (type PERSON, code le plus petit si deux affectations). Colonnes limitées à celles des deux écrans. Pas de filtre de dépôt ni de statut.
+      [COMMENT CONSTRUITE] Construit depuis le staging, indépendamment de dim_lcdp__device : stg_oracle_lcdp__device (hors machines sans société de rattachement), type d'équipement (stg_oracle_lcdp__device_type), article modèle (stg_oracle_lcdp__product via idmodel), libellés des labels (stg_oracle_lcdp__label_device), stg_oracle_lcdp__company pour le dépôt ou client et pour le propriétaire, roadman affecté via stg_oracle_lcdp__contact_has_device → contact → resources (type PERSON, code le plus petit si deux affectations). Colonnes limitées à celles des deux écrans. Pas de filtre de dépôt ni de statut.
       [GRAIN] 1 ligne par device_id.
       [NOTES] lue via get_dim_devices_lcdp ; écrans : lcdp_pilotage, équipements en stock. Le dépôt d'une machine en stock est company_code / company_name (DEPOT ATELIER, DEPOT NEUF, DEPOT CASSE, DEPOT BOUTIQUE). Les labels sont des libellés (device_material_status « EN STOCK »), contrairement à Neshu qui expose des codes. Pas de champ de réservation : la famille n'existe pas dans l'ERP LCDP. Les règles de l'app (dépôts retenus, statuts, exclusions) restent appliquées par l'app. Réservé à l'application.
     columns:
@@ -754,6 +762,20 @@ models:
           - unique
       - name: device_serial_number
         description: "Numéro de série constructeur, distinct de device_code et non garanti unique."
+      - name: device_type
+        description: "Type d'équipement Distrilog : MACHINE, ou un sous-équipement (SYSTEME DE PAIEMENT, TELEMETRIE, TPE…) qu'un contrôle de machines doit écarter."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: product_code
+        description: "Code de l'article modèle de l'équipement (type MODELE dans Distrilog), le même que product_code des photos de stock : rapproche les machines d'un dépôt de son stock sans passer par les libellés."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: product_name
+        description: "Libellé de l'article modèle."
       - name: company_code
         description: "Code du client ou du dépôt qui détient la machine."
       - name: company_name
@@ -821,7 +843,7 @@ models:
   - name: app_cockpit__lcdp_livraison_interne
     description: |
       [QUOI MÉTIER] Livraisons internes Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] int_oracle_lcdp__livraison_interne_tasks réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Lignes : tâches validées seulement (FAIT, VALIDE), comme l'app.
+      [COMMENT CONSTRUITE] int_oracle_lcdp__livraison_interne_tasks réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Lignes : tâches validées seulement (FAIT, VALIDE), comme l'app. S'y ajoutent les tâches de fabrication validées saisies pour un simple transfert (is_transfert de int_oracle_lcdp__sortie_fabrication_tasks et int_oracle_lcdp__entree_fabrication_tasks), repérées par type_tache.
       [GRAIN] 1 ligne par task_product_id (ligne produit d'un mouvement interne).
       [NOTES] lue via get_livraison_interne_lcdp ; écrans : _flux, _pilotage, accueil, lcdp_distrib, lcdp_torrefaction, supply. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Le commentaire Distrilog de la tâche (texte libre, noms de clients) n'est jamais exposé : seul le n° de facture e-shop en est extrait, et un test échoue si une colonne de commentaire apparaît. Réservé à l'application.
     columns:
@@ -831,6 +853,14 @@ models:
           - unique
       - name: numero_facture_eshop
         description: "N° de facture e-shop saisi dans le commentaire Distrilog de la livraison (« ES 1469 » → 1469) : chiffres seuls, sans zéro de tête, NULL si absent. Même n° que la colonne « N° de facture » de l'export WooCommerce, ramenée aux chiffres. Rempli sur toutes les livraisons internes ; les commandes e-shop partent de LOG vers TAMPON. Tests : format, et alerte si moins de 80 % des livraisons LOG → TAMPON du dernier mois complet en ont un."
+      - name: type_tache
+        description: "Type de la tâche Distrilog : LIVRAISON_INTERNE, ou SORTIE_FABRICATION / ENTREE_FABRICATION pour une tâche de fabrication saisie à la place d'un transfert (stock déplacé sans torréfaction)."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['LIVRAISON_INTERNE', 'SORTIE_FABRICATION', 'ENTREE_FABRICATION']
+              config:
+                severity: warn
 
   - name: app_cockpit__lcdp_livraison
     description: |
@@ -867,11 +897,28 @@ models:
         tests:
           - not_null
           - unique
+      - name: destination_code
+        description: "Dépôt qui reçoit l'invendu : PERIME, rarement CASSE. Distrilog fait passer l'invendu de la machine directement à ce dépôt : c'est une entrée de son stock."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PERIME', 'CASSE']
+              config:
+                severity: warn
+      - name: vehicle_code
+        description: "Immatriculation du véhicule de la tournée, pour information : l'invendu n'entre jamais dans le stock du véhicule."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+                # Quelques tâches isolées sans véhicule sont normales ; au-delà, la saisie a changé.
+                warn_if: ">5"
+                where: "task_start_date >= timestamp_sub(current_timestamp(), interval 35 day)"
 
   - name: app_cockpit__lcdp_entree_fabrication
     description: |
       [QUOI MÉTIER] Entrées en fabrication (torréfaction) Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] int_oracle_lcdp__entree_fabrication_tasks réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] int_oracle_lcdp__entree_fabrication_tasks réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Lignes : tâches validées (FAIT, VALIDE) de café vert passé de VERT à FABRICATION ; une entrée saisie pour un simple transfert (is_transfert) est comptée dans app_cockpit__lcdp_livraison_interne.
       [GRAIN] 1 ligne par task_product_id (ligne produit d'une entrée en fabrication).
       [NOTES] lue via get_mouvements_fabrication_lcdp ; écrans : _flux, lcdp_pilotage, lcdp_torrefaction, supply. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -883,7 +930,7 @@ models:
   - name: app_cockpit__lcdp_sortie_fabrication
     description: |
       [QUOI MÉTIER] Sorties de fabrication (torréfaction) Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] int_oracle_lcdp__sortie_fabrication_tasks réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Toutes les lignes.
+      [COMMENT CONSTRUITE] int_oracle_lcdp__sortie_fabrication_tasks réduite aux colonnes réellement utilisées par l'app (relevé du code, aucune utilisation de la table entière). Lignes : tâches validées (FAIT, VALIDE) qui sortent de FABRICATION, vers TORREFIEVRAC, LOG ou CASSE ; une sortie saisie pour un simple transfert (is_transfert) est comptée dans app_cockpit__lcdp_livraison_interne.
       [GRAIN] 1 ligne par task_product_id (ligne produit d'une sortie de fabrication).
       [NOTES] lue via get_mouvements_fabrication_lcdp ; écrans : _flux, lcdp_pilotage, lcdp_torrefaction, supply. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -915,7 +962,7 @@ models:
       [QUOI MÉTIER] Lignes des bons de commande fournisseurs TechCare (Yuman), telles que lues par l'application Cockpit Supply : commandes en cours, achats et taux de service des fiches fournisseurs, retards, ISO.
       [COMMENT CONSTRUITE] stg_yuman__purchase_orders joint à stg_yuman__suppliers, sans filtre de date (historique depuis 2024). Colonnes renommées comme la table d'import de l'app qu'elle remplace (import manuel « Bons de commande fournisseurs ») ; numéro sans zéros de tête ; dates en heure de Paris ; statuts aux libellés de l'export Yuman.
       [GRAIN] 1 ligne par `purchase_order_line_id` (ligne de bon de commande).
-      [NOTES] Code et nom du fournisseur depuis stg_yuman__suppliers. Les règles de l'app (dépôt déduit de l'adresse de livraison, commandes en cours, exclusions) restent appliquées par l'app. Réservé à l'application, pas de rapport Power BI dessus.
+      [NOTES] Code et nom du fournisseur depuis stg_yuman__suppliers. L'atelier qui réceptionne est l'entrepôt Yuman du bon (atelier_destination), plus fiable que l'adresse de livraison. Les règles de l'app (commandes en cours, exclusions) restent appliquées par l'app. Réservé à l'application, pas de rapport Power BI dessus.
     columns:
       - name: purchase_order_line_id
         tests:
@@ -924,6 +971,17 @@ models:
       - name: numero
         tests:
           - not_null
+      - name: atelier_destination
+        description: "Atelier TechCare qui réceptionne le bon : entrepôt Yuman choisi sur le bon, au libellé des dépôts de l'app (« 06 - ATELIER RUNGIS DEPOT »…). Un bon créé sans entrepôt prend l'entrepôt principal du compte Yuman. Les tests (avertissement) signalent un bon sans atelier ou un nouvel entrepôt."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+          - accepted_values:
+              arguments:
+                values: ['06 - ATELIER RUNGIS DEPOT', '07 - ATELIER LYON DEPOT', '08 - ATELIER BORDEAUX DEPOT', '09 - ATELIER STRASBOURG DEPOT']
+              config:
+                severity: warn
 
   - name: app_cockpit__technique_prix_achat
     description: |

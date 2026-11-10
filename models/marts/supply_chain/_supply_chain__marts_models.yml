@@ -43,13 +43,13 @@ models:
       - name: is_out_of_stock
         description: "Boolean qui vaut TRUE si le stock_at_date est 0 pour un produit, FALSE sinon"
       - name: date_inventaire
-        description: "Date du dernier inventaire physique servant de point de départ au calcul théorique"
+        description: "Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris : heure du comptage si l'article y figurait ; 00:00 du jour de l'inventaire s'il n'y figurait pas (Distrilog le compte alors à 0) ; NULL s'il n'a jamais été inventorié à cet emplacement."
       - name: stock_inventaire
-        description: "Stock constaté au dernier inventaire physique"
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
       - name: plus
-        description: "Cumul des entrées depuis le dernier inventaire physique"
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
       - name: moins
-        description: "Cumul des sorties depuis le dernier inventaire physique"
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
       - name: dpa
         description: "Dernier prix d'achat (fallback purchase_price si manquant)"
       - name: purchase_price
@@ -118,13 +118,13 @@ models:
       - name: is_out_of_stock
         description: "Boolean qui vaut TRUE si le stock_at_date est 0 pour un produit, FALSE sinon"
       - name: date_inventaire
-        description: "Date du dernier inventaire réalisé (TIMESTAMP), NULL si jamais inventorié"
+        description: "Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris : heure du comptage si l'article y figurait ; 00:00 du jour de l'inventaire s'il n'y figurait pas (Distrilog le compte alors à 0) ; NULL s'il n'a jamais été inventorié à cet emplacement."
       - name: stock_inventaire
-        description: "Stock constaté au dernier inventaire"
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
       - name: plus
-        description: "Quantité en plus par rapport au stock inventaire"
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
       - name: moins
-        description: "Quantité en moins par rapport au stock inventaire"
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
       - name: dpa
         description: "Dernier prix d'achat (fallback purchase_price si manquant)"
       - name: purchase_price
