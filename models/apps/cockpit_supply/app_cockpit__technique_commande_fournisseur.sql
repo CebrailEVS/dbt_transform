@@ -21,6 +21,7 @@ select
     fournisseurs.supplier_name as nom_fournisseur,
     date(po.expected_delivery_date, 'Europe/Paris') as date_livraison_prevue,
     po.delivery_address as adresse_livraison,
+    po.storehouse_name as atelier_destination,
     po.line_reference as reference,
     po.line_description as description,
     po.product_id,
