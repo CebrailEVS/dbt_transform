@@ -1378,7 +1378,7 @@ models:
         tests:
           - not_null
       - name: modifie_at
-        description: "Dernière modification de la ligne dans Sage (UTC). Seule la version finale est connue : une ligne modifiée après une photo de stock (inventaire corrigé, quantité changée) crée un écart avec cette photo, à signaler"
+        description: "Dernière modification de la ligne dans Sage (UTC), quelle qu'elle soit (quantité, prix, validation). Seule la version finale de la ligne est connue : une quantité changée après une photo de stock (inventaire corrigé) crée un écart avec cette photo"
       - name: depot_id
         description: "Dépôt Sage du mouvement ; NULL pour une ligne sans mouvement (prestation de façonnage)"
       - name: depot
