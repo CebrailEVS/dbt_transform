@@ -61,6 +61,7 @@ exposures:
       - ref('app_cockpit__nayka_equipement_stock')
       - ref('app_cockpit__lcdp_produit')
       - ref('app_cockpit__lcdp_machine')
+      - ref('app_cockpit__lcdp_mouvement_machine')
       - ref('app_cockpit__lcdp_ressource')
       - ref('app_cockpit__lcdp_societe')
       - ref('app_cockpit__lcdp_disponibilite_depot_mensuel')
