@@ -1584,6 +1584,14 @@ models:
         description: "Montant HT de la ligne de document (€) tel que dans Sage : prix de vente, d'achat ou de prestation ; négatif sur un avoir"
       - name: code_tiers
         description: "Client ou fournisseur (ventes et achats) ; NULL pour un document de stock"
+      - name: is_intragroupe
+        description: "Vente intragroupe : ligne de BL, de facture ou d'avoir (types 3, 6, 7) d'une pièce de la souche « ZZ », même règle que app_cockpit__nunshen_bl_client. Faux hors ventes."
+        tests:
+          - not_null
+      - name: is_non_facture
+        description: "BL encore sans facture (type 3 : échantillons, gratuits), même règle que app_cockpit__nunshen_bl_client. Faux hors ventes ; une vente ni intragroupe ni non facturée est facturée, avoirs compris."
+        tests:
+          - not_null
       - name: depot_source_id
         description: "Transfert : dépôt de départ ; NULL hors transfert"
       - name: depot_source

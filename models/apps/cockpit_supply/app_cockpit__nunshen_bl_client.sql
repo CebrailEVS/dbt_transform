@@ -13,8 +13,8 @@ with lignes as (
         dl.do_piece as n_piece,
         dl.ar_ref as reference,
         cast(dl.dl_qte as float64) as qte,
-        starts_with(dl.do_piece, 'ZZ') as is_intragroupe,
-        dl.do_type = 3 as is_non_facture,
+        {{ nunshen_is_intragroupe('dl.do_domaine', 'dl.do_type', 'dl.do_piece') }} as is_intragroupe,
+        {{ nunshen_is_non_facture('dl.do_domaine', 'dl.do_type') }} as is_non_facture,
         dl.extracted_at
     from {{ ref('stg_mssql_sage__f_docligne') }} as dl
     where
