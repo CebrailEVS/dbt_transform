@@ -1215,6 +1215,9 @@ models:
         data_type: timestamp
         tests:
           - not_null
+      - name: is_transfert
+        description: "TRUE pour une tâche saisie en entrée de fabrication qui ne fait pas passer de café vert de VERT à FABRICATION : simple transfert, compté en livraison interne par l'app."
+        data_type: boolean
 
       # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi
@@ -1346,6 +1349,9 @@ models:
         data_type: timestamp
         tests:
           - not_null
+      - name: is_transfert
+        description: "TRUE pour une tâche saisie en sortie de fabrication dont la source n'est pas FABRICATION : simple transfert, compté en livraison interne par l'app."
+        data_type: boolean
 
       # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi

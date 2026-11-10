@@ -100,6 +100,8 @@ select
     destination_code,
     product_code,
     task_status_code,
+    -- Sortie saisie pour un simple transfert : rien ne sort de FABRICATION, donc pas de torréfaction
+    source_code != 'FABRICATION' as is_transfert,
 
     -- Infos métier
     task_start_date,
