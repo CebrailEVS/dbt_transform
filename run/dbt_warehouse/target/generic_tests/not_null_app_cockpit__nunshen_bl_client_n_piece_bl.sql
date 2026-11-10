@@ -13,9 +13,9 @@
 
 
 
-select is_saisie_apres_fin_mois
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_machine_fin_mois`
-where is_saisie_apres_fin_mois is null
+select n_piece_bl
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nunshen_bl_client`
+where n_piece_bl is null
 
 
 

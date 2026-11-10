@@ -13,8 +13,8 @@ with lignes as (
         dl.do_piece as n_piece,
         dl.ar_ref as reference,
         cast(dl.dl_qte as float64) as qte,
-        starts_with(dl.do_piece, 'ZZ') as is_intragroupe,
-        dl.do_type = 3 as is_non_facture,
+        coalesce(dl.do_domaine = 0 and dl.do_type in (3, 6, 7) and starts_with(dl.do_piece, 'ZZ'), false) as is_intragroupe,
+        coalesce(dl.do_domaine = 0 and dl.do_type = 3, false) as is_non_facture,
         dl.extracted_at
     from `evs-datastack-prod`.`prod_staging`.`stg_mssql_sage__f_docligne` as dl
     where
