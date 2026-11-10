@@ -14,7 +14,8 @@ with mouvements as (
         product_code,
         quantity,
         valuation,
-        'LIVRAISON_INTERNE' as type_tache
+        'LIVRAISON_INTERNE' as type_tache,
+        numero_facture_eshop
     from {{ ref('int_oracle_lcdp__livraison_interne_tasks') }}
     where task_status_code in ('FAIT', 'VALIDE')
 
@@ -30,7 +31,8 @@ with mouvements as (
         product_code,
         quantity,
         valuation,
-        'SORTIE_FABRICATION' as type_tache
+        'SORTIE_FABRICATION' as type_tache,
+        cast(null as string) as numero_facture_eshop
     from {{ ref('int_oracle_lcdp__sortie_fabrication_tasks') }}
     where task_status_code in ('FAIT', 'VALIDE') and is_transfert
 
@@ -46,7 +48,8 @@ with mouvements as (
         product_code,
         quantity,
         valuation,
-        'ENTREE_FABRICATION' as type_tache
+        'ENTREE_FABRICATION' as type_tache,
+        cast(null as string) as numero_facture_eshop
     from {{ ref('int_oracle_lcdp__entree_fabrication_tasks') }}
     where task_status_code in ('FAIT', 'VALIDE') and is_transfert
 )
@@ -61,5 +64,6 @@ select
     product_code,
     quantity,
     valuation,
-    type_tache
+    type_tache,
+    numero_facture_eshop
 from mouvements

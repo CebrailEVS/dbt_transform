@@ -31,6 +31,9 @@ with mouvement_interne_base as (
         p.code as product_code,
         ts.code as task_status_code,
 
+        -- N° de facture e-shop lu dans le commentaire, qui n'est jamais repris en colonne
+        {{ extraire_numero_facture_eshop('t.comments_peer', 'cd.code') }} as numero_facture_eshop,
+
         -- Informations date
         t.real_start_date as task_start_date,
 
@@ -101,6 +104,7 @@ with mouvement_interne_base as (
         p.purchase_unit_price,
         cs.code, rs.code, cd.code, rd.code,
         p.code, ts.code,
+        t.comments_peer,
         t.real_start_date,
         t.updated_at, t.created_at, t.extracted_at
 )
@@ -124,6 +128,7 @@ select
 
     -- Infos métier
     task_start_date,
+    numero_facture_eshop,
 
     -- Infos de conditionnement
     unit_coeff_multi,

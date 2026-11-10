@@ -1484,6 +1484,12 @@ models:
         data_type: timestamp
         tests:
           - not_null
+      - name: numero_facture_eshop
+        description: >
+          N° de facture e-shop (WooCommerce) saisi par la préparation dans le commentaire de la
+          livraison (« ES 1469 »), chiffres seuls, NULL si absent : clé du rapprochement commande par
+          commande. Macro extraire_numero_facture_eshop ; le commentaire n'est pas repris.
+        data_type: string
 
       # --- CONDITIONNEMENT & PRIX ---
       - name: unit_coeff_multi
