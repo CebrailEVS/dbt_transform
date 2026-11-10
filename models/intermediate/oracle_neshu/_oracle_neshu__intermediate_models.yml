@@ -2145,6 +2145,12 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: ['snapshot_date', 'entity_type', 'id_entity', 'product_code']
+      # Définition de la photo Distrilog : un écart signale un changement de la fonction de stock.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "abs(stock_at_date - (stock_inventaire + plus - moins)) < 0.001"
+          config:
+            severity: warn
     columns:
       - name: is_vehicle_active
         description: "Véhicule actif (label ISACTIVE = YES) : état COURANT de la ressource, non historisé, non filtrant. NULL pour un dépôt."

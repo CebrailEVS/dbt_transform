@@ -56,15 +56,14 @@ models:
         description: "Nom du produit"
       - name: date_inventaire
         description: >
-          Date du dernier inventaire physique, point de départ du calcul théorique.
-          VARCHAR2 côté Oracle, parsé en Europe/Paris pour la même raison que
-          `date_system`. NULL sur les produits sans inventaire physique récent.
+          Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris : heure du comptage si l'article y figurait ; 00:00 du jour de l'inventaire s'il n'y figurait pas (Distrilog le compte alors à 0) ; NULL s'il n'a jamais été inventorié à cet emplacement.
+          VARCHAR2 côté Oracle, parsé en Europe/Paris pour la même raison que `date_system`.
       - name: stock_inventaire
-        description: "Stock inventaire réel ou théorique à la date donnée"
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
       - name: plus
-        description: "Quantité en plus par rapport au stock théorique"
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
       - name: moins
-        description: "Quantité en moins par rapport au stock théorique"
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
       - name: stock_at_date
         description: "Stock théorique à la date donnée"
       - name: dpa

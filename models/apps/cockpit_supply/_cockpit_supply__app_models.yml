@@ -37,7 +37,7 @@ models:
       - name: product_name
         description: "Libellé article"
       - name: date_inventaire
-        description: "Date du dernier inventaire physique de l'article dans l'entité"
+        description: "Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris : heure du comptage si l'article y figurait ; 00:00 du jour de l'inventaire s'il n'y figurait pas (Distrilog le compte alors à 0) ; NULL s'il n'a jamais été inventorié à cet emplacement."
       - name: date_system
         description: "Horodatage du batch de stock (même jour que snapshot_date)"
       - name: is_vehicle_active
@@ -49,13 +49,13 @@ models:
       - name: is_photo_courante
         description: "Vrai pour la photo la plus récente de la table"
       - name: stock_at_date
-        description: "Stock théorique à la date (peut être négatif)"
+        description: "Stock théorique au moment de la photo, égal à stock_inventaire + plus − moins (testé sur l'intermédiaire). Peut être négatif."
       - name: stock_inventaire
-        description: "Quantité comptée au dernier inventaire"
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
       - name: plus
-        description: "Cumul des entrées depuis le dernier inventaire"
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
       - name: moins
-        description: "Cumul des sorties depuis le dernier inventaire"
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
       - name: dpa
         description: "Dernier prix d'achat (repli sur purchase_price dans la source)"
       - name: purchase_price
@@ -95,7 +95,7 @@ models:
       - name: product_name
         description: "Libellé article"
       - name: date_inventaire
-        description: "Date du dernier inventaire physique"
+        description: "Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris : heure du comptage si l'article y figurait ; 00:00 du jour de l'inventaire s'il n'y figurait pas (Distrilog le compte alors à 0) ; NULL s'il n'a jamais été inventorié à cet emplacement."
       - name: date_system
         description: "Horodatage du batch de stock (même jour que snapshot_date)"
       - name: is_vehicle_active
@@ -107,13 +107,13 @@ models:
       - name: is_photo_courante
         description: "Vrai pour la photo la plus récente de la table"
       - name: stock_at_date
-        description: "Stock théorique à la date"
+        description: "Stock théorique au moment de la photo, égal à stock_inventaire + plus − moins (testé sur l'intermédiaire)."
       - name: stock_inventaire
-        description: "Quantité comptée au dernier inventaire"
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
       - name: plus
-        description: "Cumul des entrées depuis le dernier inventaire"
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
       - name: moins
-        description: "Cumul des sorties depuis le dernier inventaire"
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
       - name: dpa
         description: "Dernier prix d'achat"
       - name: purchase_price
