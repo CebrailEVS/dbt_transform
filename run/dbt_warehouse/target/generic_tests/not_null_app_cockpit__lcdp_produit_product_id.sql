@@ -13,9 +13,9 @@
 
 
 
-select type_document
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nunshen_mouvement_stock`
-where type_document is null
+select product_id
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_produit`
+where product_id is null
 
 
 

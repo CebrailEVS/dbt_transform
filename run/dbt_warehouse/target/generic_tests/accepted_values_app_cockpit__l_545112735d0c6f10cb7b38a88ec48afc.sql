@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        sens as value_field,
+        product_en_exploitation as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nunshen_mouvement_stock`
-    group by sens
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_produit`
+    group by product_en_exploitation
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'entree','sortie','aucun'
+    'OUI','NON','FLUX DIRECT'
 )
 
 

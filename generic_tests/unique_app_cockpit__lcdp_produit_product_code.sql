@@ -1,0 +1,1 @@
+{{ test_unique(column_name="product_code", model=get_where_subquery(ref('app_cockpit__lcdp_produit'))) }}
