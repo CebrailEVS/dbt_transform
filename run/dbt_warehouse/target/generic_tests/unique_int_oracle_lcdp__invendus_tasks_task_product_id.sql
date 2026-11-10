@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select product_id as unique_field
-  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_produit`
-  where product_id is not null
+  select task_product_id as unique_field
+  from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__invendus_tasks`
+  where task_product_id is not null
 
 )
 

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="vehicle_code", model=get_where_subquery(ref('app_cockpit__lcdp_invendu'))) }}{{ config({"meta":{},"severity":"WARN","tags":[],"warn_if":">5","where":"task_start_date >= timestamp_sub(current_timestamp(), interval 35 day)"}) }}

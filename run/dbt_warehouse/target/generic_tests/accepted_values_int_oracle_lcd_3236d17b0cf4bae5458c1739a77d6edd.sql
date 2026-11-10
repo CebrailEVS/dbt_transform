@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        product_type as value_field,
+        task_status_code as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_produit`
-    group by product_type
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__invendus_tasks`
+    group by task_status_code
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'PRODU','LIGNE_PRIX','MODELE'
+    'FAIT','VALIDE'
 )
 
 

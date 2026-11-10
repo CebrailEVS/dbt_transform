@@ -9,6 +9,8 @@ select
     timestamp(datetime(task_start_date, 'Europe/Paris')) as task_start_date,
     product_code,
     quantity,
-    valuation
+    valuation,
+    destination_code,
+    vehicle_code
 from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__invendus_tasks`
 where task_status_code in ('FAIT', 'VALIDE')

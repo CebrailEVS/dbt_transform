@@ -25,6 +25,28 @@ ressources_roadman as (
     where rn = 1
 ),
 
+-- Véhicule de la tournée, même règle que int_oracle_lcdp__chargement_tasks. L'invendu ne passe pas
+-- par son stock : Distrilog le fait entrer directement au dépôt de destination.
+ressources_vehicle_ranked as (
+    select
+        thr.idtask,
+        r.idresources as vehicle_id,
+        r.code as vehicle_code,
+        row_number() over (partition by thr.idtask order by r.idresources) as rn
+    from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_has_resources` as thr
+    inner join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__resources` as r on thr.idresources = r.idresources
+    where r.idresources_type = 3
+),
+
+ressources_vehicle as (
+    select
+        idtask,
+        vehicle_id,
+        vehicle_code
+    from ressources_vehicle_ranked
+    where rn = 1
+),
+
 invendus_tasks as (
 
     select
@@ -38,6 +60,7 @@ invendus_tasks as (
         thp.idproduct as product_id,
         t.idlocation as location_id,
         rr.roadman_id,
+        rv.vehicle_id,
 
         -- Codes métier pour les jointures futures
         c.code as company_code,
@@ -45,6 +68,9 @@ invendus_tasks as (
         p.code as product_code,
         ts.code as task_status_code,
         rr.roadman_code,
+        rv.vehicle_code,
+        -- Dépôt qui reçoit l'invendu (PERIME, rarement CASSE)
+        cd.code as destination_code,
 
         -- Infos métier
         l.access_info as task_location_info,
@@ -74,6 +100,9 @@ invendus_tasks as (
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__location` as l on t.idlocation = l.idlocation
     left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__task_status` as ts on t.idtask_status = ts.idtask_status
     left join ressources_roadman as rr on t.idtask = rr.idtask
+    left join ressources_vehicle as rv on t.idtask = rv.idtask
+    left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__company` as cd
+        on t.idproduct_destination = cd.idcompany and t.type_product_destination = 'COMPANY'
 
     where
         1 = 1

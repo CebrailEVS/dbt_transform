@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="destination_code", model=get_where_subquery(ref('app_cockpit__lcdp_invendu')), values=["PERIME","CASSE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
