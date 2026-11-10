@@ -858,6 +858,51 @@ models:
               config:
                 severity: warn
 
+  - name: app_cockpit__lcdp_machine_fin_mois
+    description: |
+      [QUOI MÉTIER] État des machines Cafés du Phare à chaque fin de mois, tel que lu par l'application Cockpit Supply pour la clôture du parc : où était chaque machine le dernier jour du mois, avec son article modèle et son coût d'achat.
+      [COMMENT CONSTRUITE] Machines de app_cockpit__lcdp_machine × fins de mois écoulées depuis janvier 2026, recalculées chaque nuit. Le dernier mouvement FAIT ou VALIDE de app_cockpit__lcdp_mouvement_machine daté au plus tard ce jour-là (heure de Paris) donne l'emplacement et le statut matériel. Sans mouvement validé à cette date, une machine déjà créée (date de création de stg_oracle_lcdp__device) est placée à la source de son premier mouvement validé, ou à son emplacement actuel si elle n'en a aucun. Date et coût d'achat de la fiche actuelle.
+      [GRAIN] 1 ligne par (snapshot_date, device_id) : machine qui existe à cette date.
+      [NOTES] Ce que Distrilog sait aujourd'hui de la fin du mois : une saisie tardive y figure, contrairement à la photo de stock prise le soir ; is_saisie_apres_fin_mois signale le cas. Une réception annulée laisse la machine au dépôt dans Distrilog sans mouvement validé : is_emplacement_deduit signale l'emplacement déduit. Une autre annulation après coup n'est pas signalée. Contrôlé contre l'historique quotidien snap_lcdp__device (depuis le 30/06/2026). Réservé à l'application, pas de rapport Power BI dessus.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['snapshot_date', 'device_id']
+    columns:
+      - name: snapshot_date
+        description: "Dernier jour du mois (date, heure de Paris)."
+        tests:
+          - not_null
+      - name: device_id
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code de l'article modèle, même code que les photos de stock."
+      - name: location_kind
+        description: "Nature de l'emplacement à la fin du mois : DEPOT, CLIENT, SOCIETE…, comme destination_kind des mouvements ; NULL pour une machine sans aucun mouvement validé (emplacement de la fiche actuelle)."
+      - name: company_code
+        description: "Code du dépôt (ex. NEUF) ou du client qui détient la machine à la fin du mois, comme dans app_cockpit__lcdp_machine."
+      - name: material_status_code
+        description: "Statut matériel à la fin du mois, porté par le dernier mouvement (S en stock, E en exploitation, L location, DG dépôt gratuit, EV vente, PRET, CA casse) ; NULL si l'emplacement est déduit."
+      - name: material_status
+        description: "Libellé du statut matériel ; pour une machine sans aucun mouvement validé, statut de la fiche actuelle."
+      - name: purchase_date
+        description: "Date d'achat de la fiche actuelle de la machine ; 1900-01-01 sur quelques machines (date factice de la source)."
+      - name: purchase_cost
+        description: "Coût d'achat de la fiche actuelle (prix réellement payé, par n° de série) ; 0 fréquent, à exclure avant toute somme."
+      - name: last_movement_at
+        description: "Date et heure du dernier mouvement daté au plus tard à la fin du mois, en heure de Paris."
+      - name: last_movement_created_at
+        description: "Date et heure de saisie de ce mouvement dans Distrilog, en heure de Paris."
+      - name: is_saisie_apres_fin_mois
+        description: "TRUE si ce dernier mouvement a été saisi après la fin du mois : la photo de stock du dernier soir ne le voyait pas, d'où un écart possible."
+        tests:
+          - not_null
+      - name: is_emplacement_deduit
+        description: "TRUE si aucun mouvement validé ne situe la machine à la fin du mois : emplacement pris à la source de son premier mouvement validé (machine reçue par un mouvement annulé, ou encore chez le fournisseur), ou à la fiche actuelle si elle n'en a aucun."
+        tests:
+          - not_null
+
   - name: app_cockpit__lcdp_ressource
     description: |
       [QUOI MÉTIER] Référentiel des ressources Cafés du Phare (véhicules), tel que lu par l'application Cockpit Supply.
