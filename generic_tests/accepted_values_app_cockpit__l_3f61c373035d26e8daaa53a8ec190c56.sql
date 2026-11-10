@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="source_kind", model=get_where_subquery(ref('app_cockpit__lcdp_mouvement_machine')), values=["DEPOT","CLIENT","FOURNISSEUR","SOCIETE","EQUIPEMENT","AUTRE","AUCUNE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

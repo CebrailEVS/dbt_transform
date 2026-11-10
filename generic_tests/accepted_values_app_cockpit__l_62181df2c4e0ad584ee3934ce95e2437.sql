@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="task_status_code", model=get_where_subquery(ref('app_cockpit__lcdp_mouvement_machine')), values=["FAIT","VALIDE","ANNULE","ANOMALIE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

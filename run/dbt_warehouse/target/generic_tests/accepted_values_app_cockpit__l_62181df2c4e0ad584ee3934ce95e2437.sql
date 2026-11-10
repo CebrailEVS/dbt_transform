@@ -17,7 +17,7 @@ with all_values as (
         task_status_code as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__livraison_interne_tasks`
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_mouvement_machine`
     group by task_status_code
 
 )

@@ -13,9 +13,9 @@
 
 
 
-select task_start_date
-from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__livraison_interne_tasks`
-where task_start_date is null
+select device_id
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_mouvement_machine`
+where device_id is null
 
 
 
