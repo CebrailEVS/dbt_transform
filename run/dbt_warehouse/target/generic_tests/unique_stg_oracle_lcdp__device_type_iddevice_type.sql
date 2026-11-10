@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select reference as unique_field
-  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_prix_achat`
-  where reference is not null
+  select iddevice_type as unique_field
+  from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__device_type`
+  where iddevice_type is not null
 
 )
 

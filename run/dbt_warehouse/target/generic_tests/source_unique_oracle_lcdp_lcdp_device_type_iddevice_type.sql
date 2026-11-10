@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select purchase_order_line_id as unique_field
-  from `evs-datastack-prod`.`prod_staging`.`stg_yuman__purchase_orders`
-  where purchase_order_line_id is not null
+  select iddevice_type as unique_field
+  from `evs-datastack-prod`.`prod_raw`.`lcdp_device_type`
+  where iddevice_type is not null
 
 )
 

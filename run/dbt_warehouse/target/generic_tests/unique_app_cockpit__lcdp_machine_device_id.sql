@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select purchase_order_line_id as unique_field
-  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_commande_fournisseur`
-  where purchase_order_line_id is not null
+  select device_id as unique_field
+  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_machine`
+  where device_id is not null
 
 )
 

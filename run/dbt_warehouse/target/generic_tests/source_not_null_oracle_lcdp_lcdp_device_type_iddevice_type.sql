@@ -13,9 +13,9 @@
 
 
 
-select numero
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_commande_fournisseur`
-where numero is null
+select iddevice_type
+from `evs-datastack-prod`.`prod_raw`.`lcdp_device_type`
+where iddevice_type is null
 
 
 
