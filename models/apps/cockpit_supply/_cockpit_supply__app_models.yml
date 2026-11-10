@@ -722,11 +722,16 @@ models:
   - name: app_cockpit__lcdp_produit
     description: |
       [QUOI MÉTIER] Référentiel des articles Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] stg_oracle_lcdp__product filtrée comme la dim (types 1 et 5, date de création renseignée), type d'article (stg_oracle_lcdp__product_type), libellés de stg_oracle_lcdp__label_product. Colonnes lues par l'app seulement.
+      [COMMENT CONSTRUITE] stg_oracle_lcdp__product : articles des types 1 et 5 avec une date de création (filtre de la dim), plus les modèles de machines (type 4 MODELE) sans condition de date, hors modèle dont le code est déjà celui d'un article. Type d'article (stg_oracle_lcdp__product_type), libellés de stg_oracle_lcdp__label_product. Colonnes lues par l'app seulement.
       [GRAIN] 1 ligne par product_id.
-      [NOTES] lue via get_dim_products_lcdp, get_produits_actifs_lcdp ; écrans : _flux, _pilotage, accueil, lcdp_distrib, lcdp_pilotage, lcdp_torrefaction, neshu_partenaires, nunshen_partenaires, supply, technique_partenaires. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
+      [NOTES] lue via get_dim_products_lcdp, get_produits_actifs_lcdp ; écrans : _flux, _pilotage, accueil, lcdp_distrib, lcdp_pilotage, lcdp_torrefaction, neshu_partenaires, nunshen_partenaires, supply, technique_partenaires. get_produits_actifs_lcdp écarte les MODELE (listes de consommables). Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
       - name: product_id
+        tests:
+          - not_null
+          - unique
+      - name: product_code
+        description: "Code article Distrilog, clé de l'app (stocks, mouvements, prix). Unique : un modèle de machine qui reprendrait le code d'un article est écarté."
         tests:
           - not_null
           - unique
