@@ -13,6 +13,7 @@
 -- created_at Sage est en heure de Paris (horloge du serveur) : converti en UTC. Une ligne de document
 -- transformé (commande → réception, préparation → bon de fabrication, BL → facture) garde la date de
 -- saisie de la ligne d'origine : le mouvement n'a lieu qu'à la date de la pièce (mouvement_at).
+-- Ventes intragroupe et non facturées : mêmes règles que app_cockpit__nunshen_bl_client (macros nunshen_vente).
 with lignes as (
     select
         dl.*,
@@ -79,6 +80,8 @@ select
     end as float64) as valeur_stock,
     cast(l.dl_montant_ht as float64) as montant_ht,
     if(l.do_domaine in (0, 1), l.ct_num, null) as code_tiers,
+    {{ nunshen_is_intragroupe('l.do_domaine', 'l.do_type', 'l.do_piece') }} as is_intragroupe,
+    {{ nunshen_is_non_facture('l.do_domaine', 'l.do_type') }} as is_non_facture,
     t.depot_source_id,
     src.de_intitule as depot_source,
     t.depot_destination_id,
