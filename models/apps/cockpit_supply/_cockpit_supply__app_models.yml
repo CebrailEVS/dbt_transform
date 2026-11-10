@@ -895,6 +895,23 @@ models:
         tests:
           - not_null
           - unique
+      - name: destination_code
+        description: "Dépôt qui reçoit l'invendu : PERIME, rarement CASSE. Distrilog fait passer l'invendu de la machine directement à ce dépôt : c'est une entrée de son stock."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PERIME', 'CASSE']
+              config:
+                severity: warn
+      - name: vehicle_code
+        description: "Immatriculation du véhicule de la tournée, pour information : l'invendu n'entre jamais dans le stock du véhicule."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+                # Quelques tâches isolées sans véhicule sont normales ; au-delà, la saisie a changé.
+                warn_if: ">5"
+                where: "task_start_date >= timestamp_sub(current_timestamp(), interval 35 day)"
 
   - name: app_cockpit__lcdp_entree_fabrication
     description: |
