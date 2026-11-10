@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="product_type", model=get_where_subquery(ref('app_cockpit__lcdp_produit')), values=["PRODU","LIGNE_PRIX","MODELE"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

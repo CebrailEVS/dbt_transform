@@ -22,12 +22,15 @@ select
     p.idproduct as product_id,
     p.code as product_code,
     p.name as product_name,
+    pt.code as product_type,
     lb.product_family,
     lb.product_group,
     lb.product_bio,
     lb.product_en_exploitation,
     coalesce(lower(lb.is_active) = 'yes', false) as is_active
 from `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__product` as p
+left join `evs-datastack-prod`.`prod_staging`.`stg_oracle_lcdp__product_type` as pt
+    on p.idproduct_type = pt.idproduct_type
 left join labels as lb
     on p.idproduct = lb.idproduct
 where
