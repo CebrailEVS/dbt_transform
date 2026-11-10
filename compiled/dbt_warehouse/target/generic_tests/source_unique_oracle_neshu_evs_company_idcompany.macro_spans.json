@@ -9,8 +9,8 @@
         },
         "stop": {
           "line": 1,
-          "col": 108,
-          "index": 107
+          "col": 105,
+          "index": 104
         }
       },
       "expanded_span": {
@@ -22,7 +22,33 @@
         "stop": {
           "line": 22,
           "col": 1,
-          "index": 280
+          "index": 275
+        }
+      }
+    },
+    {
+      "macro_span": {
+        "start": {
+          "line": 1,
+          "col": 105,
+          "index": 104
+        },
+        "stop": {
+          "line": 1,
+          "col": 158,
+          "index": 157
+        }
+      },
+      "expanded_span": {
+        "start": {
+          "line": 22,
+          "col": 1,
+          "index": 275
+        },
+        "stop": {
+          "line": 22,
+          "col": 1,
+          "index": 275
         }
       }
     }

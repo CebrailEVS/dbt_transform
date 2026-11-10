@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["snapshot_date","device_id"], model=get_where_subquery(ref('app_cockpit__lcdp_machine_fin_mois'))) }}

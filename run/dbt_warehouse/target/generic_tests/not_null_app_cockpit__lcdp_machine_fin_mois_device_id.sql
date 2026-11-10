@@ -13,9 +13,9 @@
 
 
 
-select task_id
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_mouvement_machine`
-where task_id is null
+select device_id
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_machine_fin_mois`
+where device_id is null
 
 
 

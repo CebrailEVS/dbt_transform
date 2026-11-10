@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="is_saisie_apres_fin_mois", model=get_where_subquery(ref('app_cockpit__lcdp_machine_fin_mois'))) }}
