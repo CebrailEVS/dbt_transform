@@ -793,6 +793,71 @@ models:
       - name: purchase_cost
         description: "Prix d'achat saisi dans l'ERP ; 0 fréquent, et au moins une saisie aberrante (M7243) à exclure avant toute somme."
 
+  - name: app_cockpit__lcdp_mouvement_machine
+    description: |
+      [QUOI MÉTIER] Mouvements d'équipements Cafés du Phare (machines et sous-équipements), tels que lus par l'application Cockpit Supply : installations, retours, ventes, transferts et réceptions, pour la clôture du parc neuf et l'état des équipements à une date.
+      [COMMENT CONSTRUITE] stg_oracle_lcdp__task (type 134 « Mouvement matériel », DEVICEMOV ; enregistrement actif, date renseignée), équipement de stg_oracle_lcdp__device avec son type et son article modèle (comme app_cockpit__lcdp_machine), source et destination résolues selon leur nature (société typée par stg_oracle_lcdp__company_type, ou équipement porteur), statut matériel de la tâche (famille STATUT_MATERIEL, libellé français). movement_type classe le mouvement d'après la nature de la source, celle de la destination et le statut matériel.
+      [GRAIN] 1 ligne par task_id (tâche de mouvement), tous statuts.
+      [NOTES] L'emplacement d'un équipement à une date est la destination de son dernier mouvement validé à cette date ; un test le contrôle contre l'emplacement actuel de app_cockpit__lcdp_machine. created_at repère les mouvements saisis après coup, qui modifient un mois passé. Heures en heure de Paris. Noms de sociétés clientes seulement, aucun nom de personne. Réservé à l'application, pas de rapport Power BI dessus.
+    columns:
+      - name: task_id
+        tests:
+          - not_null
+          - unique
+      - name: document_number
+        description: "N° de la pièce Distrilog du mouvement."
+      - name: movement_at
+        description: "Date et heure du mouvement (real_start_date), en heure de Paris."
+        tests:
+          - not_null
+      - name: created_at
+        description: "Date et heure de saisie de la tâche dans Distrilog, en heure de Paris. Une saisie postérieure à la fin du mois modifie ce mois après coup."
+      - name: task_status_code
+        description: "Statut de la tâche. Seul un mouvement FAIT ou VALIDE déplace l'équipement ; un mouvement annulé reste visible."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['FAIT', 'VALIDE', 'ANNULE', 'ANOMALIE']
+              config:
+                severity: warn
+      - name: device_id
+        tests:
+          - not_null
+      - name: device_type
+        description: "Type d'équipement (MACHINE, SYSTEME DE PAIEMENT…), comme dans app_cockpit__lcdp_machine."
+      - name: product_code
+        description: "Code de l'article modèle de l'équipement, même code que les photos de stock."
+      - name: source_kind
+        description: "Nature de la source : DEPOT, CLIENT, FOURNISSEUR, SOCIETE (Cafés du Phare), EQUIPEMENT (équipement porteur d'un sous-équipement), AUTRE, ou AUCUNE (création de la fiche)."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['DEPOT', 'CLIENT', 'FOURNISSEUR', 'SOCIETE', 'EQUIPEMENT', 'AUTRE', 'AUCUNE']
+              config:
+                severity: warn
+      - name: source_code
+        description: "Code de la société source (code du dépôt, ex. NEUF) ou de l'équipement porteur."
+      - name: destination_kind
+        description: "Nature de la destination, mêmes valeurs que source_kind."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['DEPOT', 'CLIENT', 'FOURNISSEUR', 'SOCIETE', 'EQUIPEMENT', 'AUTRE', 'AUCUNE']
+              config:
+                severity: warn
+      - name: destination_code
+        description: "Code de la société de destination (code du dépôt, ex. NEUF) ou de l'équipement porteur : l'emplacement de l'équipement après le mouvement."
+      - name: material_status_code
+        description: "Statut matériel après le mouvement : E (en exploitation), L (location), DG (dépôt gratuit), EV (vente), PRET, S (en stock), CA (casse), CLIENT (machine du client). NULL si non saisi."
+      - name: movement_type
+        description: "Classement métier, premier cas applicable : sous-équipement monté ou démonté ; création de la fiche (sans source) ; vente (statut EV vers un client) ; réception (fournisseur → dépôt) ; installation (dépôt → client) ; retour ou retour en casse (client → dépôt) ; transfert entre dépôts ou mise en casse (dépôt → dépôt) ; transfert entre clients ; sinon Autre."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Installation', 'Vente', 'Retour', 'Retour en casse', 'Transfert entre dépôts', 'Mise en casse', 'Réception', 'Transfert entre clients', 'Création de la fiche', 'Sous-équipement monté', 'Sous-équipement démonté', 'Autre']
+              config:
+                severity: warn
+
   - name: app_cockpit__lcdp_ressource
     description: |
       [QUOI MÉTIER] Référentiel des ressources Cafés du Phare (véhicules), tel que lu par l'application Cockpit Supply.
