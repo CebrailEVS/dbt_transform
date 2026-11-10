@@ -722,7 +722,7 @@ models:
   - name: app_cockpit__lcdp_produit
     description: |
       [QUOI MÉTIER] Référentiel des articles Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] stg_oracle_lcdp__product filtrée comme la dim (types 1 et 5, date de création renseignée), libellés de stg_oracle_lcdp__label_product. Colonnes lues par l'app seulement.
+      [COMMENT CONSTRUITE] stg_oracle_lcdp__product filtrée comme la dim (types 1 et 5, date de création renseignée), type d'article (stg_oracle_lcdp__product_type), libellés de stg_oracle_lcdp__label_product. Colonnes lues par l'app seulement.
       [GRAIN] 1 ligne par product_id.
       [NOTES] lue via get_dim_products_lcdp, get_produits_actifs_lcdp ; écrans : _flux, _pilotage, accueil, lcdp_distrib, lcdp_pilotage, lcdp_torrefaction, neshu_partenaires, nunshen_partenaires, supply, technique_partenaires. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     columns:
@@ -730,6 +730,14 @@ models:
         tests:
           - not_null
           - unique
+      - name: product_type
+        description: "Type d'article Distrilog : PRODU (article stocké ou vendu), LIGNE_PRIX, MODELE (modèle de machine suivie par n° de série, le code des machines du dépôt NEUF). Un écran qui liste des consommables écarte MODELE."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PRODU', 'LIGNE_PRIX', 'MODELE']
+              config:
+                severity: warn
       - name: product_group
         description: "Groupe produit (label GROUPRO, libellé rogné) : CAFE GRAIN, THE NUNSHEN, SNACK, BOISSON FROIDE, BOISSON CHAUDE, ACCESSOIRE, NESPRESSO… NULL si non saisi."
       - name: product_en_exploitation
