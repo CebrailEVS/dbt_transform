@@ -27,6 +27,15 @@ with mouvement_interne_base as (
         p.code as product_code,
         ts.code as task_status_code,
 
+        -- N° de facture e-shop lu dans le commentaire, qui n'est jamais repris en colonne
+        cast(cast(coalesce(
+    regexp_extract(
+        regexp_replace(t.comments_peer, r'(?i)\b[a-z]{2}-\d{3}-[a-z]{2}\b', ' '),
+        r'(?i)\bes\s*[-–—_./:#°]?\s*(\d{3,6})\b'
+    ),
+    if(cd.code = 'TAMPON', regexp_extract(t.comments_peer, r'^\s*(\d{3,6})\s*$'), null)
+) as int64) as string) as numero_facture_eshop,
+
         -- Informations date
         t.real_start_date as task_start_date,
 
@@ -97,6 +106,7 @@ with mouvement_interne_base as (
         p.purchase_unit_price,
         cs.code, rs.code, cd.code, rd.code,
         p.code, ts.code,
+        t.comments_peer,
         t.real_start_date,
         t.updated_at, t.created_at, t.extracted_at
 )
@@ -120,6 +130,7 @@ select
 
     -- Infos métier
     task_start_date,
+    numero_facture_eshop,
 
     -- Infos de conditionnement
     unit_coeff_multi,
