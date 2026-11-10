@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="sens", model=get_where_subquery(ref('app_cockpit__nunshen_mouvement_stock')), values=["entree","sortie","aucun"]) }}

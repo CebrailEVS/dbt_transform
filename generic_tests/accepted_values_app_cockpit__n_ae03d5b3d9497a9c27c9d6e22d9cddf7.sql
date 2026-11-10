@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="type_document", model=get_where_subquery(ref('app_cockpit__nunshen_mouvement_stock')), quote=false, values=[3,4,6,7,13,20,21,23,26]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
