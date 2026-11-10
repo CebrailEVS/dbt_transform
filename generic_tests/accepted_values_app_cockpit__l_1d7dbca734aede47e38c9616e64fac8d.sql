@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="type_tache", model=get_where_subquery(ref('app_cockpit__lcdp_livraison_interne')), values=["LIVRAISON_INTERNE","SORTIE_FABRICATION","ENTREE_FABRICATION"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

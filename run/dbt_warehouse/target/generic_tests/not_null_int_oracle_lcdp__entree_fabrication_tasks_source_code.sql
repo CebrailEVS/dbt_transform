@@ -13,9 +13,9 @@
 
 
 
-select mouvement_at
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nunshen_mouvement_stock`
-where mouvement_at is null
+select source_code
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__entree_fabrication_tasks`
+where source_code is null
 
 
 

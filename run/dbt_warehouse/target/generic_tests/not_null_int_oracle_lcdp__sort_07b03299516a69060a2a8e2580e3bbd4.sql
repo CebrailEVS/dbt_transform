@@ -13,9 +13,9 @@
 
 
 
-select type_document
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nunshen_mouvement_stock`
-where type_document is null
+select task_product_id
+from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__sortie_fabrication_tasks`
+where task_product_id is null
 
 
 

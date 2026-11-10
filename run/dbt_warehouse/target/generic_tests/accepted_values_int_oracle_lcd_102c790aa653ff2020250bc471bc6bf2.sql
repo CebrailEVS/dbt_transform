@@ -14,18 +14,18 @@
 with all_values as (
 
     select
-        sens as value_field,
+        task_status_code as value_field,
         count(*) as n_records
 
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nunshen_mouvement_stock`
-    group by sens
+    from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__sortie_fabrication_tasks`
+    group by task_status_code
 
 )
 
 select *
 from all_values
 where value_field not in (
-    'entree','sortie','aucun'
+    'FAIT','VALIDE','ANNULE','ANOMALIE'
 )
 
 
