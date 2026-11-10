@@ -1331,6 +1331,100 @@ models:
           arguments:
             combination_of_columns: ['n_piece', 'date_document', 'reference']
 
+  - name: app_cockpit__nunshen_mouvement_stock
+    description: |
+      [QUOI MÉTIER] Journal des mouvements de stock Nunshen, tous dépôts : réceptions, livraisons clients et avoirs, mouvements d'entrée et de sortie (régularisations, inventaires, déconditionnement), transferts entre dépôts, bons de fabrication complets (produit fini, composants consommés, prestations de façonnage). Explique le passage d'une photo de stock à la suivante : flux du mois et clôture mensuelle.
+      [COMMENT CONSTRUITE] Lignes de stg_mssql_sage__f_docligne qui bougent le stock (dl_mvt_stock 1 = entrée, 3 = sortie) et toutes les lignes des bons de fabrication (type 26), y compris les prestations sans mouvement. Quantité et valeur signées (+ entrée, − sortie) : sens donné par dl_mvt_stock, quantité par abs(dl_qte), car un avoir est noté en quantité négative avec dl_mvt_stock = 1. Valeur : entrée au prix de revient (dl_prix_ru), sortie au CMUP (dl_cmup), comme Sage valorise son stock. Dépôts source et destination repris sur chaque ligne d'un transfert.
+      [GRAIN] 1 ligne par ligne de document Sage (ligne_id), mouvements datés depuis janvier 2024 (filtre du modèle).
+      [NOTES] Date du mouvement = date du BL (une ligne de BL facturée garde la date du BL, pas celle de la facture) ; mouvement_at = moment où le mouvement est passé dans le stock, à comparer à l'heure d'une photo de stock (une ligne de document transformé, commande → réception par exemple, garde la saisie de la ligne d'origine). Sage ne garde que l'état courant d'un document : une ligne supprimée disparaît, une ligne modifiée garde sa date de saisie (modifie_at la signale) ; des écarts d'un jour à l'autre avec les photos sont donc possibles, ils se compensent quand la modification reste dans le mois. Une revalorisation du CMUP sans document n'y figure pas (effet prix). Réservé à l'application : pas de rapport Power BI dessus.
+    columns:
+      - name: ligne_id
+        description: "Identifiant Sage de la ligne de document (dl_no)"
+        tests:
+          - unique
+          - not_null
+      - name: type_document
+        description: "Type de document Sage : 3 BL, 4 retour, 6 facture, 7 facture comptabilisée, 13 réception, 20 entrée de stock, 21 sortie de stock (régularisations, inventaires, casse, déconditionnement), 23 transfert, 26 bon de fabrication"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [3, 4, 6, 7, 13, 20, 21, 23, 26]
+                quote: false
+              config:
+                severity: warn
+      - name: libelle_type_document
+        description: "Libellé du type de document"
+      - name: n_piece
+        description: "N° de pièce Sage ; unique avec type_document (une facture et un transfert peuvent porter le même n°)"
+        tests:
+          - not_null
+      - name: n_ligne
+        description: "N° de ligne dans la pièce (ordre de saisie)"
+      - name: reference_document
+        description: "Référence saisie sur la pièce : motif d'un mouvement (ex. régularisation, casse), n° de commande d'origine"
+      - name: date_document
+        description: "Date de la pièce (date de facture pour une ligne de BL facturée)"
+      - name: date_mouvement
+        description: "Date du mouvement de stock : date du BL, sinon date de la pièce"
+        tests:
+          - not_null
+      - name: saisie_at
+        description: "Saisie de la ligne dans Sage (UTC) ; pour un document transformé, saisie de la ligne d'origine (commande, préparation)"
+        tests:
+          - not_null
+      - name: mouvement_at
+        description: "Moment du mouvement dans le stock (UTC) : saisie_at, ou début du jour du mouvement (heure de Paris) quand la ligne a été saisie avant, sur un document transformé ensuite"
+        tests:
+          - not_null
+      - name: modifie_at
+        description: "Dernière modification de la ligne dans Sage (UTC). Seule la version finale est connue : une ligne modifiée après une photo de stock (inventaire corrigé, quantité changée) crée un écart avec cette photo, à signaler"
+      - name: depot_id
+        description: "Dépôt Sage du mouvement ; NULL pour une ligne sans mouvement (prestation de façonnage)"
+      - name: depot
+        description: "Nom du dépôt"
+      - name: reference
+        description: "Article"
+        tests:
+          - not_null
+      - name: designation
+        description: "Désignation de l'article"
+      - name: code_famille
+        description: "Famille de l'article"
+      - name: reference_compose
+        description: "Bon de fabrication : produit fini auquel la ligne est rattachée (le produit lui-même sur sa ligne d'entrée) ; NULL hors fabrication"
+      - name: sens
+        description: "entree, sortie, ou aucun (ligne de bon de fabrication sans mouvement : prestation de façonnage)"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['entree', 'sortie', 'aucun']
+      - name: quantite_document
+        description: "Quantité de la ligne, positive, y compris sur une ligne sans mouvement"
+      - name: quantite
+        description: "Mouvement de stock en quantité : positif en entrée, négatif en sortie, 0 sans mouvement"
+        tests:
+          - not_null
+      - name: prix_unitaire_stock
+        description: "Coût unitaire de stock (€) : prix de revient en entrée et sans mouvement, CMUP en sortie"
+      - name: valeur_stock
+        description: "Mouvement de stock en valeur (€) : quantite × prix_unitaire_stock, 0 sans mouvement"
+      - name: montant_ht
+        description: "Montant HT de la ligne de document (€) tel que dans Sage : prix de vente, d'achat ou de prestation ; négatif sur un avoir"
+      - name: code_tiers
+        description: "Client ou fournisseur (ventes et achats) ; NULL pour un document de stock"
+      - name: depot_source_id
+        description: "Transfert : dépôt de départ ; NULL hors transfert"
+      - name: depot_source
+        description: "Transfert : nom du dépôt de départ"
+      - name: depot_destination_id
+        description: "Transfert : dépôt d'arrivée ; NULL hors transfert"
+      - name: depot_destination
+        description: "Transfert : nom du dépôt d'arrivée"
+      - name: extracted_at
+        description: "Horodatage de l'extraction Sage"
+
   - name: app_cockpit__nunshen_commande_fournisseur
     description: |
       [QUOI MÉTIER] Lignes de commandes fournisseurs Nunshen encore ouvertes : reste à livrer, date de livraison prévue, dépôt de réception, fournisseur. Alimente le stock projeté, les commandes Siti, le cash flow, les retards fournisseurs et le statut « en attente de validation matière ».

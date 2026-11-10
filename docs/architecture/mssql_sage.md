@@ -104,6 +104,26 @@ que les documents **ouverts** ; leur quantité est déjà le reste à livrer ou 
 historique des commandes n'est conservé. Lire `app_cockpit__nunshen_commande_fournisseur` et
 `app_cockpit__nunshen_ordre_production`.
 
+**Heure de saisie à l'heure de Paris.** `cb_creation` et `cb_modification` (`created_at`,
+`updated_at` du staging) sont à l'heure du serveur Sage, sans fuseau. Règle :
+`timestamp(datetime(created_at), 'Europe/Paris')` avant toute comparaison avec `_extracted_at`
+(UTC). Vérifié sur les photos de stock prises en journée. Appliqué dans
+`app_cockpit__nunshen_mouvement_stock`.
+
+**Sens et valeur d'un mouvement de stock.** `dl_mvt_stock` : 1 = entrée, 3 = sortie, 0 = aucun.
+Un avoir porte une quantité négative avec `dl_mvt_stock = 1` et fait bien entrer la marchandise.
+Règle : sens par `dl_mvt_stock`, quantité par `abs(dl_qte)` ; entrée au `dl_prix_ru`, sortie au
+`dl_cmup` (c'est ce qui rapproche les photos de `f_artstock`). Appliqué dans
+`app_cockpit__nunshen_mouvement_stock`.
+
+**Date d'un mouvement sur un document transformé.** Une ligne garde son `dl_no` et sa date de
+création quand son document est transformé (commande → réception, préparation → bon de
+fabrication, BL → facture) ; `do_date` devient la date du nouveau document. Règle : date du
+mouvement = `dl_date_bl`, sinon `do_date` ; moment du mouvement = le plus tardif de la saisie et
+du début de ce jour. Une ligne modifiée ne garde que sa version finale : la modification n'a pas
+de date propre (`cb_modification` la signale seulement). Appliqué dans
+`app_cockpit__nunshen_mouvement_stock`.
+
 **Photos de stock multiples.** Un run manuel ajoute une seconde photo le même jour. Règle : ne
 jamais sommer sur plusieurs photos ; choisir une photo explicitement. Stock : dernière
 extraction de chaque jour en heure de Paris (`app_cockpit__nunshen_stock_photo`). Lots : photo
