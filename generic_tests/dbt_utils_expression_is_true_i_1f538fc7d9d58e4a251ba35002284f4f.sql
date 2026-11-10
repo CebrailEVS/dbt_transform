@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="abs(stock_at_date - (stock_inventaire + plus - moins)) < 0.001", model=get_where_subquery(ref('int_oracle_lcdp__stock_theorique'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
