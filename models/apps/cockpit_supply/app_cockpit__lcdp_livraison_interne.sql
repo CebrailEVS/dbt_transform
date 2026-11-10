@@ -11,6 +11,7 @@ select
     destination_code,
     product_code,
     quantity,
-    valuation
+    valuation,
+    numero_facture_eshop
 from {{ ref('int_oracle_lcdp__livraison_interne_tasks') }}
 where task_status_code in ('FAIT', 'VALIDE')
