@@ -28,6 +28,7 @@ po_base as (
         safe_cast(quote_id as int64) as quote_id,
         safe_cast(supplier_id as int64) as supplier_id,
         delivery_address,
+        nullif(trim(storehouse_name), '') as storehouse_name,
         _extracted_at as extracted_at,
         lines
     from src
@@ -70,6 +71,7 @@ line_parsed as (
         quote_id,
         supplier_id,
         delivery_address,
+        storehouse_name,
         extracted_at,
 
         -- champs ligne
@@ -113,6 +115,7 @@ select
     quote_id,
     supplier_id,
     delivery_address,
+    storehouse_name,
 
     -- champs ligne (une ligne par item)
     purchase_order_line_id,

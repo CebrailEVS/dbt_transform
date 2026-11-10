@@ -13,9 +13,9 @@
 
 
 
-select destination_code
-from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__sortie_fabrication_tasks`
-where destination_code is null
+select atelier_destination
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_commande_fournisseur`
+where atelier_destination is null
 
 
 

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="atelier_destination", model=get_where_subquery(ref('app_cockpit__technique_commande_fournisseur')), values=["06 - ATELIER RUNGIS DEPOT","07 - ATELIER LYON DEPOT","08 - ATELIER BORDEAUX DEPOT","09 - ATELIER STRASBOURG DEPOT"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

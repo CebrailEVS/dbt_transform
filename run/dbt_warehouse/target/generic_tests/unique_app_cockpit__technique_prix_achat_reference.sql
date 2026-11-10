@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select task_product_id as unique_field
-  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_entree_fabrication`
-  where task_product_id is not null
+  select reference as unique_field
+  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_prix_achat`
+  where reference is not null
 
 )
 

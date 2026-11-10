@@ -13,9 +13,9 @@
 
 
 
-select task_product_id
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__lcdp_sortie_fabrication`
-where task_product_id is null
+select purchase_order_id
+from `evs-datastack-prod`.`prod_staging`.`stg_yuman__purchase_orders`
+where purchase_order_id is null
 
 
 

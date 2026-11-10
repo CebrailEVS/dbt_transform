@@ -13,9 +13,9 @@
 
 
 
-select created_at
-from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__entree_fabrication_tasks`
-where created_at is null
+select numero
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__technique_commande_fournisseur`
+where numero is null
 
 
 

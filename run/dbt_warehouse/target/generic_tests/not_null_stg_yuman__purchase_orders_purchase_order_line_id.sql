@@ -13,9 +13,9 @@
 
 
 
-select task_product_id
-from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__sortie_fabrication_tasks`
-where task_product_id is null
+select purchase_order_line_id
+from `evs-datastack-prod`.`prod_staging`.`stg_yuman__purchase_orders`
+where purchase_order_line_id is null
 
 
 
