@@ -744,7 +744,7 @@ models:
   - name: app_cockpit__lcdp_machine
     description: |
       [QUOI MÉTIER] Référentiel des machines Cafés du Phare, tel que lu par l'application Cockpit Supply : comptage par approvisionneur et catégorie, et écran Équipements en stock (machines en dépôt, avec n° de série, propriétaire et achat).
-      [COMMENT CONSTRUITE] Construit depuis le staging, indépendamment de dim_lcdp__device : stg_oracle_lcdp__device (hors machines sans société de rattachement), libellés des labels (stg_oracle_lcdp__label_device), stg_oracle_lcdp__company pour le dépôt ou client et pour le propriétaire, roadman affecté via stg_oracle_lcdp__contact_has_device → contact → resources (type PERSON, code le plus petit si deux affectations). Colonnes limitées à celles des deux écrans. Pas de filtre de dépôt ni de statut.
+      [COMMENT CONSTRUITE] Construit depuis le staging, indépendamment de dim_lcdp__device : stg_oracle_lcdp__device (hors machines sans société de rattachement), type d'équipement (stg_oracle_lcdp__device_type), article modèle (stg_oracle_lcdp__product via idmodel), libellés des labels (stg_oracle_lcdp__label_device), stg_oracle_lcdp__company pour le dépôt ou client et pour le propriétaire, roadman affecté via stg_oracle_lcdp__contact_has_device → contact → resources (type PERSON, code le plus petit si deux affectations). Colonnes limitées à celles des deux écrans. Pas de filtre de dépôt ni de statut.
       [GRAIN] 1 ligne par device_id.
       [NOTES] lue via get_dim_devices_lcdp ; écrans : lcdp_pilotage, équipements en stock. Le dépôt d'une machine en stock est company_code / company_name (DEPOT ATELIER, DEPOT NEUF, DEPOT CASSE, DEPOT BOUTIQUE). Les labels sont des libellés (device_material_status « EN STOCK »), contrairement à Neshu qui expose des codes. Pas de champ de réservation : la famille n'existe pas dans l'ERP LCDP. Les règles de l'app (dépôts retenus, statuts, exclusions) restent appliquées par l'app. Réservé à l'application.
     columns:
@@ -754,6 +754,20 @@ models:
           - unique
       - name: device_serial_number
         description: "Numéro de série constructeur, distinct de device_code et non garanti unique."
+      - name: device_type
+        description: "Type d'équipement Distrilog : MACHINE, ou un sous-équipement (SYSTEME DE PAIEMENT, TELEMETRIE, TPE…) qu'un contrôle de machines doit écarter."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: product_code
+        description: "Code de l'article modèle de l'équipement (type MODELE dans Distrilog), le même que product_code des photos de stock : rapproche les machines d'un dépôt de son stock sans passer par les libellés."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: product_name
+        description: "Libellé de l'article modèle."
       - name: company_code
         description: "Code du client ou du dépôt qui détient la machine."
       - name: company_name

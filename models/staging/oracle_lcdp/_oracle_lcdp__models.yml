@@ -190,6 +190,24 @@ models:
                 to: ref('stg_oracle_lcdp__company')
                 field: idcompany
 
+  # DEVICE TYPE
+  - name: stg_oracle_lcdp__device_type
+    description: "Types d'équipement transformés et nettoyés depuis la base Oracle LCDP : une machine se distingue de ses sous-équipements (système de paiement, télémétrie…)"
+    columns:
+      - name: iddevice_type
+        tests:
+          - unique
+          - not_null
+        description: "Identifiant unique du type d'équipement"
+      - name: code
+        description: "Code du type d'équipement, lisible (MACHINE, SYSTEME DE PAIEMENT, TELEMETRIE…)"
+      - name: code_type
+        description: "Type technique Distrilog correspondant (DEVICE, PAYMENTSYSTEM, TELEMETRY…)"
+      - name: updated_at
+        description: "Dernière modification dans la source, en UTC"
+      - name: extracted_at
+        description: "Date d'extraction depuis la source (dlt)"
+
   # DEVICE
   - name: stg_oracle_lcdp__device
     description: "Devices transformés et nettoyés depuis la base Oracle LCDP"
