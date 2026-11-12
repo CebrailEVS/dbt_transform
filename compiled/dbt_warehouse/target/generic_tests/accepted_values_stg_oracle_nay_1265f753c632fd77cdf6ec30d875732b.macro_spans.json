@@ -22,7 +22,7 @@
         "stop": {
           "line": 23,
           "col": 1,
-          "index": 316
+          "index": 297
         }
       }
     },
@@ -43,12 +43,12 @@
         "start": {
           "line": 23,
           "col": 1,
-          "index": 316
+          "index": 297
         },
         "stop": {
           "line": 23,
           "col": 1,
-          "index": 316
+          "index": 297
         }
       }
     }
