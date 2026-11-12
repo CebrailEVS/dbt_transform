@@ -10,7 +10,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- idstring renvoie à la table string, non extraite.
     select
         cast(idresources_type as int64) as idresources_type,
         code,

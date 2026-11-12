@@ -10,8 +10,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Retirées : idstring (table string non extraite), comments (notes sur l'affichage des symboles).
-    -- Pas de date de modification à la source.
     select
         cast(idcurrency as int64) as idcurrency,
         code,

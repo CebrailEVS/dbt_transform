@@ -10,8 +10,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées (dont izly_api_key, idmachine_nayax, idtariff),
-    -- xml (balise vide), paramétrage constant de l'ERP (idinstance, audit_param_config_default).
     select
         cast(iddevice as int64) as iddevice,
         cast(device_iddevice as int64) as device_iddevice,

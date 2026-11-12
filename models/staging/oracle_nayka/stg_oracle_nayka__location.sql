@@ -10,8 +10,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées, paramétrage de l'ERP (idinstance, geocode_status,
-    -- cedex_type).
     select
         cast(idlocation as int64) as idlocation,
         code,

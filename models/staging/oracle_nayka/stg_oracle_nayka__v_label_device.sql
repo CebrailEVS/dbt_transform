@@ -10,12 +10,12 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : l_idstring et lf_idstring (table string non extraite), lf_export_mobile (mobile).
-    -- Préfixes de la vue : l_ = étiquette, lf_ = famille.
     select
         cast(iddevice as int64) as iddevice,
         cast(idlabel as int64) as idlabel,
         cast(idlabel_family as int64) as idlabel_family,
+        cast(l_idstring as int64) as l_idstring,
+        cast(lf_idstring as int64) as lf_idstring,
         lf_code,
         -- trim : codes et libellés servent de clés aux pivots en aval, et la saisie laisse des espaces.
         trim(l_code) as l_code,

@@ -6,8 +6,6 @@ sources:
       ERP Oracle Distrilog de Nayka (partenaire), extrait par dlt (pipeline `oracle_nayka`),
       même structure que oracle_lcdp et oracle_neshu. Les dates Oracle sont l'heure de Paris
       enregistrée sans fuseau (seul `_extracted_at` est en UTC) : le staging les convertit.
-      La table `string` (libellés traduits) n'est pas extraite : les colonnes `idstring*` ne
-      mènent nulle part.
     database: "{{ var('raw_project') }}"
     schema: "{{ var('raw_schema', 'prod_raw') }}"
     config:
@@ -67,6 +65,8 @@ sources:
         description: "Produits, pièces, modèles de machines, moyens de paiement."
       - name: nayka_product_unit
         description: "Unités de conditionnement des produits."
+      - name: nayka_string
+        description: "Libellés traduits de l'ERP, une ligne par libellé et par langue."
       - name: nayka_device
         description: "Équipements : machines et accessoires du parc."
       - name: nayka_contract

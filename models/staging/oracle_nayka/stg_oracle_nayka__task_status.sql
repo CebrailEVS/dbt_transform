@@ -10,7 +10,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- idstring et idstring_action renvoient à la table string, non extraite.
     select
         cast(idtask_status as int64) as idtask_status,
         code,
