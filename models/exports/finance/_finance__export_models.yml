@@ -1,0 +1,230 @@
+version: 2
+
+models:
+  - name: exp_finance__neshu_reception
+    description: >
+      [QUOI MÉTIER]
+      Réceptions fournisseurs de Neshu dans Distrilog, au format du fichier « EVS - NESHU » envoyé
+      chaque mois à la direction financière pour rapprocher comptabilité et réceptions.
+
+      [COMMENT CONSTRUITE]
+      Tâches BL FOURNISSEUR, enregistrement actif, statuts FAIT ou VALIDE, lues dans le staging
+      Oracle Neshu. Colonnes dans l'ordre du fichier ; « Type tâche » est une constante,
+      « Code DA » et « Ressource » sont vides comme dans l'export Distrilog.
+
+      [GRAIN]
+      1 ligne par ligne produit d'un bon de réception. Tout l'historique : le job filtre le mois.
+
+      [NOTES]
+      Réservé au job d'export, pas de rapport Power BI dessus. En-têtes, séparateur et format
+      des nombres sont appliqués par le job.
+    columns:
+      - name: task_id
+        description: "« IDTASK » : identifiant de la tâche de réception."
+        tests:
+          - not_null
+      - name: reception_date
+        description: "« Date » : jour de la réception, en heure de Paris. Le job filtre le mois sur cette colonne."
+        tests:
+          - not_null
+      - name: task_type_label
+        description: "« Type tâche » : constante « Bon de réception »."
+        tests:
+          - not_null
+      - name: source_stock_code
+        description: "« Stock Origine » : code de la société d'origine (fournisseur)."
+      - name: destination_stock_code
+        description: "« Stock Destination » : code du dépôt qui reçoit."
+      - name: task_device_code
+        description: "« Code DA » : vide, comme dans l'export Distrilog."
+      - name: product_device_code
+        description: "« Code DA Produit » : code de l'équipement reçu, sur les lignes de matériel."
+      - name: product_code
+        description: "« Code produit »."
+        tests:
+          - not_null
+      - name: product_name
+        description: "« Libellé produit » : libellé de la fiche article."
+      - name: task_product_label
+        description: "« Libellé produit Tache » : libellé saisi sur la ligne."
+      - name: document_number
+        description: "« Num Piece » : numéro du bon de réception."
+        tests:
+          - not_null
+      - name: peer_company_code
+        description: "« Code client » : code de la société associée à la tâche."
+      - name: peer_company_name
+        description: "« Nom client » : nom de la société associée à la tâche."
+      - name: resource_name
+        description: "« Ressource » : vide, comme dans l'export Distrilog."
+      - name: quantity
+        description: "« Quantité » : quantité reçue, dans l'unité de la ligne. Peut valoir 0 (article prévu, non reçu)."
+        tests:
+          - not_null
+      - name: unit_label
+        description: "« Unité » : libellé français du conditionnement de la ligne."
+      - name: unit_coefficient
+        description: "« Coef. Unité » : nombre d'unités de base par conditionnement."
+      - name: amount_excl_tax
+        description: "« Montant HT » : montant net de la ligne au prix du jour de la tâche."
+        tests:
+          - not_null
+      - name: main_supplier_name
+        description: "« Fournisseur Principal » : fournisseur principal de la fiche article ; vide s'il n'est pas renseigné dans l'ERP."
+      - name: task_product_id
+        description: "Identifiant de la ligne de réception : clé du modèle, non envoyée dans le fichier."
+        tests:
+          - unique
+          - not_null
+
+  - name: exp_finance__lcdp_reception
+    description: >
+      [QUOI MÉTIER]
+      Réceptions fournisseurs de LCDP (Les Cafés du Phare) dans Distrilog, au format du fichier « LCDP » envoyé
+      chaque mois à la direction financière pour rapprocher comptabilité et réceptions.
+
+      [COMMENT CONSTRUITE]
+      Tâches BL FOURNISSEUR, enregistrement actif, statuts FAIT ou VALIDE, lues dans le staging
+      Oracle LCDP. Colonnes dans l'ordre du fichier ; « Type tâche » est une constante,
+      « Code DA » et « Ressource » sont vides comme dans l'export Distrilog.
+
+      [GRAIN]
+      1 ligne par ligne produit d'un bon de réception. Tout l'historique : le job filtre le mois.
+
+      [NOTES]
+      Réservé au job d'export, pas de rapport Power BI dessus. En-têtes, séparateur et format
+      des nombres sont appliqués par le job.
+    columns:
+      - name: task_id
+        description: "« IDTASK » : identifiant de la tâche de réception."
+        tests:
+          - not_null
+      - name: reception_date
+        description: "« Date » : jour de la réception, en heure de Paris. Le job filtre le mois sur cette colonne."
+        tests:
+          - not_null
+      - name: task_type_label
+        description: "« Type tâche » : constante « Bon de réception »."
+        tests:
+          - not_null
+      - name: source_stock_code
+        description: "« Stock Origine » : code de la société d'origine (fournisseur)."
+      - name: destination_stock_code
+        description: "« Stock Destination » : code du dépôt qui reçoit."
+      - name: task_device_code
+        description: "« Code DA » : vide, comme dans l'export Distrilog."
+      - name: product_device_code
+        description: "« Code DA Produit » : code de l'équipement reçu, sur les lignes de matériel."
+      - name: product_code
+        description: "« Code produit »."
+        tests:
+          - not_null
+      - name: product_name
+        description: "« Libellé produit » : libellé de la fiche article."
+      - name: task_product_label
+        description: "« Libellé produit Tache » : libellé saisi sur la ligne."
+      - name: document_number
+        description: "« Num Piece » : numéro du bon de réception."
+        tests:
+          - not_null
+      - name: peer_company_code
+        description: "« Code client » : code de la société associée à la tâche."
+      - name: peer_company_name
+        description: "« Nom client » : nom de la société associée à la tâche."
+      - name: resource_name
+        description: "« Ressource » : vide, comme dans l'export Distrilog."
+      - name: quantity
+        description: "« Quantité » : quantité reçue, dans l'unité de la ligne. Peut valoir 0 (article prévu, non reçu)."
+        tests:
+          - not_null
+      - name: unit_label
+        description: "« Unité » : libellé français du conditionnement de la ligne."
+      - name: unit_coefficient
+        description: "« Coef. Unité » : nombre d'unités de base par conditionnement."
+      - name: amount_excl_tax
+        description: "« Montant HT » : montant net de la ligne au prix du jour de la tâche."
+        tests:
+          - not_null
+      - name: main_supplier_name
+        description: "« Fournisseur Principal » : fournisseur principal de la fiche article ; vide s'il n'est pas renseigné dans l'ERP."
+      - name: task_product_id
+        description: "Identifiant de la ligne de réception : clé du modèle, non envoyée dans le fichier."
+        tests:
+          - unique
+          - not_null
+
+  - name: exp_finance__nayka_reception
+    description: >
+      [QUOI MÉTIER]
+      Réceptions fournisseurs de Nayka dans Distrilog, au format du fichier « NAYKA » envoyé
+      chaque mois à la direction financière pour rapprocher comptabilité et réceptions.
+
+      [COMMENT CONSTRUITE]
+      Tâches BL FOURNISSEUR, enregistrement actif, statuts FAIT ou VALIDE, lues dans le staging
+      Oracle Nayka. Colonnes dans l'ordre du fichier ; « Type tâche » est une constante,
+      « Code DA » et « Ressource » sont vides comme dans l'export Distrilog.
+
+      [GRAIN]
+      1 ligne par ligne produit d'un bon de réception. Tout l'historique : le job filtre le mois.
+
+      [NOTES]
+      Réservé au job d'export, pas de rapport Power BI dessus. En-têtes, séparateur et format
+      des nombres sont appliqués par le job.
+    columns:
+      - name: task_id
+        description: "« IDTASK » : identifiant de la tâche de réception."
+        tests:
+          - not_null
+      - name: reception_date
+        description: "« Date » : jour de la réception, en heure de Paris. Le job filtre le mois sur cette colonne."
+        tests:
+          - not_null
+      - name: task_type_label
+        description: "« Type tâche » : constante « Bon de réception »."
+        tests:
+          - not_null
+      - name: source_stock_code
+        description: "« Stock Origine » : code de la société d'origine (fournisseur)."
+      - name: destination_stock_code
+        description: "« Stock Destination » : code du dépôt qui reçoit."
+      - name: task_device_code
+        description: "« Code DA » : vide, comme dans l'export Distrilog."
+      - name: product_device_code
+        description: "« Code DA Produit » : code de l'équipement reçu, sur les lignes de matériel."
+      - name: product_code
+        description: "« Code produit »."
+        tests:
+          - not_null
+      - name: product_name
+        description: "« Libellé produit » : libellé de la fiche article."
+      - name: task_product_label
+        description: "« Libellé produit Tache » : libellé saisi sur la ligne."
+      - name: document_number
+        description: "« Num Piece » : numéro du bon de réception."
+        tests:
+          - not_null
+      - name: peer_company_code
+        description: "« Code client » : code de la société associée à la tâche."
+      - name: peer_company_name
+        description: "« Nom client » : nom de la société associée à la tâche."
+      - name: resource_name
+        description: "« Ressource » : vide, comme dans l'export Distrilog."
+      - name: quantity
+        description: "« Quantité » : quantité reçue, dans l'unité de la ligne. Peut valoir 0 (article prévu, non reçu)."
+        tests:
+          - not_null
+      - name: unit_label
+        description: "« Unité » : libellé français du conditionnement de la ligne."
+      - name: unit_coefficient
+        description: "« Coef. Unité » : nombre d'unités de base par conditionnement."
+      - name: amount_excl_tax
+        description: "« Montant HT » : montant net de la ligne au prix du jour de la tâche."
+        tests:
+          - not_null
+      - name: main_supplier_name
+        description: "« Fournisseur Principal » : fournisseur principal de la fiche article ; vide s'il n'est pas renseigné dans l'ERP."
+      - name: task_product_id
+        description: "Identifiant de la ligne de réception : clé du modèle, non envoyée dans le fichier."
+        tests:
+          - unique
+          - not_null

@@ -16,6 +16,7 @@ par l'**IAM** : les identités dbt hors prod (`dbt-dev`, `dbt-ci`) ne peuvent pa
 | Prod | `prod_staging`, `prod_intermediate`, `prod_marts`, `prod_reference` | runs planifiés (Cloud Run), job `cd` (merge) | permanente |
 | Snapshots | `snapshots` | Cloud Workflows uniquement | permanente |
 | Applications | `prod_app_<application>` | runs planifiés (Cloud Run), job `cd` (merge) ; lu par le seul compte de l'application | permanente |
+| Exports | `prod_export` | runs planifiés (Cloud Run), job `cd` (merge) ; lu par les jobs d'export | permanente |
 | Dev | `dbt_<toi>` — **toutes les couches dans un seul dataset** | toi, en local | un chantier à la fois, vidé au début de chaque branche ; filet : expiration des tables |
 | CI | `dbt_ci_pr_<N>` | job `pr-check` | supprimé à la fermeture de la PR ; filet : expiration des tables |
 | Ingestion de test | `dev_raw`, `dev_raw_staging` | `dlt --target dev` | permanente (dlt garde son état dans `_dlt_version`) |
@@ -65,7 +66,7 @@ Hors prod, un dataset `prod*` est refusé dès la compilation.
 | Identité | Utilisée par | Authentification | Écrit | Lit |
 |---|---|---|---|---|
 | `meltano-runner` (nom historique) | Cloud Run (jobs dlt et dbt planifiés) | clé montée depuis Secret Manager | `prod_raw`, `prod_*`, `snapshots` | tout |
-| `dbt-deployer` | job `cd`, sur `master` **uniquement** | WIF | les datasets `prod_*` construits par dbt, dont `prod_app_*` ; bucket d'état, Artifact Registry | tout |
+| `dbt-deployer` | job `cd`, sur `master` **uniquement** | WIF | les datasets `prod_*` construits par dbt, dont `prod_app_*` et `prod_export` ; bucket d'état, Artifact Registry | tout |
 | `dbt-ci` | job `pr-check` | WIF | `dbt_ci_pr_<N>` (il les crée et en est owner) | `prod_*` |
 | `dbt-dev` | développeurs, en local | clé JSON hors repo (`chmod 600`) | `dbt_<dev>`, `dev_raw*` | `prod_*` |
 

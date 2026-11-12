@@ -38,3 +38,20 @@ exposures:
     depends_on:
       - ref('fct_finance__pnl_section_mensuel')
       - ref('stg_mssql_sage__f_ecriturec')
+
+  - name: export_receptions_distrilog
+    label: "Envoi mensuel — réceptions Distrilog"
+    type: application
+    maturity: low
+    description: >
+      Job Cloud Run d'export (dépôt export_finance) : le 5 de chaque mois, envoie par mail à la
+      direction financière les réceptions fournisseurs du mois précédent, un fichier par entité
+      (EVS - NESHU, NAYKA, LCDP), au format de l'export Distrilog, pour rapprocher comptabilité et
+      réceptions.
+    owner:
+      name: Cébrail Aksoy
+      email: cebrail.aksoy@evs-pro.com
+    depends_on:
+      - ref('exp_finance__neshu_reception')
+      - ref('exp_finance__nayka_reception')
+      - ref('exp_finance__lcdp_reception')

@@ -9,6 +9,7 @@ le détail vit dans une page par couche.
 | un intermediate `int_*` | [docs/conventions/intermediate.md](docs/conventions/intermediate.md) |
 | un mart `dim_*` / `fct_*` | [docs/conventions/marts.md](docs/conventions/marts.md) |
 | un modèle de service d'application `app_*` | [docs/conventions/apps.md](docs/conventions/apps.md) |
+| un fichier livré à un destinataire `exp_*` | [docs/conventions/exports.md](docs/conventions/exports.md) |
 | un seed ou un snapshot | [docs/conventions/seeds-snapshots.md](docs/conventions/seeds-snapshots.md) |
 | un test de fraîcheur | [docs/freshness.md](docs/freshness.md) |
 | rien, tu veux comprendre dev / CI / prod | [docs/environnements.md](docs/environnements.md) |
@@ -27,6 +28,7 @@ le détail vit dans une page par couche.
 | Dimension | `dim_` | **BU** | `dim_neshu__company` |
 | Fait | `fct_` | **BU** | `fct_neshu__consommation` |
 | Service d'application | `app_` | **application** | `app_cockpit__neshu_stock_photo` |
+| Export | `exp_` | **destinataire** | `exp_finance__neshu_reception` |
 | Snapshot | `snap_` | source | `snap_oracle_neshu__device` |
 | Seed | `ref_` | source | `ref_nesp_tech__key_facturation` |
 
@@ -37,6 +39,7 @@ le détail vit dans une page par couche.
 | `_<source>__intermediate_models.yml` | doc et tests de l'intermediate |
 | `_<bu>__marts_models.yml` | doc et tests des marts |
 | `_<application>__app_models.yml` | doc et tests de la couche `apps` |
+| `_<destinataire>__export_models.yml` | doc et tests de la couche `exports` |
 | `_<source>__seeds.yml` | doc, tests et `column_types` des seeds |
 | `_<source>__snapshots.yml` | doc et tests des snapshots |
 
@@ -75,6 +78,7 @@ Paris : l'erreur ne casse rien et ne se voit pas.
 | Intermediate | `table` | `incremental` (`merge`) : modèles à gros volume |
 | Marts | `table` | — |
 | Apps | explicite par modèle | cas par cas ([apps.md](docs/conventions/apps.md#3-matérialisation)) |
+| Exports | `table`, explicite | — |
 
 Partition sur la date filtrée (Power BI ou incrémental), cluster sur les FK les plus jointes
 (4 au maximum). Pas de partition sur les petites dimensions.
