@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="quantity", model=get_where_subquery(ref('exp_finance__neshu_reception'))) }}

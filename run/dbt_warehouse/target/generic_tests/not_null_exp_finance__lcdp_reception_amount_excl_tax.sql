@@ -1,0 +1,25 @@
+
+    
+    select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select amount_excl_tax
+from `evs-datastack-prod`.`prod_export`.`exp_finance__lcdp_reception`
+where amount_excl_tax is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test

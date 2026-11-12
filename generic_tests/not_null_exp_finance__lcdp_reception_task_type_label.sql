@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="task_type_label", model=get_where_subquery(ref('exp_finance__lcdp_reception'))) }}

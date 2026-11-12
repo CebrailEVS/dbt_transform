@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="amount_excl_tax", model=get_where_subquery(ref('exp_finance__lcdp_reception'))) }}

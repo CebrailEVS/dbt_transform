@@ -1,0 +1,1 @@
+{{ test_unique(column_name="task_product_id", model=get_where_subquery(ref('exp_finance__nayka_reception'))) }}

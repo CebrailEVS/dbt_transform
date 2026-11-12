@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="reception_date", model=get_where_subquery(ref('exp_finance__nayka_reception'))) }}
