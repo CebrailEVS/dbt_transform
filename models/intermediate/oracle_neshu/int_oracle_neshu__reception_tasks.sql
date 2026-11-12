@@ -28,6 +28,7 @@ reception_base as (
         -- Identifiants
         thp.idtask_has_product as task_product_id,
         t.idtask as task_id,
+        t.document_number,
         t.task_idtask as parent_id,  -- interne : clé de jointure vers la commande (non exposé)
         t.idcompany_peer as company_id,
         thp.idproduct as product_id,
@@ -48,10 +49,12 @@ reception_base as (
         thp.real_quantity as base_unit_quantity,
         thp.net_price as product_unit_price_task,
         p.purchase_unit_price as product_unit_price_latest,
+        thp.purchase_unit_price as product_unit_price_at_reception,
 
         -- Métriques
         sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div) as quantity,
         sum(thp.real_quantity * thp.unit_coeff_multi / thp.unit_coeff_div * p.purchase_unit_price) as valuation,
+        sum(thp.sale_amount_net) as amount_excl_tax,
 
         -- Timestamps techniques
         t.updated_at,
@@ -80,7 +83,7 @@ reception_base as (
         and t.real_start_date is not null
 
     group by
-        thp.idtask_has_product, t.idtask, t.task_idtask, t.idcompany_peer,
+        thp.idtask_has_product, t.idtask, t.document_number, t.task_idtask, t.idcompany_peer,
         t.idproduct_destination, t.type_product_destination,
         thp.idproduct,
         thp.unit_coeff_multi,
@@ -88,6 +91,7 @@ reception_base as (
         thp.real_quantity,
         thp.net_price,
         p.purchase_unit_price,
+        thp.purchase_unit_price,
         cd.code,
         p.code, ts.code,
         t.real_start_date,
@@ -98,6 +102,7 @@ select
     -- Identifiants
     rb.task_product_id,
     rb.task_id,
+    rb.document_number,
     rb.company_id,
     rb.product_id,
     rb.product_destination_id,
@@ -123,10 +128,12 @@ select
     rb.base_unit_quantity,
     rb.product_unit_price_task,
     rb.product_unit_price_latest,
+    rb.product_unit_price_at_reception,
 
     -- Métriques
     rb.quantity,
     rb.valuation,
+    rb.amount_excl_tax,
 
     -- Timestamps techniques
     rb.updated_at,

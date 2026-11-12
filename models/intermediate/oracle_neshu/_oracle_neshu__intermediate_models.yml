@@ -640,6 +640,11 @@ models:
         data_type: int64
         tests:
           - not_null
+      - name: document_number
+        description: >
+          « Num Piece » : n° du bon, porté par la tâche (une ligne = un seul bon). Texte saisi : n° BR proposé
+          par l'ERP, ou n° de BL ou de facture du fournisseur ; ce n'est pas une clé, le bon est task_id.
+        data_type: string
       - name: company_id
         description: "Client (peer company) de la tâche. FK → dim_neshu__company."
         data_type: int64
@@ -706,15 +711,25 @@ models:
       - name: base_unit_quantity
         description: "Quantité brute saisie (real_quantity), avant application des coefficients."
       - name: product_unit_price_task
-        description: "Prix unitaire HT du produit au moment de la tâche (net_price)."
+        description: "Prix unitaire HT du bon (net_price), par unité de base, remise globale du bon comprise."
       - name: product_unit_price_latest
-        description: "Dernier prix d'achat unitaire HT du produit (référentiel produit)."
+        description: "Prix d'achat unitaire HT de la fiche article, valeur actuelle : suit chaque modification de la fiche."
+      - name: product_unit_price_at_reception
+        description: >
+          Prix d'achat unitaire HT de la fiche article le jour de la réception, copié sur la ligne par l'ERP
+          et figé ensuite (une réception ne modifie pas la fiche).
 
       # --- MESURES ---
       - name: quantity
         description: "Quantité reçue en unités de base = real_quantity × coeff_multi / coeff_div. Mesure additive."
       - name: valuation
-        description: "Valorisation de la réception en euros = quantity × prix d'achat unitaire. Mesure additive."
+        description: >
+          Valorisation au prix fiche actuel = quantity × product_unit_price_latest : recalculée à chaque build,
+          elle suit les modifications de la fiche, même pour une réception passée. Mesure additive.
+      - name: amount_excl_tax
+        description: >
+          « Montant HT » de la ligne tel qu'il figure sur le bon (sale_amount_net), remise globale du bon
+          répartie sur les lignes. Mesure additive.
 
       # --- MÉTADONNÉES ---
       - name: updated_at
