@@ -59,6 +59,13 @@ source le reconstruit, sans orchestration dédiée. Pas de partition : une table
   `[NOTES]` rappelle que le modèle est réservé au job d'export.
 - Chaque colonne cite l'en-tête du fichier qu'elle alimente (« Montant HT »…).
 - Clé technique `unique` + `not_null` ; `not_null` sur les colonnes obligatoires du fichier.
+- **Les tests conditionnent l'envoi.** Le job n'envoie le fichier que si tous les tests de la
+  table ont réussi dans le build `dbt-runner` qui l'a produite : un test en `error` bloque l'envoi,
+  un test en `warn` le laisse partir avec une alerte. Une règle de qualité du fichier s'écrit donc
+  ici, en test, jamais dans le job.
+- Chaque test porte le nom du modèle : le job reconnaît les tests de sa table à ce nom. Un test
+  singulier se nomme `<modèle>_<règle>.sql`. La règle `checks/export_test_sans_nom_du_modele.sql`
+  le vérifie.
 - Exposure obligatoire : elle nomme le job, la cadence et le destinataire. `dbt ls -s
   +exposure:<export>` donne l'impact d'un changement.
 
@@ -67,5 +74,6 @@ source le reconstruit, sans orchestration dédiée. Pas de partition : une table
 - [ ] modèle dans `models/exports/<destinataire>/`, préfixe `exp_<destinataire>__`, `table` explicite
 - [ ] colonnes dans l'ordre du fichier, clé technique en dernier
 - [ ] YAML 4 blocs, en-tête du fichier dans chaque description de colonne, test du grain
+- [ ] chaque règle de qualité du fichier est un test dbt nommé d'après le modèle
 - [ ] exposure à jour
 - [ ] `dbt lint` vert, build dev vert, rapprochement avec un fichier de référence
