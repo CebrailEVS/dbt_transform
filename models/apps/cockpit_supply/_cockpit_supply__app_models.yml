@@ -671,6 +671,24 @@ models:
         tests:
           - not_null
           - unique
+      - name: document_number
+        description: "« Num Piece » : n° du bon (texte saisi : BR de l'ERP, ou BL ou facture du fournisseur) ; pas une clé, le bon est task_id."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: valuation
+        description: "Quantité × prix fiche actuel : suit les modifications de la fiche, même pour une réception passée."
+      - name: amount_excl_tax
+        description: "« Montant HT » de la ligne sur le bon, remise globale comprise : le montant facturé."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: unit_price_excl_tax
+        description: "Prix unitaire HT du bon, par unité de base (même unité que quantity)."
+      - name: product_unit_price_at_reception
+        description: "Prix fiche du jour de la réception, figé : amount_excl_tax − quantity × ce prix = écart de prix réel à la réception."
 
   - name: app_cockpit__neshu_commande_fournisseur
     description: |
@@ -1000,6 +1018,24 @@ models:
         tests:
           - not_null
           - unique
+      - name: document_number
+        description: "« Num Piece » : n° du bon (texte saisi : BR de l'ERP, ou BL ou facture du fournisseur) ; pas une clé, le bon est task_id."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: valuation
+        description: "Quantité × prix fiche actuel : suit les modifications de la fiche, même pour une réception passée."
+      - name: amount_excl_tax
+        description: "« Montant HT » de la ligne sur le bon, remise globale comprise : le montant facturé."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: unit_price_excl_tax
+        description: "Prix unitaire HT du bon, par unité de base (même unité que quantity)."
+      - name: product_unit_price_at_reception
+        description: "Prix fiche du jour de la réception, figé : amount_excl_tax − quantity × ce prix = écart de prix réel à la réception."
 
   - name: app_cockpit__lcdp_invendu
     description: |
