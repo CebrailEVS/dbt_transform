@@ -6,8 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Retirées : idstring (table string non extraite), idinstance (constante), tmp_update et
-    -- comments (vides), early_calculation, unit_due et accruing (paramètres internes du calcul d'échéance).
     select
         cast(idpayment_condition as int64) as idpayment_condition,
         code,

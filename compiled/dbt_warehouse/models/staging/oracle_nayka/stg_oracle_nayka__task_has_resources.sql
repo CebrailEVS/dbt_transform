@@ -6,8 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : quantity, cost, start_km, end_km, isreset (jamais renseignées),
-    -- _parent_modification_date (curseur technique de dlt, copie de task.modification_date).
     select
         cast(idtask as int64) as idtask,
         cast(idresources as int64) as idresources,

@@ -6,8 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées, iduser_creation / iduser_modification (table user
-    -- non extraite ; idcontact_* portent l'auteur), discount_input (constante au sens non documenté).
     select
         cast(idtask_has_product as int64) as idtask_has_product,
         cast(idtask as int64) as idtask,

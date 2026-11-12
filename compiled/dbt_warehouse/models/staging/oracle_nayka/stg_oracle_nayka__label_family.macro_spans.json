@@ -55,26 +55,26 @@
     {
       "macro_span": {
         "start": {
-          "line": 21,
+          "line": 20,
           "col": 9,
-          "index": 557
+          "index": 448
         },
         "stop": {
-          "line": 21,
+          "line": 20,
           "col": 50,
-          "index": 598
+          "index": 489
         }
       },
       "expanded_span": {
         "start": {
-          "line": 17,
+          "line": 16,
           "col": 9,
-          "index": 507
+          "index": 398
         },
         "stop": {
-          "line": 17,
+          "line": 16,
           "col": 63,
-          "index": 561
+          "index": 452
         }
       }
     }

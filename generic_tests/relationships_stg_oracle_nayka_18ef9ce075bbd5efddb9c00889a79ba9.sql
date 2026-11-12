@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="l_idstring", field="idstring", model=get_where_subquery(ref('stg_oracle_nayka__v_label_product')), to=ref('stg_oracle_nayka__string')) }}

@@ -6,12 +6,12 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées, idstring (table string non extraite), idinstance (constante).
     select
         cast(idproduct_unit as int64) as idproduct_unit,
         cast(idproduct as int64) as idproduct,
         cast(idunit_type as int64) as idunit_type,
         code,
+        cast(idstring as int64) as idstring,
         cast(base_unit as int64) as base_unit,
         cast(coeff_multi as float64) as coeff_multi,
         cast(coeff_div as float64) as coeff_div,

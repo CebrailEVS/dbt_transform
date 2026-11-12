@@ -6,7 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- _parent_modification_date non reprise : curseur technique de dlt, copie de task.modification_date.
     select
         cast(idtask as int64) as idtask,
         cast(idtax as int64) as idtax,

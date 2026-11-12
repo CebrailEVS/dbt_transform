@@ -6,7 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- idstring renvoie à la table string, non extraite.
     select
         cast(idcivility as int64) as idcivility,
         code,

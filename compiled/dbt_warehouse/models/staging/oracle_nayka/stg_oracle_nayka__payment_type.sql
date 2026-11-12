@@ -6,8 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Retirées : idstring et idregulation_type (tables non extraites), idinstance (constante),
-    -- code_type et direct_debit_date (vides), task_type (sens non documenté), export_to_em (mobile).
     select
         cast(idpayment_type as int64) as idpayment_type,
         code,

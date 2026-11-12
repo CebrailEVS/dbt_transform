@@ -57,24 +57,24 @@
         "start": {
           "line": 26,
           "col": 9,
-          "index": 770
+          "index": 701
         },
         "stop": {
           "line": 26,
           "col": 50,
-          "index": 811
+          "index": 742
         }
       },
       "expanded_span": {
         "start": {
           "line": 22,
           "col": 9,
-          "index": 720
+          "index": 651
         },
         "stop": {
           "line": 22,
           "col": 63,
-          "index": 774
+          "index": 705
         }
       }
     }

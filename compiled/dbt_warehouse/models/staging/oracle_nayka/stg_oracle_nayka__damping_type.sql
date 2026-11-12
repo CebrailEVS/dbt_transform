@@ -6,8 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Retirées : idstring (table string non extraite), code_type (jamais renseigné).
-    -- Pas de date de modification à la source.
     select
         cast(iddamping_type as int64) as iddamping_type,
         code,

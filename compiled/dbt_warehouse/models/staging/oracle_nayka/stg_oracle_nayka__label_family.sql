@@ -6,10 +6,9 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Retirées : idstring (table string non extraite), idinstance (constante),
-    -- export_mobile et required_em (réglages de l'application mobile).
     select
         cast(idlabel_family as int64) as idlabel_family,
+        cast(idstring as int64) as idstring,
         code,
         cast(exclus as int64) as exclus,
         cast(required as int64) as required,

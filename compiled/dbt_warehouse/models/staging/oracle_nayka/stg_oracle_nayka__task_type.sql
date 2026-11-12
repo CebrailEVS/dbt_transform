@@ -6,8 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Retirées : idstring et idfinancial_group (tables non extraites), iddesktop, mobility_window,
-    -- iscreate_task et les réglages EasyMobile / NF525 (configuration de l'interface ERP).
     select
         cast(idtask_type as int64) as idtask_type,
         code,

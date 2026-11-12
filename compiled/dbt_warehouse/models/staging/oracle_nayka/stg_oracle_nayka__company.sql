@@ -6,9 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées (dont rib et brita_*), clés vers des tables non
-    -- extraites (tariff, delivery_mode, legal_form, joined_file…), paramétrage de l'ERP (idinstance,
-    -- language_code, pricing_mode, readonly…).
     select
         cast(idcompany as int64) as idcompany,
         cast(company_idcompany as int64) as company_idcompany,
@@ -38,7 +35,6 @@ cleaned_data as (
         cast(isassociation as int64) as isassociation,
         cast(balance as numeric) as balance,
 
-        -- Facturation des redevances, quand elle diffère de la facturation courante.
         cast(idpayment_type_facredev as int64) as idpayment_type_facredev,
         cast(idpayment_condition_facredev as int64) as idpayment_condition_facredev,
         cast(ht_ttc_facredev as int64) as ht_ttc_facredev,

@@ -6,8 +6,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées (dont les identifiants d'agenda), xml (balise vide),
-    -- idinstance (constante).
     select
         cast(idresources as int64) as idresources,
         cast(idresources_type as int64) as idresources_type,

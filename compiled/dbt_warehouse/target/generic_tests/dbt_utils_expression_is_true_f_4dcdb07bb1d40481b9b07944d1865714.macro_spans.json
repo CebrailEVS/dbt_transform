@@ -3,52 +3,26 @@
     {
       "macro_span": {
         "start": {
-          "line": 1,
+          "line": 6,
           "col": 1,
-          "index": 0
+          "index": 141
         },
         "stop": {
-          "line": 1,
-          "col": 198,
-          "index": 197
+          "line": 6,
+          "col": 140,
+          "index": 280
         }
       },
       "expanded_span": {
         "start": {
-          "line": 1,
+          "line": 3,
           "col": 1,
-          "index": 0
+          "index": 2
         },
         "stop": {
-          "line": 11,
+          "line": 13,
           "col": 1,
-          "index": 181
-        }
-      }
-    },
-    {
-      "macro_span": {
-        "start": {
-          "line": 1,
-          "col": 198,
-          "index": 197
-        },
-        "stop": {
-          "line": 1,
-          "col": 251,
-          "index": 250
-        }
-      },
-      "expanded_span": {
-        "start": {
-          "line": 11,
-          "col": 1,
-          "index": 181
-        },
-        "stop": {
-          "line": 11,
-          "col": 1,
-          "index": 181
+          "index": 189
         }
       }
     }

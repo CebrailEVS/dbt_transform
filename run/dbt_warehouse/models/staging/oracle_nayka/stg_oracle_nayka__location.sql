@@ -1,0 +1,47 @@
+
+  
+    
+
+    create or replace table `evs-datastack-prod`.`prod_staging`.`stg_oracle_nayka__location`
+      
+    
+    
+
+    
+    OPTIONS(
+      description="""Adresses Nayka (Oracle location) : adresses des soci\u00e9t\u00e9s (via company_has_location) et des contacts."""
+    )
+    as (
+      
+
+with source_data as (
+    select *
+    from `evs-datastack-prod`.`prod_raw`.`nayka_location`
+),
+
+cleaned_data as (
+    select
+        cast(idlocation as int64) as idlocation,
+        code,
+        name,
+        address1,
+        address2,
+        postal,
+        city,
+        country,
+        access_info,
+        phone,
+        email,
+        cast(latitude as float64) as latitude,
+        cast(longitude as float64) as longitude,
+        cast(code_status_record as int64) as code_status_record,
+        cast(idcontact_modification as int64) as idcontact_modification,
+        timestamp(datetime(modification_date), 'Europe/Paris') as updated_at,
+        timestamp(_extracted_at) as extracted_at
+    from source_data
+)
+
+select *
+from cleaned_data
+    );
+  
