@@ -90,6 +90,7 @@ Détail et raisons : [`docs/environnements.md`](docs/environnements.md).
 | Intermediate | `models/intermediate/<source>/` | `prod_intermediate` | `table` ; `incremental` sur gros volume ; `ephemeral` ponctuel |
 | Marts | `models/marts/<bu>/` | `prod_marts` | `table` ; `view` ponctuelle |
 | Apps | `models/apps/<application>/` | `prod_app_<application>` | explicite par modèle |
+| Exports | `models/exports/<destinataire>/` | `prod_export` | `table` |
 | Seeds | `data/reference_data/<source>/` | `prod_reference` | — |
 
 Une BU = un dossier de `models/marts/` ; `bi` (gouvernance du parc Power BI) et `plateforme`
@@ -102,9 +103,9 @@ Ordre : staging → intermediate → marts, sans sauter de couche. **Lire la pag
 d'écrire** ([`docs/conventions/`](docs/conventions/)). SQL et entrée YAML dans la même PR.
 
 - **Nommage** : `<prefixe>_<source ou BU>__<entite>`, entité au singulier. `stg_` / `int_` par
-  source, `dim_` / `fct_` par BU, `app_` par application, `snap_` / `ref_` par source. IDs = nom
-  source en staging, `<entite>_id` en marts ; booléens `is_` / `has_` ; `_at` pour un timestamp,
-  `_date` pour une date.
+  source, `dim_` / `fct_` par BU, `app_` par application, `exp_` par destinataire, `snap_` /
+  `ref_` par source. IDs = nom source en staging, `<entite>_id` en marts ; booléens `is_` /
+  `has_` ; `_at` pour un timestamp, `_date` pour une date.
 - **Staging** : une table source = un modèle, renommage passthrough, sans dédoublonnage
   préventif. `extracted_at` obligatoire, pas de `deleted_at`.
 - **Intermediate** : logique métier d'**une** source, uniquement des `ref()`. Le croisement de
@@ -116,6 +117,8 @@ d'écrire** ([`docs/conventions/`](docs/conventions/)). SQL et entrée YAML dans
   ni snowflake, ni OBT) ; tests minimum (§ 7) ; colonnes grain-first.
 - **Apps** ([`apps.md`](docs/conventions/apps.md)) : partent du staging ou de l'intermediate,
   jamais d'un mart.
+- **Exports** ([`exports.md`](docs/conventions/exports.md)) : un modèle = un fichier livré,
+  colonnes dans l'ordre du fichier ; partent du staging, jamais d'un mart ni d'une app.
 - **`dbt build` exécute les règles de `checks/`**
   ([`CONVENTIONS.md`](CONVENTIONS.md#règles-vérifiées-par-dbt-check)) : une règle en `error`
   arrête le build et nomme le modèle en cause. Corriger le modèle ; n'ajouter une exception à la

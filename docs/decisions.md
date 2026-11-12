@@ -66,6 +66,20 @@ que le changement, avec la nouvelle raison.
 - **Coût assumé** : une logique parfois dupliquée, à reporter des deux côtés.
 - **Détail** : [`apps.md`](conventions/apps.md).
 
+## Une couche exports, distincte des marts et des apps
+
+- **Décision** : un fichier livré à un destinataire est un modèle `exp_` de
+  `models/exports/<destinataire>/`, dans `prod_export`, construit depuis le staging. Le job
+  d'export ne fait que choisir la période et mettre en forme.
+- **Pourquoi** : les marts restent réservés à Power BI ; le contrat du fichier vit à un seul
+  endroit, testé et visible dans le lignage, et un changement fait pour un rapport ne modifie pas
+  un fichier déjà convenu.
+- **Coût assumé** : les règles de la source (type de tâche, statut, fuseau, langue des libellés)
+  sont réappliquées dans l'export.
+- **Écarté** : la requête dans le job (ni testée ni dans le lignage) ; un mart (table large
+  interdite par l'étoile) ; la couche apps (un fichier n'est pas une application).
+- **Détail** : [`exports.md`](conventions/exports.md).
+
 ## Snapshots construits en prod seulement
 
 - **Décision** : seul un workflow Cloud Workflows dédié lance `dbt snapshot` ; la CI, la CD et le

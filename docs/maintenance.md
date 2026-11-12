@@ -24,7 +24,7 @@ elle ne fait que lire.
 set -a && . ./.env && set +a
 DBT_TARGET=prod DBT_BIGQUERY_METHOD=oauth DBT_BIGQUERY_DATASET_PROD=prod \
   ./dbt_venv/bin/dbt run-operation dbt_orphan.cleanup_orphans \
-  --args '{schemas: ["prod_staging", "prod_intermediate", "prod_marts", "prod_reference", "prod_app_<application>"], dry_run: true}'
+  --args '{schemas: ["prod_staging", "prod_intermediate", "prod_marts", "prod_reference", "prod_app_<application>", "prod_export"], dry_run: true}'
 ```
 
 Un dataset `prod_app_<application>` par application (`+schema` dans `dbt_project.yml`).
