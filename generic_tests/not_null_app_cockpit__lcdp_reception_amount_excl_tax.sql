@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="amount_excl_tax", model=get_where_subquery(ref('app_cockpit__lcdp_reception'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

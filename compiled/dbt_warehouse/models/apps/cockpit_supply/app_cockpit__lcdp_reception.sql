@@ -5,6 +5,7 @@
 select
     task_product_id,
     task_id,
+    document_number,
     company_id,
     destination_code,
     product_code,
@@ -13,6 +14,9 @@ select
     delivery_lead_time_days,
     is_lead_time_valid,
     quantity,
-    valuation
+    valuation,
+    amount_excl_tax,
+    product_unit_price_task as unit_price_excl_tax,
+    product_unit_price_at_reception
 from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_lcdp__reception_tasks`
 where task_status_code in ('FAIT', 'VALIDE')
