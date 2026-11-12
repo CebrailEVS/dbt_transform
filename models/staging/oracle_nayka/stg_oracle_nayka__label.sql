@@ -10,11 +10,10 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Retirées : idstring (table string non extraite), idinstance (constante),
-    -- display_color (jamais renseignée).
     select
         cast(idlabel as int64) as idlabel,
         cast(idlabel_family as int64) as idlabel_family,
+        cast(idstring as int64) as idstring,
         -- trim : code sert de clé aux pivots en aval, et la saisie laisse des espaces.
         trim(code) as code,
         cast(enabled as int64) as enabled,

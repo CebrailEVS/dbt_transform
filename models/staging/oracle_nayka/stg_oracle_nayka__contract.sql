@@ -10,8 +10,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées, idcontract_type (table contract_type non extraite),
-    -- idinstance et spantime (constantes).
     select
         cast(idcontract as int64) as idcontract,
         cast(idcompany_self as int64) as idcompany_self,
@@ -24,7 +22,6 @@ cleaned_data as (
         name,
         cast(code_status_record as int64) as code_status_record,
 
-        -- Durées en mois.
         cast(duration as int64) as duration,
         cast(renewable as int64) as renewable,
         cast(renewable_duration as int64) as renewable_duration,

@@ -257,6 +257,13 @@ models:
         tests:
           - unique
           - not_null
+      - name: idstring
+        description: "Libellé traduit de la famille (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
       - name: code
         description: "Code de la famille (ex. EQUIPEMENT_RESERVE, CODE_SECTEUR) : clé des pivots en aval."
         tests:
@@ -297,6 +304,13 @@ models:
               arguments:
                 to: ref('stg_oracle_nayka__label_family')
                 field: idlabel_family
+      - name: idstring
+        description: "Libellé traduit de l'étiquette (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
       - name: code
         description: "Valeur de l'étiquette (ex. OUI, NON), unique au sein de sa famille seulement. Espaces de saisie retirés."
         tests:
@@ -411,7 +425,7 @@ models:
           - unique
           - not_null
       - name: code
-        description: "Code du mode de paiement. Les modes créés par l'instance ont parfois un code numérique, leur libellé étant dans la table string, non extraite."
+        description: "Code du mode de paiement. Les modes créés par l'instance ont parfois un code numérique : le libellé lisible est dans stg_oracle_nayka__string."
         tests:
           - unique
           - not_null
@@ -968,6 +982,13 @@ models:
         description: "Code de l'unité (UNIT, BIB, 1/60…)."
         tests:
           - not_null
+      - name: idstring
+        description: "Libellé du conditionnement affiché par l'ERP (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
       - name: base_unit
         description: "1 si c'est l'unité de base du produit."
       - name: coeff_multi
@@ -982,6 +1003,30 @@ models:
         description: "Volume de l'unité."
       - name: isactive
         description: "1 si l'unité est active."
+      - name: updated_at
+        description: "Dernière modification dans l'ERP (UTC)."
+      - name: extracted_at
+        description: "Horodatage d'extraction par dlt (UTC)."
+
+  - name: stg_oracle_nayka__string
+    description: "Libellés traduits de l'ERP Nayka (Oracle string) : une ligne par libellé et par langue. Toute jointure filtre langage_code = 'fr_FR', sinon elle multiplie les lignes."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - idstring
+              - langage_code
+    columns:
+      - name: idstring
+        description: "Identifiant du libellé, partie de la clé."
+        tests:
+          - not_null
+      - name: langage_code
+        description: "Langue du libellé (fr_FR, en_US…), partie de la clé."
+        tests:
+          - not_null
+      - name: text
+        description: "Libellé dans la langue de la ligne."
       - name: updated_at
         description: "Dernière modification dans l'ERP (UTC)."
       - name: extracted_at
@@ -1240,6 +1285,20 @@ models:
               arguments:
                 to: ref('stg_oracle_nayka__label_family')
                 field: idlabel_family
+      - name: l_idstring
+        description: "Libellé traduit de l'étiquette (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
+      - name: lf_idstring
+        description: "Libellé traduit de la famille (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
       - name: lf_code
         description: "Code de la famille (ex. CATEGORIE, CODE_SECTEUR) : colonne de pivot."
         tests:
@@ -1308,6 +1367,20 @@ models:
               arguments:
                 to: ref('stg_oracle_nayka__label_family')
                 field: idlabel_family
+      - name: l_idstring
+        description: "Libellé traduit de l'étiquette (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
+      - name: lf_idstring
+        description: "Libellé traduit de la famille (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
       - name: lf_code
         description: "Code de la famille (ex. CATEGORIE, CODE_SECTEUR) : colonne de pivot."
         tests:
@@ -1376,6 +1449,20 @@ models:
               arguments:
                 to: ref('stg_oracle_nayka__label_family')
                 field: idlabel_family
+      - name: l_idstring
+        description: "Libellé traduit de l'étiquette (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
+      - name: lf_idstring
+        description: "Libellé traduit de la famille (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
       - name: lf_code
         description: "Code de la famille (ex. CATEGORIE, CODE_SECTEUR) : colonne de pivot."
         tests:
@@ -1444,6 +1531,20 @@ models:
               arguments:
                 to: ref('stg_oracle_nayka__label_family')
                 field: idlabel_family
+      - name: l_idstring
+        description: "Libellé traduit de l'étiquette (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
+      - name: lf_idstring
+        description: "Libellé traduit de la famille (stg_oracle_nayka__string, une ligne par langue)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_oracle_nayka__string')
+                field: idstring
       - name: lf_code
         description: "Code de la famille (ex. CATEGORIE, CODE_SECTEUR) : colonne de pivot."
         tests:

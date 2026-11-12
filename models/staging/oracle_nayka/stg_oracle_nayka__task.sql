@@ -10,8 +10,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées, paramétrage de l'ERP (idinstance, spantime constant,
-    -- flag au sens non documenté).
     select
         cast(idtask as int64) as idtask,
         cast(task_idtask as int64) as task_idtask,

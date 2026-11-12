@@ -10,8 +10,6 @@ with source_data as (
 ),
 
 cleaned_data as (
-    -- Non reprises : colonnes jamais renseignées (fax, réseaux sociaux, birth, xml…) et paramétrage
-    -- de l'ERP (idinstance, language_code).
     select
         cast(idcontact as int64) as idcontact,
         cast(idcompany as int64) as idcompany,
