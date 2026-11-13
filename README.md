@@ -51,7 +51,7 @@ Une ligne par source déclarée dans dbt. Tables, colonnes et tests : la doc dbt
 | `nesp_tech` | rapports du prestataire technique Nespresso | interventions, pièces détachées | [nesp_tech.md](docs/architecture/nesp_tech.md) |
 | `nesp_co` | fichiers Nespresso | données commerciales | [nesp_co.md](docs/architecture/nesp_co.md) |
 | `zoho_desk` | API Zoho Desk | tickets de support, SLA | [zoho_desk.md](docs/architecture/zoho_desk.md) |
-| `gac` | fichiers SFTP | flotte de véhicules, sinistres | [gac.md](docs/architecture/gac.md) |
+| `gac` | fichiers SFTP | flotte de véhicules, affectations, sinistres | [gac.md](docs/architecture/gac.md) |
 | `powerbi_activity` | API d'administration Power BI | usage et inventaire du parc Power BI | [powerbi_activity.md](docs/architecture/powerbi_activity.md) |
 | `apptech` | application interne Suivi Tech | retraitements d'interventions techniques | [apptech.md](docs/architecture/apptech.md) |
 | `dbt_artifacts` | runner dbt de prod | résultats des exécutions de prod | — |

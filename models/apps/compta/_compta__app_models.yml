@@ -1,0 +1,67 @@
+version: 2
+
+# ============================================================
+# Couche de service — application comptapp (factures fournisseurs → Excel de saisie)
+# Dataset prod : prod_app_compta. Conventions : docs/conventions/apps.md
+# Exposure : models/exposures/compta.yml
+# ============================================================
+
+models:
+  - name: app_compta__vehicule_imputation
+    description: |
+      [QUOI MÉTIER] Code analytique à imputer à une dépense de véhicule (carburant, péage, loyer) selon la plaque et le jour : celui du collaborateur que GAC affecte au véhicule ce jour-là, avec son code de ce jour-là. Sans code, le motif dit pourquoi la dépense est à catégoriser.
+      [COMMENT CONSTRUITE] Depuis stg_gac__historique_affectation, sans intermediate. 1) Périodes : dernière version de chaque évènement (contrat × date d'effet) ; le fichier le plus récent du contrat fait foi sur la période qu'il couvre, les évènements sortis de la fenêtre de 12 mois gardent leur dernière version. Écartés : contrats sans plaque, évènements dont la fin précède l'effet. 2) Codes : fonction_actuelle non vide de chaque fichier quotidien, regroupée en intervalles de validité par collaborateur. 3) Chaque période est découpée aux changements de code de son collaborateur.
+      [GRAIN] 1 ligne par (immatriculation, date_debut) : un intervalle de jours où le collaborateur et son code ne changent pas. Les intervalles d'une plaque ne se chevauchent pas.
+      [NOTES] Lecture par l'app : la ligne dont l'intervalle contient le jour de la dépense ; aucune ligne = plaque inconnue de GAC ou jour hors historique. Un véhicule en maintenance qui garde son collaborateur reste imputé à ce collaborateur. Un code vide dans GAC est un oubli de saisie : le code connu le plus proche s'applique, si bien qu'une fiche complétée après coup corrige aussi les dépenses passées. Avant le premier fichier chargé, le code d'un collaborateur est le plus ancien connu. Réservé à l'application : ne pas brancher de rapport Power BI dessus.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['immatriculation', 'date_debut']
+      - dbt_utils.mutually_exclusive_ranges:
+          arguments:
+            lower_bound_column: date_debut
+            # date_fin est incluse : la borne exclusive est le lendemain, sans fin si en cours
+            upper_bound_column: "coalesce(date_add(date_fin, interval 1 day), date '9999-12-31')"
+            partition_by: immatriculation
+            gaps: allowed
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "(code_analytique is null) = (motif_a_categoriser is not null)"
+    columns:
+      - name: immatriculation
+        description: "Immatriculation du véhicule (format EDI, sans tiret, ex. AB123CD) ; clé de recherche avec le jour"
+        tests:
+          - not_null
+      - name: date_debut
+        description: "Premier jour de l'intervalle"
+        tests:
+          - not_null
+      - name: date_fin
+        description: "Dernier jour de l'intervalle, inclus ; NULL = en cours"
+      - name: contrat_id_gac
+        description: "Identifiant GAC du contrat du véhicule"
+        tests:
+          - not_null
+      - name: disponibilite
+        description: "Disponibilité du véhicule sur l'intervalle : Affecté, Disponible, En maintenance, Indisponible"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Affecté', 'Disponible', 'En maintenance', 'Indisponible']
+              config:
+                severity: warn
+      - name: collaborateur_id
+        description: "Identifiant GAC du collaborateur affecté (field_colleague_id) ; NULL si aucun"
+      - name: collaborateur
+        description: "Prénom et nom du collaborateur, tels qu'affichés par GAC"
+      - name: email
+        description: "E-mail du collaborateur"
+      - name: code_analytique
+        description: "Code analytique (compta) du collaborateur sur l'intervalle, ex. SAVLYOTECH ; NULL si la dépense est à catégoriser"
+      - name: motif_a_categoriser
+        description: "Pourquoi code_analytique est NULL : « Sans collaborateur » (pool, disponible, indisponible) ou « Collaborateur sans code » (aucun code saisi dans la fiche GAC, à aucune date) ; NULL si codé"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sans collaborateur', 'Collaborateur sans code']

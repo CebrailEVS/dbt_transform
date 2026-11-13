@@ -4,7 +4,7 @@ sources:
   - name: gac
     database: "{{ var('raw_project') }}"
     schema: "prod_raw"
-    description: "Données brutes extraites du fichier suivi des sinistres envoyé par GAC vers le FTP SG"
+    description: "Fichiers CSV déposés par GAC, le loueur de la flotte, sur le SFTP EVS : sinistres, parc véhicule, historique des affectations."
     config:
       tags: ['gac', 'source']
       # Freshness: tier Relaxe — 7j warn / 14j error
@@ -16,7 +16,7 @@ sources:
         error_after: {count: 14, period: day}
     tables:
       - name: gac_parc_vehicule
-        description: "Export du parc véhicule (GAC → SFTP SG), fichier statique parc_vehicule.csv. 1 ligne = 1 période de contrat type (déclaration AEN) ; un véhicule/immat peut porter plusieurs lignes."
+        description: "Export du parc véhicule (GAC → SFTP SG), fichier unique parc_vehicule.csv, écrasé à chaque dépôt. 1 ligne = 1 contrat × 1 ligne de contrat type, en pratique une prime d'assurance annuelle ; un véhicule/immat peut porter plusieurs lignes."
         columns:
           - name: contrat_id_gac
             description: "Identifiant GAC du contrat"
@@ -27,7 +27,7 @@ sources:
           - name: contrat_motif_de_cl_ture
             description: "Motif de clôture du contrat (Restitution, Mise en épave, Vente)"
           - name: contrat_type_etat
-            description: "État de la ligne de contrat type / déclaration AEN (Actif, Inactif)"
+            description: "État de la ligne de contrat type (Actif, Inactif)"
           - name: contrat_type_date_d_effet
             description: "Date d'effet de la ligne de contrat type"
           - name: contrat_type_date_de_fin
@@ -39,9 +39,34 @@ sources:
           - name: dernier_v_nement_date_de_fin
             description: "Date de fin du dernier événement de disponibilité"
           - name: collaborateur_fonction_actuelle
-            description: "Nom trompeur : porte en réalité le code analytique (compta) du véhicule, ex. SAVLYOTECH"
+            description: "Nom trompeur : porte le code analytique (compta) du collaborateur affecté, ex. SAVLYOTECH, saisi dans sa fiche GAC. Le véhicule n'en a pas en propre."
           - name: date_de_saisie
             description: "Date de saisie du contrat (horodatée)"
+      - name: gac_historique_affectation
+        description: >
+          Historique des affectations des véhicules (GAC → SFTP SG), un fichier par jour couvrant
+          les 12 derniers mois. 1 ligne = 1 évènement (période de disponibilité) d'un contrat dans
+          1 fichier daté. Chargé en merge/delete-insert sur snapshot_date : les journées s'empilent
+          pour garder ce qui sort de la fenêtre. En-têtes normalisés sans accents par l'ingestion.
+        columns:
+          - name: snapshot_date
+            description: "Journée du fichier, lue dans son nom (histo_affectation.AAAAMMJJ_hhmmss) ; clé de merge"
+          - name: contrat_id_gac
+            description: "Identifiant GAC du contrat"
+          - name: contrat_immatriculation_edi
+            description: "Immatriculation du véhicule (format EDI, sans tiret) ; vide tant que le véhicule n'est pas livré"
+          - name: date_d_effet
+            description: "Début de l'évènement (jj/mm/aaaa)"
+          - name: date_de_fin
+            description: "Fin de l'évènement, incluse (jj/mm/aaaa) ; vide = en cours"
+          - name: disponibilite_du_vehicule
+            description: "Disponibilité du véhicule sur l'évènement (Affecté, Disponible, En maintenance, Indisponible)"
+          - name: field_colleague_id
+            description: "Identifiant GAC du collaborateur affecté sur l'évènement"
+          - name: fonction_actuelle
+            description: "Nom trompeur : code analytique (compta) ACTUEL du collaborateur, recopié sur tous ses évènements, passés compris"
+          - name: _extracted_at
+            description: "Horodatage du run dlt"
       - name: gac_sinistre
         description: "Snapshots quotidiens cumulatifs des sinistres véhicules (GAC → SFTP EVS). 1 ligne = 1 sinistre dans 1 snapshot daté. Chargé en merge/delete-insert sur snapshot_date : une journée relue écrase la sienne. L'état courant est dérivé par dédup dans stg_gac__sinistres."
         columns:

@@ -17,7 +17,7 @@ cleaned as (
         nullif(trim(contrat_statut_actuel), '') as contrat_statut_actuel,
         nullif(trim(contrat_motif_de_cl_ture), '') as contrat_motif_de_cloture,
 
-        -- Ligne de contrat type (déclaration AEN)
+        -- Ligne de contrat type (en pratique une prime d'assurance annuelle)
         nullif(trim(contrat_type_etat), '') as contrat_type_etat,
 
         -- Disponibilité (dernier événement)
