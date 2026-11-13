@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="date_d_effet", model=get_where_subquery(ref('stg_gac__historique_affectation'))) }}

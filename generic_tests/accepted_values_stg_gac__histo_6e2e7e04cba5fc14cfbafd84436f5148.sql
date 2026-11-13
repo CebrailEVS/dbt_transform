@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="contrat_statut_actuel", model=get_where_subquery(ref('stg_gac__historique_affectation')), values=["A la route","Clos","En attente de livraison"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

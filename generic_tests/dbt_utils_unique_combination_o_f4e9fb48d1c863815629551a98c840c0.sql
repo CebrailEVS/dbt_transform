@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["snapshot_date","contrat_id_gac","date_d_effet"], model=get_where_subquery(ref('stg_gac__historique_affectation'))) }}

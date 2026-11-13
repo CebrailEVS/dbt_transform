@@ -1,0 +1,1 @@
+{{ dbt_utils.test_mutually_exclusive_ranges(gaps="allowed", lower_bound_column="date_debut", model=get_where_subquery(ref('app_compta__vehicule_imputation')), partition_by="immatriculation", upper_bound_column="coalesce(date_add(date_fin, interval 1 day), date '9999-12-31')") }}

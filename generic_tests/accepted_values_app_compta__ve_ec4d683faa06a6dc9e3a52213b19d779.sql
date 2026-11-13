@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="motif_a_categoriser", model=get_where_subquery(ref('app_compta__vehicule_imputation')), values=["Sans collaborateur","Collaborateur sans code"]) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="disponibilite", model=get_where_subquery(ref('app_compta__vehicule_imputation')), values=["Affecté","Disponible","En maintenance","Indisponible"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

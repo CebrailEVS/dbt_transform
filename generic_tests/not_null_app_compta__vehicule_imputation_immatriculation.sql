@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="immatriculation", model=get_where_subquery(ref('app_compta__vehicule_imputation'))) }}

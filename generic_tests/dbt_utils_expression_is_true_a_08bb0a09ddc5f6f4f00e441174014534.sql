@@ -1,0 +1,1 @@
+{{ dbt_utils.test_expression_is_true(expression="(code_analytique is null) = (motif_a_categoriser is not null)", model=get_where_subquery(ref('app_compta__vehicule_imputation'))) }}
