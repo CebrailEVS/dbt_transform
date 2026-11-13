@@ -1,0 +1,33 @@
+version: 2
+
+# ============================================================
+# EXPOSURE — application comptapp
+# ============================================================
+# Application interne de la comptabilité (dépôt /mnt/data/project/compta) : factures
+# fournisseurs Leasys et TotalEnergies → Excel prêt à saisir, ventilé par code
+# analytique ; liste des écritures à catégoriser. Lecture par le compte
+# evs-ia-data-reader.
+#
+# Liste COMPLÈTE de ce que l'app lit dans BigQuery, couche de service et lectures
+# directes encore en place : `dbt ls -s +exposure:compta`.
+# ============================================================
+
+exposures:
+
+  - name: compta
+    label: "comptapp"
+    type: application
+    maturity: low
+    description: >
+      Application de la comptabilité : transforme les factures Leasys et TotalEnergies en
+      Excel de saisie ventilé par code analytique, et liste les écritures sans ventilation
+      analytique. Le code d'une dépense de véhicule vient de l'affectation GAC du véhicule.
+    owner:
+      name: Cébrail Aksoy
+      email: cebrail.aksoy@evs-pro.com
+    depends_on:
+      # Couche de service
+      - ref('app_compta__vehicule_imputation')
+      # Lectures directes, à remplacer par la couche de service
+      - ref('int_gac__vehicule_code_analytique')
+      - ref('fct_finance__ecriture_non_ventilee')

@@ -163,6 +163,10 @@ models:
         +schema: app_cockpit_supply   # prod -> prod_app_cockpit_supply ; dev/ci -> dataset du target
         +tags: ['cockpit_supply']
 
+      compta:
+        +schema: app_compta   # prod -> prod_app_compta ; dev/ci -> dataset du target
+        +tags: ['compta']
+
     exports:
       +schema: export   # prod -> prod_export ; dev/ci -> dataset du target
       +tags: ['exports']
