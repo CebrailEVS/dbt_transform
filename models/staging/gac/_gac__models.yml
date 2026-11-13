@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: stg_gac__vehicule
-    description: "Parc véhicule EVS (GAC → SFTP SG), nettoyé et restreint aux colonnes utiles. Grain source 1:1 (1 ligne = 1 période de contrat type / déclaration AEN)"
+    description: "Parc véhicule EVS (GAC → SFTP SG), nettoyé et restreint aux colonnes utiles. Grain source 1:1 (1 ligne = 1 contrat × 1 ligne de contrat type, en pratique une prime d'assurance annuelle)"
     columns:
       - name: contrat_id_gac
         description: "Identifiant GAC du contrat (non unique au grain de la table : un contrat porte plusieurs lignes de contrat type)"
@@ -23,7 +23,7 @@ models:
       - name: contrat_motif_de_cloture
         description: "Motif de clôture du contrat (NULL si contrat non clos)"
       - name: contrat_type_etat
-        description: "État de la ligne de contrat type / déclaration AEN"
+        description: "État de la ligne de contrat type"
         tests:
           - accepted_values:
               arguments:
@@ -47,7 +47,7 @@ models:
       - name: dernier_evenement_date_de_fin
         description: "Date de fin du dernier événement de disponibilité"
       - name: collaborateur_fonction_actuelle
-        description: "Nom source trompeur : porte en réalité le code analytique (compta) du véhicule. Voir int_gac__vehicule_code_analytique."
+        description: "Nom source trompeur : porte le code analytique (compta) du collaborateur affecté, saisi dans sa fiche GAC. Voir int_gac__vehicule_code_analytique."
       - name: date_de_saisie
         description: "Date de saisie du contrat (horodatée)"
       - name: extracted_at
@@ -55,3 +55,79 @@ models:
 
   - name: stg_gac__sinistres
     description: "Sinistres des véhicules EVS (fichier GAC déposé sur le SFTP EVS) : la version la plus récente de chaque sinistre, identifié par son numéro ou, à défaut, sa référence GAC."
+
+  - name: stg_gac__historique_affectation
+    description: >
+      Historique des affectations des véhicules EVS (fichier GAC quotidien, prod_raw.gac_historique_affectation),
+      nettoyé et restreint aux colonnes du contrat, de l'évènement et du collaborateur. Grain source 1:1 :
+      1 ligne = 1 évènement d'un contrat dans 1 fichier daté ; un évènement revient dans chaque fichier tant
+      qu'il est dans la fenêtre de 12 mois de GAC. La dernière version de chaque évènement se reconstitue
+      dans int_gac__affectation_vehicule.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['snapshot_date', 'contrat_id_gac', 'date_d_effet']
+    columns:
+      - name: snapshot_date
+        description: "Journée du fichier GAC (lue dans son nom), qui date la version de la ligne"
+        tests:
+          - not_null
+      - name: contrat_id_gac
+        description: "Identifiant GAC du contrat ; un contrat porte un évènement par période"
+        tests:
+          - not_null
+      - name: contrat_immatriculation_edi
+        description: "Immatriculation du véhicule (format EDI, sans tiret) ; NULL tant que le véhicule n'est pas livré"
+      - name: contrat_statut_actuel
+        description: "Statut actuel du contrat, à la date du fichier"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['A la route', 'Clos', 'En attente de livraison']
+              config:
+                severity: warn
+      - name: contrat_date_de_cloture
+        description: "Date de clôture du contrat ; NULL si le contrat n'est pas clos"
+      - name: contrat_motif_de_cloture
+        description: "Motif de clôture du contrat (Restitution, Mise en épave) ; NULL si le contrat n'est pas clos"
+      - name: type_de_contrat
+        description: "Type de contrat (LLD, LOA, En propre)"
+      - name: fournisseur
+        description: "Loueur ou financeur du contrat (LEASYS, Credipar…)"
+      - name: vehicule_genre_fiscal
+        description: "Genre fiscal du véhicule selon GAC : VU (utilitaire) ou VP (particulier)"
+      - name: date_d_effet
+        description: "Premier jour de l'évènement"
+        tests:
+          - not_null
+      - name: date_de_fin
+        description: "Dernier jour de l'évènement, inclus ; NULL = en cours. GAC laisse passer quelques évènements dont la fin précède l'effet : ils ne couvrent aucun jour."
+      - name: disponibilite_du_vehicule
+        description: "Disponibilité du véhicule sur l'évènement. Un véhicule « En maintenance » peut garder son collaborateur."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Affecté', 'Disponible', 'En maintenance', 'Indisponible']
+              config:
+                severity: warn
+      - name: commentaire_de_l_evenement
+        description: "Commentaire libre saisi sur l'évènement"
+      - name: date_de_modification_de_l_evenement
+        description: "Dernière saisie de l'évènement dans GAC, souvent postérieure à sa date d'effet"
+      - name: field_colleague_id
+        description: "Identifiant GAC du collaborateur affecté sur l'évènement ; NULL si aucun (pool, disponible)"
+      - name: collaborateur
+        description: "Prénom et nom du collaborateur, tels qu'affichés par GAC"
+      - name: nom
+        description: "Nom du collaborateur"
+      - name: prenom
+        description: "Prénom du collaborateur"
+      - name: email
+        description: "E-mail du collaborateur"
+      - name: fonction_actuelle
+        description: >
+          Nom source trompeur : code analytique (compta) du collaborateur, ex. SAVLYOTECH. C'est la valeur
+          ACTUELLE de sa fiche à la date du fichier, recopiée sur tous ses évènements, passés compris :
+          le code à une date se lit dans le fichier de ce jour (int_gac__collaborateur_code_analytique).
+      - name: extracted_at
+        description: "Horodatage du run dlt (_extracted_at)"
