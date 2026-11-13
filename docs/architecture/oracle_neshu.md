@@ -168,7 +168,8 @@ Transactionnel identique à LCDP, verrouillé par `test_le_transactionnel_est_id
   avant d'écrire un staging.
 - **Tout modèle qui lit directement le staging Nayka** applique lui-même les règles ci-dessus
   (`code_status_record`, statut, unités, `-1` sur les référentiels).
-- **Pas de snapshot.**
+- **Snapshot** : `snap_oracle_nayka__device` (parc d'équipements), qui lit
+  `int_oracle_nayka__device` et non une dim : Nayka n'a pas de mart.
 
 ---
 

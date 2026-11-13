@@ -10,11 +10,7 @@ with depot as (
         idcompany,
         code as depot_code,
         name as depot_name,
-        case
-            when code = 'DEPOTREBUT' then 'rebut'
-            when code = 'MARKETING' then 'hors_stock'
-            else 'stock'
-        end as depot_role
+        {{ nayka_depot_role('code') }} as depot_role
     from {{ ref('stg_oracle_nayka__company') }}
     where
         code in ('DEPOTLOGISTIQUERUNGIS', 'DEPOTLOGISTIQUEDARDILLY', 'MARKETING', 'DEPOTREBUT')

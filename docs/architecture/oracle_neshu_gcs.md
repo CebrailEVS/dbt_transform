@@ -1,18 +1,18 @@
-# Architecture — Stock théorique Oracle (NESHU et LCDP)
+# Architecture — Stock théorique Oracle (NESHU, LCDP et Nayka)
 
-| | NESHU | LCDP |
-|---|---|---|
-| Source dbt | `oracle_neshu_gcs` (`models/staging/oracle_neshu_gcs/_oracle_neshu_gcs__sources.yml`) | `oracle_lcdp_gcs` (`models/staging/oracle_lcdp_gcs/_oracle_lcdp_gcs__sources.yml`) |
-| Pipeline dlt | `ingestion/pipelines/oracle_neshu_stock` | `ingestion/pipelines/oracle_lcdp_stock` |
-| Chargement | `merge` / `delete-insert` sur `snapshot_date` : une photo par jour, un jour rejoué écrase le sien | idem |
+| | NESHU | LCDP | Nayka |
+|---|---|---|---|
+| Source dbt | `oracle_neshu_gcs` (`models/staging/oracle_neshu_gcs/_oracle_neshu_gcs__sources.yml`) | `oracle_lcdp_gcs` (`models/staging/oracle_lcdp_gcs/_oracle_lcdp_gcs__sources.yml`) | `oracle_nayka_gcs` (`models/staging/oracle_nayka_gcs/_oracle_nayka_gcs__sources.yml`) |
+| Pipeline dlt | `ingestion/pipelines/oracle_neshu_stock` | `ingestion/pipelines/oracle_lcdp_stock` | `ingestion/pipelines/oracle_nayka_stock` |
+| Chargement | `merge` / `delete-insert` sur `snapshot_date` : une photo par jour, un jour rejoué écrase le sien | idem | idem |
 
 Fraîcheur : [`docs/freshness.md`](../freshness.md). Cadence : [`docs/pipeline-schedule.md`](../pipeline-schedule.md).
 
-Source **complémentaire** à `oracle_neshu` / `oracle_lcdp` ([`oracle_neshu.md`](oracle_neshu.md)) :
+Source **complémentaire** à `oracle_neshu` / `oracle_lcdp` / `oracle_nayka` ([`oracle_neshu.md`](oracle_neshu.md)) :
 le **stock théorique journalier** par entité (dépôt ou véhicule) et par article, que
 l'extraction standard ne fournit pas. Il est calculé côté Oracle par une fonction de l'éditeur,
-appelée une fois par entité : une boîte noire dont on ne voit pas le code. Les deux pipelines
-partagent un moteur (`ingestion/shared/oracle_stock`) et les deux staging
+appelée une fois par entité : une boîte noire dont on ne voit pas le code. Les trois pipelines
+partagent un moteur (`ingestion/shared/oracle_stock`) et les trois staging
 `stg_oracle_<erp>_gcs__stock_theorique` sont identiques. Le suffixe `_gcs` est un nom hérité,
 sans lien avec Cloud Storage.
 
@@ -44,7 +44,8 @@ sans lien avec Cloud Storage.
   `date_inventaire`. Filtrer sur `snapshot_date`, jamais sur le jour de `date_system`.
 - **Contrôle** : `date_system` et `extracted_at` décrivent le même run, leur écart reste de
   quelques minutes. Un écart d'une ou deux heures trahit un fuseau mal déclaré.
-- **Appliqué par** : `stg_oracle_neshu_gcs__stock_theorique`, `stg_oracle_lcdp_gcs__stock_theorique`.
+- **Appliqué par** : `stg_oracle_neshu_gcs__stock_theorique`, `stg_oracle_lcdp_gcs__stock_theorique`,
+  `stg_oracle_nayka_gcs__stock_theorique`.
 
 ### Une journée chargée est figée
 - **Règle** : la clé de merge étant `snapshot_date`, une journée n'est plus réécrite. Un
@@ -94,6 +95,24 @@ sans lien avec Cloud Storage.
 
 ---
 
+## Nayka : ce qui diffère
+
+- **Pas de véhicule** : la photo ne porte que des dépôts (`entity_type = company`). Un test en
+  `warn` sur le staging signale l'apparition d'une ressource.
+- **`dpa` n'est pas renseigné** par la fonction de stock : le prix se lit dans `purchase_price`,
+  le prix de la fiche au moment de la photo. `int_oracle_nayka__stock_theorique` applique le même
+  repli que LCDP.
+- **Les modèles de machines sont dans la photo** (`product_type = MODELE`), en quantité, alors que
+  chaque machine est aussi un équipement de `int_oracle_nayka__device`. Ne jamais additionner les
+  deux : l'une des sources sert de contrôle à l'autre.
+- **Rôle du dépôt** : `depot_role` (macro `nayka_depot_role`) distingue les agences, le dépôt
+  marketing et le rebut, avec la même règle pour les produits et pour les équipements.
+- **Le staging teste lui-même son grain**, en plus de l'intermediate.
+- **Pas de mart** : seuls l'intermediate et la couche `apps` lisent cette source.
+
+---
+
 ## Consommateurs
 
-`dbt ls -s source:oracle_neshu_gcs+` et `dbt ls -s source:oracle_lcdp_gcs+`.
+`dbt ls -s source:oracle_neshu_gcs+`, `dbt ls -s source:oracle_lcdp_gcs+` et
+`dbt ls -s source:oracle_nayka_gcs+`.

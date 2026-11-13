@@ -1,0 +1,143 @@
+version: 2
+
+models:
+  - name: int_oracle_nayka__stock_theorique
+    description: |
+      [QUOI MÉTIER] Stock théorique journalier des produits Nayka, par dépôt, préparé pour l'application Cockpit Supply.
+      [COMMENT CONSTRUITE] Issu de stg_oracle_nayka_gcs__stock_theorique, sans filtre de dépôt. depot_role vient du code du dépôt (macro nayka_depot_role, même règle que les équipements). product_type vient de la fiche article, jointe par le code. is_out_of_stock dérivé de stock_at_date = 0. dpa repli sur purchase_price si manquant.
+      [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code).
+      [NOTES] Les modèles de machines (product_type = MODELE) y figurent en quantité alors que chaque machine est aussi un équipement de int_oracle_nayka__device : ne jamais additionner les deux. entity_type fait partie du grain : idcompany et idresources viennent de deux séquences Oracle distinctes. plus/moins = cumuls d'entrées/sorties depuis le dernier inventaire physique. date_system porte l'heure du batch ; filtrer sur snapshot_date.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['snapshot_date', 'entity_type', 'id_entity', 'product_code']
+      # Définition de la photo Distrilog : un écart signale un changement de la fonction de stock.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "abs(stock_at_date - (stock_inventaire + plus - moins)) < 0.001"
+          config:
+            severity: warn
+    columns:
+      - name: snapshot_date
+        description: "Jour métier de la photo (DATE), colonne de partition et clé de filtre."
+        tests:
+          - not_null
+      - name: id_entity
+        description: "Identifiant de l'entité, unique au sein d'un entity_type (dépôt : FK → stg_oracle_nayka__company)."
+        tests:
+          - not_null
+      - name: entity_type
+        description: "Type d'entité : company (dépôt). Fait partie du grain."
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code article Distrilog. La photo ne porte pas l'identifiant de la fiche."
+        tests:
+          - not_null
+      - name: entity_code
+        description: "Code société Distrilog du dépôt (DEPOTLOGISTIQUERUNGIS, DEPOTLOGISTIQUEDARDILLY, MARKETING, DEPOTREBUT)."
+      - name: entity_name
+        description: "Nom de l'entité, en minuscules."
+      - name: depot_role
+        description: "Rôle du dépôt dans le stock : stock (agence), hors_stock (MARKETING : cadeaux clients, showroom) ou rebut (DEPOTREBUT). Même règle que les équipements ; NULL pour une entité qui n'est pas un dépôt."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['stock', 'hors_stock', 'rebut']
+              config:
+                severity: warn
+      - name: product_name
+        description: "Libellé article."
+      - name: product_type
+        description: "Type d'article Distrilog de la fiche : PRODU (article stocké ou vendu), MODELE (modèle de machine, dont chaque unité est aussi un équipement suivi à part). NULL si le code n'a pas de fiche, ou désigne des fiches de types différents."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: stock_at_date
+        description: "Stock théorique au moment de la photo, en unités de l'article ; égal à stock_inventaire + plus − moins. Négatif possible."
+      - name: is_out_of_stock
+        description: "TRUE quand stock_at_date = 0."
+      - name: date_inventaire
+        description: "Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris ; NULL s'il n'a jamais été inventorié à cet emplacement."
+      - name: stock_inventaire
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
+      - name: plus
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
+      - name: moins
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
+      - name: dpa
+        description: "Prix unitaire de valorisation, en euros HT : dernier prix d'achat, repli sur purchase_price s'il manque (la fonction de stock ne le renseigne pas pour Nayka)."
+      - name: purchase_price
+        description: "Prix d'achat unitaire de la fiche article, en euros HT, tel qu'il était au moment de la photo."
+      - name: date_system
+        description: "Horodatage du batch de stock (même jour que snapshot_date)."
+      - name: extracted_at
+        description: "Horodatage du run dlt qui a chargé la ligne."
+
+  - name: int_oracle_nayka__device
+    description: |
+      [QUOI MÉTIER] Parc d'équipements Nayka : une fiche par équipement (fontaine, Base Cabinet, terminal de paiement), en dépôt comme chez un client, avec son emplacement, son propriétaire, son statut et son coût d'achat.
+      [COMMENT CONSTRUITE] stg_oracle_nayka__device hors fiches supprimées, enrichi du modèle (stg_oracle_nayka__product), de la société où il se trouve et de la société propriétaire (stg_oracle_nayka__company), et de ses étiquettes pivotées (stg_oracle_nayka__v_label_device).
+      [GRAIN] 1 ligne par équipement (device_id).
+      [NOTES] État COURANT : la base Distrilog ne garde pas l'historique d'une fiche. L'historique est tenu par le snapshot snap_oracle_nayka__device, qui lit ce modèle.
+    columns:
+      - name: device_id
+        description: "Identifiant de l'équipement (iddevice Distrilog)."
+        tests:
+          - unique
+          - not_null
+      - name: device_code
+        description: "Code de l'équipement."
+      - name: device_name
+        description: "Libellé de l'équipement."
+      - name: serial_number
+        description: "Numéro de série ; NULL s'il n'est pas saisi (cas du mobilier)."
+      - name: device_type_id
+        description: "Type Distrilog : 1 = machine (fontaine), 4 = terminal de paiement, 12 = accessoire (Base Cabinet)."
+      - name: parent_device_id
+        description: "Équipement auquel celui-ci est rattaché (FK → device_id) ; NULL s'il est autonome."
+      - name: model_id
+        description: "Fiche article du modèle (FK → stg_oracle_nayka__product)."
+      - name: model_code
+        description: "Code article du modèle : celui des lignes MODELE du stock de produits."
+      - name: model_name
+        description: "Libellé du modèle."
+      - name: model_purchase_unit_price
+        description: "Prix d'achat unitaire de la fiche du modèle, en euros HT : repli quand purchase_cost manque. État courant de la fiche."
+      - name: company_id
+        description: "Société où se trouve l'équipement : un dépôt ou un client (FK → stg_oracle_nayka__company)."
+      - name: company_code
+        description: "Code de la société où se trouve l'équipement."
+      - name: company_name
+        description: "Nom de la société où se trouve l'équipement."
+      - name: company_type_id
+        description: "Type de la société où se trouve l'équipement (FK → stg_oracle_nayka__company_type)."
+      - name: owner_company_id
+        description: "Société propriétaire de l'équipement (FK → stg_oracle_nayka__company) ; NULL si elle n'est pas renseignée."
+      - name: owner_company_name
+        description: "Nom de la société propriétaire."
+      - name: owner_company_type_id
+        description: "Type de la société propriétaire (FK → stg_oracle_nayka__company_type)."
+      - name: is_active
+        description: "TRUE quand l'étiquette ISACTIVE vaut YES ; FALSE sinon, étiquette absente comprise."
+      - name: is_reserved
+        description: "TRUE quand l'étiquette EQUIPEMENT_RESERVE vaut OUI ; FALSE sinon, étiquette absente comprise."
+      - name: device_category
+        description: "Étiquette CATEGORIE : FONTAINE, STATION_HYDRATATION ou MOBILIER."
+      - name: device_brand
+        description: "Étiquette MARQUE_FOURNISSEUR : marque du fabricant."
+      - name: device_range
+        description: "Étiquette GAMME : gamme commerciale de l'équipement."
+      - name: device_state
+        description: "Étiquette ETAT_MACHINE : NEUF ou OCCASION."
+      - name: device_material_status
+        description: "Étiquette STATUT_MATERIEL, code Distrilog repris tel quel."
+      - name: purchase_date
+        description: "Date d'achat de l'équipement."
+      - name: purchase_cost
+        description: "Coût d'achat de l'équipement, en euros HT, saisi sur sa fiche. 0 ou NULL quand il n'est pas saisi."
+      - name: last_installation_date
+        description: "Dernière installation, instant UTC : Distrilog « installe » aussi un équipement à son entrée dans un dépôt."
+      - name: created_at
+        description: "Création de la fiche, instant UTC."

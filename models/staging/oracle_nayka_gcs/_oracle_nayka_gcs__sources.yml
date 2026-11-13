@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: oracle_nayka_gcs
+    database: "{{ var('raw_project') }}"
+    schema: "prod_raw"
+    tables:
+      - name: oracle_nayka_stock_theorique
+        description: >
+          Stock théorique Nayka, chargé par le pipeline dlt `oracle_nayka_stock`
+          (dépôt ingestion) directement depuis Oracle.
+          Les colonnes portent leurs VRAIS types : les huit NUMBER Oracle arrivent en
+          NUMERIC(38,9).
+        columns:
+          - name: snapshot_date
+            description: "Date métier du snapshot. Clé de merge du pipeline — à ne pas confondre avec date_system, qui porte l'heure du run."
+          - name: date_system
+            description: "SYSDATE Oracle au moment du calcul, HEURE COMPRISE. Vaut minuit sur une journée rejouée."
+          - name: date_inventaire
+            description: "VARCHAR2 côté Oracle, donc STRING ici : le staging le parse avec safe.parse_timestamp."
+          - name: _extracted_at
+            description: "Horodatage du run dlt qui a chargé la ligne."

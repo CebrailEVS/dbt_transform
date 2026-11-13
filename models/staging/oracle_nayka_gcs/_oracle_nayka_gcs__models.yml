@@ -1,0 +1,96 @@
+version: 2
+
+models:
+  - name: stg_oracle_nayka_gcs__stock_theorique
+    description: >
+      Stock théorique Nayka, une photo par jour et par couple entité/article.
+      Chargé par le pipeline dlt `oracle_nayka_stock` (dépôt ingestion) depuis Oracle.
+      Les colonnes sont typées, et les deux horloges Oracle — nues côté
+      source — sont déclarées en Europe/Paris.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['snapshot_date', 'entity_type', 'id_entity', 'product_code']
+      # Fraîcheur (palier Standard, cf. docs/freshness.md). Une photo manquée ne se
+      # rattrape pas : ce test en est la seule détection.
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          arguments:
+            column_name: extracted_at
+            datepart: hour
+            interval: 26
+          config:
+            severity: warn
+      - dbt_expectations.expect_row_values_to_have_recent_data:
+          arguments:
+            column_name: extracted_at
+            datepart: hour
+            interval: 48
+          config:
+            severity: error
+    columns:
+      - name: id_entity
+        description: "Identifiant de l'entité (dépôt : idcompany Oracle)"
+        tests:
+          - not_null
+      - name: entity_name
+        description: "Nom de l'entité (en lowercase)"
+      - name: entity_type
+        description: "Type de l'entité (en lowercase). Nayka n'a que des dépôts (company) : une ressource signalerait un véhicule, à traiter en aval."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['company']
+              config:
+                severity: warn
+      - name: date_system
+        description: >
+          Instant du calcul du stock théorique côté Oracle (SYSDATE, peu avant minuit
+          heure de Paris). L'horloge Oracle est nue, sans fuseau : le staging la déclare en
+          Europe/Paris pour en faire un instant juste — un `cast` direct la ferait
+          lire en UTC, donc fausse de 1 à 2 h. Utile pour l'AUDIT : elle porte
+          l'heure du batch, donc une journée rejouée s'y voit (`--business-date`
+          écrit minuit). Mais ne pas s'en servir comme jour métier : le jour
+          calendaire d'un timestamp dépend de l'heure du run — un run après minuit
+          à Paris le placerait sur la journée suivante — alors que `snapshot_date`
+          est dérivée de l'horloge murale Oracle et reste juste.
+        tests:
+          - not_null
+      - name: resources_code
+        description: "Code de l'entité (code société Distrilog du dépôt)"
+      - name: product_code
+        description: "Code du produit"
+        tests:
+          - not_null
+      - name: product_name
+        description: "Nom du produit"
+      - name: date_inventaire
+        description: >
+          Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris : heure du comptage si l'article y figurait ; 00:00 du jour de l'inventaire s'il n'y figurait pas (Distrilog le compte alors à 0) ; NULL s'il n'a jamais été inventorié à cet emplacement.
+          VARCHAR2 côté Oracle, parsé en Europe/Paris pour la même raison que `date_system`.
+      - name: stock_inventaire
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
+      - name: plus
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
+      - name: moins
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
+      - name: stock_at_date
+        description: "Stock théorique à la date donnée"
+      - name: dpa
+        description: "Dernier prix d'achat. La fonction de stock ne le renseigne pas pour Nayka : le prix se lit dans purchase_price."
+      - name: pump
+        description: "Prix moyen pondéré ou autre information de prix"
+      - name: purchase_price
+        description: "Prix d'achat unitaire de la fiche article, tel qu'il était au moment de la photo"
+      - name: extracted_at
+        description: >
+          Horodatage du run dlt qui a chargé la ligne. Déjà daté avec son fuseau côté
+          ingestion, donc juste tel quel. Sert de témoin de révision : un écart de plus
+          de quelques minutes avec `date_system` signale une journée rechargée après coup.
+      - name: snapshot_date
+        description: >
+          Jour métier du snapshot (DATE, sans heure ni fuseau). Clé de merge du pipeline
+          dlt, et clé de filtre à privilégier en aval : contrairement à `date_system`,
+          elle ne peut pas basculer d'un jour selon le fuseau de lecture.
+        tests:
+          - not_null

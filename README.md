@@ -44,7 +44,7 @@ Une ligne par source déclarée dans dbt. Tables, colonnes et tests : la doc dbt
 | `oracle_neshu` | ERP Oracle NESHU | clients, machines, produits, tâches | [oracle_neshu.md](docs/architecture/oracle_neshu.md) |
 | `oracle_lcdp` | ERP Oracle LCDP | même schéma qu'`oracle_neshu` | [oracle_neshu.md](docs/architecture/oracle_neshu.md) |
 | `oracle_nayka` | ERP Oracle du partenaire Nayka | même schéma qu'`oracle_neshu` | [oracle_neshu.md](docs/architecture/oracle_neshu.md) |
-| `oracle_neshu_gcs`, `oracle_lcdp_gcs` | ERP Oracle NESHU et LCDP | photos du stock théorique | [oracle_neshu_gcs.md](docs/architecture/oracle_neshu_gcs.md) |
+| `oracle_neshu_gcs`, `oracle_lcdp_gcs`, `oracle_nayka_gcs` | ERP Oracle NESHU, LCDP et Nayka | photos du stock théorique | [oracle_neshu_gcs.md](docs/architecture/oracle_neshu_gcs.md) |
 | `yuman_api` | API Yuman | interventions terrain : clients, sites, matériels, bons | [yuman.md](docs/architecture/yuman.md) |
 | `yuman_evs_sftp` | fichier SFTP Yuman | stock théorique Yuman | [yuman_evs_sftp.md](docs/architecture/yuman_evs_sftp.md) |
 | `mssql_sage` | Sage (SQL Server) | comptabilité et gestion commerciale | [mssql_sage.md](docs/architecture/mssql_sage.md) |
