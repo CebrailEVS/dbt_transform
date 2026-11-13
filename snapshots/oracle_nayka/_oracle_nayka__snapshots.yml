@@ -1,0 +1,43 @@
+version: 2
+
+snapshots:
+  - name: snap_oracle_nayka__device
+    description: |
+      Historique SCD2 du parc d'équipements Nayka (source : int_oracle_nayka__device).
+
+      Garde l'état de chaque équipement à chaque changement : emplacement (dépôt ou
+      client), propriétaire, statut, coût d'achat, prix du modèle. La base Distrilog ne
+      conserve que l'état du jour : ce snapshot est la seule trace du parc en stock à une
+      fin de mois.
+
+      Stratégie : check (check_cols='all') — une nouvelle version uniquement quand une
+      colonne sélectionnée change. dbt_valid_from = heure d'exécution du snapshot : l'état
+      d'une fin de mois se lit dans la version en vigueur après la première exécution qui
+      suit ce jour.
+
+    columns:
+      - name: device_id
+        description: "Identifiant unique de l'équipement (clé naturelle du snapshot)"
+        tests:
+          - not_null
+
+      - name: dbt_valid_from
+        description: "Timestamp de prise d'effet de cette version"
+
+      - name: dbt_valid_to
+        description: "Timestamp de fin de validité (NULL = version courante)"
+
+      - name: dbt_scd_id
+        description: "Identifiant unique de l'enregistrement snapshot (SCD2)"
+        tests:
+          - unique
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - device_id
+          config:
+            where: "dbt_valid_to is null"
+            severity: error

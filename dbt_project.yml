@@ -74,6 +74,9 @@ models:
       oracle_lcdp_gcs:
         +tags: ['oracle_lcdp_gcs']
 
+      oracle_nayka_gcs:
+        +tags: ['oracle_nayka_gcs']
+
       mssql_sage:
         +tags: ['mssql_sage']
 
@@ -104,6 +107,9 @@ models:
 
       oracle_lcdp:
         +tags: ['oracle_lcdp']
+
+      oracle_nayka:
+        +tags: ['oracle_nayka']
 
       mssql_sage:
         +tags: ['mssql_sage']

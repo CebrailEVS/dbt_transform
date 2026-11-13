@@ -475,6 +475,66 @@ models:
       - name: has_anomalie
         description: "TRUE si au moins un contrôle is_* est vrai (code ou série en double, inactif hors rebut, actif au rebut, sans propriétaire, sans série, équipement au dépôt produits, machine rattachée à un parent, incohérence de statut parent / enfant). Toujours FALSE pour une ligne de commande."
 
+  - name: app_cockpit__nayka_stock_photo
+    description: |
+      [QUOI MÉTIER] Photos de stock Nayka dont l'application Cockpit Supply a besoin pour la clôture mensuelle : pour chaque série (dépôt × article) et chaque mois, la dernière et la première photo.
+      [COMMENT CONSTRUITE] Sous-ensemble de int_oracle_nayka__stock_theorique : lignes dont snapshot_date est le min ou le max de la série (entity_type, id_entity, product_code) dans son mois (même construction que app_cockpit__lcdp_stock_photo). Colonnes reprises sans transformation, plus trois indicateurs de type de photo.
+      [GRAIN] 1 ligne par (snapshot_date, entity_type, id_entity, product_code), sur environ 2 jours par mois.
+      [NOTES] Lu par la clôture mensuelle Nayka. Les modèles de machines (product_type = MODELE) figurent ici en quantité alors que chaque machine est aussi une ligne de app_cockpit__nayka_equipement_stock : ne jamais additionner les deux. Périmètre valorisé et règles de valorisation appliqués par l'app. date_system tombe toujours le jour de snapshot_date. Réservé à l'application, pas de rapport Power BI dessus.
+    columns:
+      - name: snapshot_date
+        description: "Jour métier de la photo (DATE), colonne de partition"
+        tests:
+          - not_null
+      - name: entity_type
+        description: "Type d'entité : company (dépôt). Fait partie du grain"
+        tests:
+          - not_null
+      - name: id_entity
+        description: "Identifiant de l'entité, unique au sein d'un entity_type"
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code article Nayka"
+        tests:
+          - not_null
+      - name: entity_code
+        description: "Code du dépôt (DEPOTLOGISTIQUERUNGIS, DEPOTLOGISTIQUEDARDILLY, MARKETING, DEPOTREBUT)"
+      - name: entity_name
+        description: "Nom de l'entité"
+      - name: depot_role
+        description: "Rôle du dépôt dans le stock : stock (agence), hors_stock (MARKETING) ou rebut (DEPOTREBUT). Même règle que le statut des équipements"
+      - name: product_name
+        description: "Libellé article"
+      - name: product_type
+        description: "Type d'article Distrilog : PRODU (article stocké ou vendu) ou MODELE (modèle de machine, dont chaque unité est aussi un équipement). NULL si le code n'a pas de fiche unique. Un écran qui valorise des consommables écarte MODELE."
+      - name: date_inventaire
+        description: "Dernier inventaire validé de l'emplacement pour cet article, instant UTC à lire en heure de Paris : heure du comptage si l'article y figurait ; 00:00 du jour de l'inventaire s'il n'y figurait pas (Distrilog le compte alors à 0) ; NULL s'il n'a jamais été inventorié à cet emplacement."
+      - name: date_system
+        description: "Horodatage du batch de stock (même jour que snapshot_date)"
+      - name: is_derniere_photo_mois
+        description: "Vrai si dernière photo de la série dans le mois"
+      - name: is_premiere_photo_mois
+        description: "Vrai si première photo de la série dans le mois"
+      - name: is_photo_courante
+        description: "Vrai pour la photo la plus récente de la table"
+      - name: stock_at_date
+        description: "Stock théorique au moment de la photo, égal à stock_inventaire + plus − moins (testé sur l'intermédiaire)."
+      - name: stock_inventaire
+        description: "Quantité comptée à date_inventaire ; 0 si l'article n'était pas sur le comptage ou n'a jamais été inventorié. Jamais un écart d'inventaire."
+      - name: plus
+        description: "Entrées cumulées depuis date_inventaire (depuis l'origine si jamais inventorié) : tâches FAIT ou VALIDE saisies avant la photo. Négatif possible (quantité saisie en négatif)."
+      - name: moins
+        description: "Sorties cumulées sur la même période et selon les mêmes règles que plus."
+      - name: dpa
+        description: "Prix unitaire de valorisation : dernier prix d'achat, repli sur le prix d'achat de la fiche (la fonction de stock ne renseigne pas le premier pour Nayka)"
+      - name: purchase_price
+        description: "Prix d'achat de la fiche article, tel qu'il était au moment de la photo"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['snapshot_date', 'entity_type', 'id_entity', 'product_code']
+
   - name: app_cockpit__nayka_equipement_stock
     description: |
       [QUOI MÉTIER] Équipements Nayka en stock pour l'écran Supply « Équipements en stock » de Cockpit Supply : fontaines, Base Cabinet et terminaux de paiement présents dans les dépôts, avec leur statut, leur réservation (client et échéance), leur valeur, leur ancienneté et les contrôles qualité ; plus les équipements commandés et pas encore reçus.
