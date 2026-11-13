@@ -13,9 +13,9 @@
 
 
 
-select contrat_id_gac
-from `evs-datastack-prod`.`prod_app_compta`.`app_compta__vehicule_imputation`
-where contrat_id_gac is null
+select obj_vol_grp_machine
+from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__objectifs_volumes`
+where obj_vol_grp_machine is null
 
 
 

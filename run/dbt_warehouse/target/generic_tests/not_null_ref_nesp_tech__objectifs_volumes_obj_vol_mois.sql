@@ -13,9 +13,9 @@
 
 
 
-select code_analytique
-from `evs-datastack-prod`.`prod_intermediate`.`int_gac__vehicule_code_analytique`
-where code_analytique is null
+select obj_vol_mois
+from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__objectifs_volumes`
+where obj_vol_mois is null
 
 
 

@@ -13,9 +13,9 @@
 
 
 
-select contrat_immatriculation_edi
-from `evs-datastack-prod`.`prod_staging`.`stg_gac__vehicule`
-where contrat_immatriculation_edi is null
+select obj_vol_objectif_valeur
+from `evs-datastack-prod`.`prod_reference`.`ref_nesp_tech__objectifs_volumes`
+where obj_vol_objectif_valeur is null
 
 
 
