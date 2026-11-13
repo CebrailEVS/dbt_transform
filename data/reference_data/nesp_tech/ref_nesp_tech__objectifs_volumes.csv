@@ -407,3 +407,15 @@ obj_vol_annee,obj_vol_anneemois,obj_vol_mois,obj_vol_type_inter,obj_vol_type_mac
 2026,202610,10,preventive,aguila,preventive_aguila,PREVENTIVE,AGUILA,AGUILA,74
 2026,202611,11,preventive,aguila,preventive_aguila,PREVENTIVE,AGUILA,AGUILA,71
 2026,202612,12,preventive,aguila,preventive_aguila,PREVENTIVE,AGUILA,AGUILA,60
+2026,20261,1,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,40
+2026,20262,2,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,43
+2026,20263,3,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,45
+2026,20264,4,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,43
+2026,20265,5,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,36
+2026,20266,6,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,44
+2026,20267,7,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,38
+2026,20268,8,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,31
+2026,20269,9,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,41
+2026,202610,10,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,43
+2026,202611,11,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,40
+2026,202612,12,reverse,logistic,reverse_logistic,REVERSE,LOGISTIC,REVERSE,36

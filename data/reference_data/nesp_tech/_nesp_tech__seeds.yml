@@ -241,7 +241,7 @@ seeds:
         data_tests:
           - not_null
       - name: obj_vol_grp_machine
-        description: "Machine group category (e.g. TRANSPORTABLES)."
+        description: "Machine group category: TRANSPORTABLE, AGUILA, or REVERSE (reverse logistics budget, kept in its own group so it never inflates a group total)."
         data_tests:
           - not_null
       - name: obj_vol_objectif_valeur
