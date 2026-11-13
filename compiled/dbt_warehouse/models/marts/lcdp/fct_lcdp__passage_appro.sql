@@ -108,7 +108,7 @@ select
     timestamp(datetime(created_at, 'Europe/Paris')) as created_at,
     timestamp(datetime(updated_at, 'Europe/Paris')) as updated_at,
     current_timestamp() as dbt_updated_at,
-    '01a1d51f-c6ea-7ae0-9fd4-b597c2ba4382' as dbt_invocation_id  -- noqa: TMP
+    '01a1d536-cc7a-7bd2-a1dc-2af73ca63ae4' as dbt_invocation_id  -- noqa: TMP
 
 from passage_appro
 -- Périmètre du rapport : PREVU / FAIT (ENCOURS déjà replié en FAIT) + ANOMALIE en flag.

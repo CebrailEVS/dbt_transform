@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="entity_type", model=get_where_subquery(ref('stg_oracle_nayka_gcs__stock_theorique')), values=["company"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="snapshot_date", model=get_where_subquery(ref('int_oracle_nayka__stock_theorique'))) }}

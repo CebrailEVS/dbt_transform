@@ -1,0 +1,1 @@
+{{ snapshot_snap_oracle_nayka__device() }}

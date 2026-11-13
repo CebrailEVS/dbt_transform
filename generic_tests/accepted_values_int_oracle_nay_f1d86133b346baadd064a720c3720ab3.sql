@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="depot_role", model=get_where_subquery(ref('int_oracle_nayka__stock_theorique')), values=["stock","hors_stock","rebut"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
