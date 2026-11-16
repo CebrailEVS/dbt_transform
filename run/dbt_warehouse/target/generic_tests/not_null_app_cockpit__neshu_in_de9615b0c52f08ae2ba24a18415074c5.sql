@@ -8,14 +8,15 @@
       
     
   
+    
+    
 
 
 
-select
-    1
-from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_events`
+select task_product_id
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_remise_zero`
+where task_product_id is null
 
-where not(periode = format('%04d-%02d', annee, mois))
 
 
   

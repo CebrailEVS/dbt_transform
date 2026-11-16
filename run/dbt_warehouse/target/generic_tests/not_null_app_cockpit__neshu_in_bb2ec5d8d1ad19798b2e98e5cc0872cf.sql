@@ -13,9 +13,9 @@
 
 
 
-select evt_id
-from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_events`
-where evt_id is null
+select date_inventaire
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_remise_zero`
+where date_inventaire is null
 
 
 

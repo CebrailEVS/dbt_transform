@@ -13,9 +13,9 @@
 
 
 
-select evt_event_type
-from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_events`
-where evt_event_type is null
+select stock_veille
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_remise_zero`
+where stock_veille is null
 
 
 

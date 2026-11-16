@@ -13,9 +13,9 @@
 
 
 
-select periode
-from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_events`
-where periode is null
+select snapshot_date
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_stock_disparition`
+where snapshot_date is null
 
 
 

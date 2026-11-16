@@ -16,9 +16,9 @@
 with validation_errors as (
 
     select
-        periode, evt_id
-    from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_events`
-    group by periode, evt_id
+        entity_code, product_code, snapshot_date
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_stock_disparition`
+    group by entity_code, product_code, snapshot_date
     having count(*) > 1
 
 )
