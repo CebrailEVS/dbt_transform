@@ -13,9 +13,9 @@
 
 
 
-select date_inventaire
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_transition`
-where date_inventaire is null
+select company_id
+from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_lcdp_depot_mensuel`
+where company_id is null
 
 
 

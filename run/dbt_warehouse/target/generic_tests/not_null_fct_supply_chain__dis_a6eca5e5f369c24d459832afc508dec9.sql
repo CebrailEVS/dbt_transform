@@ -13,9 +13,9 @@
 
 
 
-select task_id
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_remise_zero`
-where task_id is null
+select mois
+from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_neshu_depot_mensuel`
+where mois is null
 
 
 

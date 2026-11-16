@@ -16,9 +16,9 @@
 with validation_errors as (
 
     select
-        entity_code, product_code, date_system
-    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_transition`
-    group by entity_code, product_code, date_system
+        mois, company_id, product_code
+    from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_neshu_depot_mensuel`
+    group by mois, company_id, product_code
     having count(*) > 1
 
 )

@@ -8,15 +8,14 @@
       
     
   
-    
-    
 
 
 
-select task_product_id
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_remise_zero`
-where task_product_id is null
+select
+    1
+from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_lcdp_depot_mensuel`
 
+where not(jours_disponibles <= jours_observes)
 
 
   

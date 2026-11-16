@@ -22,33 +22,7 @@
         "stop": {
           "line": 26,
           "col": 1,
-          "index": 443
-        }
-      }
-    },
-    {
-      "macro_span": {
-        "start": {
-          "line": 1,
-          "col": 185,
-          "index": 184
-        },
-        "stop": {
-          "line": 1,
-          "col": 238,
-          "index": 237
-        }
-      },
-      "expanded_span": {
-        "start": {
-          "line": 26,
-          "col": 1,
-          "index": 443
-        },
-        "stop": {
-          "line": 26,
-          "col": 1,
-          "index": 443
+          "index": 441
         }
       }
     }

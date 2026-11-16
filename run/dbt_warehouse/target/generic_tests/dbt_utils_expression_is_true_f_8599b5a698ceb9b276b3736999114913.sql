@@ -8,15 +8,14 @@
       
     
   
-    
-    
 
 
 
-select product_code
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_remise_zero`
-where product_code is null
+select
+    1
+from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_lcdp_depot_mensuel`
 
+where not(taux_disponibilite_pct between 0 and 100)
 
 
   
