@@ -8,14 +8,15 @@
       
     
   
+    
+    
 
 
 
-select
-    1
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_lcdp_depot_mensuel`
+select periode
+from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_events`
+where periode is null
 
-where not(jours_disponibles <= jours_observes)
 
 
   

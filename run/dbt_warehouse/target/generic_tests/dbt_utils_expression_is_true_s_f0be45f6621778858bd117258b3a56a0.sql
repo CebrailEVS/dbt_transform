@@ -8,15 +8,14 @@
       
     
   
-    
-    
 
 
 
-select taux_disponibilite_pct
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_neshu_depot_mensuel`
-where taux_disponibilite_pct is null
+select
+    1
+from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_events`
 
+where not(periode = format('%04d-%02d', annee, mois))
 
 
   

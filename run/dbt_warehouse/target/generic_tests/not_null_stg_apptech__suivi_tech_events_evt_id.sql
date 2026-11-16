@@ -8,14 +8,15 @@
       
     
   
+    
+    
 
 
 
-select
-    1
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_neshu_depot_mensuel`
+select evt_id
+from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_events`
+where evt_id is null
 
-where not(taux_disponibilite_pct between 0 and 100)
 
 
   

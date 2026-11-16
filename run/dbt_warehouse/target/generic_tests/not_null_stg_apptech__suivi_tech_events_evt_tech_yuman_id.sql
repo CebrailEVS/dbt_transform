@@ -13,9 +13,9 @@
 
 
 
-select product_code
-from `evs-datastack-prod`.`prod_marts`.`fct_supply_chain__disponibilite_article_lcdp_depot_mensuel`
-where product_code is null
+select evt_tech_yuman_id
+from `evs-datastack-prod`.`prod_staging`.`stg_apptech__suivi_tech_events`
+where evt_tech_yuman_id is null
 
 
 
