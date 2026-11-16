@@ -166,9 +166,9 @@ models:
   - name: app_cockpit__neshu_inventaire_remise_zero
     description: |
       [QUOI MÉTIER] Articles remis à 0 par un comptage d'inventaire Distrilog, dans un dépôt ou un véhicule Neshu. Distrilog n'exporte pas les stocks nuls : l'article disparaît de la photo au lieu d'y porter sa nouvelle date d'inventaire, et app_cockpit__neshu_inventaire_transition ne le voit pas. Destiné au contrôle « Ajustements d'inventaire » de la clôture Neshu de Cockpit Supply.
-      [COMMENT CONSTRUITE] Tâches ÉCART INVENTAIRE FAIT ou VALIDE (int_oracle_neshu__ecart_inventaire_tasks) placées entre deux photos consécutives de int_oracle_neshu__stock_theorique ; on garde l'article présent dans la photo d'avant et absent de celle d'après. Un même comptage saisi en plusieurs versions : la plus récente (date du comptage, puis de création), sans additionner les versions. Véhicules marqués inactifs exclus, comme dans l'app.
+      [COMMENT CONSTRUITE] Disparitions de app_cockpit__neshu_stock_disparition prouvées par une tâche ÉCART INVENTAIRE (is_remise_inventaire) ; le rattachement de la tâche, validation tardive comprise, est décrit sur ce modèle.
       [GRAIN] 1 ligne par (entity_code, product_code, snapshot_date) : un article remis à 0 entre la photo précédente et la photo snapshot_date.
-      [NOTES] qte_ecart = ajustement enregistré par Distrilog au moment du comptage ; stock_veille = stock de la photo d'avant, qui inclut les mouvements de la journée. Un comptage dont l'effet sur le stock arrive après la photo suivante n'est pas rattaché. Réservé à l'application, pas de rapport Power BI dessus.
+      [NOTES] qte_ecart = ajustement enregistré par Distrilog au moment du comptage ; stock_veille = stock de la photo d'avant la disparition, qui inclut les mouvements de la journée. Réservé à l'application, pas de rapport Power BI dessus.
     columns:
       - name: date_system
         description: "Horodatage de la première photo sans l'article (UTC) : date de l'ajustement pour la clôture"
@@ -193,7 +193,7 @@ models:
       - name: date_inventaire_precedente
         description: "Date d'inventaire portée par l'article dans la photo d'avant (NULL s'il n'avait jamais été inventorié)"
       - name: stock_veille
-        description: "Stock théorique de l'article dans la photo d'avant le comptage"
+        description: "Stock théorique de l'article dans la photo d'avant la disparition"
         tests:
           - not_null
       - name: qte_ecart
@@ -214,7 +214,69 @@ models:
       - name: task_status_code
         description: "Statut de la tâche (FAIT ou VALIDE)"
       - name: nb_lignes_ecart
-        description: "Nombre de lignes d'écart FAIT ou VALIDE de l'article entre les deux photos (versions d'un même comptage)"
+        description: "Nombre de lignes d'écart FAIT ou VALIDE rattachables à cette disparition (versions d'un même comptage)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['entity_code', 'product_code', 'snapshot_date']
+
+  - name: app_cockpit__neshu_stock_disparition
+    description: |
+      [QUOI MÉTIER] Articles sortis de la photo de stock d'un dépôt ou d'un véhicule Neshu : présents dans une photo, absents de la suivante, c'est-à-dire tombés à 0 (Distrilog n'exporte pas les stocks nuls). Chaque disparition porte la tâche d'écart d'inventaire qui la prouve, s'il y en a une. Destiné à la clôture Neshu de Cockpit Supply : ajustements d'inventaire (disparitions prouvées) et contrôle des disparitions sans tâche, à rapprocher des mouvements du flux.
+      [COMMENT CONSTRUITE] Photos consécutives de int_oracle_neshu__stock_theorique ; une série (entity_code, product_code) disparaît quand sa ligne suivante n'est pas dans la photo suivante. Tâche rattachée (int_oracle_neshu__ecart_inventaire_tasks, FAIT ou VALIDE) : comptage passé avant la photo sans l'article, postérieur à la date d'inventaire que la ligne portait encore la veille, dans les 15 jours, car l'effet d'un comptage peut attendre sa validation ; hors de l'intervalle des deux photos, l'écart doit être de signe opposé au stock de la veille. Versions d'un même comptage : la plus récente, sans les additionner ; une ligne de tâche ne prouve qu'une disparition. Véhicules marqués inactifs exclus, comme dans l'app.
+      [GRAIN] 1 ligne par (entity_code, product_code, snapshot_date) : un article présent dans la photo précédente et absent de la photo snapshot_date.
+      [NOTES] stock_veille = 0 : ligne exportée à 0 la veille, pas de changement de stock. date_reapparition et stock_reapparition disent si l'article revient ensuite, par exemple une absence d'un jour. Réservé à l'application, pas de rapport Power BI dessus.
+    columns:
+      - name: date_system
+        description: "Horodatage de la première photo sans l'article (UTC)"
+        tests:
+          - not_null
+      - name: snapshot_date
+        description: "Jour de cette photo"
+        tests:
+          - not_null
+      - name: snapshot_date_veille
+        description: "Jour de la photo précédente, la dernière avec l'article"
+        tests:
+          - not_null
+      - name: entity_code
+        description: "Code du dépôt ou du véhicule"
+        tests:
+          - not_null
+      - name: product_code
+        description: "Code article Neshu"
+        tests:
+          - not_null
+      - name: date_inventaire_precedente
+        description: "Date d'inventaire portée par l'article dans la photo précédente (NULL s'il n'avait jamais été inventorié)"
+      - name: stock_veille
+        description: "Stock théorique de l'article dans la photo précédente"
+        tests:
+          - not_null
+      - name: dpa_veille
+        description: "Dernier prix d'achat de l'article dans la photo précédente"
+      - name: date_reapparition
+        description: "Jour de la photo où l'article réapparaît (NULL s'il n'est pas revenu)"
+      - name: stock_reapparition
+        description: "Stock théorique de l'article à sa réapparition"
+      - name: is_remise_inventaire
+        description: "Vrai si une tâche d'écart d'inventaire prouve la disparition (remise à 0 par un comptage)"
+        tests:
+          - not_null
+      - name: date_inventaire
+        description: "Date et heure du comptage (début réel de la tâche d'écart, UTC) ; NULL sans tâche"
+      - name: qte_ecart
+        description: "Quantité de la tâche d'écart : compté − stock système au moment du comptage, en unités ; NULL sans tâche"
+      - name: task_id
+        description: "Tâche ÉCART INVENTAIRE retenue (version la plus récente) ; NULL sans tâche"
+      - name: task_product_id
+        description: "Ligne article de cette tâche"
+        tests:
+          - unique
+      - name: task_status_code
+        description: "Statut de la tâche (FAIT ou VALIDE)"
+      - name: nb_lignes_ecart
+        description: "Nombre de lignes d'écart FAIT ou VALIDE rattachables à cette disparition (versions d'un même comptage)"
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

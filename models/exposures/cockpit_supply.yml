@@ -35,6 +35,7 @@ exposures:
       - ref('app_cockpit__lcdp_stock_photo')
       - ref('app_cockpit__neshu_inventaire_transition')
       - ref('app_cockpit__neshu_inventaire_remise_zero')
+      - ref('app_cockpit__neshu_stock_disparition')
       - ref('app_cockpit__neshu_chargement')
       - ref('app_cockpit__lcdp_chargement')
       - ref('app_cockpit__neshu_appro_passage')
