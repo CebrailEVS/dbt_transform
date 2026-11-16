@@ -15,14 +15,14 @@
       },
       "expanded_span": {
         "start": {
-          "line": 39,
+          "line": 36,
           "col": 1,
-          "index": 1280
+          "index": 1075
         },
         "stop": {
-          "line": 39,
+          "line": 36,
           "col": 1,
-          "index": 1280
+          "index": 1075
         }
       }
     },
@@ -41,14 +41,14 @@
       },
       "expanded_span": {
         "start": {
-          "line": 51,
+          "line": 48,
           "col": 6,
-          "index": 1518
+          "index": 1313
         },
         "stop": {
-          "line": 51,
+          "line": 48,
           "col": 55,
-          "index": 1567
+          "index": 1362
         }
       }
     }

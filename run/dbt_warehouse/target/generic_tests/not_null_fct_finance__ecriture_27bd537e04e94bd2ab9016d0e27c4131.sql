@@ -13,9 +13,9 @@
 
 
 
-select snapshot_date
-from `evs-datastack-prod`.`prod_staging`.`stg_oracle_nayka_gcs__stock_theorique`
-where snapshot_date is null
+select ecriture_comptable_id
+from `evs-datastack-prod`.`prod_marts`.`fct_finance__ecriture_non_ventilee`
+where ecriture_comptable_id is null
 
 
 

@@ -8,15 +8,14 @@
       
     
   
-    
-    
 
 
 
-select device_id
-from `evs-datastack-prod`.`prod_intermediate`.`int_oracle_nayka__device`
-where device_id is null
+select
+    1
+from `evs-datastack-prod`.`prod_marts`.`fct_finance__ecriture_non_ventilee`
 
+where not(substr(numero_compte_general, 1, 1) in ('6', '7'))
 
 
   

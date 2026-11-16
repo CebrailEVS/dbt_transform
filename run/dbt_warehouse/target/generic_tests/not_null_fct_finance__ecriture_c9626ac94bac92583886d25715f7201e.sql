@@ -13,9 +13,9 @@
 
 
 
-select entity_type
-from `evs-datastack-prod`.`prod_staging`.`stg_oracle_nayka_gcs__stock_theorique`
-where entity_type is null
+select numero_compte_general
+from `evs-datastack-prod`.`prod_marts`.`fct_finance__ecriture_non_ventilee`
+where numero_compte_general is null
 
 
 
