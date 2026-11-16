@@ -698,7 +698,7 @@ models:
   - name: app_cockpit__neshu_disponibilite_depot_mensuel
     description: |
       [QUOI MÉTIER] Disponibilité mensuelle des articles dans les dépôts Neshu, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] Agrégat mensuel de int_oracle_neshu__stock_theorique sur les dépôts : jours observés, jours sans rupture, taux en % ; code dépôt du dernier jour du mois. Même calcul que fct_supply_chain__disponibilite_article_neshu_depot_mensuel.
+      [COMMENT CONSTRUITE] Agrégat mensuel de int_oracle_neshu__stock_theorique sur les dépôts, par la macro disponibilite_depot_mensuelle (même calcul que fct_supply_chain__disponibilite_article_neshu_depot_mensuel) : jours d'extraction du dépôt depuis la première apparition de l'article, un jour sans ligne ou un stock nul ou négatif compte comme rupture ; code dépôt du dernier jour du mois.
       [GRAIN] 1 ligne par (mois, dépôt, article).
       [NOTES] lue via get_disponibilite ; écrans : _conformite, accueil, groupe, neshu_pilotage, neshu_prevision, neshu_stocks, neshu_terrain, supply, v2_nav. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     tests:
@@ -1072,7 +1072,7 @@ models:
   - name: app_cockpit__lcdp_disponibilite_depot_mensuel
     description: |
       [QUOI MÉTIER] Disponibilité mensuelle des articles dans les dépôts Cafés du Phare, tel que lu par l'application Cockpit Supply.
-      [COMMENT CONSTRUITE] Agrégat mensuel de int_oracle_lcdp__stock_theorique sur les dépôts : jours observés, jours sans rupture, taux en % ; code dépôt du dernier jour du mois. Même calcul que fct_supply_chain__disponibilite_article_lcdp_depot_mensuel.
+      [COMMENT CONSTRUITE] Agrégat mensuel de int_oracle_lcdp__stock_theorique sur les dépôts, par la macro disponibilite_depot_mensuelle (même calcul que fct_supply_chain__disponibilite_article_lcdp_depot_mensuel) : jours d'extraction du dépôt depuis la première apparition de l'article, un jour sans ligne ou un stock nul ou négatif compte comme rupture ; code dépôt du dernier jour du mois.
       [GRAIN] 1 ligne par (mois, dépôt, article).
       [NOTES] lue via get_disponibilite_lcdp ; écrans : supply. Les règles de l'app (statuts, périodes, exclusions) restent appliquées par l'app ; les filtres repris ici sont identiques et sans perte. Réservé à l'application.
     tests:
