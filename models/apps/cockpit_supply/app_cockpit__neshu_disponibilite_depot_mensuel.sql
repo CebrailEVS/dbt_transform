@@ -1,18 +1,9 @@
 {{ config(materialized='table') }}
 
--- Disponibilité mensuelle des articles dans les dépôts Neshu, pour Cockpit Supply, construite depuis
--- l'intermediate : part des jours observés où l'article n'est pas en rupture. Libellés du dernier jour du mois.
-with mensuel as (
-    select
-        date_trunc(date(date_system), month) as mois,
-        id_entity as company_id,
-        product_code,
-        any_value(entity_code having max date_system) as entity_code,
-        count(distinct date(date_system)) as jours_observes,
-        count(distinct case when is_out_of_stock = false then date(date_system) end) as jours_disponibles
-    from {{ ref('int_oracle_neshu__stock_theorique') }}
-    where entity_type = 'company'
-    group by 1, 2, 3
+-- Disponibilité mensuelle des articles dans les dépôts Neshu, pour Cockpit Supply : règle de la macro
+-- disponibilite_depot_mensuelle (jour sans ligne = rupture, stock négatif = rupture). Code dépôt du dernier jour.
+with disponibilite as (
+    {{ disponibilite_depot_mensuelle(ref('int_oracle_neshu__stock_theorique')) }}
 )
 
 select
@@ -20,5 +11,5 @@ select
     company_id,
     entity_code,
     product_code,
-    round(safe_divide(jours_disponibles, jours_observes) * 100, 1) as taux_disponibilite_pct
-from mensuel
+    taux_disponibilite_pct
+from disponibilite
