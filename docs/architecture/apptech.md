@@ -1,10 +1,15 @@
 # Architecture — apptech (app Suivi Tech)
 
 > **Aucun cron.** La chaîne `apptech` n'est branchée sur aucun pipeline planifié, par choix :
-> son build doit être déclenché par l'application Suivi Tech elle-même, au moment de la saisie.
-> **Ne jamais l'ajouter au `DBT_TAG_SELECTOR` d'un workflow** : le jour où l'app déclenche, la
-> chaîne serait construite deux fois. Dérogation déclarée dans `infra/CLAUDE.md` (charte
-> d'orchestration, frontière dbt).
+> son build est déclenché par l'application Suivi Tech elle-même (bouton « Build » de sa page
+> admin), via le Cloud Run Job `dbt-apptech` (`infra/cloudrun_dbt.tf`). Ce job porte son
+> sélecteur, `source:apptech+`, figé : l'app le lance sans override, avec `run.invoker` sur ce
+> seul job, et ne peut donc ni changer de sélection ni forcer un full-refresh.
+> **Ne jamais l'ajouter au `DBT_TAG_SELECTOR` d'un workflow** : la chaîne serait construite deux
+> fois. Dérogation déclarée dans `infra/CLAUDE.md` (charte d'orchestration, frontière dbt).
+>
+> Rebuild manuel, sans passer par l'app :
+> `gcloud run jobs execute dbt-apptech --region europe-west1 --wait`.
 
 | | |
 |---|---|

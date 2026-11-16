@@ -210,11 +210,14 @@ models:
         tests:
           - not_null
       - name: evt_event_unit
-        description: "Unité de la valeur (Journee / Heure)"
+        description: >
+          Unité de la valeur, tirée du référentiel de types de l'app
+          (app/data/types.json) : Journee, Heure, Prod (production créditée au
+          technicien), € (montant d'une prime exceptionnelle).
         tests:
           - accepted_values:
               arguments:
-                values: ['Journee', 'Heure']
+                values: ['Journee', 'Heure', 'Prod', '€']
               config:
                 severity: warn
       - name: evt_event_valeur
