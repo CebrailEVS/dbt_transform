@@ -65,3 +65,23 @@ models:
           - accepted_values:
               arguments:
                 values: ['Sans collaborateur', 'Collaborateur sans code']
+
+  - name: app_compta__section_analytique
+    description: |
+      [QUOI MÉTIER] Sections analytiques de Sage où une dépense peut être imputée : la liste des codes que comptapp propose quand la compta code à la main une dépense de véhicule restée sans code.
+      [COMMENT CONSTRUITE] Depuis stg_mssql_sage__f_comptea, sans intermediate : les sections qui ne sont pas en sommeil, avec leur intitulé sans espaces de bord.
+      [GRAIN] 1 ligne par section analytique (code_analytique).
+      [NOTES] Lu par l'écran « Factures fournisseurs » : le champ de saisie du code d'une dépense « À catégoriser » propose ces sections et refuse tout autre code. Une section créée dans Sage y arrive au chargement suivant de Sage. Réservé à l'application : ne pas brancher de rapport Power BI dessus.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['code_analytique']
+    columns:
+      - name: code_analytique
+        description: "Code de la section analytique dans Sage (ca_num), ex. SAVLYOTECH ; même référentiel que code_analytique d'app_compta__vehicule_imputation"
+        tests:
+          - not_null
+      - name: intitule
+        description: "Intitulé de la section dans Sage"
+        tests:
+          - not_null
