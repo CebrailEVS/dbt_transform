@@ -21,13 +21,15 @@ exposures:
     description: >
       Application de la comptabilité : transforme les factures Leasys et TotalEnergies en
       Excel de saisie ventilé par code analytique, et liste les écritures sans ventilation
-      analytique. Le code d'une dépense de véhicule vient de l'affectation GAC du véhicule.
+      analytique. Le code d'une dépense de véhicule vient de l'affectation GAC du véhicule ;
+      sans code, la compta le saisit parmi les sections analytiques de Sage.
     owner:
       name: Cébrail Aksoy
       email: cebrail.aksoy@evs-pro.com
     depends_on:
       # Couche de service
       - ref('app_compta__vehicule_imputation')
+      - ref('app_compta__section_analytique')
       # Lectures directes, à remplacer par la couche de service
       - ref('int_gac__vehicule_code_analytique')
       - ref('fct_finance__ecriture_non_ventilee')
