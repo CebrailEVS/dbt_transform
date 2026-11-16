@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="categorie", model=get_where_subquery(ref('app_cockpit__nayka_equipement_fin_mois')), values=["Machine principale","Composant en stock","Composant rattaché","Terminal de paiement"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

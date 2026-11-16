@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="depot_code", model=get_where_subquery(ref('app_cockpit__nayka_equipement_fin_mois'))) }}

@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="depot_role", model=get_where_subquery(ref('app_cockpit__nayka_equipement_fin_mois')), values=["stock","hors_stock","rebut"]) }}

@@ -13,9 +13,9 @@
 
 
 
-select date_inventaire
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_remise_zero`
-where date_inventaire is null
+select is_provisoire
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_fin_mois`
+where is_provisoire is null
 
 
 
