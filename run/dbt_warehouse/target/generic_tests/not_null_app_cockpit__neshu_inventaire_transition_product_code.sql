@@ -13,9 +13,9 @@
 
 
 
-select numero_compte_general
-from `evs-datastack-prod`.`prod_marts`.`fct_finance__ecriture_non_ventilee`
-where numero_compte_general is null
+select product_code
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_transition`
+where product_code is null
 
 
 

@@ -13,9 +13,9 @@
 
 
 
-select ecriture_comptable_id
-from `evs-datastack-prod`.`prod_marts`.`fct_finance__ecriture_non_ventilee`
-where ecriture_comptable_id is null
+select date_inventaire
+from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_remise_zero`
+where date_inventaire is null
 
 
 

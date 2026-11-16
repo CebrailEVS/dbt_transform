@@ -13,9 +13,9 @@
 
 with dbt_test__target as (
 
-  select ecriture_comptable_id as unique_field
-  from `evs-datastack-prod`.`prod_marts`.`fct_finance__ecriture_non_ventilee`
-  where ecriture_comptable_id is not null
+  select task_product_id as unique_field
+  from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__neshu_inventaire_remise_zero`
+  where task_product_id is not null
 
 )
 
