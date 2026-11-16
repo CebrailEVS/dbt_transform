@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="intitule", model=get_where_subquery(ref('app_compta__section_analytique'))) }}

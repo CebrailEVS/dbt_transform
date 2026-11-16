@@ -13,9 +13,9 @@
 
 
 
-select is_provisoire
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_fin_mois`
-where is_provisoire is null
+select code_analytique
+from `evs-datastack-prod`.`prod_app_compta`.`app_compta__section_analytique`
+where code_analytique is null
 
 
 

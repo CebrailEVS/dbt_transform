@@ -13,9 +13,9 @@
 
 
 
-select depot_code
-from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_fin_mois`
-where depot_code is null
+select intitule
+from `evs-datastack-prod`.`prod_app_compta`.`app_compta__section_analytique`
+where intitule is null
 
 
 
