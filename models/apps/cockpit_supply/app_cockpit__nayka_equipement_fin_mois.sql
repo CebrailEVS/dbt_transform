@@ -5,11 +5,13 @@
 -- app_cockpit__nayka_equipement_stock (dépôts, catégories, propriétaire, valeur) : une évolution se reporte dans les deux.
 
 with mois as (
-    -- Fin du mois = version en vigueur à la fin du 1er jour du mois suivant, après la photo quotidienne du parc (9 h)
-    -- qui suit la fin du mois. Le mois en cours prend la dernière version connue.
+    -- État retenu = parc à la fin du dernier jour du mois (etat_at). La photo du parc de 9 h enregistre l'extraction
+    -- Distrilog de la nuit : cet état n'entre dans l'historique que le 1er, d'où une lecture à la fin du 1er jour du mois
+    -- suivant (lecture_at) ; lu à etat_at, ce serait l'état de la veille. Le mois en cours prend la dernière version.
     select
         mois,
-        timestamp(datetime(date_add(mois, interval 1 month), time(23, 59, 59)), 'Europe/Paris') as etat_at
+        timestamp(datetime(last_day(mois), time(23, 59, 59)), 'Europe/Paris') as etat_at,
+        timestamp(datetime(date_add(mois, interval 1 month), time(23, 59, 59)), 'Europe/Paris') as lecture_at
     from
         unnest(
             generate_date_array(
@@ -27,6 +29,7 @@ parc as (
     select
         m.mois,
         m.etat_at,
+        m.lecture_at,
         s.device_id,
         s.device_code,
         s.device_name,
@@ -49,8 +52,8 @@ parc as (
     from mois as m
     inner join {{ ref('snap_oracle_nayka__device') }} as s
         on
-            m.etat_at >= s.dbt_valid_from
-            and (s.dbt_valid_to is null or m.etat_at < s.dbt_valid_to)
+            m.lecture_at >= s.dbt_valid_from
+            and (s.dbt_valid_to is null or m.lecture_at < s.dbt_valid_to)
     where
         s.company_code in ('DEPOTLOGISTIQUERUNGIS', 'DEPOTLOGISTIQUEDARDILLY', 'MARKETING', 'DEPOTREBUT')
         and s.device_type_id in (1, 4, 12)  -- fontaines, terminaux de paiement et Base Cabinet
@@ -60,6 +63,7 @@ qualifie as (
     select
         mois,
         etat_at,
+        lecture_at,
         device_id,
         device_code,
         device_name,
@@ -98,7 +102,7 @@ qualifie as (
 select
     mois,
     etat_at,
-    current_timestamp() < etat_at as is_provisoire,
+    current_timestamp() < lecture_at as is_provisoire,
     device_id,
     device_code,
     device_name,
