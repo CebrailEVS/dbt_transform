@@ -717,16 +717,16 @@ models:
   - name: app_cockpit__nayka_equipement_fin_mois
     description: |
       [QUOI MÉTIER] État du parc d'équipements Nayka à chaque fin de mois : fontaines, Base Cabinet et terminaux de paiement présents dans un dépôt, avec leur coût d'achat. Destiné à la valorisation de la clôture mensuelle Nayka de Cockpit Supply (machines comptées équipement par équipement).
-      [COMMENT CONSTRUITE] Historique du parc snap_oracle_nayka__device. Pour chaque mois couvert, la version de chaque équipement en vigueur à la fin du 1er jour du mois suivant (heure de Paris), c'est-à-dire après la photo quotidienne du parc qui suit la fin du mois ; le mois en cours prend la dernière version connue. Mêmes dépôts, types, catégories, propriétaire et valeurs que app_cockpit__nayka_equipement_stock.
+      [COMMENT CONSTRUITE] Historique du parc snap_oracle_nayka__device. Pour chaque mois couvert, l'état du parc à la fin du dernier jour du mois (etat_at). La photo du parc de 9 h enregistre l'extraction Distrilog de la nuit : cet état n'entre dans l'historique que le 1er du mois suivant, d'où la lecture de la version en vigueur à la fin de ce 1er jour (heure de Paris) ; le mois en cours prend la dernière version connue. Mêmes dépôts, types, catégories, propriétaire et valeurs que app_cockpit__nayka_equipement_stock.
       [GRAIN] 1 ligne par (mois, device_id).
-      [NOTES] Pas de mois antérieur au début de l'historique du parc : rien n'est reconstitué. Sans les lignes de commande ni les contrôles qualité de app_cockpit__nayka_equipement_stock ; une règle modifiée dans l'un des deux modèles se reporte dans l'autre. Réservé à l'application, pas de rapport Power BI dessus.
+      [NOTES] Suppose une extraction Distrilog dans la nuit du 1er : sans elle, l'état retenu est celui de la dernière extraction. Pas de mois antérieur au début de l'historique du parc : rien n'est reconstitué. Sans les lignes de commande ni les contrôles qualité de app_cockpit__nayka_equipement_stock ; une règle modifiée dans l'un des deux modèles se reporte dans l'autre. Réservé à l'application, pas de rapport Power BI dessus.
     columns:
       - name: mois
         description: "Premier jour du mois"
         tests:
           - not_null
       - name: etat_at
-        description: "Horodatage de l'état retenu : fin du 1er jour du mois suivant (heure de Paris) ; dans le futur pour le mois en cours"
+        description: "Instant de l'état retenu : fin du dernier jour du mois (heure de Paris), lu dans l'historique à la fin du 1er jour du mois suivant ; dans le futur pour le mois en cours"
         tests:
           - not_null
       - name: is_provisoire
