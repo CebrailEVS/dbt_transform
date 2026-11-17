@@ -16,9 +16,9 @@
 with validation_errors as (
 
     select
-        code_analytique
-    from `evs-datastack-prod`.`prod_app_compta`.`app_compta__section_analytique`
-    group by code_analytique
+        mois, device_id
+    from `evs-datastack-prod`.`prod_app_cockpit_supply`.`app_cockpit__nayka_equipement_fin_mois`
+    group by mois, device_id
     having count(*) > 1
 
 )
