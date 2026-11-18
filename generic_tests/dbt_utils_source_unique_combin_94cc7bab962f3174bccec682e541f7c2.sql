@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["snapshot_date","opportunity"], model=get_where_subquery(source('nesp_co', 'nesp_co_opportunite'))) }}{{ config({"meta":{},"tags":[],"where":"opportunity != 'Result'"}) }}

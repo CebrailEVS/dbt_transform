@@ -3,26 +3,26 @@
     {
       "macro_span": {
         "start": {
-          "line": 6,
+          "line": 1,
           "col": 1,
-          "index": 140
+          "index": 0
         },
         "stop": {
-          "line": 6,
-          "col": 141,
-          "index": 280
+          "line": 1,
+          "col": 145,
+          "index": 144
         }
       },
       "expanded_span": {
         "start": {
-          "line": 3,
+          "line": 1,
           "col": 1,
-          "index": 2
+          "index": 0
         },
         "stop": {
-          "line": 13,
+          "line": 11,
           "col": 1,
-          "index": 189
+          "index": 128
         }
       }
     }

@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["act_id","act_type"], model=get_where_subquery(ref('fct_commerce__activite'))) }}

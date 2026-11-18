@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="activity_type", model=get_where_subquery(ref('stg_nesp_co__activite')), values=["Phone Call","Appointment","Activity Task","E-Mail"]) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

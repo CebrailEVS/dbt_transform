@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="act_type", model=get_where_subquery(ref('int_nesp_co__activites'))) }}

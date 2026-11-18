@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["activity_id","activity_type"], model=get_where_subquery(ref('stg_nesp_co__activite'))) }}
