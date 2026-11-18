@@ -324,8 +324,8 @@ models:
       pour suivre la relation client / prospect.
 
       [COMMENT CONSTRUITE]
-      Construit à partir de `stg_nesp_co__activite` (fichier Excel
-      `nespresso_activites`). Unification des champs selon le type d'activité
+      Reprend `int_nesp_co__activites`, construit à partir de
+      `stg_nesp_co__activite`. Unification des champs selon le type d'activité
       (`Phone Call` / `Appointment` / `Activity Task`) : créateur, nom et
       date de début sont sélectionnés via CASE selon le type. Traduction en
       français des types, rôles, statuts et catégories métier (R1
@@ -334,7 +334,7 @@ models:
       nom/date tous NULL).
 
       [GRAIN]
-      1 ligne par numéro d'activité (`act_id`).
+      1 ligne par activité : (`act_id`, `act_type`).
 
       [NOTES]
       Source : fichier Excel nesp_co. Lien
@@ -342,17 +342,15 @@ models:
       (ID C4C). Pas de FK directe vers `dim_commerce__client` (sémantique
       conservée pour compatibilité BI). Contient des dates futures pour les
       RDV programmés. C4C numérote à part les appels et les rendez-vous :
-      quand un appel et un rendez-vous portent le même numéro, seule la plus
-      récente des deux activités figure ici (règle de
-      `int_nesp_co__activites`).
+      un même `act_id` peut désigner un appel et un rendez-vous sans rapport
+      entre eux. Compter les lignes, pas les `act_id` distincts.
 
     columns:
       - name: act_id
         description: >
-          Numéro de l'activité dans C4C. PK : une seule activité gardée par
-          numéro (règle en [NOTES]).
+          Numéro de l'activité dans C4C. Unique pour un type d'activité
+          seulement : la clé est (`act_id`, `act_type`).
         tests:
-          - unique
           - not_null
 
       - name: act_id_resp
@@ -383,8 +381,9 @@ models:
         description: Date de début normalisée de l'activité.
 
       - name: act_type
-        description: Type d'activité traduit en français.
+        description: Type d'activité traduit en français. Second élément de la clé.
         tests:
+          - not_null
           - accepted_values:
               arguments:
                 values:
@@ -414,6 +413,11 @@ models:
         description: Semaine ISO au format SS.AAAA.
 
     tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - act_id
+              - act_type
       - dbt_expectations.expect_table_row_count_to_be_between:
           arguments:
             min_value: 10000

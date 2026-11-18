@@ -42,6 +42,13 @@ models:
           élément de la clé.
         tests:
           - not_null
+          # Un libellé renommé à la source créerait de nouvelles clés à côté des anciennes,
+          # que le staging garde : ce test le signale.
+          - accepted_values:
+              arguments:
+                values: ['Phone Call', 'Appointment', 'Activity Task', 'E-Mail']
+              config:
+                severity: warn
       - name: phone_call
         description: "Description de l'appel téléphonique si activity_type = Phone call"
       - name: created_by_phone_call
@@ -95,7 +102,9 @@ models:
       Opportunités commerciales Nespresso (CRM C4C), typées depuis `nesp_co_opportunite`, hors
       lignes de sous-total `Result`. Le raw empile un export complet par journée : le staging
       garde, pour chaque opportunité, la version de sa dernière journée (`file_date`).
-      Clé : `opportunity_id`.
+      Clé : `opportunity_id`. Certains exports laissent `role_account` et
+      `zeq_zenius_equivalent` vides sur toutes leurs lignes : leur version n'est gardée que
+      pour une opportunité qu'aucun autre export ne porte.
     tests:
       # Freshness fallback (tier Standard — source STRING timestamp, cf. docs/freshness.md)
       - dbt_expectations.expect_row_values_to_have_recent_data:
@@ -144,7 +153,9 @@ models:
       - name: sales_unit
         description: "Unité de vente associée à l'opportunité"
       - name: role_account
-        description: "Rôle du compte (Prospect / Client)"
+        description: >
+          Rôle du compte (Prospect / Client). Vide pour une opportunité que seuls des exports
+          sans cette colonne ont portée.
       - name: lifecycle_status
         description: "Statut du cycle de vie de l'opportunité"
       - name: first_coffee_order
@@ -152,7 +163,9 @@ models:
       - name: expected_value
         description: "Valeur attendue de l'opportunité"
       - name: zeq_zenius_equivalent
-        description: "Équivalent Zenius de l'opportunité"
+        description: >
+          Équivalent Zenius de l'opportunité. Vide pour une opportunité que seuls des exports
+          sans cette colonne ont portée.
       - name: chance_of_success
         description: "Chance de succès de l'opportunité en pourcentage"
       - name: machines_opportunity
@@ -166,7 +179,8 @@ models:
       - name: file_date
         description: >
           Journée de l'export dont vient la version gardée (date lue dans le nom du classeur) :
-          la dernière où l'opportunité figurait dans l'export.
+          la dernière où l'opportunité figurait dans un export qui porte le rôle et l'EZ, à
+          défaut la dernière où elle figurait.
 
   # CLIENT
   - name: stg_nesp_co__client

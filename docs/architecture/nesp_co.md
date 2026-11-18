@@ -36,10 +36,10 @@ rendez-vous : un même numéro peut désigner un appel et un rendez-vous sans ra
 (`activity_id`, `activity_type`), unique dans chaque export : c'est celle de
 `stg_nesp_co__activite`, et un test sur la source la vérifie journée par journée.
 
-**Une seule activité par numéro en aval.** Règle métier : quand un appel et un rendez-vous
-partagent un numéro, `int_nesp_co__activites` ne garde que la plus récente des deux (dernière
-journée d'export, puis date de début), et `fct_commerce__activite` en hérite. L'autre activité
-n'est visible qu'en staging : les comptages faits en aval ne la voient pas.
+**Le couple reste la clé jusqu'au mart.** `int_nesp_co__activites` et `fct_commerce__activite`
+gardent une ligne par activité, (`act_id`, `act_type`) : un appel et un rendez-vous de même
+numéro y figurent tous les deux. Règle : compter les lignes, pas les `act_id` distincts, et ne
+jamais joindre sur `act_id` seul.
 
 **Dernier état seulement.** Le staging garde la version la plus récente de chaque activité et
 opportunité : une opportunité gagnée n'y figure qu'une fois, à son dernier statut. L'historique
@@ -53,6 +53,11 @@ un run de rattrapage charge plusieurs journées sous la même valeur.
 
 **Lignes de total `Result`.** L'export des opportunités contient des sous-totaux C4C
 (`opportunity = 'Result'`). Règle : filtrés dans `stg_nesp_co__opportunite`.
+
+**Exports d'opportunités sans rôle ni EZ.** Certains exports laissent `role_account` et
+`zeq_zenius_equivalent` vides sur toutes leurs lignes. Règle : `stg_nesp_co__opportunite`
+garde la version du dernier export qui porte ces deux colonnes, et ne retient un export sans
+elles que pour une opportunité qu'aucun autre ne porte : son rôle et son EZ restent alors vides.
 
 **Périmètre de l'export fixé par Nespresso.** Le filtre de dates et la Sales Unit de l'export
 des opportunités sont réglés côté C4C ; une colonne peut arriver vide sans que rien n'échoue.
