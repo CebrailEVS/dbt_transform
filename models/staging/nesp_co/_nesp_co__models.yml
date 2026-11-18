@@ -3,7 +3,12 @@ version: 2
 models:
   # ACTIVITE
   - name: stg_nesp_co__activite
-    description: "Activite transformés et nettoyés depuis la source Nespresso Commerce Activite"
+    description: >
+      Activités commerciales Nespresso (CRM C4C), typées depuis `nesp_co_activite`. Le raw empile
+      un export complet par journée : le staging garde, pour chaque activité, la version de sa
+      dernière journée (`file_date`). Clé : (`activity_id`, `activity_type`). C4C numérote à part
+      les appels et les rendez-vous : un même numéro peut désigner un appel et un rendez-vous sans
+      rapport entre eux.
     tests:
       # Freshness fallback (tier Standard — source STRING timestamp, cf. docs/freshness.md)
       - dbt_expectations.expect_row_values_to_have_recent_data:
@@ -13,22 +18,37 @@ models:
             interval: 2
           config:
             severity: warn
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - activity_id
+              - activity_type
     columns:
       - name: employee_responsible
         description: "Identifiant de l'employé responsable"
         tests:
           - not_null
       - name: activity_id
-        description: "Identifiant de l'activité commerciale"
+        description: >
+          Numéro de l'activité dans C4C. Unique pour un type d'activité seulement : la clé est le
+          couple (`activity_id`, `activity_type`).
         tests:
           - not_null
-          - unique
       - name: c4c_id_commercial
         description: "Id C4C du commercial"
       - name: activity_type
-        description: "Type d'activité commerciale (Phone call, appointment, etc.)"
+        description: >
+          Type d'activité commerciale (Phone Call, Appointment, Activity Task, E-Mail). Second
+          élément de la clé.
         tests:
           - not_null
+          # Un libellé renommé à la source créerait de nouvelles clés à côté des anciennes,
+          # que le staging garde : ce test le signale.
+          - accepted_values:
+              arguments:
+                values: ['Phone Call', 'Appointment', 'Activity Task', 'E-Mail']
+              config:
+                severity: warn
       - name: phone_call
         description: "Description de l'appel téléphonique si activity_type = Phone call"
       - name: created_by_phone_call
@@ -66,15 +86,25 @@ models:
       - name: notes
         description: "Notes supplémentaires sur l'activité commerciale"
       - name: extracted_at
-        description: "Date et heure d'extraction des données"
+        description: >
+          Date et heure du chargement dans le raw. Un rattrapage charge plusieurs journées sous la
+          même valeur : pour ordonner les versions, lire `file_date`.
       - name: source_file
         description: "Nom du fichier source d'où proviennent les données"
       - name: file_date
-        description: "Date du fichier source"
+        description: >
+          Journée de l'export dont vient la version gardée (date lue dans le nom du classeur) :
+          la dernière où l'activité figurait dans l'export.
 
   # OPPORTUNITE
   - name: stg_nesp_co__opportunite
-    description: "Opportunités transformés et nettoyés depuis la source Nespresso Commerce Opportunite"
+    description: >
+      Opportunités commerciales Nespresso (CRM C4C), typées depuis `nesp_co_opportunite`, hors
+      lignes de sous-total `Result`. Le raw empile un export complet par journée : le staging
+      garde, pour chaque opportunité, la version de sa dernière journée (`file_date`).
+      Clé : `opportunity_id`. Certains exports laissent `role_account` et
+      `zeq_zenius_equivalent` vides sur toutes leurs lignes : leur version n'est gardée que
+      pour une opportunité qu'aucun autre export ne porte.
     tests:
       # Freshness fallback (tier Standard — source STRING timestamp, cf. docs/freshness.md)
       - dbt_expectations.expect_row_values_to_have_recent_data:
@@ -123,7 +153,9 @@ models:
       - name: sales_unit
         description: "Unité de vente associée à l'opportunité"
       - name: role_account
-        description: "Rôle du compte (Prospect / Client)"
+        description: >
+          Rôle du compte (Prospect / Client). Vide pour une opportunité que seuls des exports
+          sans cette colonne ont portée.
       - name: lifecycle_status
         description: "Statut du cycle de vie de l'opportunité"
       - name: first_coffee_order
@@ -131,17 +163,24 @@ models:
       - name: expected_value
         description: "Valeur attendue de l'opportunité"
       - name: zeq_zenius_equivalent
-        description: "Équivalent Zenius de l'opportunité"
+        description: >
+          Équivalent Zenius de l'opportunité. Vide pour une opportunité que seuls des exports
+          sans cette colonne ont portée.
       - name: chance_of_success
         description: "Chance de succès de l'opportunité en pourcentage"
       - name: machines_opportunity
         description: "Nombre de machines associées à l'opportunité"
       - name: extracted_at
-        description: "Date et heure d'extraction des données"
+        description: >
+          Date et heure du chargement dans le raw. Un rattrapage charge plusieurs journées sous la
+          même valeur : pour ordonner les versions, lire `file_date`.
       - name: source_file
         description: "Nom du fichier source d'où proviennent les données"
       - name: file_date
-        description: "Date du fichier source"
+        description: >
+          Journée de l'export dont vient la version gardée (date lue dans le nom du classeur) :
+          la dernière où l'opportunité figurait dans un export qui porte le rôle et l'EZ, à
+          défaut la dernière où elle figurait.
 
   # CLIENT
   - name: stg_nesp_co__client

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Source dbt | `nesp_co` — `models/staging/nesp_co/_nesp_co__sources.yml` |
-| Pipelines dlt | `ingestion/pipelines/nesp_co` (activités, opportunités) et `ingestion/pipelines/nesp_client` (base clients), moteur commun `shared/sftp_evs` ; classeurs Excel déposés sur le SFTP EVS |
+| Pipelines dlt | `ingestion/pipelines/nesp_co` (activités, opportunités) et `ingestion/pipelines/nesp_client` (base clients), moteur commun `shared/sftp_evs`, qui charge des classeurs Excel depuis le SFTP EVS. Activités et opportunités arrivent par mail : le pipeline `nesp_co` relève la boîte et dépose lui-même les classeurs sur le SFTP avant de les charger |
 | Chargement | activités et opportunités : `merge` en `delete-insert` sur `snapshot_date` (date lue dans le nom du classeur), un jour relu écrase le sien et le raw garde un export par jour. Base clients : `merge` sur `third`, la version du classeur le plus récemment modifié gagne |
 
 Fraîcheur : [`docs/freshness.md`](../freshness.md). Cadence : [`docs/pipeline-schedule.md`](../pipeline-schedule.md).
@@ -30,22 +30,40 @@ pipeline. Le staging les renomme (`c4c_id_commercial`, `c4c_id_main_account`, `c
 test ne porte sur ces colonnes, seul le cast `int64` des identifiants de compte et de campagne
 peut échouer.
 
-**`activity_id` n'est pas unique dans un même export.** Un même identifiant peut porter deux
-lignes dans un classeur ; c'est pourquoi le pipeline merge sur la journée et non sur la ligne.
-Le staging dédoublonne sur `activity_id` par `extracted_at` décroissant : entre deux lignes du
-même export, la ligne gardée est arbitraire.
+**`activity_id` seul n'identifie pas une activité.** C4C numérote à part les appels et les
+rendez-vous : un même numéro peut désigner un appel et un rendez-vous sans rapport entre eux
+(comptes, dates et commerciaux différents). La clé d'une activité est le couple
+(`activity_id`, `activity_type`), unique dans chaque export : c'est celle de
+`stg_nesp_co__activite`, et un test sur la source la vérifie journée par journée.
+
+**Le couple reste la clé jusqu'au mart.** `int_nesp_co__activites` et `fct_commerce__activite`
+gardent une ligne par activité, (`act_id`, `act_type`) : un appel et un rendez-vous de même
+numéro y figurent tous les deux. Règle : compter les lignes, pas les `act_id` distincts, et ne
+jamais joindre sur `act_id` seul.
 
 **Dernier état seulement.** Le staging garde la version la plus récente de chaque activité et
 opportunité : une opportunité gagnée n'y figure qu'une fois, à son dernier statut. L'historique
-des transitions n'existe que dans le raw, qui conserve un export par `snapshot_date`.
+des transitions n'existe que dans le raw, qui conserve un export par `snapshot_date`. Une ligne
+qui ne figure plus dans l'export, quelle qu'en soit la raison, reste en staging à sa dernière
+version connue : une sortie de la fenêtre ou une suppression côté C4C ne s'y voit pas.
+
+**Ordonner les versions sur la journée, pas sur le chargement.** La version la plus récente est
+celle du dernier `snapshot_date` (`file_date` en staging). `_extracted_at` ne les départage pas :
+un run de rattrapage charge plusieurs journées sous la même valeur.
 
 **Lignes de total `Result`.** L'export des opportunités contient des sous-totaux C4C
 (`opportunity = 'Result'`). Règle : filtrés dans `stg_nesp_co__opportunite`.
 
+**Exports d'opportunités sans rôle ni EZ.** Certains exports laissent `role_account` et
+`zeq_zenius_equivalent` vides sur toutes leurs lignes. Règle : `stg_nesp_co__opportunite`
+garde la version du dernier export qui porte ces deux colonnes, et ne retient un export sans
+elles que pour une opportunité qu'aucun autre ne porte : son rôle et son EZ restent alors vides.
+
 **Périmètre de l'export fixé par Nespresso.** Le filtre de dates et la Sales Unit de l'export
 des opportunités sont réglés côté C4C ; une colonne peut arriver vide sans que rien n'échoue.
 Un changement de périmètre se voit aux volumes, pas aux tests. Il se corrige côté Nespresso,
-pas dans le pipeline ni dans dbt.
+pas dans le pipeline ni dans dbt. Les exports au périmètre différent sont datés dans
+`ingestion/pipelines/nesp_co/README.md`, § « Lire les données ».
 
 **Colonnes dédoublées par type d'activité.** Le libellé, la date de début et l'auteur d'une
 activité sont dans des colonnes distinctes selon le type (appel, rendez-vous, tâche). Règle :

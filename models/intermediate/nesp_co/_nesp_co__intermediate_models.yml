@@ -72,14 +72,25 @@ models:
       du statut et de la catégorie.
 
       [GRAIN]
-      1 ligne par act_id (PK).
+      1 ligne par activité : (act_id, act_type).
 
       [NOTES]
+      C4C numérote à part les appels et les rendez-vous : un même act_id peut désigner un appel
+      et un rendez-vous sans rapport entre eux. Compter les lignes, pas les act_id distincts, et
+      ne pas joindre sur act_id seul.
       Certaines catégories C4C restent non traduites
       (ex. 'Customer Visit') quand elles ne sont pas couvertes par le mapping.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - act_id
+              - act_type
     columns:
       - name: act_id
-        description: Identifiant unique de l'activité (C4C). PK.
+        description: >
+          Numéro de l'activité dans C4C. Unique pour un type d'activité seulement : la clé est
+          (act_id, act_type).
         tests:
           - not_null
       - name: act_id_resp
@@ -101,7 +112,11 @@ models:
       - name: act_date_debut
         description: Date de début de l'activité (unifiée selon le type d'activité).
       - name: act_type
-        description: "Type d'activité (traduit). Valeurs : Rendez-vous, Tâche d'activité, Appel téléphonique, e-mail."
+        description: >
+          Type d'activité (traduit). Valeurs : Rendez-vous, Tâche dactivité (écrit sans
+          apostrophe), Appel téléphonique, e-mail. Second élément de la clé.
+        tests:
+          - not_null
       - name: act_role
         description: "Rôle du compte (traduit). Valeurs : Client, Client potentiel."
       - name: act_statut

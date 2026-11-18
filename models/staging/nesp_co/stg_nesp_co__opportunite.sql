@@ -57,21 +57,31 @@ base_opportunite as (
         -- metadata
         _extracted_at as extracted_at,
         snapshot_date as file_date,
-        _fichier as source_file
+        _fichier as source_file,
+
+        -- Certains exports laissent role_account et zeq_zenius_equivalent vides sur toutes leurs
+        -- lignes : leur version ne sert que si aucun autre export ne porte l'opportunité.
+        (
+            countif(role_account != '#') over (partition by snapshot_date) > 0
+            and countif(zeq_zenius_equivalent != '#') over (partition by snapshot_date) > 0
+        ) as has_role_et_ez
 
     from source_data
     where opportunity != 'Result' or opportunity is null
 
 ),
 
+-- Le raw empile un export par journée : on garde la version de la dernière journée, en
+-- préférant un export qui porte le rôle et l'EZ. Tri sur la journée : un rattrapage charge
+-- plusieurs journées sous un même extracted_at.
 deduped as (
 
-    select *
+    select * except (has_role_et_ez)
     from base_opportunite
     where opportunity_id is not null
     qualify row_number() over (
         partition by opportunity_id
-        order by extracted_at desc
+        order by has_role_et_ez desc, file_date desc, extracted_at desc
     ) = 1
 
 )
