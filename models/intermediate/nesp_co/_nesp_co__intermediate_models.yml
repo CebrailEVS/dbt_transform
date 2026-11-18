@@ -64,24 +64,33 @@ models:
     description: >
       [QUOI MÉTIER]
       Activités commerciales Nespresso menées par les commerciaux (appels, rendez-vous, tâches,
-      e-mails) : une ligne par activité, avec son type, sa catégorie, son statut et le compte visé.
+      e-mails) : une ligne par numéro d'activité, avec son type, sa catégorie, son statut et le
+      compte visé.
 
       [COMMENT CONSTRUITE]
       stg_nesp_co__activite : unification des champs selon le type d'activité (Phone Call /
-      Appointment / Task — nom, créateur, date de début), puis traduction FR du type, du rôle,
-      du statut et de la catégorie.
+      Appointment / Task — nom, créateur, date de début), une seule activité gardée par numéro,
+      puis traduction FR du type, du rôle, du statut et de la catégorie.
 
       [GRAIN]
       1 ligne par act_id (PK).
 
       [NOTES]
+      C4C numérote à part les appels et les rendez-vous : un même numéro peut désigner un appel
+      et un rendez-vous sans rapport entre eux. Règle métier : une seule activité par numéro, la
+      plus récente (dernière journée d'export, puis date de début). L'autre activité du numéro
+      n'est pas ici ; elle reste dans stg_nesp_co__activite, dont la clé est (activity_id,
+      activity_type).
       Certaines catégories C4C restent non traduites
       (ex. 'Customer Visit') quand elles ne sont pas couvertes par le mapping.
     columns:
       - name: act_id
-        description: Identifiant unique de l'activité (C4C). PK.
+        description: >
+          Numéro de l'activité dans C4C. PK : une seule activité gardée par numéro (règle en
+          [NOTES]).
         tests:
           - not_null
+          - unique
       - name: act_id_resp
         description: Identifiant C4C du commercial responsable de l'activité.
       - name: act_cree_par

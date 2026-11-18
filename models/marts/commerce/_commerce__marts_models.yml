@@ -334,18 +334,23 @@ models:
       nom/date tous NULL).
 
       [GRAIN]
-      1 ligne par activité (`act_id`).
+      1 ligne par numéro d'activité (`act_id`).
 
       [NOTES]
       Source : fichier Excel nesp_co. Lien
       client : `act_id_nessoft` (format `FR_<nessoft>`) ou `act_compte_id`
       (ID C4C). Pas de FK directe vers `dim_commerce__client` (sémantique
       conservée pour compatibilité BI). Contient des dates futures pour les
-      RDV programmés.
+      RDV programmés. C4C numérote à part les appels et les rendez-vous :
+      quand un appel et un rendez-vous portent le même numéro, seule la plus
+      récente des deux activités figure ici (règle de
+      `int_nesp_co__activites`).
 
     columns:
       - name: act_id
-        description: Identifiant unique de l'activité. PK.
+        description: >
+          Numéro de l'activité dans C4C. PK : une seule activité gardée par
+          numéro (règle en [NOTES]).
         tests:
           - unique
           - not_null

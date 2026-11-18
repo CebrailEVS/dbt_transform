@@ -52,13 +52,16 @@ base_activite as (
 
 ),
 
+-- Le raw empile un export complet par journée : on garde la version de la dernière journée.
+-- Clé = (activity_id, activity_type) : C4C numérote à part les appels et les rendez-vous.
+-- Tri sur la journée : un rattrapage charge plusieurs journées sous un même extracted_at.
 deduped as (
 
     select *
     from base_activite
     qualify row_number() over (
-        partition by activity_id
-        order by extracted_at desc
+        partition by activity_id, activity_type
+        order by file_date desc, extracted_at desc
     ) = 1
 
 )

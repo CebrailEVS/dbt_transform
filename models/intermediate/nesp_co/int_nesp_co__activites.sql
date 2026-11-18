@@ -18,6 +18,7 @@ with base as (
         notes,
         main_account,
         calendar_month,
+        file_date,
 
         -- IDs nettoyés
         c4c_id_main_account as act_compte_id,
@@ -44,6 +45,20 @@ with base as (
         end as act_date_debut
 
     from {{ ref('stg_nesp_co__activite') }}
+),
+
+-- Règle métier : une seule activité par numéro. Un appel et un rendez-vous peuvent partager un
+-- numéro sans rapport entre eux : on garde la plus récente, par dernière journée d'export puis
+-- par date de début ; le type départage le reste, pour un résultat stable d'un build à l'autre.
+une_par_numero as (
+
+    select *
+    from base
+    qualify row_number() over (
+        partition by activity_id
+        order by file_date desc, act_date_debut desc nulls last, activity_type asc
+    ) = 1
+
 ),
 
 enrich as (
@@ -115,7 +130,7 @@ enrich as (
             else activity_category
         end as act_categorie
 
-    from base
+    from une_par_numero
 
 )
 

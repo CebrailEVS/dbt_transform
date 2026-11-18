@@ -64,6 +64,8 @@ base_opportunite as (
 
 ),
 
+-- Le raw empile un export complet par journée : on garde la version de la dernière journée.
+-- Tri sur la journée : un rattrapage charge plusieurs journées sous un même extracted_at.
 deduped as (
 
     select *
@@ -71,7 +73,7 @@ deduped as (
     where opportunity_id is not null
     qualify row_number() over (
         partition by opportunity_id
-        order by extracted_at desc
+        order by file_date desc, extracted_at desc
     ) = 1
 
 )

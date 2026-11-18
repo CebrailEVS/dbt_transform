@@ -5,17 +5,35 @@ sources:
   - name: nesp_co
     database: "{{ var('raw_project') }}"
     schema: "prod_raw"
-    description: "Données brutes extraites des fichiers excel Activité et Opportunités Nespresso depuis le FTP nespresso commerce"  
+    description: >
+      Exports commerciaux Nespresso (CRM C4C), en classeurs Excel. Activités et opportunités :
+      reçues chaque jour par mail, relevées et déposées sur le SFTP EVS par le pipeline dlt
+      `nesp_co` (dépôt ingestion), puis chargées. Base clients : classeur déposé sur le SFTP
+      EVS, chargé par le pipeline `nesp_client`, déclenché à la main.
     config:
       tags: ['nesp_co', 'source']
     tables:
       - name: nesp_co_activite
-        description: "Activités commerciales Nespresso. Chargée par le pipeline dlt `nesp_co` (dépôt ingestion) depuis les classeurs du SFTP."
+        description: >
+          Activités commerciales Nespresso. Chaque journée (`snapshot_date`) est un export
+          complet, et la table les empile. Clé d'une ligne dans une journée :
+          (`activity_id`, `activity_type`).
+        tests:
+          # Le staging ne garde qu'une version par clé : un doublon dans une journée y serait
+          # écarté sans bruit. Ce test est le seul à le montrer.
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns:
+                  - snapshot_date
+                  - activity_id
+                  - activity_type
         columns:
           - name: employee_responsible
             description: "Identifiant de l'employé responsable"
           - name: activity_id
-            description: "Identifiant de l'activité commerciale"
+            description: >
+              Numéro de l'activité dans C4C. C4C numérote à part les appels et les rendez-vous :
+              un même numéro peut désigner les deux, sans rapport entre eux.
           - name: unnamed_1
             description: "Id C4C du commercial"
           - name: activity_type
@@ -33,7 +51,9 @@ sources:
           - name: activity_category
             description: "Catégorie de l'activité commerciale"
           - name: week_calendar_year
-            description: "Semaine de l'année. exemple format : [08.04.2024 ... 14.04.2024]"
+            description: >
+              Semaine de l'année, en texte. Le format des dates varie selon les exports
+              (`JJ.MM.AAAA` ou `MM/JJ/AAAA`) : colonne non lue par dbt.
           - name: calendar_month
             description: "Mois du calendrier en format texte"
           - name: main_account
@@ -67,17 +87,32 @@ sources:
           - name: notes
             description: "Notes supplémentaires sur l'activité commerciale"
           - name: _extracted_at
-            description: "Date et heure d'extraction des données"
+            description: >
+              Date et heure du chargement. Un rattrapage charge plusieurs journées sous la même
+              valeur : pour ordonner les versions d'une ligne, lire `snapshot_date`.
           - name: _fichier
             description: "Nom du fichier source d'où proviennent les données"
           - name: snapshot_date
-            description: "Date du fichier source"
-          
+            description: "Journée de l'export, lue dans le nom du classeur."
+
       - name: nesp_co_opportunite
-        description: "Opportunités commerciales Nespresso. Chargée par le pipeline dlt `nesp_co` (dépôt ingestion) depuis les classeurs du SFTP."
+        description: >
+          Opportunités commerciales Nespresso. Chaque journée (`snapshot_date`) est un export
+          complet, et la table les empile. Clé d'une ligne dans une journée : `opportunity`,
+          hors lignes de sous-total `Result`.
+        tests:
+          # Le staging ne garde qu'une version par clé : un doublon dans une journée y serait
+          # écarté sans bruit. Ce test est le seul à le montrer.
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns:
+                  - snapshot_date
+                  - opportunity
+              config:
+                where: "opportunity != 'Result'"
         columns:
           - name: opportunity
-            description: "Identifiant de l'opportunité commerciale"
+            description: "Identifiant de l'opportunité commerciale, ou `Result` sur une ligne de sous-total"
           - name: employee_responsible
             description: "Nom de l'employé responsable"
           - name: employee_responsible_id
@@ -135,11 +170,13 @@ sources:
           - name: machines
             description: "Nombre de machines associées à l'opportunité"
           - name: _extracted_at
-            description: "Date et heure d'extraction des données"
+            description: >
+              Date et heure du chargement. Un rattrapage charge plusieurs journées sous la même
+              valeur : pour ordonner les versions d'une ligne, lire `snapshot_date`.
           - name: _fichier
             description: "Nom du fichier source d'où proviennent les données"
           - name: snapshot_date
-            description: "Date du fichier source"
+            description: "Journée de l'export, lue dans le nom du classeur."
 
       - name: nespresso_base_client
         description: "Table des bases clients Nespresso EVS importé depuis le SFTP EVS du fichier Base - Clients"
