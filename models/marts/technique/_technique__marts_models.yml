@@ -699,8 +699,9 @@ models:
       en alerte.
 
       [COMMENT CONSTRUITE]
-      Interventions de `fct_technique__alerting_consommation_aguila` dont
-      `alerte_compile` n'est pas vide. Pièces : articles Nespresso dédoublonnés
+      Interventions de `int_nesp_tech__alerte_conso_aguila` (les mêmes règles que
+      `fct_technique__alerting_consommation_aguila`) dont `alerte_compile` n'est
+      pas vide. Pièces : articles Nespresso dédoublonnés
       (`sum(quantite)` par `code_article`), hors pseudo-articles du seed
       `ref_yuman__pseudo_article`. Van : `storehouses_name` de la fiche technicien
       (`dim_technique__technician`), jointe sur `nomad_id`. Stock : dernier export
@@ -718,8 +719,8 @@ models:
       sans qualifier ses colonnes. Le van est l'état courant de la fiche technicien
       (Type 1), pas celui du jour de la pose. `stock_van_veille` est null quand le van
       est inconnu ou qu'aucun export n'existe dans la fenêtre ; il vaut 0 quand un
-      export existe sans ligne pour la pièce. L'historique de stock ne remonte pas
-      avant fin novembre 2025 : le stock des poses plus anciennes est null.
+      export existe sans ligne pour la pièce. Une pose sans export dans les 3 jours
+      qui la précèdent (début de l'historique, trou d'exports, dimanche) a un stock null.
     columns:
       - name: n_planning
         description: Identifiant de l'intervention Nespresso (clé métier Nomad, PK).
@@ -728,7 +729,7 @@ models:
           - unique
           - relationships:
               arguments:
-                to: ref('fct_technique__alerting_consommation_aguila')
+                to: ref('int_nesp_tech__alerte_conso_aguila')
                 field: n_planning
               config:
                 severity: warn
@@ -1409,9 +1410,10 @@ models:
       métier d'alerting.
 
       [COMMENT CONSTRUITE]
-      Consolidation des consommations d'articles par intervention (depuis
-      `int_nesp_tech__*`) avec application des règles métier d'alerting :
-      flags binaires sur chaque type d'incohérence détectable.
+      Lecture de `int_nesp_tech__alerte_conso_aguila`, qui consolide les
+      consommations d'articles par intervention et applique les règles métier
+      d'alerting (un flag par type d'incohérence détectable). Le mart y ajoute les
+      colonnes de traçabilité dbt.
 
       [GRAIN]
       1 ligne par intervention Aguila.

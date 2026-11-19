@@ -1,8 +1,8 @@
--- Le mart de détail contient exactement les interventions en alerte du mart source :
+-- Le mart de détail contient exactement les interventions en alerte de l'intermédiaire source :
 -- ni perdue, ni ajoutée. Retourne une ligne en cas d'écart.
 with source as (
     select count(*) as nb_source
-    from {{ ref('fct_technique__alerting_consommation_aguila') }}
+    from {{ ref('int_nesp_tech__alerte_conso_aguila') }}
     where coalesce(alerte_compile, '') != ''
 ),
 

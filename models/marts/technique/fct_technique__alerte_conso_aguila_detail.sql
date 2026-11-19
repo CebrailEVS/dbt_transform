@@ -7,15 +7,14 @@
 -- et sélectionne ses colonnes sans qualificatif de table.
 
 -- Interventions en alerte (alerte_compile vaut '' sans alerte), avec le technicien
--- et la date de pose de leurs pièces.
+-- et la date de pose de leurs pièces (date_fin : jour de fin d'intervention).
 with alertes as (
     select
         a.n_planning,
         a.alerte_compile,
         i.n_tech,
-        -- Même convention de date que fct_technique__alerting_consommation_aguila.date_fin.
-        cast(i.date_heure_fin as date) as date_pose
-    from {{ ref('fct_technique__alerting_consommation_aguila') }} as a
+        a.date_fin as date_pose
+    from {{ ref('int_nesp_tech__alerte_conso_aguila') }} as a
     left join {{ ref('int_nesp_tech__interventions_dedup') }} as i
         on a.n_planning = i.n_planning
     where coalesce(a.alerte_compile, '') != ''
@@ -146,22 +145,25 @@ select
     a.n_planning,
     a.alerte_compile,
     a.van_technicien,
-    -- Une alerte sans pièce n'a aucune ligne non nulle : BigQuery stocke alors un tableau vide.
-    array_agg(
-        if(
-            d.code_article is null,
-            null,
-            struct(
-                d.code_article,
-                d.libelle,
-                d.quantite,
-                d.prix_unitaire,
-                d.montant,
-                d.stock_van_veille
+    -- array_agg rend null quand aucune pièce : on force un tableau vide.
+    coalesce(
+        array_agg(
+            if(
+                d.code_article is null,
+                null,
+                struct(
+                    d.code_article,
+                    d.libelle,
+                    d.quantite,
+                    d.prix_unitaire,
+                    d.montant,
+                    d.stock_van_veille
+                )
             )
-        )
-        ignore nulls
-        order by d.code_article
+            ignore nulls
+            order by d.code_article
+        ),
+        []
     ) as pieces
 from alertes_van as a
 left join pieces_detail as d
