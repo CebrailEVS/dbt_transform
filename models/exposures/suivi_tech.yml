@@ -1,0 +1,29 @@
+version: 2
+
+# ============================================================
+# EXPOSURE — application Suivi Tech
+# ============================================================
+# Application web interne (FastAPI, Cloud Run, accès Entra ID) où les managers
+# techniques saisissent leurs retraitements mensuels. Code : dépôt APP_SUIVI_TECH.
+#
+# Liste des modèles lus pour la page de retraitement des pièces détachées Aguila.
+# Un changement sur l'un d'eux, ou sur un modèle en amont, a un impact sur l'app :
+# `dbt ls -s +exposure:suivi_tech`.
+# ============================================================
+
+exposures:
+
+  - name: suivi_tech
+    label: "Suivi Tech"
+    type: application
+    maturity: medium
+    description: >
+      Application de retraitement mensuel des interventions techniques. Pour les
+      pièces détachées posées sur les interventions Aguila en alerte, lit la liste
+      des interventions avec leurs pièces et le référentiel des pièces ajoutables.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      - ref('dim_technique__piece_nespresso')
+      - ref('fct_technique__alerte_conso_aguila_detail')

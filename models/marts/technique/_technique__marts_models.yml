@@ -690,6 +690,72 @@ models:
           config:
             severity: warn
 
+  - name: fct_technique__alerte_conso_aguila_detail
+    description: |
+      [QUOI MÉTIER]
+      Pour chaque intervention Aguila en alerte de consommation, le détail des
+      pièces posées avec leur prix catalogue et le stock du van du technicien la
+      veille de la pose. Sert à retraiter les pièces détachées d'une intervention
+      en alerte.
+
+      [COMMENT CONSTRUITE]
+      Interventions de `fct_technique__alerting_consommation_aguila` dont
+      `alerte_compile` n'est pas vide. Pièces : articles Nespresso dédoublonnés
+      (`sum(quantite)` par `code_article`), hors pseudo-articles du seed
+      `ref_yuman__pseudo_article`. Van : `storehouses_name` de la fiche technicien
+      (`dim_technique__technician`), jointe sur `nomad_id`. Stock : dernier export
+      de stock Yuman strictement antérieur à la date de fin d'intervention et au
+      plus 3 jours avant (pas d'export le dimanche), sommé par van et référence
+      (la source contient des lignes en double). Prix : seed
+      `ref_nesp_tech__articles_prix`.
+
+      [GRAIN]
+      1 ligne par `n_planning` (intervention en alerte).
+
+      [NOTES]
+      Réservé à l'application Suivi Tech, pas de rapport Power BI. Aucune colonne ne
+      porte un nom de `fct_technique__intervention_retraitee`, que l'application joint
+      sans qualifier ses colonnes. Le van est l'état courant de la fiche technicien
+      (Type 1), pas celui du jour de la pose. `stock_van_veille` est null quand le van
+      est inconnu ou qu'aucun export n'existe dans la fenêtre ; il vaut 0 quand un
+      export existe sans ligne pour la pièce. L'historique de stock ne remonte pas
+      avant fin novembre 2025 : le stock des poses plus anciennes est null.
+    columns:
+      - name: n_planning
+        description: Identifiant de l'intervention Nespresso (clé métier Nomad, PK).
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('fct_technique__alerting_consommation_aguila')
+                field: n_planning
+              config:
+                severity: warn
+
+      - name: alerte_compile
+        description: Alertes de consommation de l'intervention, jamais vide dans ce mart.
+
+      - name: van_technicien
+        description: >
+          Nom du stock Yuman (van) du technicien, état courant de sa fiche. Null si le
+          technicien n'a pas de fiche ou pas de van rattaché.
+
+      - name: pieces
+        description: >
+          Pièces posées, tableau vide si l'intervention n'en compte aucune. Une entrée
+          par `code_article` : `code_article` (majuscules), `libelle`, `quantite`,
+          `prix_unitaire` (€, null si tarif inconnu), `montant` (`quantite` x
+          `prix_unitaire`, null si prix inconnu), `stock_van_veille` (null si inconnu).
+
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 100
+            max_value: 5000
+          config:
+            severity: warn
+
   - name: fct_technique__consommation_article_yuman
     description: |
       [QUOI MÉTIER]
