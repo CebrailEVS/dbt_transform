@@ -25,6 +25,8 @@ imposé par le workflow (`source:yuman_evs_web+`) : ne pas le renommer.
 - Libellés de stock : `ST - <technicien>`, `NN - <dépôt>`, `Bon de commande - <n°>` (réception
   fournisseur), `Intervention - <n°>` (consommation sur intervention).
 - `quantite_stock_de_depart` / `_destination` : niveau du stock **après** le mouvement.
+- **Ordre des mouvements** : `operation_at`, puis `_ligne` à l'intérieur d'une journée. L'instant
+  est à la minute ; `_ligne` est le rang de la ligne dans son export, en ordre chronologique.
 
 ---
 
@@ -63,6 +65,14 @@ imposé par le workflow (`source:yuman_evs_web+`) : ne pas le renommer.
   renomme d'après l'en-tête du CSV et caste sans `safe_cast` : une valeur mal formée fait échouer
   le build, ce qui est voulu.
 - **Appliqué par** : `stg_yuman_evs_web__mouvements_stock`.
+
+### `_ligne` ne vaut qu'à l'intérieur d'une journée
+- **Symptôme** : le `_ligne` d'un mouvement d'hier a changé aujourd'hui.
+- **Règle** : c'est le rang dans le fichier exporté, et la fenêtre d'export glisse chaque nuit.
+  Seul l'ordre à l'intérieur d'une journée est stable : pour une clé de mouvement, calculer le
+  rang dans la journée. Une journée vient d'un seul export.
+- **Appliqué par** : `app_cockpit__technique_mouvement_stock` (`rang_journee`) ; test
+  `assert_stg_yuman_evs_web__une_journee_un_export`.
 
 ---
 

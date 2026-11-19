@@ -9,8 +9,8 @@ sources:
     schema: "prod_raw"
     config:
       tags: ['yuman_evs_web', 'source']
-      # Run quotidien à 22:00 Paris, qui recharge toujours au moins une journée : 36 h tolère un
-      # run en retard, 48 h signale un jour sans chargement. Cf. docs/freshness.md
+      # Run quotidien, qui recharge toujours au moins une journée : 36 h tolère un run en retard,
+      # 48 h signale un jour sans chargement. Cf. docs/freshness.md
       loaded_at_field: _extracted_at
       freshness:
         warn_after: {count: 36, period: hour}
