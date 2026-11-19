@@ -1,0 +1,24 @@
+version: 2
+
+sources:
+  # Journal des mouvements de stock de l'interface web Yuman, exporté en CSV par un navigateur
+  # automatisé (pipeline dlt `yuman_evs_mouvements_stock`) : ni l'API ni le SFTP ne l'exposent.
+  # Nom imposé : le workflow `pipeline-yuman-evs-mouvements-stock` sélectionne `source:yuman_evs_web`.
+  - name: yuman_evs_web
+    database: "{{ var('raw_project') }}"
+    schema: "prod_raw"
+    config:
+      tags: ['yuman_evs_web', 'source']
+      # Run quotidien à 22:00 Paris, qui recharge toujours au moins une journée : 36 h tolère un
+      # run en retard, 48 h signale un jour sans chargement. Cf. docs/freshness.md
+      loaded_at_field: _extracted_at
+      freshness:
+        warn_after: {count: 36, period: hour}
+        error_after: {count: 48, period: hour}
+    tables:
+      - name: web_yuman_evs_mouvements_stock
+        description: >
+          Journal des mouvements de stock (Achats/Stocks › Articles › Journal), tout en texte tel
+          que dans le fichier. Partitionnée sur `journee`. Chaque run réécrit les 7 dernières
+          journées en merge/delete-insert sur `journee` : une journée rechargée remplace la
+          précédente.

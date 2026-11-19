@@ -53,6 +53,9 @@ models:
       yuman_evs_sftp:
         +tags: ['yuman_evs_sftp']
 
+      yuman_evs_web:
+        +tags: ['yuman_evs_web']
+
       nesp_co:
         +tags: ['nesp_co']
 

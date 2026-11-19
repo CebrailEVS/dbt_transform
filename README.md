@@ -47,6 +47,7 @@ Une ligne par source déclarée dans dbt. Tables, colonnes et tests : la doc dbt
 | `oracle_neshu_gcs`, `oracle_lcdp_gcs`, `oracle_nayka_gcs` | ERP Oracle NESHU, LCDP et Nayka | photos du stock théorique | [oracle_neshu_gcs.md](docs/architecture/oracle_neshu_gcs.md) |
 | `yuman_api` | API Yuman | interventions terrain : clients, sites, matériels, bons | [yuman.md](docs/architecture/yuman.md) |
 | `yuman_evs_sftp` | fichier SFTP Yuman | stock théorique Yuman | [yuman_evs_sftp.md](docs/architecture/yuman_evs_sftp.md) |
+| `yuman_evs_web` | interface web Yuman (export automatisé) | journal des mouvements de stock | [yuman_evs_web.md](docs/architecture/yuman_evs_web.md) |
 | `mssql_sage` | Sage (SQL Server) | comptabilité et gestion commerciale | [mssql_sage.md](docs/architecture/mssql_sage.md) |
 | `nesp_tech` | rapports du prestataire technique Nespresso | interventions, pièces détachées | [nesp_tech.md](docs/architecture/nesp_tech.md) |
 | `nesp_co` | fichiers Nespresso | données commerciales | [nesp_co.md](docs/architecture/nesp_co.md) |
