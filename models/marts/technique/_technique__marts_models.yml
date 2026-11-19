@@ -634,6 +634,62 @@ models:
           config:
             severity: warn
 
+  - name: dim_technique__piece_nespresso
+    description: |
+      [QUOI MÉTIER]
+      Référentiel des pièces Nespresso qu'un manager peut ajouter à une
+      intervention lors d'un retraitement de pièces détachées, avec leur prix
+      catalogue. Exclut les lignes de saisie d'intervention (détartrage,
+      « pas de pièce », préventives...) qui ne sont pas des pièces.
+
+      [COMMENT CONSTRUITE]
+      Articles Yuman dont la référence commence par `EVS_NESPRESSO_`, actifs et
+      non interdits, hors pseudo-articles du seed `ref_yuman__pseudo_article`.
+      `code_article` est la référence sans préfixe, en majuscules. Le prix vient
+      du seed `ref_nesp_tech__articles_prix`, joint comme dans
+      `fct_technique__piece_detachee_pricing_nespresso`
+      (`lower(code_article) = lower(article_ref_nomad)`).
+
+      [GRAIN]
+      1 ligne par `code_article`.
+
+      [NOTES]
+      Yuman distingue la casse : si deux fiches ne diffèrent que par la casse du
+      code, la référence en majuscules est conservée, à défaut la plus ancienne.
+      `prix_unitaire` est null pour une pièce absente du seed de prix. Un prix à 0
+      vient du seed lui-même (références « Non Référencé CORDON ») : à traiter
+      comme un tarif inconnu, pas comme une pièce gratuite.
+    columns:
+      - name: code_article
+        description: >
+          Code de la pièce, sans préfixe `EVS_NESPRESSO_`, en majuscules (PK).
+          Clé de jointure avec le seed de prix et avec `code_article` de
+          `fct_technique__consommation_article_nespresso`.
+        tests:
+          - not_null
+          - unique
+
+      - name: product_reference
+        description: Référence de l'article dans Yuman (`EVS_NESPRESSO_<code_article>`).
+        tests:
+          - not_null
+
+      - name: libelle
+        description: Désignation de la pièce (nom de l'article Yuman).
+
+      - name: prix_unitaire
+        description: >
+          Prix unitaire catalogue Nespresso (€), issu du seed de prix. Null si la
+          pièce n'y figure pas.
+
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 500
+            max_value: 5000
+          config:
+            severity: warn
+
   - name: fct_technique__consommation_article_yuman
     description: |
       [QUOI MÉTIER]
