@@ -1,0 +1,1 @@
+{{ test_unique(column_name="_dlt_id", model=get_where_subquery(ref('stg_yuman_evs_web__mouvements_stock'))) }}

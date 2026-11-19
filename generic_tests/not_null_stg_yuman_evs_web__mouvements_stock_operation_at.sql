@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="operation_at", model=get_where_subquery(ref('stg_yuman_evs_web__mouvements_stock'))) }}
