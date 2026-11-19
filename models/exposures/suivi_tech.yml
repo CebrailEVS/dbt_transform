@@ -19,8 +19,9 @@ exposures:
     maturity: medium
     description: >
       Application de retraitement mensuel des interventions techniques. Pour les
-      pièces détachées posées sur les interventions Aguila en alerte, lit la liste
-      des interventions avec leurs pièces et le référentiel des pièces ajoutables.
+      pièces détachées posées sur les interventions à retraiter (alerte de consommation
+      Aguila, ou pose sans stock / stock van inconnu sur les pièces contrôlées), lit la
+      liste des interventions avec leurs pièces et le référentiel des pièces ajoutables.
     owner:
       name: Etienne Boulinier
       email: etienne.boulinier@evs-pro.com

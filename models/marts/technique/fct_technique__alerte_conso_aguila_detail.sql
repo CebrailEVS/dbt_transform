@@ -6,11 +6,12 @@
 -- fct_technique__intervention_retraitee : l'application Suivi Tech joint les deux modèles
 -- et sélectionne ses colonnes sans qualificatif de table.
 
--- Population : interventions en alerte de consommation (alerte_compile non vide) ou avec une
--- pose sans stock (quantité posée d'une pièce contrôlée supérieure au stock du van la veille).
--- Les alertes viennent de l'intermédiaire partagé avec le mart Power BI ; la règle de pose sans
--- stock vit ici seule. BigQuery recalcule une CTE à chaque lecture : les CTE lourdes (pièces,
--- stock) ne sont lues qu'une fois, la règle se calcule dans l'agrégation finale.
+-- Population : interventions en alerte de consommation (alerte_compile non vide), avec une
+-- pose sans stock (quantité posée d'une pièce contrôlée supérieure au stock du van la veille)
+-- ou avec un stock van inconnu (van absent de l'export retenu). Les alertes viennent de
+-- l'intermédiaire partagé avec le mart Power BI ; les deux autres règles vivent ici seules.
+-- BigQuery recalcule une CTE à chaque lecture : les CTE lourdes (pièces, stock) ne sont lues
+-- qu'une fois, les règles se calculent dans l'agrégation finale.
 with alertes_int as (
     select
         n_planning,
@@ -106,6 +107,17 @@ stock_dates as (
     from export_veille
 ),
 
+-- Vans présents dans l'export retenu (une ligne quelconque). Un van connu mais absent de cet
+-- export est un trou de données, pas un stock à 0.
+vans_export as (
+    select distinct
+        s.export_date as stock_date,
+        s.nom_du_stock
+    from {{ ref('stg_yuman_evs_sftp__stock_theorique') }} as s
+    inner join stock_dates as sd
+        on s.export_date = sd.stock_date
+),
+
 -- La source contient de vrais doublons de lignes : on additionne, comme Cockpit Supply.
 stock_van as (
     select
@@ -130,11 +142,15 @@ pieces_detail as (
         -- (même règle que dim_technique__piece_nespresso).
         nullif(prix.article_prix_unitaire, 0) as prix_unitaire,
         nullif(prix.article_prix_unitaire, 0) * p.quantite as montant,
-        -- Van ou export inconnu : null. Export trouvé sans ligne pour la pièce : 0.
+        -- Van ou export inconnu : null. Van absent de l'export : null (trou de données).
+        -- Van présent sans ligne pour la pièce : 0.
         case
-            when c.van_technicien is null or ev.stock_date is null then null
+            when c.van_technicien is null or ev.stock_date is null or ve.nom_du_stock is null
+                then null
             else coalesce(sv.quantite, 0)
         end as stock_van_veille,
+        c.van_technicien is not null and ev.stock_date is not null and ve.nom_du_stock is null
+            as is_van_absent,
         pc.code_article is not null as is_controlee
     from pieces as p
     inner join candidats as c
@@ -146,6 +162,10 @@ pieces_detail as (
         on p.code_article = pc.code_article
     left join export_veille as ev
         on c.date_pose = ev.date_pose
+    left join vans_export as ve
+        on
+            ev.stock_date = ve.stock_date
+            and c.van_technicien = ve.nom_du_stock
     -- Égalité stricte van / référence, comme fct_supply_chain__rupture_depot_yuman.
     left join stock_van as sv
         on
@@ -155,7 +175,9 @@ pieces_detail as (
 ),
 
 -- Pose sans stock : pièce contrôlée posée en quantité strictement supérieure à un stock connu.
--- Stock inconnu (null) : jamais signalé.
+-- Stock inconnu parce que le van est absent de l'export : STOCK VAN INCONNU. Stock inconnu
+-- faute de van ou d'export dans la fenêtre : aucun signalement. Les deux causes s'excluent
+-- (le van est unique par intervention, et un van absent a un stock null pour toutes ses pièces).
 detail as (
     select
         c.n_planning,
@@ -165,6 +187,7 @@ detail as (
             logical_or(d.is_controlee and d.quantite > d.stock_van_veille),
             false
         ) as has_pose_sans_stock,
+        coalesce(logical_or(d.is_controlee and d.is_van_absent), false) as has_stock_van_inconnu,
         -- array_agg rend null quand aucune pièce : on force un tableau vide.
         coalesce(
             array_agg(
@@ -191,17 +214,19 @@ detail as (
     group by c.n_planning, c.alerte_int, c.van_technicien
 )
 
--- alerte_compile : alerte de l'intermédiaire, puis POSE SANS STOCK, séparées par '-'.
+-- alerte_compile : alerte de l'intermédiaire, puis POSE SANS STOCK ou STOCK VAN INCONNU,
+-- séparées par '-'.
 select
     n_planning,
     array_to_string(
         [
             nullif(alerte_int, ''),
-            if(has_pose_sans_stock, 'POSE SANS STOCK', null)
+            if(has_pose_sans_stock, 'POSE SANS STOCK', null),
+            if(has_stock_van_inconnu, 'STOCK VAN INCONNU', null)
         ],
         '-'
     ) as alerte_compile,
     van_technicien,
     pieces
 from detail
-where coalesce(alerte_int, '') != '' or has_pose_sans_stock
+where coalesce(alerte_int, '') != '' or has_pose_sans_stock or has_stock_van_inconnu

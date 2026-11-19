@@ -693,18 +693,21 @@ models:
   - name: fct_technique__alerte_conso_aguila_detail
     description: |
       [QUOI MÉTIER]
-      Pour chaque intervention Nespresso à retraiter (alerte de consommation Aguila ou pose
-      sans stock), le détail des pièces posées avec leur prix catalogue et le stock du van du
+      Pour chaque intervention Nespresso à retraiter (alerte de consommation Aguila, pose sans
+      stock ou stock van inconnu), le détail des pièces posées avec leur prix catalogue et le stock du van du
       technicien la veille de la pose. Sert à retraiter les pièces détachées d'une
       intervention signalée.
 
       [COMMENT CONSTRUITE]
-      Union de deux populations. Alertes : interventions de `int_nesp_tech__alerte_conso_aguila`
+      Union de trois populations. Alertes : interventions de `int_nesp_tech__alerte_conso_aguila`
       (les mêmes règles que `fct_technique__alerting_consommation_aguila`) dont
       `alerte_compile` n'est pas vide. Poses sans stock : interventions EVS non annulées ni en
       échec (`int_nesp_tech__interventions_dedup`) où la quantité posée d'une pièce du seed
       `ref_nesp_tech__piece_controle_stock` dépasse strictement son stock dans le van la
-      veille ; `POSE SANS STOCK` s'ajoute alors à `alerte_compile`. Pièces : articles
+      veille ; `POSE SANS STOCK` s'ajoute alors à `alerte_compile`. Stocks van inconnus : même
+      périmètre, pièce contrôlée posée alors que le van, connu, n'a aucune ligne dans l'export
+      retenu (trou de données, pas un stock à 0) ; `STOCK VAN INCONNU` s'ajoute alors à
+      `alerte_compile`. Pièces : articles
       Nespresso dédoublonnés (`sum(quantite)` par `code_article`), hors pseudo-articles du seed
       `ref_yuman__pseudo_article`. Van : `storehouses_name` de la fiche technicien
       (`dim_technique__technician`), jointe sur `nomad_id`. Stock : dernier export de stock
@@ -720,10 +723,11 @@ models:
       porte un nom de `fct_technique__intervention_retraitee`, que l'application joint
       sans qualifier ses colonnes. Le van est l'état courant de la fiche technicien
       (Type 1), pas celui du jour de la pose. `stock_van_veille` est null quand le van
-      est inconnu ou qu'aucun export n'existe dans la fenêtre ; il vaut 0 quand un
-      export existe sans ligne pour la pièce. Une pose sans export dans les 3 jours
-      qui la précèdent (début de l'historique, trou d'exports, dimanche) a un stock null
-      et n'est jamais signalée pose sans stock.
+      est inconnu, qu'aucun export n'existe dans la fenêtre ou que le van est absent de
+      l'export retenu ; il vaut 0 quand le van est dans l'export sans ligne pour la pièce.
+      Une pose sans export dans les 3 jours qui la précèdent (début de l'historique, trou
+      d'exports, dimanche) ou sans van connu a un stock null et n'est jamais signalée.
+      Seul le van absent de l'export retenu donne le libellé `STOCK VAN INCONNU`.
     columns:
       - name: n_planning
         description: Identifiant de l'intervention Nespresso (clé métier Nomad, PK).
@@ -741,7 +745,9 @@ models:
         description: >
           Alertes de l'intervention séparées par `-` : alertes de consommation Aguila
           (`int_nesp_tech__alerte_conso_aguila`), puis `POSE SANS STOCK` quand une pièce
-          contrôlée est posée en quantité supérieure au stock du van la veille. Jamais vide
+          contrôlée est posée en quantité supérieure au stock du van la veille, ou
+          `STOCK VAN INCONNU` quand une pièce contrôlée est posée alors que le van, connu,
+          est absent de l'export de stock retenu. Les deux libellés s'excluent. Jamais vide
           dans ce mart.
 
       - name: van_technicien

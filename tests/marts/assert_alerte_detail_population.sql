@@ -1,6 +1,6 @@
 -- Le mart de détail contient toutes les interventions en alerte de l'intermédiaire source, plus
--- celles à pose sans stock, et aucune autre : toute ligne a une alerte de l'intermédiaire ou
--- porte POSE SANS STOCK. Retourne une ligne par écart.
+-- celles à pose sans stock ou à stock van inconnu, et aucune autre : toute ligne a une alerte de
+-- l'intermédiaire ou porte POSE SANS STOCK ou STOCK VAN INCONNU. Retourne une ligne par écart.
 with source as (
     select
         n_planning,
@@ -28,10 +28,11 @@ union all
 
 select
     detail.n_planning,
-    'ligne sans alerte intermediaire ni POSE SANS STOCK' as ecart
+    'ligne sans alerte intermediaire ni libelle de stock' as ecart
 from detail
 left join source
     on detail.n_planning = source.n_planning
 where
     source.n_planning is null
     and coalesce(detail.alerte_compile, '') not like '%POSE SANS STOCK%'
+    and coalesce(detail.alerte_compile, '') not like '%STOCK VAN INCONNU%'
