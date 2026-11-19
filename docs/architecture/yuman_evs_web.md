@@ -45,10 +45,11 @@ imposé par le workflow (`source:yuman_evs_web+`) : ne pas le renommer.
   [`staging.md` § 5](../conventions/staging.md#5-matérialisation) ne s'applique pas : `table`.
 - **Appliqué par** : `stg_yuman_evs_web__mouvements_stock`.
 
-### La journée J n'est complète qu'au run de J+1
+### La journée en cours est partielle
 - **Symptôme** : la dernière journée paraît incomplète.
-- **Règle** : des automatismes Yuman écrivent vers 23:00 et après minuit, après le run de 22:00.
-  Le run du lendemain recharge la journée. Une ligne horodatée 00:xx appartient à la journée J+1.
+- **Règle** : un run charge la journée en cours telle qu'elle est à son heure ; le run du
+  lendemain la recharge en entier. Des automatismes Yuman écrivent vers 23:00 et après minuit :
+  une ligne horodatée 00:xx appartient à la journée J+1.
 
 ### Automatismes nocturnes
 - **Symptôme** : des sorties `ST - …` sans destination ni utilisateur, entre 23:00 et 00:10.
@@ -79,8 +80,8 @@ imposé par le workflow (`source:yuman_evs_web+`) : ne pas le renommer.
 ## Règles de jointure
 
 - **Article** : `reference = stg_yuman__products.product_code`. L'API Yuman est chargée la nuit
-  en semaine, le journal le soir : un article créé et déplacé le jour même n'est dans
-  `stg_yuman__products` qu'au chargement suivant.
+  en semaine, le journal tous les jours : un article créé puis déplacé depuis le dernier
+  chargement de l'API n'est dans `stg_yuman__products` qu'au chargement suivant.
 - **Utilisateur** : `utilisateur = stg_yuman__users.user_name` (le nom seul, pas d'identifiant).
   `Import de données` n'est pas un utilisateur.
 - **Stocks** : libellé = `stg_yuman__storehouses.storehouses_name` pour `ST` et `NN`. Des stocks
