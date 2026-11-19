@@ -3,4 +3,4 @@
 select d.product_reference
 from {{ ref('dim_technique__piece_nespresso') }} as d
 inner join {{ ref('ref_yuman__pseudo_article') }} as pa
-    on d.product_reference = pa.reference
+    on lower(d.product_reference) = lower(pa.reference)

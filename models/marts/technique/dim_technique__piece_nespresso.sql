@@ -41,7 +41,8 @@ select
     pieces_dedup.code_article,
     pieces_dedup.product_reference,
     pieces_dedup.libelle,
-    prix.article_prix_unitaire as prix_unitaire
+    -- Un prix à 0 du seed (« Non Référencé CORDON ») est un tarif inconnu, pas une pièce gratuite.
+    nullif(prix.article_prix_unitaire, 0) as prix_unitaire
 from pieces_dedup
 -- Même jointure que fct_technique__piece_detachee_pricing_nespresso.
 left join {{ ref('ref_nesp_tech__articles_prix') }} as prix

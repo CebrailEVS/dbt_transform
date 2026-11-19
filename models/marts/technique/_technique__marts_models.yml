@@ -656,9 +656,9 @@ models:
       [NOTES]
       Yuman distingue la casse : si deux fiches ne diffèrent que par la casse du
       code, la référence en majuscules est conservée, à défaut la plus ancienne.
-      `prix_unitaire` est null pour une pièce absente du seed de prix. Un prix à 0
-      vient du seed lui-même (références « Non Référencé CORDON ») : à traiter
-      comme un tarif inconnu, pas comme une pièce gratuite.
+      `prix_unitaire` est null pour une pièce absente du seed de prix ou dont le
+      tarif y vaut 0 (références « Non Référencé CORDON ») : un prix à 0 est un
+      tarif inconnu, pas une pièce gratuite.
     columns:
       - name: code_article
         description: >
@@ -680,7 +680,7 @@ models:
       - name: prix_unitaire
         description: >
           Prix unitaire catalogue Nespresso (€), issu du seed de prix. Null si la
-          pièce n'y figure pas.
+          pièce n'y figure pas ou si son tarif y vaut 0 (tarif inconnu).
 
     tests:
       - dbt_expectations.expect_table_row_count_to_be_between:
