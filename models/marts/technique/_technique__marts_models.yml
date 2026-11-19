@@ -693,25 +693,27 @@ models:
   - name: fct_technique__alerte_conso_aguila_detail
     description: |
       [QUOI MÉTIER]
-      Pour chaque intervention Aguila en alerte de consommation, le détail des
-      pièces posées avec leur prix catalogue et le stock du van du technicien la
-      veille de la pose. Sert à retraiter les pièces détachées d'une intervention
-      en alerte.
+      Pour chaque intervention Nespresso à retraiter (alerte de consommation Aguila ou pose
+      sans stock), le détail des pièces posées avec leur prix catalogue et le stock du van du
+      technicien la veille de la pose. Sert à retraiter les pièces détachées d'une
+      intervention signalée.
 
       [COMMENT CONSTRUITE]
-      Interventions de `int_nesp_tech__alerte_conso_aguila` (les mêmes règles que
-      `fct_technique__alerting_consommation_aguila`) dont `alerte_compile` n'est
-      pas vide. Pièces : articles Nespresso dédoublonnés
-      (`sum(quantite)` par `code_article`), hors pseudo-articles du seed
+      Union de deux populations. Alertes : interventions de `int_nesp_tech__alerte_conso_aguila`
+      (les mêmes règles que `fct_technique__alerting_consommation_aguila`) dont
+      `alerte_compile` n'est pas vide. Poses sans stock : interventions EVS non annulées ni en
+      échec (`int_nesp_tech__interventions_dedup`) où la quantité posée d'une pièce du seed
+      `ref_nesp_tech__piece_controle_stock` dépasse strictement son stock dans le van la
+      veille ; `POSE SANS STOCK` s'ajoute alors à `alerte_compile`. Pièces : articles
+      Nespresso dédoublonnés (`sum(quantite)` par `code_article`), hors pseudo-articles du seed
       `ref_yuman__pseudo_article`. Van : `storehouses_name` de la fiche technicien
-      (`dim_technique__technician`), jointe sur `nomad_id`. Stock : dernier export
-      de stock Yuman strictement antérieur à la date de fin d'intervention et au
-      plus 3 jours avant (pas d'export le dimanche), sommé par van et référence
-      (la source contient des lignes en double). Prix : seed
-      `ref_nesp_tech__articles_prix`.
+      (`dim_technique__technician`), jointe sur `nomad_id`. Stock : dernier export de stock
+      Yuman strictement antérieur à la date de fin d'intervention et au plus 3 jours avant (pas
+      d'export le dimanche), sommé par van et référence (la source contient des lignes en
+      double). Prix : seed `ref_nesp_tech__articles_prix`.
 
       [GRAIN]
-      1 ligne par `n_planning` (intervention en alerte).
+      1 ligne par `n_planning` (intervention à retraiter).
 
       [NOTES]
       Réservé à l'application Suivi Tech, pas de rapport Power BI. Aucune colonne ne
@@ -720,7 +722,8 @@ models:
       (Type 1), pas celui du jour de la pose. `stock_van_veille` est null quand le van
       est inconnu ou qu'aucun export n'existe dans la fenêtre ; il vaut 0 quand un
       export existe sans ligne pour la pièce. Une pose sans export dans les 3 jours
-      qui la précèdent (début de l'historique, trou d'exports, dimanche) a un stock null.
+      qui la précèdent (début de l'historique, trou d'exports, dimanche) a un stock null
+      et n'est jamais signalée pose sans stock.
     columns:
       - name: n_planning
         description: Identifiant de l'intervention Nespresso (clé métier Nomad, PK).
@@ -729,13 +732,17 @@ models:
           - unique
           - relationships:
               arguments:
-                to: ref('int_nesp_tech__alerte_conso_aguila')
+                to: ref('int_nesp_tech__interventions_dedup')
                 field: n_planning
               config:
                 severity: warn
 
       - name: alerte_compile
-        description: Alertes de consommation de l'intervention, jamais vide dans ce mart.
+        description: >
+          Alertes de l'intervention séparées par `-` : alertes de consommation Aguila
+          (`int_nesp_tech__alerte_conso_aguila`), puis `POSE SANS STOCK` quand une pièce
+          contrôlée est posée en quantité supérieure au stock du van la veille. Jamais vide
+          dans ce mart.
 
       - name: van_technicien
         description: >
