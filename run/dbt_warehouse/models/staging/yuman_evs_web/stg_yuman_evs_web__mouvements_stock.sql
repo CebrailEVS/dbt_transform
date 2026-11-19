@@ -9,7 +9,7 @@
 
     
     OPTIONS(
-      description="""Journal des mouvements de stock Yuman, nettoy\u00e9 et typ\u00e9. Une ligne par mouvement ; le journal n'est jamais r\u00e9\u00e9crit, une erreur se corrige par un contre-mouvement. Le sens se lit dans les stocks : d\u00e9part seul = sortie, destination seule = entr\u00e9e, les deux = transfert ou consommation. Pi\u00e8ges : docs/architecture/yuman_evs_web.md.\n"""
+      description="""Journal des mouvements de stock Yuman, nettoy\u00e9 et typ\u00e9. Une ligne par mouvement ; le journal n'est jamais r\u00e9\u00e9crit, une erreur se corrige par un contre-mouvement. Le sens se lit dans les stocks : d\u00e9part seul = sortie, destination seule = entr\u00e9e, les deux = transfert ou consommation. Ordre des mouvements : `operation_at`, puis `_ligne` \u00e0 l'int\u00e9rieur d'une journ\u00e9e. Pi\u00e8ges : docs/architecture/yuman_evs_web.md.\n"""
     )
     as (
       
@@ -60,6 +60,9 @@ cleaned as (
         nullif(trim(observation), '') as observation,
 
         _export_yuman,
+        -- ORDRE : l'instant est à la minute, `_ligne` (rang dans l'export) départage les mouvements
+        -- d'une même minute. Ne se compare qu'à l'intérieur d'une journée.
+        cast(_ligne as int64) as _ligne,
         timestamp(_extracted_at) as extracted_at,
 
         -- CLÉ DE LIGNE : pas de clé naturelle, des mouvements identiques à la minute sont réels.

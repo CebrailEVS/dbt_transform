@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["_export_yuman","_ligne"], model=get_where_subquery(ref('stg_yuman_evs_web__mouvements_stock'))) }}
