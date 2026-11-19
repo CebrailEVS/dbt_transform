@@ -1381,6 +1381,58 @@ models:
               config:
                 severity: warn
 
+  - name: app_cockpit__technique_mouvement_stock
+    description: |
+      [QUOI MÉTIER] Journal des mouvements de stock TechCare (Yuman), tel que lu par l'application Cockpit Supply : réceptions de bons de commande, transferts atelier ⇄ véhicule, poses en intervention, ajustements d'inventaire.
+      [COMMENT CONSTRUITE] stg_yuman_evs_web__mouvements_stock réduit aux colonnes lues par l'app, sans filtre de date ni de ligne. Colonnes renommées comme la table d'import de l'app qu'il remplace (import manuel « Logs de produits ») ; date de l'opération en heure de Paris ; rang du mouvement dans sa journée calculé depuis le rang de la ligne dans l'export.
+      [GRAIN] 1 ligne par mouvement, identifié par (`journee`, `rang_journee`). Deux lignes identiques sont deux mouvements.
+      [NOTES] Ordre des mouvements : `journee`, puis `rang_journee` (la date de l'opération est à la minute). Écrans : flux et clôture TechCare, kits préventifs, sorties anormales, test du stock cible, consommation, taux de service et délais fournisseurs. Les règles de l'app (consommation, ajustements, poses Nomad, astreinte) restent appliquées par l'app. Réservé à l'application, pas de rapport Power BI dessus.
+    columns:
+      - name: journee
+        description: "Jour de l'opération à Paris."
+        tests:
+          - not_null
+      - name: rang_journee
+        description: "Rang du mouvement dans sa journée (1 = premier), en ordre chronologique. Stable d'un chargement à l'autre tant que la journée est complète : la journée en cours ne fait que s'allonger."
+        tests:
+          - not_null
+      - name: date_operation
+        description: "Date et heure de l'opération en heure de Paris, à la minute (TIMESTAMP d'affichage, pas un instant)."
+        tests:
+          - not_null
+      - name: reference
+        description: "Référence de l'article, telle que dans Yuman (préfixe de marque compris)."
+        tests:
+          - not_null
+      - name: article
+        description: "Libellé de l'article dans l'export."
+      - name: qte
+        description: "Quantité déplacée, toujours positive : le sens se lit dans les stocks de départ et de destination."
+        tests:
+          - not_null
+      - name: prix_achat_unitaire
+        description: "Prix d'achat unitaire de la ligne, renseigné sur les réceptions de bon de commande."
+      - name: stock_depart
+        description: "Stock débité : « ST - <technicien> », « NN - <atelier> », « Bon de commande - <n°> » ou « Intervention - <n°> ». NULL pour une entrée."
+      - name: qte_stock_depart
+        description: "Niveau du stock de départ après le mouvement."
+      - name: stock_destination
+        description: "Stock crédité : « ST - <technicien> », « NN - <atelier> » ou « Intervention - <n°> ». NULL pour une sortie."
+      - name: qte_stock_destination
+        description: "Niveau du stock de destination après le mouvement."
+      - name: utilisateur
+        description: "Nom de l'utilisateur Yuman, brut. NULL pour les automatismes ; « Import de données » désigne un import."
+      - name: observation
+        description: "Observation brute : libellé système (Inventaire, RAZ stock…), date de pose d'une pièce importée, ou texte libre."
+      - name: extracted_at
+        description: "Instant du run d'extraction qui a chargé la journée : fraîcheur du journal."
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['journee', 'rang_journee']
+
   - name: app_cockpit__technique_prix_achat
     description: |
       [QUOI MÉTIER] Prix d'achat des articles TechCare, tels que lus par l'application Cockpit Supply pour valoriser les mouvements et le stock.

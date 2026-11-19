@@ -50,6 +50,9 @@ cleaned as (
         nullif(trim(observation), '') as observation,
 
         _export_yuman,
+        -- ORDRE : l'instant est à la minute, `_ligne` (rang dans l'export) départage les mouvements
+        -- d'une même minute. Ne se compare qu'à l'intérieur d'une journée.
+        cast(_ligne as int64) as _ligne,
         timestamp(_extracted_at) as extracted_at,
 
         -- CLÉ DE LIGNE : pas de clé naturelle, des mouvements identiques à la minute sont réels.

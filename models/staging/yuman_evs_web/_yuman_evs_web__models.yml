@@ -6,7 +6,8 @@ models:
       Journal des mouvements de stock Yuman, nettoyé et typé. Une ligne par mouvement ; le journal
       n'est jamais réécrit, une erreur se corrige par un contre-mouvement. Le sens se lit dans les
       stocks : départ seul = sortie, destination seule = entrée, les deux = transfert ou
-      consommation. Pièges : docs/architecture/yuman_evs_web.md.
+      consommation. Ordre des mouvements : `operation_at`, puis `_ligne` à l'intérieur d'une
+      journée. Pièges : docs/architecture/yuman_evs_web.md.
 
     columns:
       - name: operation_at
@@ -85,6 +86,14 @@ models:
       - name: _export_yuman
         description: "Numéro de l'export côté Yuman, pour la traçabilité."
 
+      - name: _ligne
+        description: >
+          Rang de la ligne dans son export (1 = premier mouvement du fichier, en ordre
+          chronologique). Départage les mouvements d'une même minute. Change à chaque rechargement
+          de la journée (la fenêtre d'export glisse) : seul l'ordre dans la journée est stable.
+        tests:
+          - not_null
+
       - name: extracted_at
         description: "Instant du run d'extraction qui a chargé la journée."
         tests:
@@ -97,3 +106,8 @@ models:
         tests:
           - unique
           - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['_export_yuman', '_ligne']
