@@ -1,0 +1,99 @@
+version: 2
+
+models:
+  - name: stg_yuman_evs_web__mouvements_stock
+    description: >
+      Journal des mouvements de stock Yuman, nettoyé et typé. Une ligne par mouvement ; le journal
+      n'est jamais réécrit, une erreur se corrige par un contre-mouvement. Le sens se lit dans les
+      stocks : départ seul = sortie, destination seule = entrée, les deux = transfert ou
+      consommation. Pièges : docs/architecture/yuman_evs_web.md.
+
+    columns:
+      - name: operation_at
+        description: "Instant de l'opération, en UTC. Le fichier donne l'heure de Paris à la minute."
+        tests:
+          - not_null
+
+      - name: journee
+        description: "Jour de l'opération à Paris ; unité de rechargement du pipeline."
+        tests:
+          - not_null
+
+      - name: reference
+        description: "Référence de l'article ; se joint à `stg_yuman__products.product_code`."
+        tests:
+          - not_null
+
+      - name: article
+        description: "Libellé de l'article dans l'export ; celui de `stg_yuman__products` fait foi."
+
+      - name: categorie
+        description: "Catégorie de l'article."
+
+      - name: sous_categorie
+        description: "Sous-catégorie de l'article."
+
+      - name: equipement
+        description: "Équipement de l'intervention, renseigné sur les consommations sur intervention."
+
+      - name: quantite
+        description: >
+          Quantité déplacée, toujours positive : le sens se lit dans les stocks de départ et de
+          destination.
+        tests:
+          - not_null
+
+      - name: numero_de_serie
+        description: "Numéro de série de l'article, rarement renseigné."
+
+      - name: prix_d_achat_unitaire
+        description: "Prix d'achat unitaire, renseigné sur les réceptions de bon de commande."
+
+      - name: devise_d_achat
+        description: "Devise du prix d'achat, renseignée avec lui."
+
+      - name: site
+        description: "Site de l'intervention, renseigné sur les consommations sur intervention."
+
+      - name: adresse
+        description: "Adresse du site de l'intervention."
+
+      - name: stock_de_depart
+        description: >
+          Stock débité : `ST - <technicien>`, `NN - <dépôt>`, `Bon de commande - <n°>` ou
+          `Intervention - <n°>`. NULL pour une entrée.
+
+      - name: quantite_stock_de_depart
+        description: "Niveau du stock de départ après le mouvement."
+
+      - name: stock_de_destination
+        description: >
+          Stock crédité : `ST - <technicien>`, `NN - <dépôt>` ou `Intervention - <n°>`. NULL pour
+          une sortie.
+
+      - name: quantite_stock_de_destination
+        description: "Niveau du stock de destination après le mouvement."
+
+      - name: utilisateur
+        description: >
+          Nom de l'utilisateur Yuman, sans identifiant. NULL pour les automatismes ;
+          `Import de données` désigne un import, pas un utilisateur.
+
+      - name: observation
+        description: "Libellé système (Inventaire, RAZ stock…), date ou texte libre."
+
+      - name: _export_yuman
+        description: "Numéro de l'export côté Yuman, pour la traçabilité."
+
+      - name: extracted_at
+        description: "Instant du run d'extraction qui a chargé la journée."
+        tests:
+          - not_null
+
+      - name: _dlt_id
+        description: >
+          Clé de ligne générée par dlt, seule clé disponible. Régénérée à chaque rechargement :
+          ne jamais s'en servir comme clé persistante (snapshot, incrémental en aval).
+        tests:
+          - unique
+          - not_null

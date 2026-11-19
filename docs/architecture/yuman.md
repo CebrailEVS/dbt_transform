@@ -11,7 +11,8 @@ Fraîcheur : [`docs/freshness.md`](../freshness.md). Cadence : [`docs/pipeline-s
 Yuman est l'outil de gestion des interventions terrain (workorders) et des demandes
 d'intervention. Il alimente la facturation, le pilotage du SAV et le suivi des partenaires. Le
 stock théorique, que l'API n'expose pas, arrive par un second pipeline : voir
-[`yuman_evs_sftp.md`](yuman_evs_sftp.md).
+[`yuman_evs_sftp.md`](yuman_evs_sftp.md). Le journal des mouvements de stock arrive par l'interface web :
+voir [`yuman_evs_web.md`](yuman_evs_web.md).
 
 ---
 
