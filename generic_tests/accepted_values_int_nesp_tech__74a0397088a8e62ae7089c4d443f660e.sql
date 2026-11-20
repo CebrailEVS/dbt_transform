@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="statut_facturation", model=get_where_subquery(ref('int_nesp_tech__intervention_technique')), values=["VALIDATED","NOT VALIDATED","NOT DEFINED"]) }}
