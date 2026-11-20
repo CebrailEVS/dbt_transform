@@ -1,0 +1,48 @@
+version: 2
+
+# ============================================================
+# EXPOSURE — application Suivi Tech
+# ============================================================
+# Application web interne (FastAPI, Cloud Run, accès Entra ID) où les managers
+# techniques saisissent leurs retraitements mensuels, calculent les primes des
+# techniciens et produisent le COPIL technique. Code : dépôt APP_SUIVI_TECH.
+#
+# Liste COMPLÈTE de ce que l'app lit dans BigQuery : sa couche de service
+# prod_app_suivi_tech, plus les marts, intermédiaires et seeds qu'elle lit encore
+# en direct. Un changement sur l'un d'eux, ou sur un modèle en amont, a un impact
+# sur l'app : `dbt ls -s +exposure:suivi_tech`.
+# ============================================================
+
+exposures:
+
+  - name: suivi_tech
+    label: "Suivi Tech"
+    type: application
+    maturity: medium
+    description: >
+      Application de retraitement mensuel des interventions techniques (pages de
+      retraitement, dont les pièces détachées des interventions en alerte), de calcul
+      des primes des techniciens et de production du COPIL technique mensuel.
+    owner:
+      name: Etienne Boulinier
+      email: etienne.boulinier@evs-pro.com
+    depends_on:
+      # Couche de service
+      - ref('app_suivi_tech__technique_piece_nespresso')
+      - ref('app_suivi_tech__technique_alerte_conso_aguila')
+      # Marts lus en direct
+      - ref('fct_technique__intervention')
+      - ref('fct_technique__intervention_retraitee')
+      - ref('fct_technique__credit_repair_warranty')
+      - ref('fct_technique__repair')
+      - ref('dim_technique__technician')
+      - ref('fct_neshu__workorder_delai')
+      # Intermédiaire lu en direct (COPIL)
+      - ref('int_nesp_tech__interventions_dedup')
+      # Staging lu par la seule génération du COPIL en ligne de commande
+      - ref('stg_apptech__suivi_tech_astreinte')
+      # Seeds
+      - ref('ref_general__feries_metropole')
+      - ref('ref_nesp_tech__objectifs_volumes')
+      - ref('ref_nesp_tech__key_facturation')
+      - ref('ref_yuman__tech_agence')

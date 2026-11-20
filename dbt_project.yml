@@ -176,6 +176,10 @@ models:
         +schema: app_compta   # prod -> prod_app_compta ; dev/ci -> dataset du target
         +tags: ['compta']
 
+      suivi_tech:
+        +schema: app_suivi_tech   # prod -> prod_app_suivi_tech ; dev/ci -> dataset du target
+        +tags: ['suivi_tech']
+
     exports:
       +schema: export   # prod -> prod_export ; dev/ci -> dataset du target
       +tags: ['exports']

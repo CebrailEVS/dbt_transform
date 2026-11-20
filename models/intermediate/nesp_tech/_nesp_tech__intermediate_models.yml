@@ -359,3 +359,63 @@ models:
         description: Type de machine de la clé de facturation retenue (même génération tarifaire que tarif_factu).
       - name: alias_obj_grp_machine
         description: Groupe de machines de la clé de facturation retenue (même génération tarifaire que tarif_factu).
+
+  - name: int_nesp_tech__alerte_conso_aguila
+    description: >
+      [QUOI MÉTIER]
+      Contrôle qualité des consommations de pièces lors des préventives Nespresso sur
+      machines Aguila : un flag par type d'incohérence (nomenclature PREV / MINIPREV, consigne,
+      kit, filtre, quantités hors kit) et leur compilation. Règles partagées par le mart
+      d'alerting et par le détail des pièces des interventions en alerte.
+
+      [COMMENT CONSTRUITE]
+      Articles de `int_nesp_tech__articles_dedup` sommés par (n_planning, code_article), puis
+      pivotés en indicateurs par intervention (présence PREV / MINIPREV, filtre, kits, quantités
+      hors kit). Joints à `int_nesp_tech__interventions_dedup` et à la référence
+      `ref_nesp_tech__machines_clean` (type de machine). Périmètre : interventions de type '2'
+      (préventives) sur catégorie machine AGUILA, hors états annulée et mise en échec.
+
+      [GRAIN]
+      1 ligne par n_planning (PK).
+
+      [NOTES]
+      `alerte_compile` vaut une chaîne vide quand aucune alerte n'est levée.
+    columns:
+      - name: n_planning
+        description: Identifiant unique de l'intervention (numéro de planning Nomad Repair). PK.
+        tests:
+          - not_null
+          - unique
+      - name: date_fin
+        description: Jour de fin d'intervention (date de `date_heure_fin`, UTC).
+      - name: intervention_type
+        description: Code métier du type d'intervention (toujours '2', préventive, dans ce périmètre).
+      - name: consignes
+        description: Consignes saisies par le technicien lors de l'intervention.
+      - name: categorie_machine
+        description: Catégorie machine issue du référentiel machines (contient AGUILA dans ce périmètre).
+      - name: machine_clean
+        description: Nom machine normalisé via le référentiel machines ('Aguila 2', 'Aguila 4'...).
+      - name: alt_nomenclature
+        description: "'NOMENCLATURE' si la préventive ne compte ni PREV ni MINIPREV, sinon null."
+      - name: alt_coherence_consigne
+        description: "'CONSIGNE' si l'article PREV / MINIPREV consommé ne correspond pas à la consigne, sinon null."
+      - name: alt_prevcompletekit
+        description: "'PAS DE KIT' si PREV est consommé sans kit, sinon null."
+      - name: alt_kit_typemachine
+        description: "'KIT INCOHERENT' si le kit consommé ne correspond pas au type de machine Aguila, sinon null."
+      - name: alt_filtre_consomme
+        description: "'PAS DE FILTRE' si le filtre EVERPUREXL n'est pas consommé, sinon null."
+      - name: alt_nb_kits
+        description: "'PLUSIEURS KITS' si plus d'un kit est consommé, sinon null."
+      - name: alt_conso_hors_kit
+        description: >
+          'PROBLEME KIT + AUTRES' (kit et pièces hors kit consommés ensemble) ou
+          'QUANTITES INCOHERENTES' (quantités hors kit différentes de celles attendues pour la
+          machine, sans kit), sinon null.
+      - name: alerte_compile
+        description: >
+          Alertes détectées jointes par '-' (ALERTE1-ALERTE2). Chaîne vide si aucune alerte,
+          jamais null.
+        tests:
+          - not_null

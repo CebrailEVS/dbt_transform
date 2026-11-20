@@ -1287,9 +1287,10 @@ models:
       métier d'alerting.
 
       [COMMENT CONSTRUITE]
-      Consolidation des consommations d'articles par intervention (depuis
-      `int_nesp_tech__*`) avec application des règles métier d'alerting :
-      flags binaires sur chaque type d'incohérence détectable.
+      Lecture de `int_nesp_tech__alerte_conso_aguila`, qui consolide les
+      consommations d'articles par intervention et applique les règles métier
+      d'alerting (un flag par type d'incohérence détectable). Le mart y ajoute les
+      colonnes de traçabilité dbt.
 
       [GRAIN]
       1 ligne par intervention Aguila.
