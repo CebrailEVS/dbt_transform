@@ -33,7 +33,7 @@ pieces_dedup as (
     from pieces
     qualify row_number() over (
         partition by code_article
-        order by (product_reference = 'EVS_NESPRESSO_' || code_article) desc, product_id
+        order by (product_reference = 'EVS_NESPRESSO_' || code_article) desc, product_id asc
     ) = 1
 )
 

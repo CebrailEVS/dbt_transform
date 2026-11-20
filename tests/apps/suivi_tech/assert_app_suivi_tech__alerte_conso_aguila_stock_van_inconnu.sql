@@ -13,7 +13,7 @@ with stock_van_inconnu as (
             where p.stock_van_veille is null
         ) as a_une_piece_sans_stock_connu,
         d.alerte_compile like '%POSE SANS STOCK%' as a_pose_sans_stock
-    from {{ ref('fct_technique__alerte_conso_aguila_detail') }} as d
+    from {{ ref('app_suivi_tech__technique_alerte_conso_aguila') }} as d
     where d.alerte_compile like '%STOCK VAN INCONNU%'
 )
 

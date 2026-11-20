@@ -2,10 +2,6 @@
     materialized='table'
 ) }}
 
--- Aucune colonne de ce mart ne doit porter un nom déjà présent dans
--- fct_technique__intervention_retraitee : l'application Suivi Tech joint les deux modèles
--- et sélectionne ses colonnes sans qualificatif de table.
-
 -- Population : interventions en alerte de consommation (alerte_compile non vide), avec une
 -- pose sans stock (quantité posée d'une pièce contrôlée supérieure au stock du van la veille)
 -- ou avec un stock van inconnu (van absent de l'export retenu). Les alertes viennent de
@@ -20,17 +16,25 @@ with alertes_int as (
     where coalesce(alerte_compile, '') != ''
 ),
 
--- Un nomad_id = un van. dim_technique__technician ne garantit pas l'unicité de nomad_id :
+-- Van du technicien : fiche Yuman (technicien, ou manager technicien) jointe à son stock, lue
+-- au staging (règle apps : pas de mart). Un nomad_id = un van, rien ne garantit son unicité :
 -- on garde la fiche active, à défaut la plus récemment mise à jour.
 tech as (
     select
-        lower(nomad_id) as nomad_id,
-        storehouses_name
-    from {{ ref('dim_technique__technician') }}
-    where nomad_id is not null
+        lower(u.nomad_id) as nomad_id,
+        s.storehouses_name
+    from {{ ref('stg_yuman__users') }} as u
+    left join {{ ref('stg_yuman__storehouses') }} as s
+        on u.user_id = s.storehouses_id
+    where
+        u.nomad_id is not null
+        and (
+            u.user_type = 'technician'
+            or (u.user_type = 'manager' and u.is_manager_as_technician)
+        )
     qualify row_number() over (
-        partition by lower(nomad_id)
-        order by is_active desc, updated_at desc
+        partition by lower(u.nomad_id)
+        order by u.is_active desc, u.updated_at desc
     ) = 1
 ),
 
@@ -83,8 +87,9 @@ pieces as (
         concat('EVS_NESPRESSO_', upper(ar.code_article))
 ),
 
--- Pas d'export de stock le dimanche : pour chaque date de pose, dernier export global
--- strictement antérieur, au plus 3 jours avant. Aucun export trouvé : stock inconnu (null).
+-- L'export daté J est écrit vers minuit et chargé vers 5 h 30 UTC : il porte l'état du soir de
+-- J-1. Stock de la veille d'une pose = dernier export daté au plus tard du jour de la pose, au
+-- plus 3 jours avant (trous d'export). Aucun export trouvé : stock inconnu (null).
 export_dates as (
     select distinct export_date
     from {{ ref('stg_yuman_evs_sftp__stock_theorique') }}
@@ -97,7 +102,7 @@ export_veille as (
     from (select distinct date_pose from candidats) as p
     inner join export_dates as e
         on
-            p.date_pose > e.export_date
+            p.date_pose >= e.export_date
             and date_sub(p.date_pose, interval 3 day) <= e.export_date
     group by p.date_pose
 ),
@@ -139,7 +144,7 @@ pieces_detail as (
         p.libelle,
         p.quantite,
         -- Un prix à 0 du seed est un tarif inconnu, pas une pièce gratuite
-        -- (même règle que dim_technique__piece_nespresso).
+        -- (même règle que app_suivi_tech__technique_piece_nespresso).
         nullif(prix.article_prix_unitaire, 0) as prix_unitaire,
         nullif(prix.article_prix_unitaire, 0) * p.quantite as montant,
         -- Van ou export inconnu : null. Van absent de l'export : null (trou de données).

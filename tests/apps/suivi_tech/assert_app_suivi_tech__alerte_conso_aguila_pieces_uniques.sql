@@ -4,7 +4,7 @@ select
     d.n_planning,
     p.code_article,
     count(*) as nb
-from {{ ref('fct_technique__alerte_conso_aguila_detail') }} as d
+from {{ ref('app_suivi_tech__technique_alerte_conso_aguila') }} as d
 cross join unnest(d.pieces) as p
 group by d.n_planning, p.code_article
 having count(*) > 1

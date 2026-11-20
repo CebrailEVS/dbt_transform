@@ -1,4 +1,4 @@
--- Le mart de détail contient toutes les interventions en alerte de l'intermédiaire source, plus
+-- Le modèle contient toutes les interventions en alerte de l'intermédiaire source, plus
 -- celles à pose sans stock ou à stock van inconnu, et aucune autre : toute ligne a une alerte de
 -- l'intermédiaire ou porte POSE SANS STOCK ou STOCK VAN INCONNU. Retourne une ligne par écart.
 with source as (
@@ -13,12 +13,12 @@ detail as (
     select
         n_planning,
         alerte_compile
-    from {{ ref('fct_technique__alerte_conso_aguila_detail') }}
+    from {{ ref('app_suivi_tech__technique_alerte_conso_aguila') }}
 )
 
 select
     source.n_planning,
-    'alerte intermediaire absente du mart' as ecart
+    'alerte intermediaire absente du modele' as ecart
 from source
 left join detail
     on source.n_planning = detail.n_planning

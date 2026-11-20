@@ -12,7 +12,7 @@ with pose_sans_stock as (
                 on p.code_article = pc.code_article
             where p.stock_van_veille is not null and p.quantite > p.stock_van_veille
         ) as a_une_pose_sans_stock
-    from {{ ref('fct_technique__alerte_conso_aguila_detail') }} as d
+    from {{ ref('app_suivi_tech__technique_alerte_conso_aguila') }} as d
 )
 
 select
