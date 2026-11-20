@@ -90,7 +90,7 @@ models:
       `storehouses_name` de `stg_yuman__storehouses`, joint à la fiche Yuman du technicien
       (`stg_yuman__users`) sur `nomad_id`, une fiche par `nomad_id` (l'active, à défaut la
       plus récente). Stock : export de stock Yuman daté au plus tard du jour de fin
-      d'intervention, au plus 3 jours avant (l'export daté J porte l'état du soir de J-1),
+      d'intervention (heure de Paris), au plus 3 jours avant (l'export daté J porte l'état du soir de J-1),
       sommé par van et référence (la source contient des lignes en double). Prix : seed
       `ref_nesp_tech__articles_prix`.
 

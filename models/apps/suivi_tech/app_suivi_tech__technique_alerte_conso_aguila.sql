@@ -47,12 +47,13 @@ avec_piece_controlee as (
 ),
 
 -- Interventions candidates, hors annulées ou en échec, tous types confondus : celles en alerte
--- et celles qui portent une pièce contrôlée. date_pose : jour de fin d'intervention.
+-- et celles qui portent une pièce contrôlée. date_pose : jour de fin d'intervention à Paris
+-- (date_heure_fin est en UTC : sans fuseau, une fin entre 0 h et 2 h tomberait la veille).
 candidats as (
     select
         i.n_planning,
         a.alerte_compile as alerte_int,
-        cast(i.date_heure_fin as date) as date_pose,
+        date(i.date_heure_fin, 'Europe/Paris') as date_pose,
         t.storehouses_name as van_technicien
     from {{ ref('int_nesp_tech__interventions_dedup') }} as i
     left join alertes_int as a
