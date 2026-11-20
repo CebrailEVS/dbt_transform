@@ -263,6 +263,8 @@ select
         when is_workorder_currently_paused then 'EN_PAUSE'
         when workorder_status = 'In progress' then 'EN_COURS'
         when workorder_status = 'Scheduled' then 'PLANIFIEE'
+        -- Open = bon cree a l'acceptation de la demande, pas encore affecte a un technicien
+        when workorder_status = 'Open' then 'A_PLANIFIER'
         when workorder_status is null and demand_status = 'Open' then 'DEMANDE_OUVERTE'
         when workorder_status is null and demand_status = 'Rejected' then 'DEMANDE_REJETEE'
         else 'AUTRE'

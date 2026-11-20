@@ -5,8 +5,8 @@
 
     Chaque ligne = une demande d'intervention enrichie avec son workorder associé.
     La colonne intervention_state (état métier canonique, défini une seule fois dans
-    int_yuman__demands_workorders_enriched) est la source de vérité de l'état. Les 7
-    premiers flags d'alerte en sont de simples projections booléennes — aucune logique
+    int_yuman__demands_workorders_enriched) est la source de vérité de l'état. Les flags
+    d'alerte d'état en sont de simples projections booléennes — aucune logique
     d'état n'est recalculée ici, ce qui garantit l'iso avec int_yuman__interventions.
 
     Flags dérivés de l'état canonique :
@@ -15,6 +15,7 @@
       - alerte_demand_rejected       : intervention_state = DEMANDE_REJETEE (demande sans workorder, Rejected)
       - alerte_non_realisee          : intervention_state = NON_REALISEE (workorder Closed AVEC motif)
       - alerte_planifiee             : intervention_state = PLANIFIEE (Scheduled)
+      - alerte_a_planifier           : intervention_state = A_PLANIFIER (workorder Open, sans technicien)
       - alerte_cloturee              : intervention_state = REALISEE (vraie clôture, sans motif de non-intervention)
       - alerte_pause                 : intervention_state = EN_PAUSE (pause active : In progress avec champ de pause)
 
@@ -156,10 +157,13 @@ select
     -- 5. Intervention planifiée (Scheduled)
     base.intervention_state = 'PLANIFIEE' as alerte_planifiee,
 
-    -- 6. Intervention clôturée et réalisée (vraie clôture, sans motif de non-intervention)
+    -- 6. Bon de travail créé, sans technicien affecté (workorder Open)
+    base.intervention_state = 'A_PLANIFIER' as alerte_a_planifier,
+
+    -- 7. Intervention clôturée et réalisée (vraie clôture, sans motif de non-intervention)
     base.intervention_state = 'REALISEE' as alerte_cloturee,
 
-    -- 7. Intervention actuellement en pause (In progress avec champ de pause renseigné)
+    -- 8. Intervention actuellement en pause (In progress avec champ de pause renseigné)
     base.intervention_state = 'EN_PAUSE' as alerte_pause,
 
     -- -------------------------------------------------------------------------
@@ -167,14 +171,14 @@ select
     -- (logique temporelle / SLA, sans équivalent dans intervention_state)
     -- -------------------------------------------------------------------------
 
-    -- 8. Intervention démarrée avant aujourd'hui et toujours ouverte (staleness)
+    -- 9. Intervention démarrée avant aujourd'hui et toujours ouverte (staleness)
     (
         base.workorder_status != 'Closed'
         and base.date_started is not null
         and date(base.date_started) < current_date('Europe/Paris')
     ) as alerte_en_cours_non_cloture,
 
-    -- 9. Curative hors délais : > 3 jours ouvrés depuis la création, encore ouverte
+    -- 10. Curative hors délais : > 3 jours ouvrés depuis la création, encore ouverte
     coalesce(bde.nb_jours_ouvrables_ecoules, 0) > 3 as alerte_hors_delais
 
 from base
