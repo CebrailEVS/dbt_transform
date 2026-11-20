@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["n_planning"], model=get_where_subquery(ref('app_suivi_tech__technique_alerte_conso_aguila'))) }}

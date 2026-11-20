@@ -1,0 +1,1 @@
+{{ test_accepted_values(column_name="famille", model=get_where_subquery(ref('ref_nesp_tech__piece_controle_stock')), values=["kit","hors_kit"]) }}

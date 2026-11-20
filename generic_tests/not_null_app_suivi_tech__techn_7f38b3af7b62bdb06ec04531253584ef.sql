@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="alerte_compile", model=get_where_subquery(ref('app_suivi_tech__technique_alerte_conso_aguila'))) }}

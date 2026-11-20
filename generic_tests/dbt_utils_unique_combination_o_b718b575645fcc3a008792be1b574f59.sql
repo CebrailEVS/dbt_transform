@@ -1,0 +1,1 @@
+{{ dbt_utils.test_unique_combination_of_columns(combination_of_columns=["code_article"], model=get_where_subquery(ref('app_suivi_tech__technique_piece_nespresso'))) }}

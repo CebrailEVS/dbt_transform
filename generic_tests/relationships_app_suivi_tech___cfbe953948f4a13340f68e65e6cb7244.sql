@@ -1,0 +1,1 @@
+{{ test_relationships(column_name="n_planning", field="n_planning", model=get_where_subquery(ref('app_suivi_tech__technique_alerte_conso_aguila')), to=ref('int_nesp_tech__interventions_dedup')) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}

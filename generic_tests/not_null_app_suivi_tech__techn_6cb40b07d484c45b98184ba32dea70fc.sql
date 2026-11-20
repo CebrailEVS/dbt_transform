@@ -1,0 +1,1 @@
+{{ test_not_null(column_name="product_reference", model=get_where_subquery(ref('app_suivi_tech__technique_piece_nespresso'))) }}

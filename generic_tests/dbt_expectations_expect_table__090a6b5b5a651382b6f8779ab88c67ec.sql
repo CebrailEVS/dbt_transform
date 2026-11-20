@@ -1,0 +1,1 @@
+{{ dbt_expectations.test_expect_table_row_count_to_be_between(max_value=5000, min_value=100, model=get_where_subquery(ref('app_suivi_tech__technique_alerte_conso_aguila'))) }}{{ config({"meta":{},"severity":"WARN","tags":[]}) }}
