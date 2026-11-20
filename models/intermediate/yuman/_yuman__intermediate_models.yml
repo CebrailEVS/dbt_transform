@@ -463,3 +463,40 @@ models:
         description: Date de début réel de l'intervention.
       - name: date_done
         description: Date de clôture de l'intervention (clé de partitionnement).
+
+  - name: int_yuman__intervention_technique
+    description: >
+      [QUOI MÉTIER]
+      Interventions Yuman réalisées, tous partenaires, au format commun des interventions
+      techniques, partagé avec int_nesp_tech__intervention_technique : une ligne par
+      intervention, avec sa facturation, son délai et ses drapeaux de primes.
+
+      [COMMENT CONSTRUITE]
+      int_yuman__interventions filtré sur intervention_state = 'REALISEE', renommé au format
+      commun. Pas de bonus ni de délai en heures ouvrées côté Yuman : bonus_bool = false,
+      delai_heures_* = 0, delai_tech = delai_partenaire = type_delai.
+
+      [GRAIN]
+      1 ligne par intervention. PK = key_inter ('YUMAN_' + workorder_id).
+
+      [NOTES]
+      Lu par fct_technique__intervention, qui l'unit à la branche Nomad : même liste de
+      colonnes, dont le sens par source est décrit dans ce mart. Le technicien est rattaché
+      dans le mart, avec celui de la branche Nomad.
+    columns:
+      - name: key_inter
+        description: PK = 'YUMAN_' + intervention_id. Même format que la branche Nomad, pour l'union.
+        tests:
+          - not_null
+          - unique
+      - name: intervention_id
+        description: workorder_id (PK Yuman), en texte. Le numéro visible est numero_pu.
+      - name: tech_id
+        description: technician_id Yuman, en texte. Résolu en technicien dans fct_technique__intervention.
+      - name: flag_montagne_prime
+        description: >
+          Toujours 0 : la prime montagne est une règle de la grille Nespresso.
+      - name: flag_paris_intramuros
+        description: 1 si le code postal commence par '75', sinon 0.
+      - name: flag_hors_delai_tech
+        description: 1 si delai_tech vaut J++ ou J+3 sur une clé de facturation curative, sinon 0.
