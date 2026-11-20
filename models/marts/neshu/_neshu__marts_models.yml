@@ -2212,13 +2212,14 @@ models:
       - name: intervention_state
         description: >
           État métier de l'intervention : REALISEE, NON_REALISEE (bon clos avec un motif de
-          non-intervention), EN_COURS, EN_PAUSE, PLANIFIEE, DEMANDE_OUVERTE (pas encore de bon),
-          DEMANDE_REJETEE, AUTRE (filet, vide aujourd'hui).
+          non-intervention), EN_COURS, EN_PAUSE, PLANIFIEE, A_PLANIFIER (bon créé, sans technicien
+          affecté), DEMANDE_OUVERTE (pas encore de bon), DEMANDE_REJETEE, AUTRE (filet des statuts
+          Yuman non prévus).
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: [REALISEE, NON_REALISEE, EN_COURS, EN_PAUSE, PLANIFIEE, DEMANDE_OUVERTE, DEMANDE_REJETEE, AUTRE]
+                values: [REALISEE, NON_REALISEE, EN_COURS, EN_PAUSE, PLANIFIEE, A_PLANIFIER, DEMANDE_OUVERTE, DEMANDE_REJETEE, AUTRE]
       - name: has_been_paused
         description: >
           True si le bon a été mis en pause au moins une fois, pause en cours ou passée : Yuman garde

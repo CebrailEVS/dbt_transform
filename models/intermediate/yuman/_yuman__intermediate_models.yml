@@ -124,6 +124,7 @@ models:
           NON_REALISEE (workorder Closed MAIS motif/détail de non-intervention renseigné) ;
           EN_PAUSE (In progress avec champ de pause renseigné) ;
           EN_COURS (In progress sans pause) ; PLANIFIEE (Scheduled) ;
+          A_PLANIFIER (workorder Open : créé à l'acceptation de la demande, sans technicien affecté) ;
           DEMANDE_OUVERTE (pas de workorder, demande Open) ;
           DEMANDE_REJETEE (pas de workorder, demande Rejected) ;
           AUTRE (filet de sécurité, capte tout statut Yuman futur non prévu).
@@ -137,6 +138,7 @@ models:
                   - EN_PAUSE
                   - EN_COURS
                   - PLANIFIEE
+                  - A_PLANIFIER
                   - DEMANDE_OUVERTE
                   - DEMANDE_REJETEE
                   - AUTRE
@@ -303,6 +305,7 @@ models:
           EN_PAUSE (workorder In progress avec champ de pause renseigné) ;
           EN_COURS (workorder In progress sans pause) ;
           PLANIFIEE (workorder Scheduled) ;
+          A_PLANIFIER (workorder Open : créé à l'acceptation de la demande, sans technicien affecté) ;
           DEMANDE_OUVERTE (pas de workorder, demande Open) ;
           DEMANDE_REJETEE (pas de workorder, demande Rejected) ;
           AUTRE (filet de sécurité : capte tout statut Yuman non prévu).
@@ -316,6 +319,7 @@ models:
                   - EN_PAUSE
                   - EN_COURS
                   - PLANIFIEE
+                  - A_PLANIFIER
                   - DEMANDE_OUVERTE
                   - DEMANDE_REJETEE
                   - AUTRE

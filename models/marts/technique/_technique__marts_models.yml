@@ -778,7 +778,7 @@ models:
         description: >
           État métier canonique de l'intervention, repris de
           `int_yuman__demands_workorders_enriched` (source de vérité). Valeurs :
-          REALISEE, NON_REALISEE, EN_COURS, EN_PAUSE, PLANIFIEE,
+          REALISEE, NON_REALISEE, EN_COURS, EN_PAUSE, PLANIFIEE, A_PLANIFIER,
           DEMANDE_OUVERTE, DEMANDE_REJETEE, AUTRE. Axe de filtrage principal de
           la consommation.
         tests:
@@ -790,6 +790,7 @@ models:
                   - EN_COURS
                   - EN_PAUSE
                   - PLANIFIEE
+                  - A_PLANIFIER
                   - DEMANDE_OUVERTE
                   - DEMANDE_REJETEE
                   - AUTRE
@@ -1061,10 +1062,10 @@ models:
       - name: intervention_state
         description: >
           État métier canonique de l'intervention (REALISEE, NON_REALISEE, EN_PAUSE,
-          EN_COURS, PLANIFIEE, DEMANDE_OUVERTE, DEMANDE_REJETEE, AUTRE). Passthrough
-          depuis int_yuman__demands_workorders_enriched : source de vérité unique de
-          l'état, dont dérivent les 7 premiers flags alerte_*. Voir la doc complète sur
-          int_yuman__demands_workorders_enriched.
+          EN_COURS, PLANIFIEE, A_PLANIFIER, DEMANDE_OUVERTE, DEMANDE_REJETEE, AUTRE).
+          Passthrough depuis int_yuman__demands_workorders_enriched : source de vérité
+          unique de l'état, dont dérivent les flags alerte_* d'état. Voir la doc complète
+          sur int_yuman__demands_workorders_enriched.
         tests:
           - accepted_values:
               arguments:
@@ -1074,6 +1075,7 @@ models:
                   - EN_PAUSE
                   - EN_COURS
                   - PLANIFIEE
+                  - A_PLANIFIER
                   - DEMANDE_OUVERTE
                   - DEMANDE_REJETEE
                   - AUTRE
@@ -1113,6 +1115,10 @@ models:
           non-intervention (intervention non effectuée).
       - name: alerte_planifiee
         description: "intervention_state = PLANIFIEE : intervention planifiée (Scheduled)"
+      - name: alerte_a_planifier
+        description: >
+          intervention_state = A_PLANIFIER : bon de travail créé à l'acceptation de la
+          demande mais sans technicien affecté (workorder Open).
       - name: alerte_cloturee
         description: "intervention_state = REALISEE : intervention clôturée et réalisée (sans motif de non-intervention)"
       - name: alerte_pause
