@@ -5,34 +5,30 @@ models:
     description: |
       [QUOI MÉTIER]
       Fait consolidé des interventions techniques EVS, tous partenaires
-      confondus. 1 ligne = 1 intervention réalisée. Couvre Nespresso (via Nomad
-      Repair, source `nesp_tech`) et les partenaires Yuman (NESHU, BRITA, AUUM,
-      TWYD, NU, EXPRESSO, FONTAINCO, DAAN). Base des indicateurs opérationnels,
+      confondus. 1 ligne = 1 intervention : non annulée côté Nespresso (via Nomad
+      Repair, source `nesp_tech`, mises en échec comprises), réalisée côté Yuman
+      (NESHU, BRITA, AUUM, TWYD, NU, EXPRESSO, FONTAINCO, NAYKA, DAAN). Base des indicateurs opérationnels,
       de la facturation partenaire et du calcul des primes techniciens (bonus
       délai, prime montagne, Paris intramuros).
 
       [COMMENT CONSTRUITE]
-      UNION ALL de 2 chaînes homogénéisées au même format, séparées par la
-      colonne `src_inter` (NESP / YUMAN) :
-      - branche NESP : `int_nesp_tech__interventions_dedup` (1 ligne par
-        n_planning) + LEFT JOIN `int_nesp_tech__facturation_interventions`
-        (key_factu, montant, prod) + LEFT JOIN `int_nesp_tech__delais_interventions`
-        (SLA jours/heures, bonus) + LEFT JOIN seed `ref_nesp_tech__key_facturation`
-        (libellés objets). Filtre de population : `etat_intervention != 'annulée'`.
-      - branche YUMAN : `int_yuman__interventions` — modèle intermediate unique
-        portant tarification + délai + état métier. Filtre de population :
-        `intervention_state = 'REALISEE'` (workorder Closed et réellement effectué).
-      Enrichissement commun (CTE `interventions_enrichies`) : durée, flags primes
-      (montagne / Paris / hors-délai), mapping technicien via `stg_yuman__users`
-      (jointure conditionnelle : `nomad_id` côté NESP, `user_id` côté YUMAN) et
-      seed `ref_nesp_tech__cps_montagne_primes`.
+      UNION ALL de 2 intermédiaires au même format, séparés par la colonne
+      `src_inter` (NESP / YUMAN), qui portent chacun la logique de leur source
+      (population, facturation, délais, durée, drapeaux de primes) :
+      - `int_nesp_tech__intervention_technique` : dédup + facturation + délais
+        Nomad, interventions non annulées ;
+      - `int_yuman__intervention_technique` : `int_yuman__interventions`,
+        interventions réalisées (workorder Closed et réellement effectué).
+      Le mart ne garde que ce qui croise les sources : l'union, et le
+      rattachement du technicien via `stg_yuman__users` (`nomad_id` côté NESP,
+      `user_id` côté YUMAN).
 
       [GRAIN]
       1 ligne par intervention. PK = `key_inter` = `src_inter` + '_' + `intervention_id`.
 
       [NOTES]
-      - Filtres répartis sur 3 niveaux (intermediate → CTE du fait → jointures
-        LEFT). Côté NESP, `montant` / `key_factu` / `prod` sont NULL hors états
+      - Filtres répartis sur 3 niveaux (intermédiaires amont → intermédiaires
+        au format commun → jointures LEFT). Côté NESP, `montant` / `key_factu` / `prod` sont NULL hors états
         terminée signée / signature différée / mise en échec ; `delai_*` et
         `bonus_*` sont NULL hors états terminée signée / signature différée
         (filtre interne à `int_nesp_tech__delais_interventions`). Le périmètre
@@ -280,8 +276,8 @@ models:
       - name: flag_montagne_prime
         description: >
           1 si l'intervention est éligible à une prime montagne (`key_factu`
-          contenant Aguila + Montagne et CP en zone montagne), sinon 0. En
-          pratique NESP uniquement (format `key_factu` Yuman différent).
+          contenant Aguila + Montagne et CP en zone montagne), sinon 0. Toujours 0
+          côté YUMAN : la prime montagne est une règle de la grille Nespresso.
 
       - name: flag_paris_intramuros
         description: 1 si le `code_postal` commence par '75' (Paris intramuros), sinon 0.

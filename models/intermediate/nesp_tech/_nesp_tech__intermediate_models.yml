@@ -122,6 +122,55 @@ models:
       - name: rn
         description: Rang technique issu de la déduplication staging. Sans usage métier.
 
+  - name: int_nesp_tech__intervention_technique
+    description: >
+      [QUOI MÉTIER]
+      Interventions Nespresso (Nomad Repair) au format commun des interventions techniques,
+      partagé avec int_yuman__intervention_technique : une ligne par intervention non annulée,
+      avec sa facturation, ses délais et ses drapeaux de primes.
+
+      [COMMENT CONSTRUITE]
+      int_nesp_tech__interventions_dedup + LEFT JOIN int_nesp_tech__facturation_interventions
+      et int_nesp_tech__delais_interventions sur n_planning ; zone montagne lue dans le seed
+      ref_nesp_tech__cps_montagne_primes. Filtre : etat_intervention != 'annulée'.
+
+      [GRAIN]
+      1 ligne par intervention. PK = key_inter ('NESP_' + n_planning).
+
+      [NOTES]
+      Lu par fct_technique__intervention, qui l'unit à la branche Yuman : même liste de
+      colonnes, dont le sens par source est décrit dans ce mart. Le technicien n'est pas
+      résolu ici : son id Nomad se retrouve dans les utilisateurs Yuman, ce qui croise les
+      sources.
+    columns:
+      - name: key_inter
+        description: PK = 'NESP_' + intervention_id. Même format que la branche Yuman, pour l'union.
+        tests:
+          - not_null
+          - unique
+      - name: intervention_id
+        description: n_planning (Nomad Repair), en texte.
+      - name: tech_id
+        description: >
+          Identifiant Nomad du technicien (n_tech). Résolu en technicien Yuman dans
+          fct_technique__intervention.
+      - name: statut_facturation
+        description: >
+          Mappé depuis etat_intervention : VALIDATED (terminée signée, signature différée,
+          terminée non signée), NOT VALIDATED (mise en échec), NOT DEFINED sinon.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['VALIDATED', 'NOT VALIDATED', 'NOT DEFINED']
+      - name: flag_montagne_prime
+        description: >
+          1 si key_factu contient « Aguila » et « Montagne » et que le code postal est en zone
+          montagne (seed ref_nesp_tech__cps_montagne_primes), sinon 0.
+      - name: flag_paris_intramuros
+        description: 1 si le code postal commence par '75', sinon 0.
+      - name: flag_hors_delai_tech
+        description: 1 si delai_tech vaut J++ ou J+3 sur une clé de facturation curative, sinon 0.
+
   - name: int_nesp_tech__articles_dedup
     description: >
       [QUOI MÉTIER]
